@@ -1,0 +1,151 @@
+SIMU:
+{
+	#MeshName	= "meshes/mesh3df.txt";
+	MeshName	= "meshes/neumann_test.msh";
+	#MeshName	= "meshes/testcube_fb_periodic.msh";
+	#MeshName 	= "meshes/testcube.msh";
+	#MeshName	= "meshes/testcube_periodic.msh";
+	#MeshName   = "meshes/testcube_fb_periodic.msh";
+	#MeshName    = "meshes/frontback_flat_periodic.msh";
+	EndCriterion 	= "Iterations";		// This can be either "Iterations" , "Time" or "Change"
+	EndValue		= 1; 
+	dt				= 1e-9; 
+	Maxdt			= 100e-6;
+	MaxError		= 1e-3;
+	#LoadQ			= "result00090.dat";
+	OutputEnergy	= 1;
+	StretchVector   = (1.0, 1.0, 1.0);
+	#SaveDir			= "aa";
+};
+
+LC:
+{
+ #Elastic Coefficients
+	K11 = 10e-12;
+	K22 = 10e-12;
+	K33 = 10e-12;
+	#K11 = 6.2e-12; # 5CB 
+	#K22 = 3.9e-12;
+	#K33 = 8.2e-12;
+    p0 = 0.0e-6;
+   
+// Thermotropic coefficients
+	#A   = 0.00e6;
+	#B   = -0.3e6;
+	#C   = 0.5e6;
+	#thermotropic values 5CB
+	#A = -0.12e6;  #0.13*(4/6)*(-4)*1e6;
+	#B = -2.1333e6;  #1.6*(4/3)*1e6;
+	#C =  1.7333e6;  #3.9*(4/9)*1e6;
+	A   = -0.00e6;
+	B   = -0.64e6;
+	C   = 0.35e6;
+// Dielectric and flexoelectric coefficients
+	eps_par	= 18.5; # parallel
+	eps_per = 7.0;  # perpendicular
+	e11 = 0e-12;  # flexoelectric splay
+	e33 = 0e-12;  # flexoelectric bend
+
+// Leslie viscous coefficients
+	gamma1 = 0.1;
+	gamma2 = 0.1; 
+	alpha1 = 1;
+	alpha4 = 4;
+	alpha5 = 5; 
+	alpha6 = 6;
+};
+
+LC_ORIENTATION:
+{
+	BOX1:
+	{
+		Type = "Normal"; #"Normal" |
+		Params = (1,0);
+		X = (0,2);
+		Y = (0,2);
+		Z = (0.0,1);
+		
+		Tilt = (0,90);
+		Twist = (0,0);
+	};
+	
+	#BOX2:
+	#{
+	#	Type = "Random"; #"Normal" |
+	#	Params = (1,0);
+	#	X = (0.2,1.0);
+	#	Y = (0.2,1.0);
+	#	Z = (0.0,1);
+	#	
+	#	Tilt = ( 45,0);
+	#	Twist = (45,180);
+	#};
+
+
+	
+};
+
+
+ALIGNMENT:
+{
+	FIXLC1:
+	{
+		Anchoring	= "Degenerate"; # Strong , Homeotropic , Weak or Degenerate
+		Strength 	= 0e-3;
+		Easy 		= (80, 45,0);
+		K1 			= 1.0;
+		K2			= 1.0;
+	};
+	
+	FIXLC2:
+	{
+		Anchoring 	= "Degenerate";
+		Strength	= 1e-4;
+		K1			= 1.0;
+		K2 			= 1.0;
+		Easy	= (80,0,0);
+	};
+		
+	
+};
+
+ELECTRODES:
+{
+	E1:
+	{
+		Time = [0];
+		Pot  = [2.5];
+	};
+
+	E2:
+	{
+		Time = [0];
+		Pot  = [-2.5];
+	};
+	
+	eps_dielectric = [9.8, 3.66, 3.66 , 1.0];
+};
+
+MESHREFINEMENT:
+{
+	REGION1:
+	{
+		Type 		= "Point";
+		Params		= (1.0 ,0 ,0,0);
+		Distance 	= (0.5);
+		X			= (1.0);
+		Y			= (1.0);
+		Z			= (1.5);
+	};
+
+#	REGION1:
+#	{
+#		Type		= "Point";
+#		Distance	= (.3);
+#		X			= (0.0);
+#		Y			= (0.0);
+#		Z			= (0.0);
+#	};
+
+
+};

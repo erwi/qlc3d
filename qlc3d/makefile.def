@@ -1,0 +1,40 @@
+#
+#
+#	WINDOWS PATHS
+#
+#
+
+SPARSELIB_DIR			= c:/SparseLib++/1.7
+SPARSELIB_INCLUDE_DIR		= c:/SparseLib++/1.7/include
+SPARSELIB_MV_INCLUDE_DIR	= c:/SparseLib++/1.7/mv/include
+SPARSELIBINCS = -I$(SPARSELIB_INCLUDE_DIR) -I$(SPARSELIB_MV_INCLUDE_DIR)
+
+QLC3D_PATH      = C:\Users\helium3d\Desktop\qlc3dQt
+QLC3D_INCS		= -I$(QLC3D_PATH)/includes
+
+
+#
+#
+#	DETECT IF LINUX
+#
+#
+UNAME = $(shell uname)
+ifeq ($(UNAME), Linux)
+	QLC3D_PATH			= /home/eero/qlc3dQt
+	SPARSELIB_DIR			= /home/eero/SparseLib++/1.7
+	SPARSELIB_INCLUDE_DIR		= $(SPARSELIB_DIR)/include/
+	SPARSELIB_MV_INCLUDE_DIR	= $(SPARSELIB_DIR)/mv/include/
+endif
+
+
+
+INCLUDES 		= $(SPARSELIBINCS) $(QLC3D_INCS)
+
+CCCFLAGS =    '-DCOMPLEX=std::complex<double>'
+CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -DNO_QT  -fopenmp -funroll-loops
+#CFLAGS+= -Wall
+
+
+LDFLAGS	 =	 	$(SPARSELIB_DIR)/lib/libsparse.a \
+				$(SPARSELIB_DIR)/lib/libspblas.a \
+				$(SPARSELIB_DIR)/lib/libmv.a -lm

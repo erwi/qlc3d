@@ -1,0 +1,40 @@
+10. Potential calculation is done even when not needed.
+    Also, dont make a potential matrix when not needed.
+
+9.  Periodic boundaries in mesh refinement.
+
+8.  Periodic boundaries for a full box. Currently only periodic side boundaries exist.
+    Add top/bottom periodic boundaries.
+
+7.  Integrate SparseLib so that the modified SparseLib class files are kept with qlc3d.
+
+4.  Interpolation is simplified -> uniaxial interpolation. should
+    interpolate each eigenvector/eigenvalue istead
+
+============ DONE ==============================
+5.  After autorefinement, the order at some nodes (in non-refined and refined regions)
+    start to increase.
+    - Seems not to happen when only a single refinement iteration is used.
+    12/01/11 - Fixed (by the looks of it, anyways). Problem was in interpolation between meshes.
+    In some cases element in source mesh that contained the new node was identified incorrectly
+    as a non-LC element. This resulted in reading director/order param values from wrong memory
+    locations. Checking for this was added and the program seems much happier.
+
+
+6.  Make changes to SparseLib so that duplicate copies of all data is not made. This should speed things up
+    a lot and allow for larger meshes to be ran on 32bit machines. Change by adding new constructor for
+    double vector in "mvvd.h" and "mvvd.cpp".
+    - Done, needs testing on win32 machine. Also, see #7.
+
+
+3.  Surface normal calculation does not get normal always correct in
+    all positionafter a refinement (test with droplet).
+    09/01/11 - Works now. Surface normal was calculated correctly, but
+    cal to setStrongSurfaces was missing.
+
+2.  Interpolation of results between different meshes goes crazy sometimes, sometimes not.
+    I.E. first ~3 refinements seem OK, then everything eplodes!
+    08/12/10 - interpolation seems OK now, with simplifications (See #4).
+
+1. WRITE NEW OUTPUT MESH FILE WHEN MESH HAS CHANGED AFTER MESH REFINEMENT
+    07/12/10 - SEEMS TO BE WORKING NOW.

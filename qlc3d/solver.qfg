@@ -1,0 +1,41 @@
+Settings:
+{
+	nThreads 	= 4;
+	Q_Solver	= 0;	# 0 = PCG, 1 = GMRES
+	V_Solver	= 1;	# 0 = PCG, 1 = GMRES
+	
+
+	#--------------------------------------------------------
+	#	Q-Tensor solver settings
+	#--------------------------------------------------------
+	
+	Q_Newton_Panic_Iter		= 10;		# reduce time step if newton iterations have not converged
+	Q_Newton_Panic_Coeff	= 0.1;		# If Newton panics, multiply time step by this
+	
+	# Preconditioned Conjugate Gradient Q-tensor solver settings
+	Q_PCG_Preconditioner 	= 0;		# 0 = Diagonal, 1 = Incomplete Cholesky, 2 = Incoplete LU
+	Q_PCG_Maxiter			= 2000;
+	Q_PCG_Toler				= 1e-3;
+		
+	# GMRES Q-tensor solver settings	
+	Q_GMRES_Preconditioner	= 2;		# 0 = Diagonal, 1 = Incomplete Cholesky, 2 = Incoplete LU
+	Q_GMRES_Maxiter			= 2000;
+	Q_GMRES_Restart			= 100;
+	Q_GMRES_Toler			= 1e-3;
+	
+	#-------------------------------------------------------
+	#	Potential solver settings
+	#-------------------------------------------------------
+	
+	# Preconditioned Conjugate Gradient potential solver settings
+	V_PCG_Preconditioner 	= 0;		# 0 = Diagonal, 1 = Incomplete Cholesky, 2 = Incoplete LU
+	V_PCG_Maxiter			= 2000;
+	V_PCG_Toler				= 1e-6;
+		
+	# GMRES potential solver settings	
+	V_GMRES_Preconditioner	= 2;		# 0 = Diagonal, 1 = Incomplete Cholesky, 2 = Incoplete LU
+	V_GMRES_Maxiter			= 2000;
+	V_GMRES_Restart			= 50;
+	V_GMRES_Toler			= 1e-6;
+	
+};
