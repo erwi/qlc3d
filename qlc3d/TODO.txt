@@ -1,3 +1,6 @@
+11. Remove dependencies to Qt, it is annoying. Create own 'filesystem' class
+    that deals with creating directories. 
+
 10. Potential calculation is done even when not needed.
     Also, dont make a potential matrix when not needed.
 
