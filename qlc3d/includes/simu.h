@@ -44,6 +44,7 @@ class Simu
 		string 	LoadDir;
 
 		double 	EndValue;
+		double  EndValue_orig;   // original end values as defined in settings file. this is needed when end refinement is used
 		double  StretchVector[3];
 		double  EnergyRegion[3]; // x,y,z coordinates for determining regions above/below which to calculate energy
 		int 	CurrentIteration;

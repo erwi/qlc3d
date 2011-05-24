@@ -383,8 +383,10 @@ void autoref(   Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new,
         //    simu.setdt( simu.getMindt() );
         simu.IncrementMeshNumber();     // output mesh name will be appended with this number
         simu.setMeshModified( true );   // this is a flag set to notify that a new output file needs to be written
-
-        if ( !simu.IsRunning() ) // if End-Refinement
+		
+		// if this was an end-refinement, need to make changes to simu, so that additional
+		// simulation steps are taken
+        if ( !simu.IsRunning() ) 
         {
             meshrefinement.EndRefinement[0].incrementEndRefIteration(); // increments end refinement counter
             simu.resetEndCriterion(); // resets end citerion = forces additional simulation steps on new mesh

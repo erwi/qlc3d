@@ -411,38 +411,27 @@ int main(int argc, char* argv[]){
 	#ifndef NO_QT
 		cout << "Total iteration duration: " << (float) timer.elapsed()/1000<<"s." << endl;
 	#endif
-//*
-            if( !simu.IsRunning() ){
-                printf("done\n");
-                if ( needsEndRefinement( geom1, q , meshrefinement ) ){
 
-                 
+	// if need end-refinement
+    if ( (!simu.IsRunning() ) && (needsEndRefinement( geom1, q , meshrefinement ) ) )
+	{
+        printf("End refinement\n");
 
-                    printf(" DO SOME REFINEMENT THEN!");
+        delete Kpot;
+        delete Kq;
+                    
+	  	autoref(geom_orig, geom_prev, geom1, q, qn, v,  meshrefinement, simu,alignment, electrodes, lc);
+        Kpot = createSparseMatrix(geom1, v );
+        Kq   = createSparseMatrix(geom1, q, MAT_DOMAIN1);
+        calcpot3d(Kpot,&v,&q,&lc,geom1.t,geom1.e, geom1.getPtrTop(), &settings, &electrodes);
 
-                    delete Kpot;
-                    delete Kq;
-                    autoref(geom_orig, geom_prev, geom1, q, qn, v,  meshrefinement, simu,alignment, electrodes, lc);
-                    Kpot = createSparseMatrix(geom1, v );
-                    Kq   = createSparseMatrix(geom1, q, MAT_DOMAIN1);
-                    calcpot3d(Kpot,&v,&q,&lc,geom1.t,geom1.e, geom1.getPtrTop(), &settings, &electrodes);
+        WriteResult(&simu, &lc, &geom1, &v, &q, &meshrefinement);
 
-                    WriteResult(&simu, &lc, &geom1, &v, &q, &meshrefinement);
-
-                    if ( simu.getdt() > 0.0 )
-                    {
-                        simu.setdt( simu.getMindt() );
-                    }
-
-
-                }
-
-            }
-
-//*/
-
-
-
+        if ( simu.getdt() > 0.0 )
+        {
+            simu.setdt( simu.getMindt() );
+        }
+    }// end if need end-refinement
 
 	}while ( simu.IsRunning() ); // end MAIN LOOP - while simulation is runnning
 

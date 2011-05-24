@@ -6,7 +6,8 @@ Simu::Simu()
 	{
 		PotCons				= Loop;
 		TargetPotCons		= 1e-3;
-		EndValue 			= 1e-3;
+		EndValue 			= 0;
+		EndValue_orig       = 0;
 		MeshName 			= "";
 		LoadQ				= "";
 		SaveDir				= "";
@@ -14,7 +15,7 @@ Simu::Simu()
         MeshNumber          = 0;
         LoadDir				= "";
 		EndCriterion        = "Time";
-
+		
         dt                  = 1e-6;
         dtLimits[0]         = 1e-9;
         dtLimits[1]         = 1e-3;
@@ -26,7 +27,6 @@ Simu::Simu()
         dtFunction[3]       = 10.0;  // S = 2
 
         Maxdt               = 1e-4; // deprecated, use dtLimits[1]
-
 
 		CurrentTime 		= 0;
 		CurrentIteration 	= 0;
@@ -172,7 +172,11 @@ void Simu::setEndCriterion(string ec)
 }
 void Simu::setEndValue(double ev)
 {
-	//printf("setting end value to %f\n\n\n",ev);
+	// this should prevent end-refinement from overwriting original value of endvalue
+	// when resetEndCriterion is called
+	if (EndValue == 0 ) 
+		EndValue_orig = ev;
+		
 	EndValue = ev;
 }
 void Simu::resetEndCriterion()
@@ -191,12 +195,13 @@ set to something large so that simlation is effectively restarted
     }
     else if (this->EndCriterion.compare("Iterations") == 0 )
     {
-        this->setEndValue( this->getEndValue() + 10.0 ); // hack
+        this->setEndValue( this->getEndValue() + this->EndValue_orig ); // end counter by original value defined i nsettings file
     }
-
-    // add code to deal with time and end criterion. these should double
-    // EndValue, but not x 2 x 4 x 8 x 16 ... if you know what I mean.
-
+	else if (this->EndCriterion.compare("Time") == 0 )
+	{
+		this->setEndValue( this->EndValue + this->EndValue_orig );
+	}
+    
 
 }
 
