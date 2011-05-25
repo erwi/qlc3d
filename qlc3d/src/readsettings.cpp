@@ -158,7 +158,9 @@ void readSimu(Simu* simu, Reader& reader)
     ret = 0;
     name = "EndCriterion";
     ret = reader.readString(name , str_var);
-    if ( ret== READER_SUCCESS)
+    
+	
+	if ( ret== READER_SUCCESS)
         simu->setEndCriterion(str_var);
     problem(name, ret);
 

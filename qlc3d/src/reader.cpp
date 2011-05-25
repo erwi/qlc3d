@@ -140,9 +140,9 @@ int Reader::readString(std::string var, std::string& val){
 		std::string line;
                 getline(file, line);
 
-                //printf("line = %s",line.to);
+                
                 val = this->extractRHS(line);
-                //printf(" RHS = %s \n", val);
+                //printf(" RHS =%s. \n", val.c_str() );
 
                 return READER_SUCCESS;
 	}
@@ -241,7 +241,7 @@ bool Reader::removeBlanks(std::string& str){
 			 (str.compare(pos1,1,ret) != 0)	)
 			 {
             temp_str.append( &str.at(pos1) , 1 ) ; // add 1 character only
-            //std::cout << "character is " << str.at(pos1) << std::endl;
+            
         }
     }
 
@@ -333,10 +333,11 @@ std::string Reader::extractRHS( std::string line ){
 	if ( eq != std::string::npos ){ // if equals sign found
 	    line = line.substr(eq+1 , std::string::npos); // keep everthing after '='
 	    // cleanup
-
+		removeComments(line);
 	    removeBlanksAtBeginning(line);
 	    removeBlanksAtEnd(line);
-	    return line;
+	    
+		return line;
 	}
         return std::string(""); // otherwise return empty string
 }

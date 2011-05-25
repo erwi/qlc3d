@@ -1,7 +1,7 @@
 Settings:
 {
 	nThreads 	= 4;
-	Q_Solver	= 0;	# 0 = PCG, 1 = GMRES
+	Q_Solver	= 1;	# 0 = PCG, 1 = GMRES
 	V_Solver	= 1;	# 0 = PCG, 1 = GMRES
 	
 
