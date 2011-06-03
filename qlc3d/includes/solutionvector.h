@@ -11,7 +11,7 @@
 #include <geometry.h>
 //#include "material_numbers.h"
 using std::vector;
-
+using std::list;
 class SolutionVector
 {
 
@@ -27,7 +27,21 @@ private:
         int nFreeNodes; // number of independent degrees of freedom = nDoF - # number of nodes eliminated as periodic
 	void setBooleanFixedNodeList(); // creates list of booleans (bool* IsFixed) for each node true=fixed node, false = free node
 	
-
+	
+	void setCornerElim(	list <int>& corn0, // sets periodic equivalent nodes for 4 corners
+					list <int>& corn1, 	// corn1[i] = corn0[i]
+					list <int>& corn2,   // corn2[i] = corn0[i]
+					list <int>& corn3,   // corn3[i] = corn0[i]
+					int* Elim,
+					const int& dim, // dimension along which corner extends, 0,1,2 -> x,y,z
+					double* coords // node coordinates
+					); 
+	void setFaceElim( list <int>& face0, // face1[i] = face0[i]
+				list <int>& face1,
+				int* Elim,
+				const int& norm, // face normal, 0,1,2 -> x,y,z
+				double* coords); // pointer to node coordinates
+					
 public:
 // DATA
 	bool IsVector;

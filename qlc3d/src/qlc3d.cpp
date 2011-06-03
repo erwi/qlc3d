@@ -263,7 +263,8 @@ int main(int argc, char* argv[]){
     SolutionVector v( geom1.getnp() );
     v.setFixedNodesPot(&electrodes , geom1.e , simu.getCurrentTime());
     v.setPeriodicEquNodes(&geom1 ); // periodic nodes
-    cout << "OK"<<endl;
+    v.EnforceEquNodes(); // makes sure values at periodic boundaries match
+	cout << "OK"<<endl;
 
 // =============================================================
 //
@@ -286,7 +287,8 @@ int main(int argc, char* argv[]){
     }
     q.setFixedNodesQ(&alignment, geom1.e);  // set fixed surface anchoring
     q.setPeriodicEquNodes(&geom1);          // periodic nodes
-    qn=q;                                   // q-previous = q-current in first iteration
+    q.EnforceEquNodes();					// makes sure values at periodic boundaies match
+	qn=q;                                   // q-previous = q-current in first iteration
     cout << "OK" << endl;                   // Q-TENSOR CREATED OK
 
 
@@ -300,17 +302,6 @@ int main(int argc, char* argv[]){
     cout << "Creating matrix for Q-tensor..." << endl;
     SparseMatrix* Kq = createSparseMatrix(geom1, q, MAT_DOMAIN1);
     cout << "Q-tensor matrix OK" << endl;
-
-
-    /* REFINEMENT DEBUGGING*/
-      //                  delete Kpot;
-      //                  delete Kq;
-       //                 autoref(geom_orig, geom_prev, geom1, q, qn, v,  meshrefinement, simu,alignment, electrodes, lc);
-        //                Kpot = createSparseMatrix(geom1, v );
-         //               Kq   = createSparseMatrix(geom1, q, MAT_DOMAIN1);
-                        //calcpot3d(Kpot,&v,&q,&lc,geom1.t,geom1.e, geom1.getPtrTop(), &settings, &electrodes);
-    /* REFINEMENT DEBUGGING*/
-
 
 //********************************************************************
 //*
@@ -335,8 +326,8 @@ int main(int argc, char* argv[]){
 
 
 	// TEMPORARY ARRAYS, USED IN POTENTIAL CONSISTENCY CALCULATIONS
-        simu.setPotCons( Off );
-        double* v_cons = NULL ;
+    simu.setPotCons( Off );
+    double* v_cons = NULL ;
 	double* q_cons = NULL ;
 	double* qn_cons= NULL ;
 	if ( (simu.getPotCons() != Off) && (simu.getdt() > 0 ) ){
