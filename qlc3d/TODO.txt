@@ -6,15 +6,17 @@
 
 9.  Periodic boundaries in mesh refinement.
 
-8.  Periodic boundaries for a full box. Currently only periodic side boundaries exist.
-    Add top/bottom periodic boundaries.
-
 7.  Integrate SparseLib so that the modified SparseLib class files are kept with qlc3d.
 
 4.  Interpolation is simplified -> uniaxial interpolation. should
     interpolate each eigenvector/eigenvalue istead
 
 ============ DONE ==============================
+8.  Periodic boundaries for a full box. Currently only periodic side boundaries exist.
+    Add top/bottom periodic boundaries.
+    03/06/2011 - done and seems to work.
+
+
 5.  After autorefinement, the order at some nodes (in non-refined and refined regions)
     start to increase.
     - Seems not to happen when only a single refinement iteration is used.
@@ -22,6 +24,7 @@
     In some cases element in source mesh that contained the new node was identified incorrectly
     as a non-LC element. This resulted in reading director/order param values from wrong memory
     locations. Checking for this was added and the program seems much happier.
+    ...Actually problem was with not resizing potential vector -> junk potential data in new nodes.
 
 
 6.  Make changes to SparseLib so that duplicate copies of all data is not made. This should speed things up
