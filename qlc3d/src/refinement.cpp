@@ -97,9 +97,6 @@ printf("num surfnodes: %u\n", surf_nodes.size());
 }
 
 
-
-
-
 // GENERATES LIST (vector) OF INDEXES TO TETS THAT ARE CHOSEN FOR REFINEMENT
 
 void get_index_to_tred(vector <unsigned int>& i_tet,
@@ -331,6 +328,277 @@ void fix_green3_red_confusions( vector <unsigned int>& i_tet,		// tets line coun
 	}// end for all tets
 }// end fix_green3_red_confusions
 
+
+
+void gen_peri_lines_vec(peri_lines& plines,
+						Geometry& geom)
+{/*! creates vector of lines that are on periodic surfaces of geometry geom.
+	The lines are unique, i.e. no repetitions. */
+	
+	plines.lfront.clear(); plines.lback.clear();
+	plines.lleft.clear();  plines.lright.clear();	
+	plines.lc0.clear(); plines.lc1.clear(); plines.lc2.clear(); plines.lc3.clear();
+	plines.lca.clear(); plines.lcb.clear(); plines.lcc.clear(); plines.lcd.clear();
+	plines.lcA.clear(); plines.lcB.clear(); plines.lcC.clear(); plines.lcD.clear();
+	
+	// this is a silly shortcut to save typing on detrmining which
+	// surfaces are periodic
+	bool peritype[3] = {geom.getfront_back_is_periodic() ,
+						geom.getleft_right_is_periodic() ,
+						geom.gettop_bottom_is_periodic() };
+	
+	
+	// loop over each surface triangle
+	for (int i = 0 ; i < geom.e->getnElements() ; i++ ) 
+	{
+		// if triangle is periodic
+		if ( geom.e->getMaterialNumber(i) == MAT_PERIODIC )
+		{
+			int* n = geom.e->getPtrToElement( i ); // pointer to element node numbers
+						
+						
+			Line lines[3] = {Line(n[0], n[1]), Line(n[0], n[2]) , Line(n[1], n[2]) };
+			
+			for ( int l = 0 ; l < 3 ; l++)
+			{ // loop over each line and determine its location
+				// Consider 3 cases of periodicity:
+				// 1. FRONT/BACK ONLY
+				// 2. FRONT/BACK and LEFT/RIGHT
+				// 3. FRONY/BACK, LEFT/RIGHT and TOP/BOTTOM
+			
+				//CASE 1, front back only
+				if ( peritype[0] && (!peritype[1]) && (!peritype[2]) )
+				{
+					if ( lines[l].isOnFrontSurface( &geom ) )
+						plines.lfront.push_back( lines[l] );
+					else
+					if ( lines[l].isOnBackSurface( &geom ) )
+						plines.lback.push_back( lines[l] );
+				}
+				else
+				// CASE 2, front/back, left/right
+				if ( (peritype[0] ) && (peritype[1]) && (!peritype[2] ) )
+				{
+					// each line may be in multiple lists when along a corner
+					if ( lines[l].isOnFrontSurface( &geom ) )
+						plines.lfront.push_back( lines[l] );
+					else							
+					if ( lines[l].isOnBackSurface( &geom) )
+						plines.lback.push_back( lines[l] );
+			
+					if ( lines[l].isOnLeftSurface( &geom ) )
+						plines.lleft.push_back( lines[l] );
+					else
+					if (lines[l].isOnRightSurface(&geom) )
+						plines.lright.push_back( lines[l] );
+						
+					// corner lines
+					if ( lines[l].isCorn0( &geom ) )
+						plines.lc0.push_back( lines[l] );
+					else
+					if ( lines[l].isCorn1(&geom) )
+						plines.lc1.push_back( lines[l] );
+					else
+					if ( lines[l].isCorn2(&geom ) )
+					{
+						plines.lc2.push_back( lines[l] );
+						//lines[l].PrintLine();	
+					}
+					else
+					if ( lines[l].isCorn3(&geom) )
+						plines.lc3.push_back( lines[l] );
+					
+					
+			
+				} // end if peritype
+			}// end for l
+		}// end if periodic triangle
+	}// end of each triangle i
+	
+	// remove repeated lines. function defined as inline in line.h
+	uniquefy_line_vector( plines.lleft );
+	uniquefy_line_vector( plines.lright );
+	uniquefy_line_vector( plines.lfront );
+	uniquefy_line_vector( plines.lback );
+	
+	uniquefy_line_vector( plines.lc0 );
+	uniquefy_line_vector( plines.lc1 );
+	uniquefy_line_vector( plines.lc2 );
+	uniquefy_line_vector( plines.lc3 );
+		
+}
+
+void expand_periodic_boundaries( 	vector <Line> lines, // lines to split
+									peri_lines& plines,  // lines on periodic boundary
+									Geometry& geom )
+{
+	vector <Line> newlines; 
+	vector <Line> :: iterator litr;
+	vector <Line> :: iterator lotr;
+	vector <Line> :: iterator loend; // end iterator
+	for (litr = lines.begin() ; litr != lines.end() ; litr++ ) // loop over each line
+	{
+		
+		if ( geom.getfront_back_is_periodic() )
+		{
+			
+			lotr = loend; // stops comparison
+			bool found = true;	
+			if ( litr->isOnFrontSurface(&geom) )
+			{
+				lotr = plines.lback.begin();
+				loend = plines.lback.end();
+				printf("front...");
+				found = false;
+			}
+			else
+			if ( litr->isOnBackSurface(&geom ) )
+			{
+				lotr = plines.lfront.begin();
+				loend = plines.lfront.end();
+				printf("back...");
+				found = false;
+			}
+							
+			for (; lotr != loend ; lotr++)
+			{
+				if ( litr->isTranslationOf(*lotr, geom) )
+				{
+					newlines.push_back(*lotr);
+					printf("found\n");
+					found = true;
+					break;
+				}
+			}
+			if (!found)
+			{
+				printf("error - could not find periodic front/back line - bye!\n");
+				litr->PrintLine();
+				exit(1);
+			}
+		}// end if front/back
+		
+		if (geom.getleft_right_is_periodic() )
+		{
+			lotr = loend;
+			if ( litr->isOnLeftSurface(&geom) )
+			{
+				lotr = plines.lright.begin();
+				loend = plines.lright.end();
+				printf("left...");
+			}
+			else
+			if (litr->isOnRightSurface(&geom) )
+			{
+				lotr = plines.lleft.begin();
+				loend = plines.lleft.end();
+				printf("right...");
+			}
+			
+			for(; lotr!=loend; lotr++)
+			{
+				if (litr->isTranslationOf(*lotr, geom ) )
+				{
+					newlines.push_back(*lotr);
+					printf("found\n");
+					break;
+				}
+			}
+		
+			// in case of l/r periodicity, also vertical corners must be 
+			// taken into account. For each corner line, must find 3 other
+			// corner lines
+			if ( litr->isTopBottomCornerLine(&geom) )
+			{
+				int cc = 0; //corner count
+				vector <Line>::iterator cs1;
+				vector <Line>::iterator ce1;
+				vector <Line>::iterator cs2;
+				vector <Line>::iterator ce2;
+				vector <Line>::iterator cs3;
+				vector <Line>::iterator ce3;
+			
+				cs1 = ce1; 
+				cs2 = ce2; 
+				cs3 = ce3;
+			
+				if (litr->isCorn0(&geom) )
+				{
+					printf("corn0...");
+					cs1 = plines.lc1.begin(); ce1 = plines.lc1.end();
+					cs2 = plines.lc2.begin(); ce2 = plines.lc2.end();
+					cs3 = plines.lc3.begin(); ce3 = plines.lc3.end();
+				}
+				else
+				if (litr->isCorn1(&geom) )
+				{
+					printf("corn1...");
+					cs1 = plines.lc0.begin(); ce1 = plines.lc0.end();
+					cs2 = plines.lc2.begin(); ce2 = plines.lc2.end();
+					cs3 = plines.lc3.begin(); ce3 = plines.lc3.end();
+				}
+				else
+				if (litr->isCorn2(&geom) )
+				{
+					printf("corn2...");
+					cs1 = plines.lc0.begin(); ce1 = plines.lc0.end();
+					cs2 = plines.lc1.begin(); ce2 = plines.lc1.end();
+					cs3 = plines.lc3.begin(); ce3 = plines.lc3.end();
+				}
+				else
+				if (litr->isCorn3(&geom) )
+				{
+					printf("corn3...");
+					cs1 = plines.lc0.begin(); ce1 = plines.lc0.end();
+					cs2 = plines.lc1.begin(); ce2 = plines.lc1.end();
+					cs3 = plines.lc2.begin(); ce3 = plines.lc2.end();
+				}
+					
+				for (;cs1 != ce1 ; cs1++)
+				{
+					if (litr->isTranslationOf(*cs1 , geom ) )
+					{
+						cc++;
+						newlines.push_back(*cs1);
+						printf("c1 ");
+						break;
+					}
+				}
+		
+				for (;cs2 != ce2 ; cs2++)
+				{
+					if(litr->isTranslationOf(*cs2 , geom ) )
+					{
+						cc++;
+						newlines.push_back(*cs2);
+						printf("c2 ");
+						break;
+					}
+				}
+			
+				for (;cs3 != ce3; cs3++)
+				{
+					if (litr->isTranslationOf(*cs3 , geom) )
+					{
+						cc++;
+						newlines.push_back(*cs3);
+						printf("c3");
+						break;
+					}
+				}
+			
+		
+			printf("cc = %i\n",cc);
+			}// end if tvertical corner		
+		}// end if left/right
+		
+		
+	}//end for i loop over each line
+
+
+
+}
+
 void expand_refinement_region(vector <unsigned int>& i_tet,	// index to tet bisectable lines counts
 			      Num_Ref_Tet& nrt,
 			      vector <Line>& lines,
@@ -345,12 +613,26 @@ void expand_refinement_region(vector <unsigned int>& i_tet,	// index to tet bise
 
     vector < set <unsigned int> > p_to_t;			// p to tets index
     geom_prev.t->gen_p_to_elem( p_to_t );
-    //int* count = new int[ geom_prev.t->getnElements() ];	// allocate for conters
-    //Num_Ref_Tet num_ref_tet;
+    
+    peri_lines plines;
+    // Construct list of periodic line elements iff structure has periodic boundaries
+    if (  geom_prev.getleft_right_is_periodic()  ||
+		  geom_prev.getfront_back_is_periodic()  ||
+		  geom_prev.gettop_bottom_is_periodic()  )
+	{
+		gen_peri_lines_vec( plines,	geom_prev);
+		printf(" f,b,l,r = %i,%i,%i,%i\n", plines.lfront.size(), plines.lback.size() , plines.lleft.size() , plines.lright.size() );
+		printf(" c 0 1 2 3 = %i, %i, %i,%i\n", plines.lc0.size() , plines.lc1.size(), plines.lc2.size() , plines.lc3.size() );
+		
+	}
+    
     while( d_n_tred > 0){// loop while refinement region grows
 
 		find_all_core_lines(lines, i_tet, geom_prev.t); // creates all bisectable lines
+		
 		// periodic lines added here
+		expand_periodic_boundaries( lines , plines, geom_prev );
+		exit(1);
 		count_lines(geom_prev.t, p_to_t, lines, i_tet , t_to_l);
 
 		fix_green3_red_confusions(i_tet, lines, t_to_l);

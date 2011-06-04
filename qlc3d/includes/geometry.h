@@ -66,6 +66,7 @@ class Geometry
             int getnp();
             int getnpLC();
             double* getPtrTop();
+            inline double* getPtrTop(const int& i){ if (i<np) return &p[3*i]; return NULL; }; // pointer to node i
             double getpX(int i);	// return node coordinates at node i
             double getpY(int i);
             double getpZ(int i);

@@ -12,8 +12,10 @@ bool Line::operator<(const Line& other) const {
 
 bool Line::operator ==( const Line& other) const {
     // same line if same objects or if same node numbersR
-    if ( this ==  &other) return true;  // same object
-    if ( ( this->L[0] == other.L[0]) && (this->L[1] == other.L[1] ) ) return true; // same node numbers
+    if ( this ==  &other) 
+		return true;  // same object
+    if ( ( this->L[0] == other.L[0]) && (this->L[1] == other.L[1] ) ) 
+		return true; // same node numbers
 
     return false; // default
 }
@@ -159,12 +161,13 @@ bool Line::isLeftRightCornerLine(Geometry* geom){
 }
 	
 	
-bool Line::isPeriodicTo(Geometry* geom, Line* L2){// compares if this line is periodic (on opposite face) to line L2
+bool Line::isPeriodicTo(Geometry* geom, Line* L2)
+{// compares if this line is periodic (on opposite face) to line L2
 	// if comparison with self, return false
 	if ( (L[0] == L2->L[0]) && (L[1] == L2->L[1]) )
 	    return false;
 
-	double eps = 1e-10; // accuracy for cordinate comparison (sometimes numerical noise from GiD)
+	double eps = 1e-6; // accuracy for cordinate comparison (sometimes numerical noise from GiD)
 	// get coordinates for this line
 	double x1 = geom->getpX(L[0]);
 	double y1 = geom->getpY(L[0]);
@@ -243,4 +246,134 @@ bool Line::isPeriodicTo(Geometry* geom, Line* L2){// compares if this line is pe
 	}// end CASE2
 	return false;
 }
+
+bool Line::isTranslationOf( Line& L2, Geometry& geom)
+{ /*! checks whether this line is a translation of line L2. 
+		(There must be a more elegant or efficient
+		way of doing this...)*/
 	
+	if (L2 == *this) return false; // avoid selfs
+	
+	double eps = 1e-5;
+	double* p11 = geom.getPtrTop(this->L[0]);
+	double* p12 = geom.getPtrTop(this->L[1]);
+	
+	double* p21 = geom.getPtrTop(L2.L[0]);
+	double* p22 = geom.getPtrTop(L2.L[1]);
+	
+	double v1[3] = {p11[0] - p12[0] ,
+					p11[1] - p12[1] ,
+					p11[2] - p12[2]  };
+
+	double v2[3] = {p21[0] - p22[0],
+					p21[1] - p22[1],
+					p21[2] - p22[2] };
+	
+	double l1 = sqrt(v1[0]*v1[0] + v1[1]*v1[1] + v1[2]*v1[2] ); // line lengths
+	double l2 = sqrt(v2[0]*v2[0] + v2[1]*v2[1] + v2[2]*v2[2] );
+				
+	double dot = ( v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2] )/l1/l2;				
+	
+	if ( (fabs( fabs(dot) -1.0 ) <= eps ) &&// if v1 and v2 are parallel AND
+	     (fabs(l1-l2) <= eps ) ) //if v1 and v2 are same length
+	{ 
+		// calculate differences between line end points
+		double diff1[3] = { p11[0], p11[1], p11[2] };
+		double diff2[3] = { p12[0], p12[1], p12[2] };
+		//printf("dot = %e\n", dot);
+		if (dot > 0) // same direction
+		{
+			diff1[0] -= p21[0]; // difference between nodes 1
+			diff1[1] -= p21[1];
+			diff1[2] -= p21[2];
+			
+			diff2[0] -= p22[0]; // difference between nodes 2
+			diff2[1] -= p22[1];
+			diff2[2] -= p22[2];
+		}
+		else // opposite directions
+		{
+			diff1[0] -= p22[0];
+			diff1[1] -= p22[1];
+			diff1[2] -= p22[2];
+			
+			diff2[0] -= p21[0];
+			diff2[1] -= p21[1];
+			diff2[2] -= p21[2];
+		}
+				
+		diff1[0] = fabs(diff1[0]) + fabs(diff2[0] );
+		diff1[1] = fabs(diff1[1]) + fabs(diff2[1] );
+		diff1[2] = fabs(diff1[2]) + fabs(diff2[2] );
+		
+		// if 2/3 end-point-differences are 0 -> lines are translations
+		sort(diff1, diff1+3 );
+		//printf(" line.cpp diff = %f,%f,%f\n", diff1[0], diff1[1], diff1[2] );
+		
+		if ( ( diff1[0] <= eps) && (diff1[1] <= eps ) )
+		{
+			
+			return true;
+		}
+		
+	}
+	
+	return false;
+}
+	
+// corners along z
+bool Line::isCorn0(Geometry* geom) // xmin, ymin
+{
+	return (isOnLeftSurface(geom) && isOnFrontSurface(geom) );
+}
+
+bool Line::isCorn1(Geometry* geom) // xmax, ymin
+{
+	return (isOnFrontSurface(geom) && ( isOnRightSurface(geom) ) );
+}
+bool Line::isCorn2(Geometry* geom) // xmax, ymax
+{
+	return ( isOnRightSurface(geom) && isOnBackSurface(geom) );
+}
+bool Line::isCorn3(Geometry* geom) // xmin, ymax
+{
+	return ( isOnLeftSurface(geom) && isOnBackSurface(geom) );
+}
+
+	// corners along x
+bool Line::isCorna(Geometry* geom) // ymin, zmin
+{
+	return ( isOnFrontSurface(geom) && isOnBottomSurface(geom) );
+}
+bool Line::isCornb(Geometry* geom) // ymax, zmin
+{
+	return ( isOnBottomSurface(geom) && isOnBackSurface(geom) );
+}
+bool Line::isCornc(Geometry* geom) // ymax, zmax
+{
+	return (isOnBackSurface(geom) && isOnTopSurface(geom) );
+}
+bool Line::isCornd(Geometry* geom) // ymin, zmax
+{
+	return (isOnTopSurface(geom) && isOnFrontSurface(geom) );
+}
+
+// corners along y
+bool Line::isCornA(Geometry* geom) // xmin, zmin
+{
+	return (isOnLeftSurface(geom) && isOnBottomSurface(geom) );
+}
+bool Line::isCornB(Geometry* geom) // xmax, zmin
+{
+	return (isOnBottomSurface(geom) && isOnRightSurface(geom) );
+}
+bool Line::isCornC(Geometry* geom) // xmax, zmax
+{
+	return (isOnRightSurface(geom) && isOnTopSurface(geom) );
+}
+
+bool Line::isCornD(Geometry* geom) // xmin, zmax
+{
+	return (isOnTopSurface(geom) && isOnLeftSurface(geom) );
+}
+

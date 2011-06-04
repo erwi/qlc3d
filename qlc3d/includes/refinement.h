@@ -9,6 +9,7 @@
 #include <lc.h>
 #include <simu.h>
 #include <box.h>
+#include <vector>
 #define MIN(X,Y) ((X) < (Y) ? : (X) : (Y))
 
 
@@ -37,6 +38,31 @@ struct Num_Ref_Tet{
     unsigned int green3;
     unsigned int green2;
     unsigned int green1;
+};
+
+struct peri_lines{
+	// faces lines
+	vector <Line> lfront;
+	vector <Line> lback;
+	vector <Line> lleft;
+	vector <Line> lright;
+	vector <Line> ltop;
+	vector <Line> lbottom;
+	// corners lines
+	vector <Line> lc0;
+	vector <Line> lc1;
+	vector <Line> lc2;
+	vector <Line> lc3;
+	
+	vector <Line> lca;
+	vector <Line> lcb;
+	vector <Line> lcc;
+	vector <Line> lcd;
+	
+	vector <Line> lcA;
+	vector <Line> lcB;
+	vector <Line> lcC;
+	vector <Line> lcD;
 };
 
 

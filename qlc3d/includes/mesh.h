@@ -101,9 +101,9 @@ public:
 	void CalcLocCoords(const unsigned int& elem, double* p, double* coord, double* loc); // calculates 4 local coordinates of coordinate cord in element elem
 	void CalcElemBary(const unsigned int& elem, double* p, double* bary); // calculates barycentre coords of element elem
 	double CalcBaryDistSqr( double *p,const unsigned int& elem, double* coord);
-	bool isOnXPlane(int e, double X, double* p);	// checks if all nodes of triangle e are on z= Z plane
-    bool isOnYPlane(int e, double Y, double* p);	// checks if all nodes of triangle e are on z= Z plane
-    bool isOnZPlane(int e, double Z, double* p);	// checks if all nodes of triangle e are on z= Z plane
+	bool isOnXPlane(int e, double X, double* p);	// checks if all nodes of triangle e are on x = X plane
+    bool isOnYPlane(int e, double Y, double* p);	// checks if all nodes of triangle e are on y = Y plane
+    bool isOnZPlane(int e, double Z, double* p);	// checks if all nodes of triangle e are on z = Z plane
     //bool isOnBackSurface(int e, Geometry* geom);	//
     bool isNeighbours(const unsigned int& el1, const unsigned int& el2); // checks whether el1 and el2 are neighbours
     void gen_p_to_elem(vector<set <unsigned int> >& p_to_elem); // generates index from points to mesh elements
