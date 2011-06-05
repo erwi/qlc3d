@@ -1,10 +1,8 @@
 11. Remove dependencies to Qt, it is annoying. Create own 'filesystem' class
-    that deals with creating directories. 
+    that deals with creating directories on different OSs. 
 
 10. Potential calculation is done even when not needed.
     Also, dont make a potential matrix when not needed.
-
-9.  Periodic boundaries in mesh refinement.
 
 7.  Integrate SparseLib so that the modified SparseLib class files are kept with qlc3d.
 
@@ -12,6 +10,9 @@
     interpolate each eigenvector/eigenvalue istead
 
 ============ DONE ==============================
+9.  Periodic boundaries in mesh refinement.
+	05/06/2011 - done, but not fully tested.
+	
 8.  Periodic boundaries for a full box. Currently only periodic side boundaries exist.
     Add top/bottom periodic boundaries.
     03/06/2011 - done and seems to work.

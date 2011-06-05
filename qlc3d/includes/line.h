@@ -17,7 +17,9 @@ class Line{
 	int L[2];
 	Line(); // dont use this, declared here only to keep STL happy
 	Line(const int& a, const int& b);
-	void PrintLine();
+	void PrintLine(); // prints node numbers only
+	void PrintLine(Geometry* geom);  // prints node numbers and coordinates
+	
 	bool isOnFrontSurface(Geometry* geom);
 	bool isOnBackSurface(Geometry* geom);
 	bool isOnRightSurface(Geometry* geom);
@@ -28,9 +30,11 @@ class Line{
 	bool isFrontBackCornerLine(Geometry* geom);
 	bool isLeftRightCornerLine(Geometry* geom);
 	bool isPeriodicTo(Geometry* geom, Line* L2);
-	
-	bool isTranslationOf( Line& L2, Geometry& geom); // checks whether this line is a translation of L2
-	
+
+	bool isTranslationOf( Line& L2, Geometry* geom, double* dir);// checks whether this line is a 
+																//translation of L2 along drection 
+																// dir = [1,0,0] ->compare x only, ignore y,z
+																// [1,1,0] -> compare x and y only, ignore z
 	// corners along z
 	bool isCorn0(Geometry* geom); // xmin, ymin
 	bool isCorn1(Geometry* geom); // xmax, ymin

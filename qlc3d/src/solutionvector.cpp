@@ -930,7 +930,7 @@ void SolutionVector::setFaceElim( list <int>& face0, // face1[i] = face0[i]
 	int ind1 = ( norm + 1 ) % 3;
 	int ind2 = ( norm + 2 ) % 3;
 	double eps = 1e-5; // accuracy of coordinate comparison
-	printf(" norm = %i, ind1 = %i, ind2 = %i\n", norm, ind1, ind2 );
+	
 	
 	//*
 	//SEARCH FOR NODE EQUIVALENCIES BY COMPARING X AND Y COORDINATES

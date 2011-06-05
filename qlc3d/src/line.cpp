@@ -40,7 +40,12 @@ Line::Line(const int& a,const int& b){
 void Line::PrintLine(){
     printf("[%i,%i]\n", L[0], L[1]);
 }
-
+void Line::PrintLine(Geometry* geom)
+{
+	printf("%i,%i=[%f,%f,%f], [%f,%f,%f]\n", L[0], L[1], 
+		geom->getpX( L[0] ),	geom->getpY( L[0] ),	geom->getpZ( L[0] ),
+		geom->getpX( L[1] ),	geom->getpY( L[1] ),	geom->getpZ( L[1] ) );
+}
 
 bool Line::isBoundingBoxLine(Geometry* geom){// returns true if this line is on a surface of the external boundix box of the modelling window
     double x1 = geom->getpX(L[0]);
@@ -247,19 +252,26 @@ bool Line::isPeriodicTo(Geometry* geom, Line* L2)
 	return false;
 }
 
-bool Line::isTranslationOf( Line& L2, Geometry& geom)
-{ /*! checks whether this line is a translation of line L2. 
-		(There must be a more elegant or efficient
-		way of doing this...)*/
+
+bool Line::isTranslationOf( Line& L2, Geometry* geom, double* dir)
+{
+	/*! Checks whether this line is a translation of line L2. 
+	 * dir determines which dimensions are ignored from comparison. e.g.
+	 * dir = [0,0,1] only compares for z-components of the lines
+	 * dir = [1,0,1] makes sure x and z components match (i.e. shift along y-axis)
+	 */
+	
 	
 	if (L2 == *this) return false; // avoid selfs
 	
+	// The order of nodes is not guaranteed. Check for parallel lines by 
+	// taking the dot product of the two vectors 
 	double eps = 1e-5;
-	double* p11 = geom.getPtrTop(this->L[0]);
-	double* p12 = geom.getPtrTop(this->L[1]);
+	double* p11 = geom->getPtrTop(this->L[0]);
+	double* p12 = geom->getPtrTop(this->L[1]);
 	
-	double* p21 = geom.getPtrTop(L2.L[0]);
-	double* p22 = geom.getPtrTop(L2.L[1]);
+	double* p21 = geom->getPtrTop(L2.L[0]);
+	double* p22 = geom->getPtrTop(L2.L[1]);
 	
 	double v1[3] = {p11[0] - p12[0] ,
 					p11[1] - p12[1] ,
@@ -268,8 +280,8 @@ bool Line::isTranslationOf( Line& L2, Geometry& geom)
 	double v2[3] = {p21[0] - p22[0],
 					p21[1] - p22[1],
 					p21[2] - p22[2] };
-	
-	double l1 = sqrt(v1[0]*v1[0] + v1[1]*v1[1] + v1[2]*v1[2] ); // line lengths
+	// line (vector) lengths
+	double l1 = sqrt(v1[0]*v1[0] + v1[1]*v1[1] + v1[2]*v1[2] ); 
 	double l2 = sqrt(v2[0]*v2[0] + v2[1]*v2[1] + v2[2]*v2[2] );
 				
 	double dot = ( v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2] )/l1/l2;				
@@ -280,7 +292,8 @@ bool Line::isTranslationOf( Line& L2, Geometry& geom)
 		// calculate differences between line end points
 		double diff1[3] = { p11[0], p11[1], p11[2] };
 		double diff2[3] = { p12[0], p12[1], p12[2] };
-		//printf("dot = %e\n", dot);
+		
+		// calculate shifts. differences depend on line orientations
 		if (dot > 0) // same direction
 		{
 			diff1[0] -= p21[0]; // difference between nodes 1
@@ -301,23 +314,18 @@ bool Line::isTranslationOf( Line& L2, Geometry& geom)
 			diff2[1] -= p21[1];
 			diff2[2] -= p21[2];
 		}
-				
-		diff1[0] = fabs(diff1[0]) + fabs(diff2[0] );
-		diff1[1] = fabs(diff1[1]) + fabs(diff2[1] );
-		diff1[2] = fabs(diff1[2]) + fabs(diff2[2] );
 		
-		// if 2/3 end-point-differences are 0 -> lines are translations
-		sort(diff1, diff1+3 );
-		//printf(" line.cpp diff = %f,%f,%f\n", diff1[0], diff1[1], diff1[2] );
+		// set x,y,z components of shift to zero, as defined in dir[0]->dir[2]		
+		diff1[0] = ( fabs(diff1[0]) + fabs(diff2[0] ) )*dir[0]; 
+		diff1[1] = ( fabs(diff1[1]) + fabs(diff2[1] ) )*dir[1];
+		diff1[2] = ( fabs(diff1[2]) + fabs(diff2[2] ) )*dir[2];
 		
-		if ( ( diff1[0] <= eps) && (diff1[1] <= eps ) )
+		//printf("%f,%f,%f\n", diff1[0], diff1[1], diff1[2]);
+		if ( ( diff1[0]+diff1[1]+diff1[2] ) <= eps  )
 		{
-			
 			return true;
 		}
-		
-	}
-	
+	}// end if same length and parallel
 	return false;
 }
 	

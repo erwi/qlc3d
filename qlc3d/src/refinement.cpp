@@ -55,7 +55,7 @@ void tets_near_surface( vector<unsigned int>& itet, Geometry& geom, RefReg& regi
             surf_nodes.insert( (unsigned int) geom.e->getNode( surf_elems[i] , j ) );
         }// end for nodes per element
     }
-printf("num surfnodes: %u\n", surf_nodes.size());
+	printf("num surfnodes: %i\n", (int) surf_nodes.size());
 
     //std::set <unsigned int> ::iterator itr;
     //for (itr = surf_nodes.begin() ; itr != surf_nodes.end() ; itr++){
@@ -428,174 +428,269 @@ void gen_peri_lines_vec(peri_lines& plines,
 		
 }
 
-void expand_periodic_boundaries( 	vector <Line> lines, // lines to split
+
+bool find_transl_line( Line& l1,
+					vector<Line>& lines,
+					Geometry& geom,
+					double* dir,
+					vector<Line>:: iterator& other
+					)
+{
+/*! compares line l1 with lines in vector lines and checks whether it is 
+ * a tranlation described by dir. sets other to found line and returns true
+ * if successfull
+*/
+	// loop over all possible lines and compare
+	for (other = lines.begin() ; other!= lines.end() ; other++)
+	{
+		if ( l1.isTranslationOf(*other, &geom, dir ) )
+			return true;
+	}
+
+	return false;
+}
+
+void expand_periodic_boundaries( 	vector <Line>& lines, // lines to split
 									peri_lines& plines,  // lines on periodic boundary
 									Geometry& geom )
 {
+	/*! This function checks each line in vector lines for its periodic 
+	 *  equivalencies and adds them to the list of bisectable lines. 
+	 *  This is necessary to maintain periodicity of a mesh when it is 
+	 *  refined near a periodic boundary.
+	 * 
+	 *  plines is a convenience structure of vectors of lines along periodic surfaces
+	 *  and corners.
+	 */
+	
+	// minimum requirement for periodicity is that at least front/back 
+	// surfaces are periodic. if not, can return
+	if ( !geom.getfront_back_is_periodic() )
+	{
+		return;
+	}
 	vector <Line> newlines; 
 	vector <Line> :: iterator litr;
 	vector <Line> :: iterator lotr;
-	vector <Line> :: iterator loend; // end iterator
+	//vector <Line> :: iterator loend; // end iterator
 	for (litr = lines.begin() ; litr != lines.end() ; litr++ ) // loop over each line
 	{
 		
 		if ( geom.getfront_back_is_periodic() )
 		{
 			
-			lotr = loend; // stops comparison
+	
 			bool found = true;	
+			double dir[3] = {1,0,1};// compare X and Z coorinates (shift in Y is allowed)
+			
 			if ( litr->isOnFrontSurface(&geom) )
 			{
-				lotr = plines.lback.begin();
-				loend = plines.lback.end();
-				printf("front...");
 				found = false;
+				if ( find_transl_line( *litr, plines.lback, geom, dir, lotr) )
+				{
+					newlines.push_back(*lotr);
+					found = true;
+				}
 			}
 			else
 			if ( litr->isOnBackSurface(&geom ) )
 			{
-				lotr = plines.lfront.begin();
-				loend = plines.lfront.end();
-				printf("back...");
 				found = false;
-			}
-							
-			for (; lotr != loend ; lotr++)
-			{
-				if ( litr->isTranslationOf(*lotr, geom) )
+				if ( find_transl_line( *litr, plines.lfront, geom, dir, lotr) )
 				{
 					newlines.push_back(*lotr);
-					printf("found\n");
 					found = true;
-					break;
 				}
 			}
+			
 			if (!found)
 			{
-				printf("error - could not find periodic front/back line - bye!\n");
-				litr->PrintLine();
+				printf("error - could not find periodic front/back face line - bye!\n");
+				litr->PrintLine(&geom);
 				exit(1);
 			}
+			
 		}// end if front/back
 		
 		if (geom.getleft_right_is_periodic() )
 		{
-			lotr = loend;
+		    double dir[3] = {0,1,1}; // compare Y,Z. Allow X-shift
+			bool found = true;
 			if ( litr->isOnLeftSurface(&geom) )
 			{
-				lotr = plines.lright.begin();
-				loend = plines.lright.end();
-				printf("left...");
+				found = false;
+				if ( find_transl_line(*litr, plines.lright, geom, dir, lotr ) )
+				{
+					newlines.push_back(*lotr);
+					found = true;
+				}
 			}
 			else
 			if (litr->isOnRightSurface(&geom) )
 			{
-				lotr = plines.lleft.begin();
-				loend = plines.lleft.end();
-				printf("right...");
-			}
-			
-			for(; lotr!=loend; lotr++)
-			{
-				if (litr->isTranslationOf(*lotr, geom ) )
+				found = false;
+				if ( find_transl_line(*litr, plines.lleft, geom, dir, lotr) )
 				{
 					newlines.push_back(*lotr);
-					printf("found\n");
-					break;
+					found = true;
 				}
 			}
+			if (!found)
+			{
+				printf("error - could not find periodic left/right face line - bye!\n");
+				litr->PrintLine(&geom);
+				exit(1);
+			}
+			
 		
 			// in case of l/r periodicity, also vertical corners must be 
 			// taken into account. For each corner line, must find 3 other
 			// corner lines
 			if ( litr->isTopBottomCornerLine(&geom) )
 			{
+				// Search all 4 possible corners and make sure exactly
+				// 3 corresponding lines are found
 				int cc = 0; //corner count
-				vector <Line>::iterator cs1;
-				vector <Line>::iterator ce1;
-				vector <Line>::iterator cs2;
-				vector <Line>::iterator ce2;
-				vector <Line>::iterator cs3;
-				vector <Line>::iterator ce3;
+				double dir[3] = {0,0,1}; // make sure Z matches, allow X and Y shifts
+				if ( find_transl_line(*litr, plines.lc0, geom, dir, lotr ) )
+				{
+					newlines.push_back(*lotr);
+					cc++;
+				}
+				if ( find_transl_line(*litr, plines.lc1, geom, dir, lotr ) )
+				{
+					newlines.push_back(*lotr);
+					cc++;
+				}
+				if ( find_transl_line(*litr, plines.lc2, geom, dir, lotr ) )
+				{
+					newlines.push_back(*lotr);
+					cc++;
+				}
+				if ( find_transl_line(*litr, plines.lc3, geom, dir, lotr ) )
+				{
+					newlines.push_back(*lotr);
+					cc++;
+				}	
 			
-				cs1 = ce1; 
-				cs2 = ce2; 
-				cs3 = ce3;
-			
-				if (litr->isCorn0(&geom) )
+				if ( cc != 3)
 				{
-					printf("corn0...");
-					cs1 = plines.lc1.begin(); ce1 = plines.lc1.end();
-					cs2 = plines.lc2.begin(); ce2 = plines.lc2.end();
-					cs3 = plines.lc3.begin(); ce3 = plines.lc3.end();
+					printf("error - problem finding periodic top-bottom corner lines - bye!\n");
+					exit(1);
 				}
-				else
-				if (litr->isCorn1(&geom) )
-				{
-					printf("corn1...");
-					cs1 = plines.lc0.begin(); ce1 = plines.lc0.end();
-					cs2 = plines.lc2.begin(); ce2 = plines.lc2.end();
-					cs3 = plines.lc3.begin(); ce3 = plines.lc3.end();
-				}
-				else
-				if (litr->isCorn2(&geom) )
-				{
-					printf("corn2...");
-					cs1 = plines.lc0.begin(); ce1 = plines.lc0.end();
-					cs2 = plines.lc1.begin(); ce2 = plines.lc1.end();
-					cs3 = plines.lc3.begin(); ce3 = plines.lc3.end();
-				}
-				else
-				if (litr->isCorn3(&geom) )
-				{
-					printf("corn3...");
-					cs1 = plines.lc0.begin(); ce1 = plines.lc0.end();
-					cs2 = plines.lc1.begin(); ce2 = plines.lc1.end();
-					cs3 = plines.lc2.begin(); ce3 = plines.lc2.end();
-				}
-					
-				for (;cs1 != ce1 ; cs1++)
-				{
-					if (litr->isTranslationOf(*cs1 , geom ) )
-					{
-						cc++;
-						newlines.push_back(*cs1);
-						printf("c1 ");
-						break;
-					}
-				}
-		
-				for (;cs2 != ce2 ; cs2++)
-				{
-					if(litr->isTranslationOf(*cs2 , geom ) )
-					{
-						cc++;
-						newlines.push_back(*cs2);
-						printf("c2 ");
-						break;
-					}
-				}
-			
-				for (;cs3 != ce3; cs3++)
-				{
-					if (litr->isTranslationOf(*cs3 , geom) )
-					{
-						cc++;
-						newlines.push_back(*cs3);
-						printf("c3");
-						break;
-					}
-				}
-			
-		
-			printf("cc = %i\n",cc);
-			}// end if tvertical corner		
+			}// end if vertical corner		
 		}// end if left/right
 		
-		
+		if (geom.gettop_bottom_is_periodic() )
+		{
+			
+			bool found = true;
+			double dir[3] = {1,1,0};// compare X and Y, shift in Z
+			
+			if ( litr->isOnTopSurface(&geom) )
+			{
+				found = false;
+				if ( find_transl_line(*litr, plines.lbottom, geom, dir, lotr) )
+				{
+					newlines.push_back(*lotr);
+					found = true;
+				}
+			}
+			else
+			if ( litr->isOnBottomSurface( &geom ) )
+			{
+				found = false;
+				if ( find_transl_line(*litr, plines.ltop, geom , dir, lotr) )
+				{
+					newlines.push_back(*lotr);
+					found = true;
+				}
+			}
+			if (!found)
+			{
+				printf("error - could not find periodic top/bottom line - bye\n");
+				litr->PrintLine(&geom);
+				exit(1);
+			}
+			
+			// in case of top/bottom periodicity (=fully periodic), 
+			// horizontal corners must be taken into account. Two cases exist:
+			// horizontal along X and horizontal along Y
+			
+			// corners A,B,C,D
+			if (litr->isFrontBackCornerLine( &geom ) )
+			{
+				// same strategy as for vertical corners c0,c1,c2,c3 above
+				int cc = 0; //corner count
+				double dir[3] = {0,1,0}; // make sure Y matches, allow X and Z shifts
+				if ( find_transl_line(*litr, plines.lcA, geom, dir, lotr ) )
+				{
+					newlines.push_back(*lotr);
+					cc++;
+				}
+				if ( find_transl_line(*litr, plines.lcB, geom, dir, lotr ) )
+				{
+					newlines.push_back(*lotr);
+					cc++;
+				}
+				if ( find_transl_line(*litr, plines.lcC, geom, dir, lotr ) )
+				{
+					newlines.push_back(*lotr);
+					cc++;
+				}
+				if ( find_transl_line(*litr, plines.lcD, geom, dir, lotr ) )
+				{
+					newlines.push_back(*lotr);
+					cc++;
+				}	
+				if ( cc != 3)
+				{
+					printf("error - problem finding periodic front-back corner lines - bye!\n");
+					exit(1);
+				}
+						
+			}// end horizontal corner along y
+			else
+			if ( litr->isLeftRightCornerLine( &geom ) )
+			{
+				int cc = 0; //corner count
+				double dir[3] = {1,0,0}; // make sure X matches, allow Y and Z shifts
+				if ( find_transl_line(*litr, plines.lca, geom, dir, lotr ) )
+				{
+					newlines.push_back(*lotr);
+					cc++;
+				}
+				if ( find_transl_line(*litr, plines.lcb, geom, dir, lotr ) )
+				{
+					newlines.push_back(*lotr);
+					cc++;
+				}
+				if ( find_transl_line(*litr, plines.lcc, geom, dir, lotr ) )
+				{
+					newlines.push_back(*lotr);
+					cc++;
+				}
+				if ( find_transl_line(*litr, plines.lcd, geom, dir, lotr ) )
+				{
+					newlines.push_back(*lotr);
+					cc++;
+				}	
+				if ( cc != 3)
+				{
+					printf("error - problem finding periodic left-right corner lines - bye!\n");
+					exit(1);
+				}
+			}// end horizontal corner along X
+			
+			printf(" top/bottom periodicity not implemented in mesh refinement yet - bye!\n");
+			printf(" do it in refinement.cpp, expand_periodic_boundaries!\n");
+			exit(1);
+		}// end if top/bottom surface is periodic
 	}//end for i loop over each line
 
-
+	// Add newly found periodic lines to bisectable lines and remove repetitions
+	lines.insert(lines.end() , newlines.begin() , newlines.end() );
+	uniquefy_line_vector( lines );
 
 }
 
@@ -621,18 +716,21 @@ void expand_refinement_region(vector <unsigned int>& i_tet,	// index to tet bise
 		  geom_prev.gettop_bottom_is_periodic()  )
 	{
 		gen_peri_lines_vec( plines,	geom_prev);
-		printf(" f,b,l,r = %i,%i,%i,%i\n", plines.lfront.size(), plines.lback.size() , plines.lleft.size() , plines.lright.size() );
-		printf(" c 0 1 2 3 = %i, %i, %i,%i\n", plines.lc0.size() , plines.lc1.size(), plines.lc2.size() , plines.lc3.size() );
+		//printf(" f,b,l,r = %i,%i,%i,%i\n", plines.lfront.size(), plines.lback.size() , plines.lleft.size() , plines.lright.size() );
+		//printf(" c 0 1 2 3 = %i, %i, %i,%i\n", plines.lc0.size() , plines.lc1.size(), plines.lc2.size() , plines.lc3.size() );
 		
 	}
     
     while( d_n_tred > 0){// loop while refinement region grows
 
 		find_all_core_lines(lines, i_tet, geom_prev.t); // creates all bisectable lines
-		
+		//printf(" ls = %i\n", lines.size() );
 		// periodic lines added here
 		expand_periodic_boundaries( lines , plines, geom_prev );
-		exit(1);
+		//printf(" ls = %i\n", lines.size() );
+		
+		
+		
 		count_lines(geom_prev.t, p_to_t, lines, i_tet , t_to_l);
 
 		fix_green3_red_confusions(i_tet, lines, t_to_l);
@@ -647,7 +745,7 @@ void expand_refinement_region(vector <unsigned int>& i_tet,	// index to tet bise
 
 		//break;
     }// end while refinement region grows
-
+//exit(1);
 }// end expand_refinement_region
 
 
