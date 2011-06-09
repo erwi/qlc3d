@@ -106,11 +106,10 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
 	double f0=(3.0* A / 4.0)*(S0*S0) + (B/4.0)*(S0*S0*S0) + (9.0*C/16.0)*(S0*S0*S0*S0);
         double* p = geom->getPtrTop();
 
-        bool is3K = false;
-	if ( (lc->L2!=0) || (lc->L6!= 0) )
-            is3K = true;
-	is3K = false;
-	cout << "single K energy calculation!!"<<endl;
+    //bool is3K = false;
+	//if ( (lc->L2!=0) || (lc->L6!= 0) )
+   //         is3K = true;
+	
 
 	// energy variables
 	double Fd = 0;		// distortion energy
@@ -214,20 +213,25 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
 			double Fd_elem =       (lc->L1/2)*(q1x*q1x +q2x*q2x +q3x*q3x +q4x*q4x +q5x*q5x
 							+ q1y*q1y +q2y*q2y +q3y*q3y +q4y*q4y +q5y*q5y
 							+ q1z*q1z +q2z*q2z +q3z*q3z +q4z*q4z +q5z*q5z);
-
-                        if (is3K){
-                            Fd_elem+= lc->L2*(q1x*q1x/12.0+q2x*q2x/4.0+q1y*q1y/12.0+q2y*q2y/4.0+q3y*q3y/4.0+q3x*q3x/4.0+q5z*q5z/4.0+q5x*q5x/4.0+q4z*q4z/4.0+q1z*q1z/3.0+q4y*q4y/4.0+q3y*q5z/2.0
-                                          +q3x*q4z/2.0+q5x*q4y/2.0+q3y*q2x/2.0+q5z*q2x/2.0-q3x*q2y/2.0-q4z*q2y/2.0-q1x*
-                                          rt6*q2x*rt2/12.0+q1y*rt6*q2y*rt2/12.0+q5x*rt2*q1z
-                                          *rt6/6.0+q4y*rt2*q1z*rt6/6.0-q3y*rt2*q1x*rt6/12.0
-                                          -q5z*rt2*q1x*rt6/12.0-q3x*rt2*q1y*rt6/12.0-q4z*rt2*q1y*rt6/12.0);
-
-			    //if (lc->L4 != 0){
-			    //Fd_elem+= lc->L4*(q3z*q2/2.0-q4x*q2/4.0+q4*q2x/4.0-q5*q3x/4.0+q3*q5x/4.0-q1*rt6*q4x*rt2/8.0+q4*rt2*q1x*rt6/8.0+q5*q2y/4.0-q5y*q2/4.0-q3*q2z/
-			    //                2.0-q3*q4y/4.0+q1*rt6*q5y*rt2/8.0+q5*q4z/4.0-q5*rt2*q1y*rt6/8.0-q4*q5z/4.0+q4*q3y/4.0);
-			    //}
-
-			    double MapleGenVar2 = -q5x*q5x*q1*rt6/12.0+q5x*q5x*q2*rt2/4.0-q3y*q3y*q1*rt6/12.0-q3y*q3y*q2*rt2/4.0+q1*rt6*q4z*q4z/6.0+q1*rt6*q1z*q1z/6.0-q4x*q4x*q1*rt6/12.0+q4x*q4x*q2*rt2/4.0-q5y*q5y*q1
+				
+                if (lc->L2)
+				{        
+                    Fd_elem+= (lc->L2/2)*(q1x*q1x/12.0+q2x*q2x/4.0+q1y*q1y/12.0+q2y*q2y/4.0+q3y*q3y/4.0+q3x*q3x/4.0+q5z*q5z/4.0+q5x*q5x/4.0+q4z*q4z/4.0+q1z*q1z/3.0+q4y*q4y/4.0+q3y*q5z/2.0
+                             +q3x*q4z/2.0+q5x*q4y/2.0+q3y*q2x/2.0+q5z*q2x/2.0-q3x*q2y/2.0-q4z*q2y/2.0-q1x*
+                             rt6*q2x*rt2/12.0+q1y*rt6*q2y*rt2/12.0+q5x*rt2*q1z
+                             *rt6/6.0+q4y*rt2*q1z*rt6/6.0-q3y*rt2*q1x*rt6/12.0
+                            -q5z*rt2*q1x*rt6/12.0-q3x*rt2*q1y*rt6/12.0-q4z*rt2*q1y*rt6/12.0);
+				}
+			    
+				if (lc->L4 != 0){ // chiral term
+			    Fd_elem+= (lc->L4/2)* ( q2*q3z - ( sqrt(3.0)*(3*q1*q4x - 3*q1x*q4 - 3*q1*q5y + 3*q1y*q5))/6 - q2z*q3 - 
+				(q2*q4x)/2 + (q2x*q4)/2 - (q2*q5y)/2 + (q2y*q5)/2 - (q3*q4y)/2 + (q3y*q4)/2 + (q3*q5x)/2 - (q3x*q5)/2 - (q4*q5z)/2 + (q4z*q5)/2 );
+			    		
+				}
+				
+				if (lc->L6)
+				{
+							double MapleGenVar2 = -q5x*q5x*q1*rt6/12.0+q5x*q5x*q2*rt2/4.0-q3y*q3y*q1*rt6/12.0-q3y*q3y*q2*rt2/4.0+q1*rt6*q4z*q4z/6.0+q1*rt6*q1z*q1z/6.0-q4x*q4x*q1*rt6/12.0+q4x*q4x*q2*rt2/4.0-q5y*q5y*q1
                                 *rt6/12.0-q3x*q3x*q1*rt6/12.0+q3x*q3x*q2*rt2/4.0-q5y*q5y*q2*rt2/4.0-q4y*q4y*q1*rt6/12.0-q4y*q4y*q2*rt2/4.0+q1*rt6*q3z*q3z/6.0+q1*rt6*q5z*q5z/6.0-q2*rt2*q1y*q1y/4.0-q2*rt2*q2y*
                                 q2y/4.0-q1*rt6*q1x*q1x/12.0-q1*rt6*q2x*q2x/12.0;
 
@@ -235,10 +239,10 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
                                 rt2*q3x*q3y/2.0+q3*rt2*q5x*q5y/2.0+q3*rt2*q4x*q4y/2.0+q5*rt2*q3x*q3z/2.0+q3*rt2*q1x*q1y/2.0+q4*rt2*q5y*q5z/2.0+q5*rt2*q5x*q5z/2.0+q5*rt2*q2x*q2z/2.0+q4*rt2*q3y*q3z/2.0+q5*rt2*
                                 q4x*q4z/2.0-q1*rt6*q1y*q1y/12.0-q1*rt6*q2y*q2y/12.0;
 
-                            Fd_elem+= MapleGenVar1*lc->L6;
-                        }
+                            Fd_elem+= MapleGenVar1*(lc->L6/2);
+                 }
 
-
+				
 
 			Fd += mul*Fd_elem;
 

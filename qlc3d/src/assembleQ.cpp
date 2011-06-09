@@ -347,12 +347,13 @@ void localKL(double* p,Mesh* t, int element_num, SolutionVector* q ,
 	    L1_5=(ShRx*q5x+ShRy*q5y+ShRz*q5z)*L1;
 
 	    //Chiral term
-	    if (L4!=0){
-		Lc[0] = ((rt3*q5y/4.0-rt3*q4x/4.0)*ShR+ShRx*q4*rt3/4.0-ShRy*q5*rt3/4.0)*L4;
-		Lc[1] = ((q3z/2.0-q5y/4.0-q4x/4.0)*ShR+ShRx*q4/4.0+ShRy*q5/4.0-ShRz*q3/2.0)*L4;
-		Lc[2] = ((-q2z/2.0-q4y/4.0+q5x/4.0)*ShR+ShRy*q4/4.0+ShRz*q2/2.0-ShRx*q5/4.0)*L4;
-		Lc[3] = ((-q5z/4.0+q1x*rt3/4.0+q3y/4.0+q2x/4.0)*ShR-ShRx*q1*rt3/4.0-ShRx*q2/4.0-ShRy*q3/4.0+ShRz*q5/4.0)*L4;
-		Lc[4] = ((q4z/4.0-q1y*rt3/4.0+q2y/4.0-q3x/4.0)*ShR+ShRx*q3/4.0+ShRy*q1*rt3/4.0-ShRy*q2/4.0-ShRz*q4/4.0)*L4;
+	    if (L4!=0)
+		{
+			Lc[0] = ((rt3*q5y/4.0-rt3*q4x/4.0)*ShR+ShRx*q4*rt3/4.0-ShRy*q5*rt3/4.0)*L4;
+			Lc[1] = ((q3z/2.0-q5y/4.0-q4x/4.0)*ShR+ShRx*q4/4.0+ShRy*q5/4.0-ShRz*q3/2.0)*L4;
+			Lc[2] = ((-q2z/2.0-q4y/4.0+q5x/4.0)*ShR+ShRy*q4/4.0+ShRz*q2/2.0-ShRx*q5/4.0)*L4;
+			Lc[3] = ((-q5z/4.0+q1x*rt3/4.0+q3y/4.0+q2x/4.0)*ShR-ShRx*q1*rt3/4.0-ShRx*q2/4.0-ShRy*q3/4.0+ShRz*q5/4.0)*L4;
+			Lc[4] = ((q4z/4.0-q1y*rt3/4.0+q2y/4.0-q3x/4.0)*ShR+ShRx*q3/4.0+ShRy*q1*rt3/4.0-ShRy*q2/4.0-ShRz*q4/4.0)*L4;
 	    }
 	    if (three_elastic_constants){
 		L2_1= (ShRx*q1x/6.0-ShRx*rt3*q2x/6.0-ShRx*rt3*q3y/6.0-ShRx*rt3*q5z/6.0-ShRy*q3x*rt3/6.0+ShRy*q1y/6.0+ShRy*rt3*q2y/6.0-	ShRy*rt3*q4z/6.0+ShRz*q5x*rt3/3.0	+ShRz*q4y*rt3/3.0+2.0/3.0*ShRz*q1z)	*L2;
