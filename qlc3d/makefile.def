@@ -32,7 +32,10 @@ QLC3D_INCS		= -I$(QLC3D_PATH)/includes
 INCLUDES 		= $(SPARSELIBINCS) $(QLC3D_INCS)
 
 CCCFLAGS =    '-DCOMPLEX=std::complex<double>'
-CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -DNO_QT  -fopenmp -funroll-loops
+CFLAGS =  -march=native  -O3 -ffast-math -Wall -DNO_QT  -fopenmp -funroll-loops
+
+
+#-mtune=native
 #CFLAGS+= -Wall
 
 

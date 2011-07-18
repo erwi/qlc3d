@@ -429,7 +429,7 @@ void SolutionVector::setToFixedValues()
 	
 	int i;
 	for (i = 0 ; i < nFixed * getnDimensions(); i ++){
-		Values[FixedNodes[i]] = FixedValues[i ];
+		Values[FixedNodes[i]] = FixedValues[ i ];
 	}
 
 }
