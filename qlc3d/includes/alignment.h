@@ -12,6 +12,7 @@ using namespace std;
 #define ANCHORING_WEAK			2
 #define ANCHORING_HOMEOTROPIC	3
 #define ANCHORING_DEGENERATE	4
+#define ANCHORING_FREEZE		5	// anchoring type where initial Q-Tensor orientation is frozen
 #define PI 3.14159265358979323846264338327950288419716939937510 
 
 class Surface
@@ -26,7 +27,7 @@ class Surface
 		double v1[3];
 		double v2[3];
 		double e[3];
-		bool 	UsesSurfaceNormal; // whether to use local surface normal vector or v1 and v2
+		bool UsesSurfaceNormal; // whether to use local surface normal vector or v1 and v2
         bool isFixed;   // whether this surface is fixed or not
 	public:
 		//string Anchoring;

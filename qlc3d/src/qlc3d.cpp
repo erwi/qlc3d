@@ -83,7 +83,7 @@ void copyTo(double* arr, const SolutionVector& sv){ // copies all values from so
 	for (unsigned int i = 0 ; i < n ; i++)
 		arr[i] = sv.getValue(i);
 }
-double maxDiff(const double* arr, const SolutionVector& sv){// finds the maximum difference between array and solutionvector (a norm)
+double maxDiff(const double* arr, const SolutionVector& sv){// finds the maximum difference between array and solutionvector 
 	unsigned int n = sv.getnDoF() * sv.getnDimensions();
 	double md = 0;
 	for (unsigned int i = 0 ; i < n ; i++){
@@ -277,20 +277,25 @@ int main(int argc, char* argv[]){
     SolutionVector qn(geom1.getnpLC(),5);   //  Q-tensor from previous time step
 
     SetVolumeQ(&q, &lc, &boxes, geom1.getPtrTop());
-    setSurfacesQ(&q, &alignment, &lc, &geom1);
+	setSurfacesQ(&q, &alignment, &lc, &geom1);
+		
 
 //  LOAD Q FROM RESULT FILE
     if (!simu.getLoadQ().empty() ){
         ReadLCD_B(&simu,&q);
         setStrongSurfacesQ(&q, &alignment, &lc, &geom1); // over writes surfaces with user specified values
-	// add option to "freeze" Q-tensor values from loaded result here <- nonuniform anchoring surfaces
-    }
+	}
     q.setFixedNodesQ(&alignment, geom1.e);  // set fixed surface anchoring
     q.setPeriodicEquNodes(&geom1);          // periodic nodes
-    q.EnforceEquNodes();					// makes sure values at periodic boundaies match
+    
+	//q.PrintEquNodes();
+	//exit(1);
+	
+	
+	q.EnforceEquNodes();					// makes sure values at periodic boundaies match
 	qn=q;                                   // q-previous = q-current in first iteration
     cout << "OK" << endl;                   // Q-TENSOR CREATED OK
-
+ 
 
 // autoref( geom_orig, geom_prev, geom1, q,qn, v, meshrefinement, simu, alignment , electrodes, lc);
 
@@ -314,7 +319,7 @@ int main(int argc, char* argv[]){
 // writes a copy of settings file in results directory
 	printf("Saving a copy of the settings file...");
 	CreateSaveDir(&simu);
-
+	simu.setCurrentTime(0);
 	WriteSettings(&simu, &lc, &boxes, &alignment, &electrodes);
 
 	printf("\nSaving starting configuration (iteration -1)...\n");

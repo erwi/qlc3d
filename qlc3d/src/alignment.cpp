@@ -24,7 +24,7 @@ Surface::Surface()
 		e[1] = 0;
 		e[2] = 0;
 		UsesSurfaceNormal = false;
-		isFixed = false;
+		isFixed = true;
 }
 void Surface::printSurface()
 {
@@ -78,6 +78,15 @@ void Surface::setAnchoringType(string atype)
 		Anchoring = atype;
 		AnchoringNum = ANCHORING_DEGENERATE;
 		setUsesSurfaceNormal(true);
+		isFixed = false;
+	}
+	else if (atype.compare("Freeze") == 0 )
+	{
+		printf("Surface::setAnchoringType - freeze\n" );
+		Anchoring = atype;
+		AnchoringNum = ANCHORING_FREEZE;
+		isFixed = true;
+		setUsesSurfaceNormal(false);
 	}
 	else
 	{
@@ -215,26 +224,15 @@ void Alignment::WriteAlignment(FILE* fid){
 }
 
 bool Alignment::IsStrong(int i){
-	vector <Surface*>::iterator itr;
-	itr = surface.begin();
-
-	if ((i < getnSurfaces()) && (i >=0))
+	if (i >= (int) surface.size() )
 	{
-
-		string tt = (*(itr + i))->getAnchoringType();
-
-		if 		(tt.compare("Strong") == 0 )
-			return true;
-		else if (tt.compare("Homeotropic") == 0)
-			return true;
-		else
-			return false;
-	}
-	else
-	{
-		printf("error - Alignment::isStrong(int) - %i is an invalid surface number, bye!\n", i);
+		printf("error - Alignment::IsStrong - surface %i does not exist\n", i+1 );
+		printf("number of surfaces = %i\n", (int) surface.size() );
 		exit(1);
 	}
+	bool bfixed = surface[i]->getisFixed();
+	return bfixed;
+	
 }
 
 unsigned int Alignment::getAnchoringNum(const int &n)

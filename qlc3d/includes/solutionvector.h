@@ -24,7 +24,7 @@ private:
 	int* Elim; 		// effective node ordering after taking into account periodic nodes that need not solving
 	int* EquNodes;	// nodal equivalencies - i.e. periodic nodes
 	
-        int nFreeNodes; // number of independent degrees of freedom = nDoF - # number of nodes eliminated as periodic
+    int nFreeNodes; // number of independent degrees of freedom = nDoF - # number of nodes eliminated as periodic
 	void setBooleanFixedNodeList(); // creates list of booleans (bool* IsFixed) for each node true=fixed node, false = free node
 	
 	
