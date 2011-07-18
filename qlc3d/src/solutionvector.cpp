@@ -189,24 +189,31 @@ void SolutionVector::ClearAll(){
 }
 
 void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
-{	//! sets fixed nodes index list and value lists, assuming values are currently correct
-    //! FixedNodes is index list to all nodes that are fixied
-    //! FixedValues are the corresponding individual values that are fixed
+{	/*! sets fixed nodes index list and value lists, assuming values are currently correct
+		FixedNodes is index list to all nodes that are fixied
+		FixedValues are the corresponding individual values that are fixed
+	*/
  
 // 1. First get index to all strong anchoring nodes 
 	vector <int> ind_to_nodes;
 	vector <int> temp_index;
 	vector <int>::iterator itr;
 	
-	for (int i = 0 ; i < alignment->getnSurfaces() ; i ++){
-
+	for (int i = 0 ; i < alignment->getnSurfaces() ; i ++)
+	{
         if (alignment->IsStrong(i)){
-
-            e->FindIndexToMaterialNodes( (i+1) * MAT_FIXLC1 , &temp_index );
-            for ( itr = temp_index.begin() ; itr != temp_index.end(); itr ++){
+            
+			printf("FIXLC%i is strong\n", i+1 );
+			e->FindIndexToMaterialNodes( (i+1) * MAT_FIXLC1 , &temp_index );
+            for ( itr = temp_index.begin() ; itr != temp_index.end(); itr ++)
+			{
 				ind_to_nodes.push_back(*itr);
-
-                }
+            }
+		}
+		else
+		{
+			printf("FIXLC%i is not strong\n", i+1);
+			printf("%s\n", alignment->surface[i]->getAnchoringType().c_str() );
 		}
 	}// end for i
 
@@ -225,7 +232,8 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
 			exit(1);
 		}
 		
-// 3. copy index and values to arrays
+// 3. copy index and values to arrays. This assumes that current Q-tensor values are correct
+		// and will be fixed at these values (frozen to current)
 	int i = 0;
 	nFixed = ind_to_nodes.size();
 
@@ -979,6 +987,7 @@ void SolutionVector::setFaceElim( list <int>& face0, // face1[i] = face0[i]
 
 void SolutionVector::setValue(const unsigned int& n, const unsigned int& dim, const double& val)
 {
+	//#define DEBUG
 	#ifdef DEBUG
 	if (( (int) n >= getnDoF() ) || ( (int) dim >= getnDimensions() ) )
 	{
@@ -1052,8 +1061,14 @@ void SolutionVector::EnforceEquNodes()
 		printf("error - SolutionVector::EnforceEquNodes(), Equnodes = NULL - bye\n");
 		exit(1);
 	}
+	
+	// IF no periodic nodes exist, should leave as this will mess up things 
+	if (nFreeNodes == nDoF)
+	{
+		return;
+	}
+	
 	for (int i =0 ; i < nDoF ; i ++)
-		
 		for (int d = 0 ; d < this->nDimensions ; d++)
 		{
 			int ind1 = EquNodes[i]+d*nDoF;

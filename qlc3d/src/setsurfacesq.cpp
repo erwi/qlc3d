@@ -21,13 +21,19 @@ void setGlobalAngles(SolutionVector *q, LC* lc,double tilt, double twist, vector
 	
     // convert tensor basis
     vector <int>::iterator itr;
-    for (itr = ind_nodes->begin() ; itr != ind_nodes->end() ; itr++){
-        q->setValue(*itr,0, (a1+a2)*(sqrt(6)/-2) );
-        q->setValue(*itr,1, (a1+(a1+a2)/-2)*sqrt(2) );
-        q->setValue(*itr,2, a3*sqrt(2) );
-        q->setValue(*itr,3, a4*sqrt(2) );
-        q->setValue(*itr,4, a5*sqrt(2) );
-    }
+	
+	//printf("setting angles for %i nodes\n", (int) ind_nodes->size() );
+    for (itr = ind_nodes->begin() ; itr != ind_nodes->end() ; itr++)
+	{
+    	q->setValue(*itr,0, (a1+a2)*(sqrt(6)/-2) );
+		q->setValue(*itr,1, (a1+(a1+a2)/-2)*sqrt(2) );
+		q->setValue(*itr,2, a3*sqrt(2) );
+		q->setValue(*itr,3, a4*sqrt(2) );
+		q->setValue(*itr,4, a5*sqrt(2) );
+	}
+	
+
+	
 }
 
 
@@ -53,33 +59,15 @@ void setHomeotropic(SolutionVector* q,LC* lc,vector<int>* ind_nodes,Geometry* ge
    }
 }
 
-
-void setSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* geom){
-/*! sets q-tensor values for all surfaces. */
-    vector<int> ind_nodes;
-    for (int i = 0 ; i < alignment->getnSurfaces() ; i++ ){
-        ind_nodes.clear();
-        // creates index of all nodes of this alignment surface type
-        geom->e->FindIndexToMaterialNodes((i+1)*MAT_FIXLC1, &ind_nodes);
-		
-        if (ind_nodes.size()>0){ // if nodes found
-            string AnchoringType = alignment->surface[i]->getAnchoringType();
-			
-            if ( (AnchoringType.compare("Strong") == 0) || (AnchoringType.compare("Weak") == 0)){
-                double tilt = alignment->surface[i]->getEasyTilt();
-                double twist= alignment->surface[i]->getEasyTwist();
-                setGlobalAngles(q,lc,tilt,twist,&ind_nodes);
-            }
-			
-            // if homeotropic OR degenerate with negative strength
-            else if ( (AnchoringType.compare("Homeotropic")==0)  || (AnchoringType.compare("Degenerate") ==0 &&
-                        (alignment->surface[i]->getStrength() < 0) ) ){
-                setHomeotropic(q,lc,&ind_nodes,geom);
-            }
-        }// end if alignment nodes found
-    }// end for loop over alignment surfaces
+// Freezes Q-tensor to current values at this surface
+void setFrozenSurfaces(SolutionVector* q, vector<int>* ind_nodes)
+{
+	// frozen surfaces don't need anything done
+	printf("frozen surface\n");
+	
 }
-//end void setSurfacesQ
+
+
 
 void setStrongSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* geom){
     // sets only strong anchoring surfaces
@@ -102,9 +90,59 @@ void setStrongSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geomet
             else if ( (AnchoringType.compare("Homeotropic")==0)  ){
                 setHomeotropic(q,lc,&ind_nodes,geom);
             }
+			// frozen surfaces are also strong
+			else if ( AnchoringType.compare("Freeze") == 0 )
+			{
+				setFrozenSurfaces(q, &ind_nodes);
+			}
         }// end if alignment nodes found
     }// end for loop over alignment surfaces
 }
 //end void setStrongSurfaces
+
+
+
+
+void setSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* geom){
+/*! sets q-tensor values for all surfaces. */
+    vector<int> ind_nodes;
+    
+	// loop over all surfaces loaded from settings file
+	for (int i = 0 ; i < alignment->getnSurfaces() ; i++ )
+	{
+        ind_nodes.clear();
+        // creates index of all nodes of this alignment surface type
+        geom->e->FindIndexToMaterialNodes((i+1)*MAT_FIXLC1, &ind_nodes);
+		
+		//printf("FIXLC%i - number of nodes %i\n", i , (int) ind_nodes.size() );
+		
+        if (ind_nodes.size()>0){ // if nodes found
+    
+	        string AnchoringType = alignment->surface[i]->getAnchoringType();
+	        if ((AnchoringType.compare("Strong") == 0) || 
+				(AnchoringType.compare("Weak") == 0))
+			{
+                double tilt = alignment->surface[i]->getEasyTilt();
+                double twist= alignment->surface[i]->getEasyTwist();
+                setGlobalAngles(q,lc,tilt,twist,&ind_nodes);
+            }
+			
+            // if homeotropic OR degenerate with negative strength
+            else if ( (AnchoringType.compare("Homeotropic")==0)  || (AnchoringType.compare("Degenerate") ==0 &&
+                        (alignment->surface[i]->getStrength() < 0) ) ){
+					setHomeotropic(q,lc,&ind_nodes,geom);
+            }
+			else if ( AnchoringType.compare("Freeze") == 0 )
+			{
+				setFrozenSurfaces(q, &ind_nodes);
+			}
+        }// end if alignment nodes found
+    }// end for loop over alignment surfaces
+
+	
+}
+//end void setSurfacesQ
+
+
 
 

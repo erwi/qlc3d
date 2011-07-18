@@ -151,7 +151,7 @@ void WriteLCD_B(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *
     int i;
     //npLC = q->getnDoF();
 	
-	
+
 	string resname = simu->getSaveDir();//"res/result";//
 	char str[15];
 	
@@ -192,7 +192,7 @@ void WriteLCD_B(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *
 	fprintf(fid,"RAW FLOAT TRI - S0, np, nsols\n");
 	fprintf(fid,"%g %d %d\r\n",lc->getS0(),np,6);
 	
-	
+		
 	
 	for (i=0;  i<np; i++){
 	    if (i<npLC){ // WRITE LC REGIONS

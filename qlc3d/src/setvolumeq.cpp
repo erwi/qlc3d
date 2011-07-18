@@ -22,17 +22,20 @@ void setNormalBox(
 	double py = p[i*3 + 1];
 	double pz = p[i*3 + 2];
 
-	if ((px >= box->X[0]) && ( px <= box->X[1])){ // if within X
-	    if (( py >= box->Y[0]) &&( py <= box->Y[1])){ // Y
-		if (( pz >= box->Z[0])&&( pz <= box->Z[1])){ // Z
-		
-		    // Twist, Tilt
-		    double  ph = box->Twist[0] * PI /180.0 + pow(p[i*3+2]*d_ph, power);
-		    double  th =  pow(( pz- box->Z[0] ) / (box->Z[1] - box->Z[0]), power ) * d_th  + box->Tilt[0]*PI/180.0;
-
-                    nx[i] = cos(th)*cos(ph); // sets director
-		    ny[i] = sin(ph)*cos(th);
-		    nz[i] = sin(th);
+	if ((px >= box->X[0]) && ( px <= box->X[1])) // if within X
+	{
+		if (( py >= box->Y[0]) &&( py <= box->Y[1])) // Y
+		{
+			if (( pz >= box->Z[0])&&( pz <= box->Z[1])) // Z
+			{
+				
+				// Twist, Tilt
+				double  ph = box->Twist[0] * PI /180.0 + pow(p[i*3+2]*d_ph, power);
+				double  th =  pow(( pz- box->Z[0] ) / (box->Z[1] - box->Z[0]), power ) * d_th  + box->Tilt[0]*PI/180.0;
+			
+                nx[i] = cos(th)*cos(ph); // sets director
+				ny[i] = sin(ph)*cos(th);
+				nz[i] = sin(th);
 
 		} // if inside z limits
 	    }//if inside Y limits
