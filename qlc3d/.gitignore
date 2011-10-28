@@ -1,0 +1,7 @@
+# ignores compiled files
+*.exe
+*.o
+
+# no need to inlcude meshes and results directories
+meshes/
+res/
