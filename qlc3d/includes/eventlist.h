@@ -15,10 +15,10 @@ using namespace std;
 class Event
 {
 	public:
-		double Time;
-		int Number;
-		Event(double t, int n);
+		double Time;		// Time of event in seconds
+		int Number;			// ID number of this event type
 		
+		Event(double t, int n);
 		bool operator<(Event other);
 		
 };
@@ -34,7 +34,7 @@ class EventList
 	public:
 		EventList();
 		void setElectrodeEvents(Electrodes* electrodes);
-		void PrintEventList();
+		void printEventList();
 		double getNextEventTime();
 		int    getNextEventNumber();
 		int    getLength();

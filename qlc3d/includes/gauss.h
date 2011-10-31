@@ -13,17 +13,17 @@ const double a=(1+sqrt(5.0/14.0))/4.0;
 const double b=(1-sqrt(5.0/14.0))/4.0;
 
 static double gp[ngp][4]={
-	0.25	  , 0.25	,	0.25	,0.25,
-	11.0/14.0     ,	1.0/14.0	,	1.0/14.0	,1.0/14.0,
-	1.0/14.0      ,	11.0/14.0	,	1.0/14.0	,1.0/14.0,
-	1.0/14.0	  ,	1.0/14.0	,	11.0/14.0   ,1.0/14.0,	
-	1.0/14.0	  , 1.0/14.0	,	1.0/14.0	,11.0/14.0,
-	a		  ,	a		,	b       ,b,
-	a		  , b		,   a       ,b,
-	a         , b       ,   b       ,a,
-	b		  , a       ,   a       ,b,
-	b		  , a       ,   b		,a,
-	b		  , b		,   a		,a};
+        {0.25	  , 0.25	,	0.25	,0.25},
+        {11.0/14.0     ,	1.0/14.0	,	1.0/14.0	,1.0/14.0},
+        {1.0/14.0      ,	11.0/14.0	,	1.0/14.0	,1.0/14.0},
+        {1.0/14.0	  ,	1.0/14.0	,	11.0/14.0   ,1.0/14.0},
+        {1.0/14.0	  , 1.0/14.0	,	1.0/14.0	,11.0/14.0},
+        {a, a, b, b},
+        {a, b, a, b},
+        {a, b, b, a},
+        {b, a, a, b},
+        {b, a, b, a},
+        {b, b, a, a}};
 
 const double w11 = -74.0/5625.0;
 const double w12 = 343.0/45000.0;
@@ -36,9 +36,9 @@ static double sh1s[ngp][4]; // P1 Shape functions s-derivatives
 static double sh1t[ngp][4]; //P1 shape functions t-derivative
 
 //GLOBALLY USED VALUES
-static double rt2 = sqrt(2.0);
-static double rt3 = sqrt(3.0);
-static double rt6 = sqrt(6.0);
+//static double rt2 = sqrt(2.0);
+//static double rt3 = sqrt(3.0);
+//static double rt6 = sqrt(6.0);
 
 
 #endif

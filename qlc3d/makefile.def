@@ -9,8 +9,8 @@ SPARSELIB_INCLUDE_DIR		= c:/SparseLib++/1.7/include
 SPARSELIB_MV_INCLUDE_DIR	= c:/SparseLib++/1.7/mv/include
 SPARSELIBINCS = -I$(SPARSELIB_INCLUDE_DIR) -I$(SPARSELIB_MV_INCLUDE_DIR)
 
-QLC3D_PATH      = C:/eero/qlc3d_freeze/qlc3d_git/qlc3d
-
+#QLC3D_PATH      = C:/eero/qlc3d_freeze/qlc3d_git/qlc3d
+QLC3D_PATH      = C:/eero/qlc3d_git/qlc3d_git/qlc3d
 
 
 #

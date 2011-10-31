@@ -36,9 +36,10 @@ double getMaxChange(Geometry& geom, SolutionVector& v){
     return dv;
 }
 
+/*
 bool needsRefinement(Geometry &geom, SolutionVector &q, MeshRefinement &meshrefinement){
-/*! checks whether additional end refinement is needed. returns true if needed.
-*/
+// checks whether additional end refinement is needed. returns true if needed.
+//
 
     double minchange = 1e50;
     vector  < AutoRef > :: iterator itr = meshrefinement.AutoRefinement.begin();
@@ -62,3 +63,4 @@ bool needsRefinement(Geometry &geom, SolutionVector &q, MeshRefinement &meshrefi
 
 
 }
+*/

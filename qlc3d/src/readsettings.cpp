@@ -118,7 +118,7 @@ void readLC(LC* lc,Reader& reader)
 	name = "e33";
 	ret = reader.readNumber(name, val);
 	if(ret == READER_SUCCESS)
-	lc->e11 = val;
+	lc->e33 = val;
     problem(name, ret);
 
 // VISCOUS COEFFICIENTS
@@ -504,7 +504,9 @@ void readElectrodes(Electrodes* electrodes, Reader& reader)
         ret = reader.readNumberArray(name , vec );
     // IF ELECTRODE FOUND
         if (ret == READER_SUCCESS){
-            electrodes->setCalcPot(true);
+            
+			//printf("A"); fflush(stdout);
+			electrodes->setCalcPot(true);
             Electrode* el = new Electrode();
 
             el->setPotential(vec);

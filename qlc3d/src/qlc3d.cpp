@@ -29,50 +29,51 @@ int minnode(int *t, int dim1, int dim2){ // what does this do?
 	return min;
 }
 void AdjustTimeStep(Simu& simu, const double& maxdq){
-	if (simu.getdt()>0){
 
-		// ADAPT TIME STEP ACCORDING TO CONVERGENCE
+    // if electrode switching etc. has just happened, dont adapt time step
+    if ( simu.restrictedTimeStep ) return;
 
-		double R = simu.getTargetdQ() / fabs(maxdq);
+    if (simu.getdt()>0){
+        // ADAPT TIME STEP ACCORDING TO CONVERGENCE
 
-		double Rf[4];
-		simu.getdtFunction( &Rf[0] );
+        double R = simu.getTargetdQ() / fabs(maxdq);
 
-		double Rmin  = Rf[0]; // S = 0
-		double RLmin = Rf[1]; // S = R (min)
-		double RLmax = Rf[2]; // S = R (max)
-		double Rmax  = Rf[3]; // S = 2
+        double Rf[4];
+        simu.getdtFunction( &Rf[0] );
 
-		double Smax = 2;
-		double S = 1;
+        double Rmin  = Rf[0]; // S = 0
+        double RLmin = Rf[1]; // S = R (min)
+        double RLmax = Rf[2]; // S = R (max)
+        double Rmax  = Rf[3]; // S = 2
 
-		// LINEAR REGION
-		if ( (R < RLmax) && (R > RLmin) )
-		{
-		    //cout << "linear" << endl;
-		    S = R;
-		}
-		else
-		// BELOW LINEAR
-		    if( R <= RLmin){
-			double  k = RLmin / (RLmin - Rmin);
-			double  dR = (RLmin - R);
-			S = RLmin - k * dR;
-		    }
-		else
-		// above LINEAR
-		    if ( R >= RLmax){
-			double k = (Smax - RLmax) / (Rmax - RLmax);
-			double dr = R - RLmax;
-			S = RLmax + k * dr;
-			if (S>Smax) S = Smax;
-		}
+        double Smax = 2;
+        double S = 1;
 
-		cout << "S: " << S << endl;
-		double newdt = simu.getdt()* S;
-		if ( newdt < simu.getMindt() ) newdt = simu.getMindt();
-		//cout << "newdt: " << newdt << endl;
-		simu.setdt(newdt); // min/max limits taken care of here
+        // LINEAR REGION
+        if ( (R < RLmax) && (R > RLmin) )
+        {
+            S = R;
+        }
+        else
+        // BELOW LINEAR
+        if( R <= RLmin){
+            double  k = RLmin / (RLmin - Rmin);
+            double  dR = (RLmin - R);
+            S = RLmin - k * dR;
+        }
+        else
+        // above LINEAR
+        if ( R >= RLmax){
+            double k = (Smax - RLmax) / (Rmax - RLmax);
+            double dr = R - RLmax;
+            S = RLmax + k * dr;
+            if (S>Smax) S = Smax;
+        }
+
+        cout << " scaling dt by: " << S << endl;
+        double newdt = simu.getdt()* S;
+        if ( newdt < simu.getMindt() ) newdt = simu.getMindt();
+            simu.setdt(newdt); // min/max limits taken care of here
 	}
 
 	simu.setCurrentChange(maxdq); // updates maximum change value for this iteration
@@ -100,13 +101,18 @@ double ConsistencyLoop(SolutionVector& v, SolutionVector& q , SolutionVector& qn
 					   Simu& simu, LC& lc, Settings& settings,
 					   Alignment& alignment, Electrodes& electrodes,
                        SparseMatrix* Kq, SparseMatrix* Kpot ){
-	double consistency = 1e99; // arb. bignumber!
+        //double consistency = 1e99; // arb. bignumber!
 	double maxdq = 0;
 
 	// in some cases Pot Cons loops are not needed (if gong for steady state or PotCons == Off)
 	bool isPotCons = ( simu.getdt() > 0 ) && ( simu.getPotCons() != Off );
-    isPotCons = false; // turn of consisteny loop
+        isPotCons = false; // turn of consisteny loop
+        calcpot3d(Kpot,&v, &q, &lc, geom1.t,geom1.e, geom1.getPtrTop(), &settings, &electrodes);
+        maxdq = calcQ3d(&q,&qn,&v,geom1.t,geom1.e,geom1.getPtrTop(),&lc, &simu, Kq, &settings, &alignment, geom1.getPtrToNodeNormals());
+
+	
 	// DO THIS LOOP UNTIL POTENTIAL CONSISTENCY IS ACHIEVED
+	/*
 	while( consistency > simu.getTargetPotCons() ){
 		maxdq = 0;
 		// make copies for potential consistency
@@ -135,7 +141,7 @@ double ConsistencyLoop(SolutionVector& v, SolutionVector& q , SolutionVector& qn
 			qn.setValuesTo(qn_cons);
 		}
 	}// end while
-
+*/
 	return maxdq;
 
 }
@@ -143,60 +149,66 @@ double ConsistencyLoop(SolutionVector& v, SolutionVector& q , SolutionVector& qn
 
 
 void HandleEvents(EventList* eventlist, Simu* simu, SolutionVector* v, Electrodes* electrodes, Mesh* ee){
-	if (simu->getdt() != 0){// if time stepping
+    if (simu->getdt() != 0){// if time stepping
 
-	double te =  eventlist->getNextEventTime() - simu->getCurrentTime()  ;
-//	double next = eventlist->getNextEventTime();
-//	double now = simu->getCurrentTime();
-	//cout << "next, now , te: " <<next<<","<<now<<"," << te<<endl;
+    // time until next event
+    double te =  eventlist->getNextEventTime() - simu->getCurrentTime()  ;
+    simu->restrictedTimeStep = false; // no restriction needed on time step adaptation
 
-	while (( fabs(te) < 1e-20) ){ // if time to next event is ridiculously small
-		//cout << "EVENT"<< endl;
-	    if  ( eventlist->getNextEventNumber() == EVENT_SWITCHING ){ // IF SWITCHING EVENT
-			//cout << "SWITCHING" << endl;
-			if (simu->getCurrentIteration() > 0){
-				//cout << "reducing time step to: " << simu->getMindt() << endl;
-				simu->setdt( simu->getMindt() );	// reduce time step
-				}
-			v->setFixedNodesPot(electrodes,ee,simu->getCurrentTime() );  // set boundary conditions
-			eventlist->RemoveFirstEvent();	// remove event from list
+    while ( te < 1e-20 ){ // if time to next event is ridiculously small (or has just passed, te < 0 )
 
-			if (eventlist->getLength() == 0) break; // leave if no more events to check
+        if  ( eventlist->getNextEventNumber() == EVENT_SWITCHING ){ // IF SWITCHING EVENT
 
-			if ( electrodes->getnElectrodes() >= 2 ) {// check if potential calculation needed
-				double pot1 = electrodes->E[0]->Potential[0];
-				bool calcpot = false;
+            simu->restrictedTimeStep = true; // time step shoul be set to minimum after switchign
+            simu->setdt( simu->getMindt() );
 
-				for (int i = 0 ; i < electrodes->getnElectrodes() ; i ++){// compare all electrode potentials
-					if (electrodes->E[i]->Potential[0] != pot1){ // iff all same, no calculation needed
-						calcpot = true;
-						break;
-					}
-				}
-				if (!calcpot){// if not needed, set all values to same
-					electrodes->setCalcPot(calcpot);
-					v->setValuesTo(pot1);
-					}
-			}// end if potential calc needed
+            v->setFixedNodesPot(electrodes,ee,simu->getCurrentTime() );  // set potential boundary conditions for all electrodes
+            eventlist->RemoveFirstEvent();	// remove event from list
 
-	    }// end if EVENT_SWITCHING
+            // check if potential calculation needed
+            bool needsCalcpot = false;
+            double currentPot = 0;
+            if ( electrodes->getnElectrodes() >= 2 ) {
+                currentPot = electrodes->E[0]->getCurrentPotential();
 
-	te = fabs( eventlist->getNextEventTime() - simu->getCurrentTime() ) ;
-	}
-	if (( te > 0  ) && (te < simu->getdt() )){ // adjust time step if event will occur during next step
+                for (int i = 0 ; i < electrodes->getnElectrodes() ; i ++)// for each electrode
+                {
+                    // if differing potentials are applied to any electrode, potential must be calculated
+                    if (electrodes->E[i]->getCurrentPotential() != currentPot)
+                    {
+                        needsCalcpot = true;
+                        break;
+                    }
+                }
+            }// end if potential calc needed
+			
+            electrodes->setCalcPot( needsCalcpot ); // sets flag whether to calculate potential
+            if (! needsCalcpot) v->setValuesTo( currentPot ); // if no calculation needed, all values will be same
+            if (eventlist->getLength() == 0) break; // leave if no more events to check
+        }// end if EVENT_SWITCHING
+
+        te = fabs( eventlist->getNextEventTime() - simu->getCurrentTime() ) ;
+
+        }// end while next event
+
+	// adjust time step if an event will occur during next time-step
+	if (( te > 0  ) && (te < simu->getdt() )){ 
 		simu->setdt(te);
-		printf("adjusting time step to %f ms.\n", simu->getdt() * 1e3);
+		printf("adjusting time step to %e s. due to event\n", simu->getdt() );
 	}
 	}// end if time stepping
+
+
+
 }//end void HandleEvents
 
 int main(int argc, char* argv[]){
 
-#ifndef NO_QT
-	int nin = 1;
-	char* chin[1];
-	QCoreApplication a(nin,chin);//argc, argv);
-#endif
+//#ifndef NO_QT
+//	int nin = 1;
+//	char* chin[1];
+//	QCoreApplication a(nin,chin);//argc, argv);
+//#endif
 
     printf("\n\n\n");
     printf("=============================================================\n");
@@ -223,6 +235,9 @@ int main(int argc, char* argv[]){
 	}
         ReadSettings(settings_filename,&simu,&lc,&boxes,&alignment,&electrodes, &meshrefinement);
 
+		
+	electrodes.printElectrodes();
+	//return 0;	
 	FILE* Energy_fid = NULL; // file for outputting free energy
 
 	// Solver settings	(choose solver, preconditioner etc.)
@@ -258,13 +273,15 @@ int main(int argc, char* argv[]){
 
     EventList eventlist = EventList();
     eventlist.setElectrodeEvents(&electrodes);
-
+	eventlist.printEventList();
+	
     cout << "Creating V...";
     SolutionVector v( geom1.getnp() );
     v.setFixedNodesPot(&electrodes , geom1.e , simu.getCurrentTime());
     v.setPeriodicEquNodes(&geom1 ); // periodic nodes
     v.EnforceEquNodes(); // makes sure values at periodic boundaries match
-	cout << "OK"<<endl;
+
+    cout << "OK"<<endl;
 
 // =============================================================
 //
@@ -287,13 +304,9 @@ int main(int argc, char* argv[]){
 	}
     q.setFixedNodesQ(&alignment, geom1.e);  // set fixed surface anchoring
     q.setPeriodicEquNodes(&geom1);          // periodic nodes
-    
-	//q.PrintEquNodes();
-	//exit(1);
 	
-	
-	q.EnforceEquNodes();					// makes sure values at periodic boundaies match
-	qn=q;                                   // q-previous = q-current in first iteration
+    q.EnforceEquNodes();					// makes sure values at periodic boundaies match
+    qn=q;                                   // q-previous = q-current in first iteration
     cout << "OK" << endl;                   // Q-TENSOR CREATED OK
  
 
@@ -314,11 +327,11 @@ int main(int argc, char* argv[]){
 //*
 //********************************************************************
 
-	calcpot3d(Kpot,&v,&q,&lc,geom1.t,geom1.e, geom1.getPtrTop(), &settings, &electrodes);
+    calcpot3d(Kpot,&v,&q,&lc,geom1.t,geom1.e, geom1.getPtrTop(), &settings, &electrodes);
 
 // writes a copy of settings file in results directory
-	printf("Saving a copy of the settings file...");
-	CreateSaveDir(&simu);
+    printf("Saving a copy of the settings file...");
+        CreateSaveDir(&simu);
 	simu.setCurrentTime(0);
 	WriteSettings(&simu, &lc, &boxes, &alignment, &electrodes);
 
@@ -326,7 +339,7 @@ int main(int argc, char* argv[]){
 	WriteResult(&simu, &lc , &geom1, &v, &q);
 	printf("OK\n");
 
-    //return 0;
+
 	Energy_fid = createOutputEnergyFile(simu); // done in inits
 
 
@@ -352,14 +365,8 @@ int main(int argc, char* argv[]){
 	time(&t2);
 	double maxdq = 0;
 	// MAIN LOOP - while simulation is running
-	#ifndef NO_QT
-	QTime timer;
-	timer.start();
-	#endif
+
 	do{
-	#ifndef NO_QT
-		timer.restart();
-	#endif
 
             time(&t2);
             printf("=======================================================================\n");
@@ -377,11 +384,13 @@ int main(int argc, char* argv[]){
                                         alignment, electrodes,
                                         Kq, Kpot);
 
-            AdjustTimeStep(simu, maxdq);
+
 
             // SAVE
             WriteResult(&simu, &lc , &geom1, &v, &q);
-            printf("\n");
+
+            AdjustTimeStep(simu, maxdq); // also increments current time
+
 /* AUTOREFINEMENT
         if (( (meshrefinement.isRefinementIteration( simu.getCurrentIteration() ) ) ))  // if this is a refinement iteration
              //|| (simu.getCurrentIteration() == 1) ) &&                               // or if first iteration this should be done before start of simulation
@@ -404,9 +413,9 @@ int main(int argc, char* argv[]){
 //*/
 
 	// LAZY....
-	#ifndef NO_QT
-		cout << "Total iteration duration: " << (float) timer.elapsed()/1000<<"s." << endl;
-	#endif
+	//#ifndef NO_QT
+	//	cout << "Total iteration duration: " << (float) timer.elapsed()/1000<<"s." << endl;
+	//#endif
 
 	// if need end-refinement
     if ( (!simu.IsRunning() ) && (needsEndRefinement( geom1, q , meshrefinement ) ) )
@@ -448,9 +457,9 @@ int main(int argc, char* argv[]){
     delete Kpot;
     delete Kq;
 
-#ifndef NO_QT
-	a.quit();
-#endif
+//#ifndef NO_QT
+//	a.quit();
+//#endif
 
 
 

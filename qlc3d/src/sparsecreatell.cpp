@@ -15,7 +15,7 @@ void sparsecreatell(Mesh *mesh, SparseMatrix *K)//double **P, int **I, int **J ,
 	
 	int maxp	= -10;// number of columns 
 	//int *nnz	=(int*)malloc(sizeof(int));
-	int i=0,j=0,n1=0,n2=0,x=0; // counters & temporary indicies
+        int i=0,n1=0,n2=0,x=0; // counters & temporary indicies
 	int *tt;		// temporary element
 
 	int dof_per_node =1; // assume this is same for all 

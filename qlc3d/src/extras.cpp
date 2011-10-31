@@ -1,4 +1,6 @@
 #include <extras.h>
+// THIS FILE CAN PROBABLY BE DELETED 27/10/11
+
 int FindElemByCoord(Geometry* geom , double px, double py, double pz)
 {
 	printf("FindElemByCoord\n");
@@ -29,6 +31,8 @@ double Interpolate(int* t, int dim, SolutionVector* sol , double D[5])
 }
 
 
+
+/*
 void extras(Geometry* geom, SolutionVector* sol)
 {
 	double P[3] = {0,0,0.5};
@@ -100,3 +104,4 @@ void extras(Geometry* geom, SolutionVector* sol)
 	free(n);
 	
 }
+*/

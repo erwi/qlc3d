@@ -28,9 +28,12 @@ using std::vector;
 using std::string;
 
 //#define N_THREADS 4
-#define PI 3.14159
-#define eps0 8.8541878176e-12
+#ifndef PI
+    #define PI 3.14159265358979323846264338327950288419716939937510
+#endif
 
+#define eps0 8.8541878176e-12
+#define COMPLEX std::complex<double>
 // struct spm{				// define sparse matrix link
 //		int row;
 //		spm *next;

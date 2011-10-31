@@ -1,14 +1,16 @@
 #include <iostream>
 #include <stdlib.h>
 #include <stdlib.h>
-#include "meshtest.h"
-#include "compcol_double.h"
 
-#include "cg.h"
-#include "icpre_double.h"
-#include "vecdefs.h"
-#include "c:/sparselib_1_6/include/gmres.h"
-#include "ilupre_double.h"
+#include <compcol_double.h>
+
+#include <cg.h>
+#include <gmres.h>
+#include <icpre_double.h>
+#include <vecdefs.h>
+//#include "c:/sparselib_1_6/include/gmres.h"
+#include <ilupre_double.h>
+#include <sparsematrix.h>
 //#include "ilupre.h"
 //#include "blas1.h"
 #include MATRIX_H

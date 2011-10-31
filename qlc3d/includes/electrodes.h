@@ -12,17 +12,20 @@ class Electrode
 {
 private:
 	int nTimes;
-
+	double currentPotential;
 public:
 
-	vector<double> Potential;
-	vector<double> Time;
+	vector<double> Potential;	// potential in Volts
+	vector<double> Time;		// time in seconds
 
 	Electrode();
 	void setPotential(std::vector<double> pot);
 	void setTime(std::vector<double> tme);
 	void PrintElectrode();
 	int getnTimes();
+	double getCurrentPotential() {return currentPotential; }
+	void setCurrentPotential(const double& cp) { currentPotential = cp ; }
+	//void removeSwitching( const int& idx); // removes idx'th swithing event
 };
 
 class Electrodes
@@ -40,7 +43,7 @@ class Electrodes
 		//void Electroodes();
 		Electrodes();
 		~Electrodes();
-		void PrintElectrodes();
+		void printElectrodes();
 		void AddElectrode();
 		void AddElectrode(Electrode* El);
 

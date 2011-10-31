@@ -107,8 +107,8 @@ void solver(SolutionVector *v,SparseMatrix *K, double* L)
 	
 	//for (int i = 0; i < K->rows ; i++)
 	//	printf("L[%i] = %f\n",i,L[i]);
-	solve_pcg(K,L,v->Values);
+        //solve_pcg(K,L,v->Values);
 	
-	v->setToFixedValues(); // set fixed nodes back to fixed values
+        //v->setToFixedValues(); // set fixed nodes back to fixed values
 	//v->PrintValues();
 }
