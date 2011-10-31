@@ -152,7 +152,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 			LOOP = false;
 		else
         if ( fabs(maxdq) < simu->getMaxError() ){ // EXIT IF ACCURATE ENOUGH
-            printf("maxdq = %f, maxError = %f\n", fabs(maxdq), simu->getMaxError() );
+            //printf("maxdq = %f, maxError = %f\n", fabs(maxdq), simu->getMaxError() );
             LOOP = false;
         }// end if
 	}//end while dq > MaxError  ---- ENDS NEWTON LOOP

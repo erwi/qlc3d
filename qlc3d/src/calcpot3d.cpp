@@ -28,7 +28,6 @@ const int	npt = 4; //Number of Points per Tetrahedra
 double rt2 = sqrt(2.0);
 double rt6 = sqrt(6.0);
 
-void init_shapes();
 void init_shapes_surf();
 void potasm(SolutionVector *v, SolutionVector* q, LC* lc,Mesh *mesh, double *p, SparseMatrix *K, double* L);
 
@@ -53,67 +52,7 @@ void printlK(double* lK , int size){
 }
 
 
-void calcpot3d(
-	SparseMatrix* K,
-	SolutionVector *v,
-	SolutionVector* q,
-	LC* lc,
-	Mesh *mesh,
-	Mesh* surf_mesh,
-	double *p,
-	Settings* settings,
-	Electrodes* electrodes)
-{
-    // First check whether potential calculation is actually needed...
 
-    if ( (v->getnFixed() == 0 ) || (!electrodes->getCalcPot()) ){
-        //v->PrintFixedNodes();
-        v->setValuesTo(0.0); // if no potential calculation, set all values to zero
-        return;
-    }
-
-
-
-
-    K->setAllValuesTo(0); // clears values but keeps sparsity structure
-	v->setValuesTo((double) 0);
-    v->setToFixedValues();
-
-    double* L = (double*) malloc(v->getnFreeNodes()*sizeof(double));
-	if (L == NULL)
-		exit(1);
-
-    memset(L,0,v->getnFreeNodes()*sizeof(double));
-
-// Assemble system
-
-    init_shapes();
-    assemble_volume(p,v,q,lc,mesh, K , L, electrodes);
-
-    init_shapes_surf();
-    assemble_Neumann(p , v , q , lc , mesh , surf_mesh , K , L);
-
-//#ifdef DEBUG
-    K->DetectZeroDiagonals();
-//#endif
-
-// Solve System
-    if (settings->getV_Solver() == V_SOLVER_PCG)
-	Pot_PCG(K,L,v, settings);
-    else if (settings->getV_Solver() == V_SOLVER_GMRES)
-	Pot_GMRES(K,L,v, settings);
-    else
-	{
-		printf("error - potential solver is set to %i\n", settings->getV_Solver());
-		exit(1);
-	}
-    free(L);
-
-    v->setToFixedValues();
-
-
-}
-//end calcpot3d
 
 
 
@@ -151,33 +90,33 @@ double sh1[ngp][4]; // P1 Shape functions
 double sh1r[ngp][4]; // P1 Shape functions r-derivatives
 double sh1s[ngp][4]; // P1 Shape functions s-derivatives
 double sh1t[ngp][4]; //P1 shape functions t-derivative
-void init_shapes() // "normal" shape functions
+
+void init_shapes()
 {
-       // cout << "in initshapes"<<endl;
-	//sh1 = (double*) malloc( 4*ngp*sizeof(double));
-	for (int i=0; i<ngp; i++) {
-		// P1 Shape functions
-		sh1[i][0]=1-gp[i][0]-gp[i][1]-gp[i][2];
-		sh1[i][1]=gp[i][0];
-		sh1[i][2]=gp[i][1];
-		sh1[i][3]=gp[i][2];
-		// P1 Shape functions r-derivatives
-		sh1r[i][0]=-1.0;
-		sh1r[i][1]=1.0;
-		sh1r[i][2]=0.0;
-		sh1r[i][3]=0.0;
-		// P1 Shape functions s-derivatives
-		sh1s[i][0]=-1.0;
-		sh1s[i][1]=0.0;
-		sh1s[i][2]=1.0;
-		sh1s[i][3]=0.0;
-		// P1 Shape functions t-derivatives
-		sh1t[i][0]=-1.0;
-		sh1t[i][1]=0.0;
-		sh1t[i][2]=0.0;
-		sh1t[i][3]=1.0;
+    // TERAHEDRA SHAPE FUCNTIONS AND ITS DERIVATIVES
+    for (int i=0; i<ngp; i++) {
+        // P1 Shape functions
+        sh1[i][0]=1-gp[i][0]-gp[i][1]-gp[i][2];
+        sh1[i][1]=gp[i][0];
+        sh1[i][2]=gp[i][1];
+        sh1[i][3]=gp[i][2];
+        // P1 Shape functions r-derivatives
+        sh1r[i][0]=-1.0;
+        sh1r[i][1]=1.0;
+        sh1r[i][2]=0.0;
+        sh1r[i][3]=0.0;
+        // P1 Shape functions s-derivatives
+        sh1s[i][0]=-1.0;
+        sh1s[i][1]=0.0;
+        sh1s[i][2]=1.0;
+        sh1s[i][3]=0.0;
+        // P1 Shape functions t-derivatives
+        sh1t[i][0]=-1.0;
+        sh1t[i][1]=0.0;
+        sh1t[i][2]=0.0;
+        sh1t[i][3]=1.0;
 	 //   cout << i << endl;
-            }
+    }
 }
 
 
@@ -224,6 +163,70 @@ void init_shapes_surf() // surface integral shape functions
 		sh1t[i][3]=1;
 	}
 }
+
+
+void calcpot3d(
+        SparseMatrix* K,
+        SolutionVector *v,
+        SolutionVector* q,
+        LC* lc,
+        Mesh *mesh,
+        Mesh* surf_mesh,
+        double *p,
+        Settings* settings,
+        Electrodes* electrodes)
+{
+    // First check whether potential calculation is actually needed...
+
+    if ( (v->getnFixed() == 0 ) || (!electrodes->getCalcPot()) ){
+        //v->PrintFixedNodes();
+        v->setValuesTo(0.0); // if no potential calculation, set all values to zero
+        return;
+    }
+
+
+
+
+    K->setAllValuesTo(0); // clears values but keeps sparsity structure
+        v->setValuesTo((double) 0);
+    v->setToFixedValues();
+
+    double* L = (double*) malloc(v->getnFreeNodes()*sizeof(double));
+        if (L == NULL)
+                exit(1);
+
+    memset(L,0,v->getnFreeNodes()*sizeof(double));
+
+// Assemble system
+
+    init_shapes();
+    assemble_volume(p,v,q,lc,mesh, K , L, electrodes);
+
+    init_shapes_surf();
+    assemble_Neumann(p , v , q , lc , mesh , surf_mesh , K , L);
+
+//#ifdef DEBUG
+    K->DetectZeroDiagonals();
+//#endif
+
+// Solve System
+    if (settings->getV_Solver() == V_SOLVER_PCG)
+        Pot_PCG(K,L,v, settings);
+    else if (settings->getV_Solver() == V_SOLVER_GMRES)
+        Pot_GMRES(K,L,v, settings);
+    else
+        {
+                printf("error - potential solver is set to %i\n", settings->getV_Solver());
+                exit(1);
+        }
+    free(L);
+
+    v->setToFixedValues();
+
+
+}
+//end calcpot3d
+
 void localKL(
 	double *p,
 	int *tt,
@@ -463,6 +466,9 @@ void assemble_volume(
 	Electrodes* electrodes){
     int it;
     //#pragma omp parallel for
+
+
+
     for (it=0; it< mesh->getnElements(); it++){
 	double lK[npt][npt];
 	double lL[npt];
@@ -492,7 +498,7 @@ void assemble_volume(
 			K->sparse_set(ri,rj,1.0);			// OFF DIAGONALS TO 0 ELSEWHERE ?
 		}
 		else{
-		    K->sparse_add(rj,ri,lK[j][i]); // non-fixed
+                    K->sparse_add(rj,ri,lK[j][i]); // non-fixed
 		}// end else not fixed
 	    }//end for j
 

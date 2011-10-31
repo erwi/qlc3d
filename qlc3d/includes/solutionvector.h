@@ -108,22 +108,35 @@ public:
 	void setFixedNodesQ(Alignment* alignment, Mesh* e);
 	void setFixedNodesPot(Electrodes* electrodes, Mesh* e);
 	void setFixedNodesPot(Electrodes* electrodes, Mesh* e, double CurrentTime); // fixed potential for switching
-        void Resize(const unsigned int& n, const unsigned int& dim = 1); // resizes Values data, clears all data
-        void ClearAll();
+    void Resize(const unsigned int& n, const unsigned int& dim = 1); // resizes Values data, clears all data
+    void ClearAll();
 
 	void setPeriodicEquNodes(Geometry* geom); // use this for generating nodal periodic equivalency lists
 	
 	void ClearFixed(); // clears all fixed nodes and values
 	void AddFixed(int mat, double val, Mesh* mesh); // adds fixed when all values are same in region mat . e.g. same potential on electrode
+	//void changeFixedValue( int mat, double val,
+	
+	
+	
+	
 	void EnforceEquNodes(); // enforces periodicity
-
 	void PrintFixedNodes();
 	void PrintValues();
 	void PrintElim();
 	void PrintEquNodes();
-	inline bool getIsFixed(const int &i)
+        void PrintIsFixed();
+        inline bool getIsFixed(const int &i)
 	{
-		return IsFixed[i];
+            #ifdef DEBUG
+            if (i > this->getnDoF()*this->getnDimensions() )
+            {
+                printf("error in %s, %i is too large, total nDoF = %i bye!\n",__func__, i, this->getnDoF()*this->getnDimensions());
+                exit(1);
+            }
+            #endif
+
+            return IsFixed[i];
 	}
 	bool test();
 

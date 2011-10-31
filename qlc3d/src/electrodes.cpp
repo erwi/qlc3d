@@ -5,7 +5,7 @@ Electrode::Electrode()
 	nTimes = 0;
 	Potential.clear();
 	Time.clear();
-
+	currentPotential = 0.;
 
 }
 
@@ -25,11 +25,11 @@ void Electrode::PrintElectrode()
         if (npots>0){
             printf("     Pots:");
             for (int i = 0; i<npots ; i++)
-		printf(" %f", Potential[i]);
+		printf(" %e", Potential[i]);
 
             printf("\n     Time:");
             for (int i = 0; i<npots ; i++)
-		printf(" %f", Time[i]);
+		printf(" %e", Time[i]);
 
 		printf("\n");
 	} // end if npots>0
@@ -57,7 +57,6 @@ void Electrode::setTime(std::vector<double> tme){
 }
 
 
-
 //===========================================================
 //
 //		ELECTRODES
@@ -68,7 +67,7 @@ Electrodes::Electrodes()
 {
 	nElectrodes =0;
 	CalcPot = false;
-        eps_dielectric.push_back(1.0);
+    eps_dielectric.push_back(1.0);
 }
 Electrodes::~Electrodes(){
 	std::vector<Electrode*>::iterator itr;
@@ -80,19 +79,17 @@ Electrodes::~Electrodes(){
 
 void Electrodes::AddElectrode()
 {
-	//printf("adding Electrode to electrodes");
+	// Adds new empty electrode
 	nElectrodes++;
 	E.push_back(new Electrode);
-	//printf(" OK\n");
 }
 void Electrodes::AddElectrode(Electrode* El)
 {
-    nElectrodes++;
+    // adds non-empty electrode
+	nElectrodes++;
     E.push_back( El );
-    //std::cout << "added";
-
 }
-
+ 
 /*
 void Electrodes::AddDielectricPermittivity(double eps){	eps_dielectric.push_back(eps); }
 */
@@ -107,7 +104,7 @@ double Electrodes:: getDielectricPermittivity(int i)
 		}
 }
 
-void Electrodes::PrintElectrodes()
+void Electrodes::printElectrodes()
 {
 	for (int i = 0; i < nElectrodes; i++)
 	{
@@ -140,12 +137,14 @@ void Electrodes::WriteElectrodes(FILE* fid)
 				sprintf(str, "E%i", i+1);
 
 
-				fprintf(fid,"\t%s.Time = [%2.4f", str, E[i]->Time[0]);
+				fprintf(fid,"\t%s.Time = [%e", str, E[i]->Time[0]);
 				for (int t = 1 ; t < (int) E[i]->Time.size() ; t++ )
-				{	fprintf(fid,",%2.4f",E[i]->Time[t]);	}
-				fprintf(fid,"]\n\t%s.Pot  = [%f",str , E[i]->Potential[0]);
+				    {	fprintf(fid,",%e",E[i]->Time[t]);	}
+				
+				fprintf(fid,"]\n\t%s.Pot  = [%e",str , E[i]->Potential[0]);
+				
 				for (int p = 1 ; p < (int) E[i]->Potential.size() ; p++)
-				{	fprintf(fid,",%2.4f",E[i]->Potential[p]);	}
+				    {	fprintf(fid,",%e",E[i]->Potential[p]);	}
 				fprintf(fid,"]\n\n");
 
 			}

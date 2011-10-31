@@ -46,7 +46,7 @@ void EventList::InsertEvent(double time, int number)
 	*/
 
 }
-void EventList::PrintEventList()
+void EventList::printEventList()
 {
 	list<Event>::iterator i;
 
@@ -54,7 +54,7 @@ void EventList::PrintEventList()
 	
 	for ( i = events.begin() ; i != events.end() ; i ++)
 	{
-		printf("T, E = [%f, %i]\n",  i->Time, i->Number);
+		printf("T, E = [%e, %i]\n",  i->Time, i->Number);
 	}
 
 }

@@ -3,43 +3,44 @@
 
 
 Simu::Simu()
-	{
-		PotCons				= Loop;
-		TargetPotCons		= 1e-3;
-		EndValue 			= 0;
-		EndValue_orig       = 0;
-		MeshName 			= "";
-		LoadQ				= "";
-		SaveDir				= "";
-		SaveIter			= 1;
-        MeshNumber          = 0;
-        LoadDir				= "";
-		EndCriterion        = "Time";
+{
+    PotCons				= Loop;
+    TargetPotCons		= 1e-3;
+    EndValue 			= 0;
+    EndValue_orig       = 0;
+    MeshName 			= "";
+    LoadQ				= "";
+    SaveDir				= "";
+    SaveIter			= 1;
+    MeshNumber          = 0;
+    LoadDir				= "";
+    EndCriterion        = "Time";
 		
-        dt                  = 1e-6;
-        dtLimits[0]         = 1e-9;
-        dtLimits[1]         = 1e-3;
-        TargetdQ            = 1e-3;
+    dt                  = 1e-6;
+    dtLimits[0]         = 1e-9;
+    dtLimits[1]         = 1e-3;
+    TargetdQ            = 1e-3;
 
-        dtFunction[0]       = 0.5;	// value of R where S = 0
-        dtFunction[1]       = 0.8; // S = R (min)
-        dtFunction[2]       = 1.2; // S = R (max)
-        dtFunction[3]       = 10.0;  // S = 2
+    dtFunction[0]       = 0.5;	// value of R where S = 0
+    dtFunction[1]       = 0.8; // S = R (min)
+    dtFunction[2]       = 1.2; // S = R (max)
+    dtFunction[3]       = 10.0;  // S = 2
 
-        Maxdt               = 1e-4; // deprecated, use dtLimits[1]
+    Maxdt               = 1e-4; // deprecated, use dtLimits[1]
+    restrictedTimeStep     = false;
 
-		CurrentTime 		= 0;
-		CurrentIteration 	= 0;
-		CurrentChange		= 1;
-		setMaxError(1e-7);
-		AssembleMatrix 		= true;
-        MeshModified        = true; // Always assume mesh has changed -> output mesh file
-        OutputEnergy		= 0;
-		StretchVector[0]    = 1.0;	StretchVector[1]	= 1.0;	StretchVector[2]	= 1.0;
-		EnergyRegion [0]	= 0.0;	EnergyRegion [1]	= 0.0;	EnergyRegion [2]	= 0.0;
-		OutputFormat		= SIMU_OUTPUT_FORMAT_BINARY;
+    CurrentTime 		= 0;
+    CurrentIteration 	= 0;
+    CurrentChange		= 1;
+    setMaxError(1e-7);
+    AssembleMatrix 		= true;
+    MeshModified        = true; // Always assume mesh has changed -> output mesh file
+    OutputEnergy		= 0;
+    StretchVector[0]    = 1.0;	StretchVector[1]	= 1.0;	StretchVector[2]	= 1.0;
+    EnergyRegion [0]	= 0.0;	EnergyRegion [1]	= 0.0;	EnergyRegion [2]	= 0.0;
+    OutputFormat		= SIMU_OUTPUT_FORMAT_BINARY;
 		//OutputEnergy_fid	= NULL;
-	}
+}
 void Simu::PrintSimu(){}
 
 void Simu::WriteSimu(FILE* fid){

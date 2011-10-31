@@ -35,7 +35,11 @@ private:
 
 public:
 	
+
+
+
     inline int getnElements()const{return nElements;}   // number of elements
+
     inline int getnNodes()const {return nNodes;}  	// nuber of nodes per element
     inline int getDimension()const {return Dimension;}	// number of dimesnions of mesh ( 3 / 2 for tets / tris)
     int getConnectedVolume(const int& e); 	// returns index to connected volume element, or -1 if not connected to LC1
@@ -87,6 +91,7 @@ public:
     bool ContainsAllNodes(int elem, int n, int* nodes); // checks if element elem, contains all n nodes in array nodes
     void ContainsNodes(list <int>* elems , list <int>* points ); // adds element number to elemes that contain any node in list points
     bool ContainsCoordinate(const unsigned int& elem, const double* p, const double* coord); // checks whether coordinate is within element elem
+
     void CompleteNodesSet(const unsigned int& elem, std::vector<unsigned int>& nodes) const; // completes nodes vector with those from element, if nodes is empty returns all elements
     void PrintElements();		// prints all elements
     void PrintElement(int e);	// prints element e
@@ -97,11 +102,11 @@ public:
     void CalculateSurfaceNormals(double *p, Mesh* tets = NULL);
     void CopySurfaceNormal(int i, double* norm); // copies value of surface normal of element i to norm (which must be array of size3)
     void CopyMesh(Mesh* rhs);	// makes this a copy of Mesh* rhs - why does operator= overloading not work???
-	void ScaleDeterminants( const double& s); // scales all determinants by s, e.g. to go to microns
-	void CalcLocCoords(const unsigned int& elem, double* p, double* coord, double* loc); // calculates 4 local coordinates of coordinate cord in element elem
-	void CalcElemBary(const unsigned int& elem, double* p, double* bary); // calculates barycentre coords of element elem
-	double CalcBaryDistSqr( double *p,const unsigned int& elem, double* coord);
-	bool isOnXPlane(int e, double X, double* p);	// checks if all nodes of triangle e are on x = X plane
+    void ScaleDeterminants( const double& s); // scales all determinants by s, e.g. to go to microns
+    void CalcLocCoords(const unsigned int& elem, double* p, double* coord, double* loc); // calculates 4 local coordinates of coordinate cord in element elem
+    void CalcElemBary(const unsigned int& elem, double* p, double* bary); // calculates barycentre coords of element elem
+    double CalcBaryDistSqr( double *p,const unsigned int& elem, double* coord);
+    bool isOnXPlane(int e, double X, double* p);	// checks if all nodes of triangle e are on x = X plane
     bool isOnYPlane(int e, double Y, double* p);	// checks if all nodes of triangle e are on y = Y plane
     bool isOnZPlane(int e, double Z, double* p);	// checks if all nodes of triangle e are on z = Z plane
     //bool isOnBackSurface(int e, Geometry* geom);	//

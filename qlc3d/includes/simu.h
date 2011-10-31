@@ -36,8 +36,6 @@ class Simu
 		double 	Maxdt;
 
 
-
-
 		string 	EndCriterion;
 		string  LoadQ;
 		string  SaveDir;
@@ -59,7 +57,7 @@ class Simu
 	public:
 		string MeshName;
 		double dt;
-
+        bool restrictedTimeStep; // flag to allow/disallow adapting time step size (e.g. just after potential switching)
 
 //	int OutputEnergy;
 

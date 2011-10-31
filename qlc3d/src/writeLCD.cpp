@@ -152,14 +152,14 @@ void WriteLCD_B(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *
     //npLC = q->getnDoF();
 	
 
-	string resname = simu->getSaveDir();//"res/result";//
+        string resname = simu->getSaveDir();
 	char str[15];
 	
 	// check whether final result in simulation, if yes, use special filename
 	if (simu->getCurrentIteration() != SIMU_END_SIMULATION )
-		sprintf(str, "result%05i", simu->getCurrentIteration()-1 );
+            sprintf(str, "result%05i", simu->getCurrentIteration()-1 );
 	else
-		sprintf(str,"result_final");
+            sprintf(str,"result_final");
 	
 	resname.append(str);
 	resname.append(".dat");
@@ -228,18 +228,12 @@ void WriteLCD_B(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *
 
 void ReadLCD_B(Simu* simu, SolutionVector *q)
 {
-
-
-    //string filename = "res/";  //result   3.dat";
-	//filename.append(simu->getLoadQ().c_str());
-	
-	
-	string filename = "res/" + simu->getLoadDir() + simu->getLoadQ();
-	printf( "Loading Q-tensor from: %s\n",filename.c_str());
-	FILE* fid = fopen( filename.c_str() , "rb" );
-	
-	
-	char str[100];
+// READS BINARY FORMATED RESULT FILE
+    string filename = "res/" + simu->getLoadDir() + simu->getLoadQ();
+    printf( "Loading Q-tensor from: %s\n",filename.c_str());
+    FILE* fid = fopen( filename.c_str() , "rb" );
+		
+    char str[100];
 	if (fid)
 	{
 		
@@ -350,20 +344,20 @@ if (// WRITE RESULT FILE IF...
 	(simu->getCurrentIteration() == SIMU_END_SIMULATION )) // ...OR FINAL RESULT
 
     {
-		switch( simu->getOutputFormat() ){
-		case SIMU_OUTPUT_FORMAT_BINARY:{
-				WriteLCD_B(geom->getPtrTop(), geom->t, geom->e, v, q, simu, lc); // WRITES BINARY FILE
-				break;
-				}
-		case SIMU_OUTPUT_FORMAT_TEXT:{
-				WriteLCD(geom->getPtrTop(), geom->t, geom->e, v, q, simu); // WRITES TEXT FILE
-				break;
-				}
-		default:{
-				printf("error in WriteResult, Simu.OutputFormat is not recognised - bye!\n");
-				fflush(stdout);
-				exit(1);
-				}
+        switch( simu->getOutputFormat() ){
+        case SIMU_OUTPUT_FORMAT_BINARY:{
+            WriteLCD_B(geom->getPtrTop(), geom->t, geom->e, v, q, simu, lc); // WRITES BINARY FILE
+                break;
+        }
+        case SIMU_OUTPUT_FORMAT_TEXT:{
+            WriteLCD(geom->getPtrTop(), geom->t, geom->e, v, q, simu); // WRITES TEXT FILE
+            break;
+        }
+        default:{
+            printf("error in WriteResult, Simu.OutputFormat is not recognised - bye!\n");
+            fflush(stdout);
+            exit(1);
+        }
 		} // end switch
 	}// end if write result file
 }

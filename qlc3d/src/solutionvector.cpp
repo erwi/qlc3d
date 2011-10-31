@@ -363,9 +363,9 @@ void SolutionVector::setFixedNodesPot(Electrodes* electrodes, Mesh* surface_mesh
 	
 }
 
-void SolutionVector::setFixedNodesPot(Electrodes* electrodes,
-                                      Mesh* surface_mesh,
-									  double CurrentTime){
+void SolutionVector::setFixedNodesPot(  Electrodes* electrodes,
+                                        Mesh* surface_mesh,
+                                        double CurrentTime){
 // sets fixed nodes for potentials, taking into account voltage waveforms and current time
 // this method is horrible and need to be rewritten
 	if (nFixed>0){ //IF RE-SETTING, CLEAR OLD
@@ -374,17 +374,35 @@ void SolutionVector::setFixedNodesPot(Electrodes* electrodes,
 		if (IsFixed) {free(IsFixed); IsFixed = NULL;}
         nFixed = 0;
     }
-    for (int i = 0 ; i < electrodes->nElectrodes ; i++){
-        // find index to current time in voltage waveform
-        int indx =0;
-        for ( int j = 0 ; j < electrodes->E[i]->getnTimes() ; j ++){
-			if ( fabs(electrodes->E[i]->Time[j] - CurrentTime) < 1e-15){
+    
+	
+    for (int i = 0 ; i < electrodes->nElectrodes ; i++) // for each electrode
+    {
+    // find index to current time in voltage waveform
+        int indx =-1; // start search with invalid index
+        
+        for ( int j = 0 ; j < electrodes->E[i]->getnTimes() ; j ++) // for each switching time
+        {
+            if ( fabs(electrodes->E[i]->Time[j] - CurrentTime) < 1e-15) // if switchin occuring now
+            {
                 indx = j;
+                break;
             }
         }
 
-        AddFixed( (i+1)*MAT_ELECTRODE1, electrodes->E[i]->Potential[indx], surface_mesh);
-    }
+        // If a switching event was found, apply new boundary conditions and remove event
+        if (indx >= 0 )
+        {
+            double pot = electrodes->E[i]->Potential[indx]; // value of new potential
+            electrodes->E[i]->setCurrentPotential( pot );   //
+        }
+
+        // set all fixed nodes for electrode i to its current potential
+        AddFixed( (i+1)*MAT_ELECTRODE1,
+                  electrodes->E[i]->getCurrentPotential(),
+                  surface_mesh);
+
+    }// end for each electrode
 
     setBooleanFixedNodeList();
 }
@@ -428,6 +446,20 @@ void SolutionVector::PrintEquNodes(){
         printf("EquNodes[%i] = %i \n",i, EquNodes[i]);
     }
 }
+void SolutionVector::PrintIsFixed()
+{
+    printf("%i fixed, %i free nodes:\n", this->getnFixed(), this->getnFreeNodes() );
+    for (int i = 0 ; i < this->getnDoF()*this->getnDimensions() ; i++)
+    {
+        printf("node[%i] = ", i);
+        if (getIsFixed(i))
+            printf("TRUE\n");
+        else
+            printf("FALSE\n");
+    }
+
+}
+
 void SolutionVector::setToFixedValues()
 {
 	if ( (FixedNodes == NULL) || (FixedValues == NULL) ){
@@ -437,7 +469,7 @@ void SolutionVector::setToFixedValues()
 	
 	int i;
 	for (i = 0 ; i < nFixed * getnDimensions(); i ++){
-		Values[FixedNodes[i]] = FixedValues[ i ];
+		Values[FixedNodes[i]] = FixedValues[i ];
 	}
 
 }

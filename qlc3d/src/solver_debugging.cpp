@@ -4,14 +4,15 @@
 #include <stdlib.h>
 #include <stdlib.h>
 #include <vector>
-#include "compcol_double.h"
-#include "cg.h"
-#include "icpre_double.h"
-#include "meshtest.h"
+#include <compcol_double.h>
+#include <cg.h>
+#include <icpre_double.h>
+#include <sparsematrix.h>
+//#include "meshtest.h"
 
 using std::vector;
 
-
+/*
 
 void sparse_multiply(SparseMatrix *K, SolutionVector *v, double **L)
 {
@@ -39,10 +40,12 @@ void sparse_multiply(SparseMatrix *K, SolutionVector *v, double **L)
 		dL[i] +=   dirichlet[j] * K->sparse_get(i,j);
 		
 		}//end for j
-	}// end for i*/
+        }// end for
 	*L = dL;
 }
+*/
 
+/*
 void solver(SolutionVector *v,SparseMatrix *K)
 {
   
@@ -63,15 +66,15 @@ void solver(SolutionVector *v,SparseMatrix *K)
  SparseMatrix k;
  k.MakeSparseMatrix(4, 4, 12, &ii[0],&jj[0],&pp[0]);
 
-/* 
- for (i = 0; i<4 ; i++)
-{
-	for (j=0 ; j<4 ; j++) 
-	{
-		k.sparse_set(i,j,pp[j*4 +i]);
-	}
-}
- */
+
+// for (i = 0; i<4 ; i++)
+//{//
+//	for (j=0 ; j<4 ; j++)
+//	{
+//		k.sparse_set(i,j,pp[j*4 +i]);
+//	}
+//}
+
 k.PrintMatrix();
  
  
@@ -134,7 +137,8 @@ k.PrintMatrix();
 	//double toler = 1e-6;
 	//result = CG(A,x,b,D,maxiter,toler);
  //printf("result= %i, x = [%f,%f,%f]\n",result,x(0),x(1),x(2));
- //return 0;*/
+ //return 0;
  
  printf("\nsolved \n");
 }
+*/
