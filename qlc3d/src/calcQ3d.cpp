@@ -4,9 +4,6 @@
 #include <omp.h>
 #include <qlc3d.h>
 #include <cstdio>
-#ifndef NO_QT
-    #include <QTime>
-#endif
 double calcQ3d(SolutionVector *q,   // current Q-tensor
 	       SolutionVector* qn,  // previous Q-tensor
 	       SolutionVector *v,   // potential
@@ -50,10 +47,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 	newton_iter++;
 	// ASSEMBLY
 	clock_t time1 = clock();
-	#ifndef NO_QT // if using Qt
-	    QTime time;
-	    time.start();
-	#endif
+
 	// ASSEMBLE RHS CONTRIBUTION FROM PREVIOUS TIME-STEP
 	if ( (newton_iter == 1) && (simu->getdt() > 0 ) ){
 	    memset(RHS, 0, K->cols * sizeof(double) );
@@ -84,10 +78,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 		float elapsed  = 0;
 		elapsed = ( (float) clock() - (float) time1 ) / (float) CLOCKS_PER_SEC; // get assembly time
 		time1 = clock(); // used for solver timing next.
-		#ifndef NO_QT // if using Qt
-		    elapsed = ( (float) time.elapsed() ) / 1000.0;
-		    time.restart();
-		#endif
+
 		printf("OK %1.3es. ", elapsed );
 		fflush(stdout);
 
@@ -129,9 +120,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 
 		// PRINT SOLUTION TIME
 		elapsed = ( (float) clock() - (float) time1 ) / (float) CLOCKS_PER_SEC ;
-		#ifndef NO_QT // is using Qt
-		    elapsed = ( (float) time.elapsed() ) / 1000.0 ;
-		#endif
+
 
 		//elapsed = 0; maxdq = 0; //valgrind
 		printf("OK %1.3es.\tdQ = %1.3e\n", elapsed, maxdq);

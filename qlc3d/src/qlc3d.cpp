@@ -13,13 +13,6 @@
 #include <material_numbers.h>
 #include <refinement.h>
 
-// make use of QT optional
-#ifndef NO_QT
-    #include <QtCore/QCoreApplication>
-    #include <QTime>
-    #include <QString>
-#endif
-
 
 
 int minnode(int *t, int dim1, int dim2){ // what does this do?

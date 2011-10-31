@@ -1,5 +1,5 @@
 #include <math.h>
-#include <math.h>
+
 #include <omp.h>
 #include <time.h>
 #include <qlc3d.h>

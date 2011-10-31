@@ -39,6 +39,6 @@ CFLAGS =  -march=native  -O3 -ffast-math -Wall -DNO_QT  -fopenmp -funroll-loops
 #CFLAGS+= -Wall
 
 
-LDFLAGS	 =	 	$(SPARSELIB_DIR)/lib/libsparse.a \
-				$(SPARSELIB_DIR)/lib/libspblas.a \
-				$(SPARSELIB_DIR)/lib/libmv.a -lm
+LDFLAGS	 = $(SPARSELIB_DIR)/lib/libsparse.a \
+           $(SPARSELIB_DIR)/lib/libspblas.a \
+           $(SPARSELIB_DIR)/lib/libmv.a -lm

@@ -5,17 +5,10 @@
 #include <iostream>
 #include <simu.h>
 
-#ifndef NO_QT
-    #include <QDir>
-    #include <QString>
-#endif
 
 void WriteMesh(Simu* simu, double* p, Mesh* t, Mesh* e, int np)
 {
 	int i;
-	int nNodes = t->getnNodes();
-
-
 
 	string fname = simu->getSaveDir() + simu->getMeshFileNameOnly();
 	FILE *fid = fopen(fname.c_str(),"w");
@@ -34,7 +27,7 @@ void WriteMesh(Simu* simu, double* p, Mesh* t, Mesh* e, int np)
 	
 	fprintf(fid,"end elements\nMESH    dimension 3 ElemType Triangle  Nnode 3\nCoordinates\nend coordinates\n\nElements\n");
 	
-	nNodes = e->getnNodes();
+        //int nNodes = e->getnNodes();
 	for (i = 0 ; i < e->getnElements() ; i++)
 		fprintf(fid,"%i\t%i\t%i\t%i\t%i\n",i+1, e->getNode(i,0)+1, e->getNode(i,1)+1, e->getNode(i,2)+1, e->getMaterialNumber(i) );
 	fprintf(fid,"end elements\n");
@@ -260,7 +253,7 @@ void ReadLCD_B(Simu* simu, SolutionVector *q)
 		
 		float q1,q2,q3,q4,q5,temp;
 	
-		size_t size;
+                size_t size = 0;
 		
 		for (int i = 0 ; i < q->getnDoF() ; i ++){
 			size  = fread ( &q1, sizeof(float), 1 , fid );
@@ -376,7 +369,7 @@ void CreateSaveDir(Simu* simu){
 
 
 // NO QT OPTION
-#ifdef NO_QT
+//#ifdef NO_QT
 	saveroot.append(simu->getSaveDir());
 	// MAKE SURE LAST CHARACTER OF SAVEDIR IS NOT A '/'
 
@@ -386,42 +379,11 @@ void CreateSaveDir(Simu* simu){
 	   simu->setSaveDir(saveroot);
 	   std::cout << "save dir is set to " << simu->getSaveDir() << std::endl;
 	   return;
-#endif
+//#endif
 
 
 
 
-// WITH QT DIRECTORIES
-#ifndef NO_QT
-    // get current path
-    QDir* path = new QDir(QDir::currentPath());
 
-    QString pth(path->currentPath().toStdString().c_str() );
-
-
-	// CLUMSY.... need to remove dot character from saveroot (is it really needed in non-qt?)
-	saveroot = saveroot.substr(1, saveroot.length() );
-	pth.append(saveroot.c_str() );
-	pth.append( simu->getSaveDir().c_str() );
-
-	//simu->setSaveDir(pth.toStdString());
-	//cout << "simu.savedir = " << simu->getSaveDir() << endl;
-	path->setPath(pth);
-	// test whether SaveDir exists
-	if ( ! path->exists() ){ // if not...
-		cout << "creating new save directory: " << pth.toStdString() << endl;
-		if ( ! path->mkdir( pth  ) ){ // then try to make it
-			cout << "error could not create SaveDir: " << pth.toStdString() <<  endl;
-			exit(1);
-			}
-    }
-
-    // MAKE SURE LAST CHARACTEROF SVEDIR IS A '/'
-	pos = pth.toStdString().find_last_of("/");
-	if (pos != pth.toStdString().length() )
-		pth.append("/");
-
-	simu->setSaveDir( pth.toStdString() );
-#endif
 }
 // end void CreateSaveDir
