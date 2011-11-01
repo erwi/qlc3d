@@ -160,14 +160,16 @@ void readSimu(Simu* simu, Reader& reader)
     ret = reader.readString(name , str_var);
     
 	
-	if ( ret== READER_SUCCESS)
+    if ( ret== READER_SUCCESS)
         simu->setEndCriterion(str_var);
+
     problem(name, ret);
 
-	name = "MeshName";
-	ret = reader.readString(name, str_var);
-	if ( ret == READER_SUCCESS )
+    name = "MeshName";
+    ret = reader.readString(name, str_var);
+    if ( ret == READER_SUCCESS )
         simu->MeshName = str_var;
+
     problem(name, ret);
 
 // OPTIONAL STRING SETTINGS
@@ -179,8 +181,14 @@ void readSimu(Simu* simu, Reader& reader)
 
     name = "SaveDir";
     ret = reader.readString(name , str_var);
-    if ( ret == READER_SUCCESS)
-        simu->setSaveDir( str_var);
+    if ( ret == READER_SUCCESS) // if specified, use it
+    {
+        simu->setSaveDir( simu->getCurrentDir() + "/" + str_var);
+    }
+    else // otherwise use default ( = res )
+    {
+        simu->setSaveDir( simu->getCurrentDir() + "/" + simu->getSaveDir() );
+    }
     //problemo(name , ret);
 //========================
 // SCALAR VALUES

@@ -4,6 +4,8 @@
 #include <time.h>
 #include <sys/time.h>
 
+#include <filesysfun.h> // functions for handling directories
+
 #include <qlc3d.h>
 #include <simu.h>
 #include <electrodes.h>
@@ -197,11 +199,6 @@ void HandleEvents(EventList* eventlist, Simu* simu, SolutionVector* v, Electrode
 
 int main(int argc, char* argv[]){
 
-//#ifndef NO_QT
-//	int nin = 1;
-//	char* chin[1];
-//	QCoreApplication a(nin,chin);//argc, argv);
-//#endif
 
     printf("\n\n\n");
     printf("=============================================================\n");
@@ -215,34 +212,45 @@ int main(int argc, char* argv[]){
 
 //*
 // Simulation settings (material parameters etc.)
-	Simu		simu;
-	Electrodes	electrodes;
-	LC			lc;
-	Boxes		boxes;
-	Alignment	alignment;
-	MeshRefinement  meshrefinement;
-	string settings_filename = "./meshes/test.txt"; 	// default settings file, loaded when no i/p args.
-	if ( argc >= 2){
-		settings_filename.clear();
-		settings_filename = argv[1];  // change if set by command line argument
-	}
-        ReadSettings(settings_filename,&simu,&lc,&boxes,&alignment,&electrodes, &meshrefinement);
+    Simu		simu;
+    Electrodes	electrodes;
+    LC			lc;
+    Boxes		boxes;
+    Alignment	alignment;
+    MeshRefinement  meshrefinement;
+    string settings_filename = "./meshes/test.txt"; 	// default settings file, loaded when no i/p args.
+    simu.setCurrentDir( getCurrentDirectory() );
+    if ( argc >= 2)
+    {
+        settings_filename.clear();
+        settings_filename = argv[1];  // change if set by command line argument
+    }
+    if (argc >= 3 )// if working directory is defined
+    {
+        simu.setCurrentDir( argv[2] );
+    }
 
-		
-	electrodes.printElectrodes();
-	//return 0;	
-	FILE* Energy_fid = NULL; // file for outputting free energy
+    if ( !setCurrentDirectory( simu.getCurrentDir() ) )
+    {
+        printf("error - could not set working directory to:\n%s\nbye!", simu.getCurrentDir().c_str() );
+        exit(1);
+    }
 
-	// Solver settings	(choose solver, preconditioner etc.)
-	Settings settings = Settings();
+    printf("current working directory:\n%s\n", getCurrentDirectory().c_str() );
+    ReadSettings(settings_filename,&simu,&lc,&boxes,&alignment,&electrodes, &meshrefinement);
 
-	ReadSolverSettings("solver.qfg", &settings);
+    FILE* Energy_fid = NULL; // file for outputting free energy
+
+    // Solver settings	(choose solver, preconditioner etc.)
+    Settings settings = Settings();
+
+    ReadSolverSettings("solver.qfg", &settings);
 
 
-	// ================================================================
-	//	CREATE GEOMETRY
-        //	NEED 3 GEOMETRY OBJECTS WHEN USING MESH REFINEMENT
-	// ================================================================
+    // ================================================================
+    //	CREATE GEOMETRY
+    //	NEED 3 GEOMETRY OBJECTS WHEN USING MESH REFINEMENT
+    // ================================================================
     Geometry geom1 = Geometry();	    // working geometry
     Geometry geom_orig = Geometry();    // original, loaded from file
     Geometry geom_prev = Geometry();    // geometry from previous ref. iteration
@@ -254,9 +262,6 @@ int main(int argc, char* argv[]){
     geom_orig.setTo( &geom1);
     geom_prev.setTo( &geom_orig);	    // for first iteration, geom_prev = geom_orig
     geom1.setTo( &geom_orig);
-
-    //geom1.getTotalSize();
-//*/
 
 // ==============================================
 //
@@ -287,18 +292,19 @@ int main(int argc, char* argv[]){
     SolutionVector qn(geom1.getnpLC(),5);   //  Q-tensor from previous time step
 
     SetVolumeQ(&q, &lc, &boxes, geom1.getPtrTop());
-	setSurfacesQ(&q, &alignment, &lc, &geom1);
+    setSurfacesQ(&q, &alignment, &lc, &geom1);
 		
 
 //  LOAD Q FROM RESULT FILE
-    if (!simu.getLoadQ().empty() ){
+    if (!simu.getLoadQ().empty() )
+    {
         ReadLCD_B(&simu,&q);
         setStrongSurfacesQ(&q, &alignment, &lc, &geom1); // over writes surfaces with user specified values
-	}
+    }
     q.setFixedNodesQ(&alignment, geom1.e);  // set fixed surface anchoring
     q.setPeriodicEquNodes(&geom1);          // periodic nodes
 	
-    q.EnforceEquNodes();					// makes sure values at periodic boundaies match
+    q.EnforceEquNodes();		    // makes sure values at periodic boundaies match
     qn=q;                                   // q-previous = q-current in first iteration
     cout << "OK" << endl;                   // Q-TENSOR CREATED OK
  
@@ -324,24 +330,23 @@ int main(int argc, char* argv[]){
 
 // writes a copy of settings file in results directory
     printf("Saving a copy of the settings file...");
-        CreateSaveDir(&simu);
-	simu.setCurrentTime(0);
-	WriteSettings(&simu, &lc, &boxes, &alignment, &electrodes);
+    CreateSaveDir(&simu);
+    simu.setCurrentTime(0);
+    WriteSettings(&simu, &lc, &boxes, &alignment, &electrodes);
 
-	printf("\nSaving starting configuration (iteration -1)...\n");
-	WriteResult(&simu, &lc , &geom1, &v, &q);
-	printf("OK\n");
+    printf("\nSaving starting configuration (iteration -1)...\n");
+    WriteResult(&simu, &lc , &geom1, &v, &q);
+    printf("OK\n");
+
+    Energy_fid = createOutputEnergyFile(simu); // done in inits
 
 
-	Energy_fid = createOutputEnergyFile(simu); // done in inits
-
-
-	// TEMPORARY ARRAYS, USED IN POTENTIAL CONSISTENCY CALCULATIONS
+    // TEMPORARY ARRAYS, USED IN POTENTIAL CONSISTENCY CALCULATIONS
     simu.setPotCons( Off );
     double* v_cons = NULL ;
-	double* q_cons = NULL ;
-	double* qn_cons= NULL ;
-	if ( (simu.getPotCons() != Off) && (simu.getdt() > 0 ) ){
+    double* q_cons = NULL ;
+    double* qn_cons= NULL ;
+    if ( (simu.getPotCons() != Off) && (simu.getdt() > 0 ) ){
             v_cons  = (double*) malloc(v.getnDoF() * sizeof(double) );
             q_cons  = (double*) malloc(q.getnDoF() * q.getnDimensions() * sizeof(double) );
             qn_cons = (double*) malloc(q.getnDoF() * q.getnDimensions() * sizeof(double) );

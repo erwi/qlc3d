@@ -8,12 +8,13 @@ Simu::Simu()
     TargetPotCons		= 1e-3;
     EndValue 			= 0;
     EndValue_orig       = 0;
-    MeshName 			= "";
-    LoadQ				= "";
-    SaveDir				= "";
-    SaveIter			= 1;
+    MeshName 		= "";
+    LoadQ		= "";
+    CurrentDir          = "";
+    SaveDir		= "res";
+    SaveIter		= 1;
     MeshNumber          = 0;
-    LoadDir				= "";
+    LoadDir		= "";
     EndCriterion        = "Time";
 		
     dt                  = 1e-6;
@@ -43,53 +44,47 @@ Simu::Simu()
 }
 void Simu::PrintSimu(){}
 
-void Simu::WriteSimu(FILE* fid){
-	if (fid != NULL)
-	{
-		//fprintf(fid,"SIMU:\n{\n");
+void Simu::WriteSimu(FILE* fid)
+{
+    if (fid != NULL)
+    {
+        fprintf(fid,"\tMeshName =  %s\n",MeshName.c_str());				// MESHNAME
+        fprintf(fid,"\tEndCriterion = %s\n",EndCriterion.c_str());		// ENDCRITERION
+        fprintf(fid,"\tEndValue = %2.4e\n",EndValue);							// ENDVALUE
 
-		fprintf(fid,"\tMeshName =  %s\n",MeshName.c_str());				// MESHNAME
-		fprintf(fid,"\tEndCriterion = %s\n",EndCriterion.c_str());		// ENDCRITERION
-		fprintf(fid,"\tEndValue = %2.4e\n",EndValue);							// ENDVALUE
-
-
-
-
-		fprintf(fid,"\tdt = %2.4e\n",dt);					// DT
-		fprintf(fid,"\tdtLimits = [%2.4e,%2.4e]\n" , dtLimits[0], dtLimits[1] );
-		fprintf(fid,"\tTargetdQ = %2.4e\n",TargetdQ);
-		fprintf(fid,"\tMaxdt = %2.4e\n",Maxdt);					// MAXDT
-		fprintf(fid,"\tMaxError = %2.4e\n",MaxError);				// MAXERROR
-		printf("\tdtFunction = [%f,%f,%f,%f]\n", dtFunction[0], dtFunction[1], dtFunction[2], dtFunction[3]);
+        fprintf(fid,"\tdt = %2.4e\n",dt);					// DT
+        fprintf(fid,"\tdtLimits = [%2.4e,%2.4e]\n" , dtLimits[0], dtLimits[1] );
+        fprintf(fid,"\tTargetdQ = %2.4e\n",TargetdQ);
+        fprintf(fid,"\tMaxdt = %2.4e\n",Maxdt);					// MAXDT
+        fprintf(fid,"\tMaxError = %2.4e\n",MaxError);				// MAXERROR
+        printf("\tdtFunction = [%f,%f,%f,%f]\n", dtFunction[0], dtFunction[1], dtFunction[2], dtFunction[3]);
 
        	if ( !LoadQ.empty() )
 	    fprintf(fid,"\tLoadQ = %s;\n",LoadQ.c_str());				// LOADQ
         if ( !getSaveDir().empty() )
             fprintf(fid,"\tSaveDir = %s\n", getSaveDir().c_str() );		// SAVEDIR
 
-		fprintf(fid,"\tSaveIter = %i\n", getSaveIter() );
-		fprintf(fid,"\tOuputFormat = %i\n", getOutputFormat() );				// OUTPUT FORMAT
-		fprintf(fid,"\tOutputEnergy = %i\n",getOutputEnergy());			// OUTPUTENERGY
-		fprintf(fid,"\tEnergyRegion = [%f, %f, %f]\n", EnergyRegion[0] , EnergyRegion[1] , EnergyRegion[2]); // ENERGY REGION VECTOR
-		fprintf(fid,"\tStretchVector = [%f, %f, %f]\n", StretchVector[0] , StretchVector[1] , StretchVector[2] ); // MESH SCALING
+        fprintf(fid,"\tSaveIter = %i\n", getSaveIter() );
+        fprintf(fid,"\tOuputFormat = %i\n", getOutputFormat() );				// OUTPUT FORMAT
+        fprintf(fid,"\tOutputEnergy = %i\n",getOutputEnergy());			// OUTPUTENERGY
+        fprintf(fid,"\tEnergyRegion = [%f, %f, %f]\n", EnergyRegion[0] , EnergyRegion[1] , EnergyRegion[2]); // ENERGY REGION VECTOR
+        fprintf(fid,"\tStretchVector = [%f, %f, %f]\n", StretchVector[0] , StretchVector[1] , StretchVector[2] ); // MESH SCALING
 
+        // POTENTIAL CONSISTENCY
+        fprintf(fid,"\tPotCons = ");
+        switch(PotCons){
+            case(Off):
+                fprintf(fid,"Off\n");
+                break;
+            case(Loop):
+                fprintf(fid,"Loop\n");
+                break;
+            default:
+                fprintf(fid,"error - Simu::PrintSimu, unknown PotCons\n");
+        }
 
-		// POTENTIAL CONSISTENCY
-		fprintf(fid,"\tPotCons = ");
-		switch(PotCons){
-		case(Off):
-			fprintf(fid,"Off\n");
-			break;
-		case(Loop):
-			fprintf(fid,"Loop\n");
-			break;
-		default:
-			fprintf(fid,"error - Simu::PrintSimu, unknown PotCons\n");
-		}
-		fprintf(fid, "\tTargetPotCons = %e\n",TargetPotCons);
+        fprintf(fid, "\tTargetPotCons = %e\n",TargetPotCons);
 
-
-		//fprintf(fid,"};\n\n");
 	} // end if fid != NULL
 }
 void Simu::setSaveDir(string savedir) {SaveDir = savedir;}

@@ -38,8 +38,10 @@ class Simu
 
 		string 	EndCriterion;
 		string  LoadQ;
-		string  SaveDir;
-		string 	LoadDir;
+
+                string  CurrentDir;      // working directory of qlc3d.exe
+                string  SaveDir;        // directory where results are saved
+                string 	LoadDir;        // directory from where starting results are loaded
 
 		double 	EndValue;
 		double  EndValue_orig;   // original end values as defined in settings file. this is needed when end refinement is used
@@ -65,12 +67,13 @@ class Simu
 	void PrintSimu();
 	void WriteSimu(FILE* fid); // writes simu settings structure to file
 
-	void setMeshName(string meshname);
-	void setSaveDir(string savedir);
-	void setLoadDir(string loaddir);
-	void setMaxError(double me);
-	void setEndCriterion( string ec);
-	void setEndValue(double ev);
+    void setMeshName(string meshname);
+    void setCurrentDir( const string& curdir){CurrentDir = curdir;}
+    void setSaveDir(string savedir);
+    void setLoadDir(string loaddir);
+    void setMaxError(double me);
+    void setEndCriterion( string ec);
+    void setEndValue(double ev);
     void resetEndCriterion();       // starts simulation from beginning
     void setdt(double td);
 	void setdtLimits(const double& min, const double& max);
@@ -102,7 +105,8 @@ class Simu
 	double getTargetPotCons() {return TargetPotCons;}
 
 	string 	getLoadQ();
-	string  getLoadDir();
+        string  getCurrentDir() {return CurrentDir; }
+        string  getLoadDir();
 	string  getSaveDir();
 	string  getEndCriterion();
     string  getMeshName();  // returns mesh filename, with MeshNumber appended
