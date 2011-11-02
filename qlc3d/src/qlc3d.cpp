@@ -220,6 +220,10 @@ int main(int argc, char* argv[]){
     MeshRefinement  meshrefinement;
     string settings_filename = "./meshes/test.txt"; 	// default settings file, loaded when no i/p args.
     simu.setCurrentDir( getCurrentDirectory() );
+
+
+
+
     if ( argc >= 2)
     {
         settings_filename.clear();

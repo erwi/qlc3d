@@ -10,17 +10,32 @@ bool setCurrentDirectory(const std::string& destdir)
     else
         return false;
 #endif
+
+#ifdef Windows
+
+    return SetCurrentDirectoryA( destdir.c_str() );
+#endif
+
 }
 
 std::string getCurrentDirectory()
 {
+    std::string cwd;
+
 #ifdef Linux
     char* buff = get_current_dir_name(); // allocates space to buffer
-    std::string cwd = buff;
+    cwd = buff;
     free( buff );   // must free buffer
+#endif
+
+#ifdef Windows
+    char buff[FILENAME_MAX];
+    _getcwd( buff, sizeof(buff) );
+    cwd = buff;
+#endif
 
     return cwd;
-#endif
+
 }
 
 bool dirExists(const std::string& dir)
@@ -50,4 +65,11 @@ bool createDirectory(const std::string& newdir)
     else
         return true; //success
 #endif
+
+#ifdef Windows
+    return CreateDirectoryA( newdir.c_str(), NULL );
+#endif
+
+
+
 }

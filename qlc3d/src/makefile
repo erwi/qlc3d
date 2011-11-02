@@ -13,7 +13,7 @@ qlc3d.exe:$(OBJS)
 	g++  -fopenmp -o qlc3d.exe  $(OBJS) $(LDFLAGS) -lgomp -lpthread
 
 %.o:%.cpp
-	$(CXX) -c $(CFLAGS) $(CCCFLAGS) -D$(UNAME) $< $(INCLUDES)
+	$(CXX) -c $(CFLAGS) $(CCCFLAGS) $(D_OF) $< $(INCLUDES)
 
 clean:
 	rm -f qlc3d.exe *.o

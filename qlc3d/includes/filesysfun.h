@@ -15,8 +15,14 @@
 #ifdef Linux
     #include <unistd.h>
     #include <sys/stat.h> // for making directories
+#elif Windows
+    //#include <windows.h>
+    #include <direct.h>  // _getcwd
+    #include <windows.h> // SetCurrentDirectory
+#else
+    #error "OS NOT DEFINED: Linux or Windows"
 #endif
-
+//void backSlashToForwardSlash( std::string& str); // converts backslashes to fw slashes
 
 
 bool setCurrentDirectory(const std::string& destdir);

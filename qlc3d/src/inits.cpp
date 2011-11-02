@@ -77,7 +77,7 @@ FILE* createOutputEnergyFile(Simu& simu){
 	FILE* fid = NULL;
 
 	if (simu.getOutputEnergy() == 1){
-		string energy_fn = simu.getSaveDir() + "energy.m";
+            string energy_fn = simu.getSaveDir() + "/" + "energy.m";
 		fid = fopen( energy_fn.c_str() , "w");
 		if (fid == NULL)	{
 			printf("error - could not open output file for free energy- bye ! \n");

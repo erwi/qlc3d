@@ -1,9 +1,10 @@
-#
-#
-#	WINDOWS PATHS
-#
-#
 
+
+
+#
+#	DEFAULT OS IS WINDOWS 
+#
+D_OF = -DWindows
 SPARSELIB_DIR			= c:/SparseLib++/1.7
 SPARSELIB_INCLUDE_DIR		= c:/SparseLib++/1.7/include
 SPARSELIB_MV_INCLUDE_DIR	= c:/SparseLib++/1.7/mv/include
@@ -11,6 +12,7 @@ SPARSELIBINCS = -I$(SPARSELIB_INCLUDE_DIR) -I$(SPARSELIB_MV_INCLUDE_DIR)
 
 #QLC3D_PATH      = C:/eero/qlc3d_freeze/qlc3d_git/qlc3d
 QLC3D_PATH      = C:/eero/qlc3d_git/qlc3d_git/qlc3d
+
 
 
 #
@@ -24,8 +26,8 @@ ifeq ($(UNAME), Linux)
 	SPARSELIB_DIR			= /home/eero/programming/libs/SparseLib++/1.7
 	SPARSELIB_INCLUDE_DIR		= $(SPARSELIB_DIR)/include/
 	SPARSELIB_MV_INCLUDE_DIR	= $(SPARSELIB_DIR)/mv/include/
-
-	
+	D_OF = -DLinux
+		
 endif
 
 QLC3D_INCS		= -I$(QLC3D_PATH)/includes
@@ -34,10 +36,8 @@ QLC3D_INCS		= -I$(QLC3D_PATH)/includes
 INCLUDES 		= $(SPARSELIBINCS) $(QLC3D_INCS)
 
 CCCFLAGS =    '-DCOMPLEX=std::complex<double>'
-CFLAGS =  -march=native  -O3 -ffast-math -Wall -fopenmp -funroll-loops
+CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -fopenmp -funroll-loops
 
-
-#-mtune=native
 #CFLAGS+= -Wall
 
 
