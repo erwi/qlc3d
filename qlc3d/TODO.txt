@@ -1,5 +1,3 @@
-11. Remove dependencies to Qt, it is annoying. Create own 'filesystem' class
-    that deals with creating directories on different OSs. 
 
 10. Potential calculation is done even when not needed.
     Also, dont make a potential matrix when not needed.
@@ -10,6 +8,10 @@
     interpolate each eigenvector/eigenvalue istead
 
 ============ DONE ==============================
+11. Remove dependencies to Qt, it is annoying. Create own 'filesystem' class
+    that deals with creating directories on different OSs. 
+	07/11/2011 - done. filesystem functions in filesysfun.h and filesysfun.cpp
+	
 9.  Periodic boundaries in mesh refinement.
 	05/06/2011 - done, but not fully tested.
 	

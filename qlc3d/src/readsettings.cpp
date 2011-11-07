@@ -565,6 +565,7 @@ void readElectrodes(Electrodes* electrodes, Reader& reader)
             exit(1);
         }
     }
+
 }
 // end readElectrodes
 
@@ -732,8 +733,6 @@ void readEndrefinement( MeshRefinement* meshrefinement, Reader& reader){
         }// end if autoref i found
     }// end for possible autorefs, i
 }
-
-
 
 
 void ReadSettings(

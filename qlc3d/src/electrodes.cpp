@@ -125,8 +125,8 @@ void Electrodes::printElectrodes()
     std::cout << "EField = [" << EField[0] <<"," <<EField[1] << "," << EField[2] <<"] V/um" << std::endl;
 }
 void Electrodes::setCalcPot(bool yn)	{	CalcPot = yn;}
-bool Electrodes::getCalcPot()			{	return CalcPot;}
-int Electrodes::getnElectrodes()		{   return nElectrodes;}
+bool Electrodes::getCalcPot()		{	return CalcPot;}
+int Electrodes::getnElectrodes()	{   return nElectrodes;}
 bool Electrodes::isEField()
 {
     // CHECKS WHETHER UNIFORM E-FIELD HAS BEEN DEFINED

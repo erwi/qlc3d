@@ -171,12 +171,14 @@ void calcpot3d(
 {
     // First check whether potential calculation is actually needed...
 
-    if ( (v->getnFixed() == 0 ) || (!electrodes->getCalcPot()) ){
+    if ( (v->getnFixed() == 0 ) ||      // if no fixed potential nodes
+         (!electrodes->getCalcPot() ) ) // if no need to calculate potential
+    {
         v->setValuesTo(0.0); // if no potential calculation, set all values to zero
-
         if ( electrodes->isEField() )
+        {
             setUniformEField( *electrodes, *v, p);
-
+        }
         return;
     }
 
@@ -184,7 +186,7 @@ void calcpot3d(
 
 
     K->setAllValuesTo(0); // clears values but keeps sparsity structure
-        v->setValuesTo((double) 0);
+    v->setValuesTo((double) 0);
     v->setToFixedValues();
 
     double* L = (double*) malloc(v->getnFreeNodes()*sizeof(double));
@@ -201,9 +203,9 @@ void calcpot3d(
     init_shapes_surf();
     assemble_Neumann(p , v , q , lc , mesh , surf_mesh , K , L);
 
-//#ifdef DEBUG
+#ifdef DEBUG
     K->DetectZeroDiagonals();
-//#endif
+#endif
 
 // Solve System
     if (settings->getV_Solver() == V_SOLVER_PCG)
@@ -616,9 +618,12 @@ void setUniformEField(Electrodes &electrodes, SolutionVector &v, double *p)
         // want distance along EField, i.e. dot product
         double dist = vec[0]*Ehat[0] + vec[1]*Ehat[1] + vec[2]*Ehat[2];
 
+
         // set potential value as distance*magnitude
         v.setValue(i,0, dist*Emag + v.getValue(i) );
     }
+
+    //v.EnforceEquNodes(); // force periodic boundaries.
 
 }
 

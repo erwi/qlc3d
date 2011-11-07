@@ -27,8 +27,8 @@ int CountNodes(ifstream* fin) // counts number of nodes
 
 	while ( end_coordinates.compare(0, end_coordinates.size() , charray , 0 , end_coordinates.size()  ) != 0 )
 	{
-			fin->getline(charray,200,'\n');
-			np++;
+            fin->getline(charray,200,'\n');
+            np++;
 	}
 	np--;
 	free(charray);
@@ -49,14 +49,14 @@ int CountTetrahedra(ifstream* fin)// counts number of tetrahedral elements
 		fin->getline(charray,200,'\n');
 
 	while ( end_elements.compare(0 , end_elements.size() , charray , 0 , end_elements.size() ) )
-		{
-			fin->getline(charray,200,'\n');
-			nt++;
-		}
-		nt--;
-		free(charray);
+        {
+            fin->getline(charray,200,'\n');
+            nt++;
+        }
+        nt--;
+        free(charray);
 
-		return nt;
+        return nt;
 }//end int CountTetrahedra
 int CountTriangles(ifstream* fin)// counts number of triangles
 {
@@ -103,7 +103,7 @@ void ReadNodes(ifstream* fin,int np, double* dp)
 {
 	char* charray = (char*)malloc(200*sizeof(char));
 	memset((void*)charray, 0 , 200*sizeof(char));
-	printf("\tReading %i nodes...",np);
+        printf("\tReading %i nodes...",np); fflush(stdout);
 	double  temp;
 
 	string Coordinates = "Coordinates";
@@ -126,7 +126,7 @@ void ReadNodes(ifstream* fin,int np, double* dp)
 }// end void ReadNodes
 void ReadTetrahedra(ifstream* fin, int nt, int* dt, int* dmatt)
 {
-	printf("\tReading %i tetrahedra...", nt);
+        printf("\tReading %i tetrahedra...", nt); fflush(stdout);
 
 	char* charray 	= (char*)malloc(200*sizeof(char));
 	memset((void*)charray, 0 , 200*sizeof(char));
@@ -145,68 +145,66 @@ void ReadTetrahedra(ifstream* fin, int nt, int* dt, int* dmatt)
 		*fin  >> dt[i*4+2];
 		*fin  >> dt[i*4+3];
 		*fin  >> dmatt[i];
-		//printf("%i\n",i);
 	}
 
-	cout << "OK\n";
+        printf("OK\n"); fflush(stdout);
 }// end void ReadTetrahedra
 void ReadPrisms(ifstream* fin, int npr, int* pr)
 {
-	printf("\tReading %i prisms (periodic boundaries)...",npr);
-	char* charray = (char*)malloc(200*sizeof(char));
-	memset((void*) charray , 0 , 22*sizeof(char) );
-	int temp;
-	string Elements = "Elements";
-	while ( Elements.compare(0 , Elements.size() , charray , 0 , Elements.size() ) != 0 )
-		fin->getline(charray,200,'\n'); //find start of periodic nodes
-	free(charray);
+    printf("\tReading %i prisms (periodic boundaries)...",npr); fflush(stdout);
+    char* charray = (char*)malloc(200*sizeof(char));
+    memset((void*) charray , 0 , 22*sizeof(char) );
+    int temp;
+    string Elements = "Elements";
+    while ( Elements.compare(0 , Elements.size() , charray , 0 , Elements.size() ) != 0 )
+        fin->getline(charray,200,'\n'); //find start of periodic nodes
+    free(charray);
 
-	for (int i = 0 ; i < npr ; i++)
-		{
-			*fin >> temp;
-			*fin >> pr[i*6+0];
-			*fin >> pr[i*6+1];
-			*fin >> pr[i*6+2];
-			*fin >> pr[i*6+3];
-			*fin >> pr[i*6+4];
-			*fin >> pr[i*6+5];
-		}
+    for (int i = 0 ; i < npr ; i++)
+    {
+        *fin >> temp;
+        *fin >> pr[i*6+0];
+        *fin >> pr[i*6+1];
+        *fin >> pr[i*6+2];
+        *fin >> pr[i*6+3];
+        *fin >> pr[i*6+4];
+        *fin >> pr[i*6+5];
+    }
+    printf("OK\n"); fflush(stdout);
 
-	cout << "OK\n";
 
 }
 void ReadTriangles(ifstream* fin, int ne, int* e, int* emat)
 {
-	printf("\tReading %i triangles...",ne);
-	char* charray 	= (char*)malloc(200*sizeof(char));
-	memset((void*)charray, 0 , 200*sizeof(char));
-	int temp;
+    printf("\tReading %i triangles...",ne); fflush(stdout);
+    char* charray 	= (char*)malloc(200*sizeof(char));
+    memset((void*)charray, 0 , 200*sizeof(char));
+    int temp;
 
-	string Elements = "Elements";
-	while (Elements.compare(0,Elements.size() , charray,0,Elements.size() )!= 0)
-		fin->getline(charray,200,'\n');		//find start of triangle data
-	free(charray);
-
-
-	for (int i =0 ; i<ne ; i++)
-		{
-			*fin >> temp; //triangle number - not needed
-			*fin >> e[i*3+0];
-			*fin >> e[i*3+1];
-			*fin >> e[i*3+2];
-
-			if (fin->peek() == 10)
-				emat[i] = 0; // if newline character ( = no material number assigned), convert to 0
-			else
-				*fin >> emat[i];
+    string Elements = "Elements";
+    while (Elements.compare(0,Elements.size() , charray,0,Elements.size() )!= 0)
+        fin->getline(charray,200,'\n');		//find start of triangle data
+    free(charray);
 
 
-		}
-		cout << "OK\n";
+    for (int i =0 ; i<ne ; i++)
+    {
+        *fin >> temp; //triangle number - not needed
+        *fin >> e[i*3+0];
+        *fin >> e[i*3+1];
+        *fin >> e[i*3+2];
+
+        if (fin->peek() == 10)
+            emat[i] = 0; // if newline character ( = no material number assigned), convert to 0
+        else
+            *fin >> emat[i];
+    }
+    printf("OK\n"); fflush(stdout);
 
 }
 
-void ReadGiDMesh3D(Simu* simu,double **p, int *np, int **t, int *nt,int **e, int *ne, int **matt, int **mate){
+void ReadGiDMesh3D(Simu* simu,double **p, int *np, int **t, int *nt,int **e, int *ne, int **matt, int **mate)
+{
 
 	using namespace std;
 	int nperi = 0;
@@ -225,7 +223,7 @@ void ReadGiDMesh3D(Simu* simu,double **p, int *np, int **t, int *nt,int **e, int
 	}
 
         else{
-            printf("Reading GID mesh file: %s \n", filename.c_str());
+            printf("Reading GID mesh file: %s \n", filename.c_str()); fflush(stdout);
             //printf("a");
             np[0] = 0;
             nt[0] = 0;
@@ -345,9 +343,9 @@ double xmin,ymin,zmin,xmax,ymax,zmax;
 	}
 
 
-	if (xmin<0) {xmax-=xmin;  cout << "\tshifting all x by :"<<-xmin<<"\n";xmin=0;}
-	if (ymin<0) {ymax-=ymin;  cout << "\tshifting all y by :"<<-ymin<<"\n";ymin=0;}
-	if (zmin<0) {zmax-=zmin;  cout << "\tshifting all z by :"<<-zmin<<"\n";zmin=0;}
+        if (xmin<0) {xmax-=xmin;  cout << "\tshifting all x by :"<<-xmin<<endl;xmin=0;}
+        if (ymin<0) {ymax-=ymin;  cout << "\tshifting all y by :"<<-ymin<<endl;ymin=0;}
+        if (zmin<0) {zmax-=zmin;  cout << "\tshifting all z by :"<<-zmin<<endl;zmin=0;}
 
 // REMOVE NUMERICAL NOISE FROM BOUNDARY NODES
 	for (int i=0;i<np[0];i++)
@@ -387,11 +385,11 @@ void writeBinaryMesh(Simu& simu, Geometry& geom){
     size_t ind = filename.find_last_of('.');
     filename.erase(ind+1);
     filename.append("geo");
-    printf("binary output filename = %s\n", filename.c_str());
+    printf("binary output filename = %s\n", filename.c_str()); fflush(stdout);
 
     fstream file ( filename.c_str() , ios::out | ios::binary);
     if (!file.good() ){
-        printf("error - could not write %s\n", filename.c_str());
+        printf("error - could not write %s\n", filename.c_str()); fflush(stdout);
         exit(1);
     }
 
@@ -421,7 +419,7 @@ void readBinaryMesh(std::string filename,
 
     fstream file( filename.c_str() , ios::in | ios::binary);
     if ( !file.good() ){
-        printf("error - could not read %s\n", filename.c_str() );
+        printf("error - could not read %s\n", filename.c_str() ); fflush(stdout);
     }
     //unsigned int np, nt, ne;
 
@@ -451,6 +449,6 @@ void readBinaryMesh(std::string filename,
 
     file.close();
 
-    printf("\nfile read OK\n");
+    printf("\nfile read OK\n"); fflush(stdout);
 
 }

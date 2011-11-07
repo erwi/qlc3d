@@ -275,12 +275,12 @@ int main(int argc, char* argv[]){
 
     EventList eventlist = EventList();
     eventlist.setElectrodeEvents(&electrodes);
-	eventlist.printEventList();
+    eventlist.printEventList();
 	
     cout << "Creating V...";
     SolutionVector v( geom1.getnp() );
-    v.setFixedNodesPot(&electrodes , geom1.e , simu.getCurrentTime());
-    v.setPeriodicEquNodes(&geom1 ); // periodic nodes
+    v.setFixedNodesPot( &electrodes , geom1.e , simu.getCurrentTime());
+    v.setPeriodicEquNodes( &geom1 ); // periodic nodes
     v.EnforceEquNodes(); // makes sure values at periodic boundaries match
 
     cout << "OK"<<endl;

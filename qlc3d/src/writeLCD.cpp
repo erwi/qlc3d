@@ -187,7 +187,7 @@ void WriteLCD_B(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *
 void ReadLCD_B(Simu* simu, SolutionVector *q)
 {
 // READS BINARY FORMATED RESULT FILE
-    string filename = "res/" + simu->getLoadDir() + simu->getLoadQ();
+    string filename = simu->getLoadQ();
     printf( "Loading Q-tensor from: %s\n",filename.c_str());
     FILE* fid = fopen( filename.c_str() , "rb" );
 		
