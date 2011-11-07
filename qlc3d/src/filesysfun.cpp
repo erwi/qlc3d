@@ -53,6 +53,23 @@ bool dirExists(const std::string& dir)
     return false; // otherwise assume dir does not exist
 }
 
+bool fileExists(const std::string &file)
+{
+    // CHECK WHETHER FILE EXISTS. RETURN TRUE/FALSE
+
+    // TRY TO OPEN FILE. IF THIS FAILS RETURN FALSE
+    FILE* fid;
+    fid = fopen(file.c_str(), "r" );
+
+    if ( fid )
+    {
+        fclose(fid);
+        return true;
+    }
+
+    return false;
+}
+
 bool createDirectory(const std::string& newdir)
 {
 #ifdef Linux

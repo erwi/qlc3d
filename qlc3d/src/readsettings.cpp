@@ -6,6 +6,7 @@
 #include <reader.h>
 #include <iostream>
 #include <meshrefinement.h>
+#include <filesysfun.h>
 using namespace std;
 
 
@@ -786,8 +787,19 @@ void ReadSettings(
 
 void ReadSolverSettings(const char* filename, Settings* settings)
 {
-	Reader reader;
-	if ( reader.openFile(filename) ){
+    // READS SOLVER SETTINGS FROM FILE. THIS WAS ORIGIANLLY ASSUMED TO BE
+    // CALLED "solver.qfg", BUT NOW ALSO READS "solver.txt", IF "solver.qfg"
+    // IS NOT FOUND
+    std::string fn = filename;
+    if ( !fileExists(fn) )
+    {
+        fn = "solver.txt";
+    }
+
+
+    Reader reader;
+    if ( reader.openFile(fn) )
+    {
 
         int i_val;
         double dbl;
@@ -875,15 +887,14 @@ void ReadSolverSettings(const char* filename, Settings* settings)
         problem(name , reader.readNumber(name , dbl ) );
         settings->setV_GMRES_Toler( dbl );
 
-
-
         //settings->PrintSettings();
 
         reader.closeFile();
 
-	}
-    else{
-        cout<< "error - could not read solver settings file:" << filename << " - bye!"<< endl;
+    }
+    else
+    {
+        cout<< "error - could not read solver settings file:" << fn << " - bye!"<< endl;
         exit(1);
     }
 

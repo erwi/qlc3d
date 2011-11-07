@@ -8,6 +8,7 @@
     Must have either 'Linux' or 'Windows' defined
 
 */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include <string.h>
@@ -31,6 +32,7 @@ std::string getCurrentDirectory();
 
 
 bool dirExists(const std::string& dir);
+bool fileExists(const std::string& file);       // check whether file exists already
 
 bool createDirectory(const std::string& newdir);
 
