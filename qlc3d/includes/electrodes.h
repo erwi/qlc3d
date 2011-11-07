@@ -38,7 +38,8 @@ class Electrodes
 		int nElectrodes;
 		vector<Electrode*> E;
 		vector <double> eps_dielectric;
-		//Electrode E[9];
+                double EField[3];       // Contains the x,y,z components of a uniform E-field
+
 
 		//void Electroodes();
 		Electrodes();
@@ -52,7 +53,7 @@ class Electrodes
 
 		void setCalcPot(bool yn);
 		bool getCalcPot();
-
+                bool isEField();    // returns true if uniform E-field has been defined
 		int getnElectrodes();
 		void WriteElectrodes(FILE* fid);			// writes electrode settings to file fid
 

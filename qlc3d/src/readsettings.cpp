@@ -543,9 +543,27 @@ void readElectrodes(Electrodes* electrodes, Reader& reader)
 
     problemo(name , ret);
 
-
-
-
+// ==================================
+//  READ UNIFORM E-FIELD, IF DEFINED
+// ==================================
+    ss.clear();
+    name.clear();
+    vec.clear();
+    ret = reader.readNumberArray("EField", vec);
+    if (ret == READER_SUCCESS)
+    {
+        if (vec.size()==3)
+        {
+            electrodes->EField[0] = vec[0];
+            electrodes->EField[1] = vec[1];
+            electrodes->EField[2] = vec[2];
+        }
+        else
+        {
+            fprintf(stderr,"error - EField must be of length 3 - bye!\n");
+            exit(1);
+        }
+    }
 }
 // end readElectrodes
 

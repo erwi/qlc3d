@@ -65,9 +65,13 @@ void Electrode::setTime(std::vector<double> tme){
 
 Electrodes::Electrodes()
 {
-	nElectrodes =0;
-	CalcPot = false;
+    nElectrodes =0;
+    CalcPot = false;
     eps_dielectric.push_back(1.0);
+    EField[0] = 0.0;
+    EField[1] = 0.0;
+    EField[2] = 0.0;
+
 }
 Electrodes::~Electrodes(){
 	std::vector<Electrode*>::iterator itr;
@@ -106,59 +110,72 @@ double Electrodes:: getDielectricPermittivity(int i)
 
 void Electrodes::printElectrodes()
 {
-	for (int i = 0; i < nElectrodes; i++)
-	{
-		printf("E%i:\n",i+1);
-		E[i]->PrintElectrode();
-	}
+    for (int i = 0; i < nElectrodes; i++)
+    {
+        printf("E%i:\n",i+1);
+        E[i]->PrintElectrode();
+    }
 
     std::cout << "eps_dielectric = " << std::endl;
     for (int i = 0 ; i < (int) eps_dielectric.size() ; i++)
         std::cout <<" " << eps_dielectric[i];
 
     std::cout << std::endl;
+
+    std::cout << "EField = [" << EField[0] <<"," <<EField[1] << "," << EField[2] <<"] V/um" << std::endl;
 }
 void Electrodes::setCalcPot(bool yn)	{	CalcPot = yn;}
 bool Electrodes::getCalcPot()			{	return CalcPot;}
 int Electrodes::getnElectrodes()		{   return nElectrodes;}
+bool Electrodes::isEField()
+{
+    // CHECKS WHETHER UNIFORM E-FIELD HAS BEEN DEFINED
+
+    if ( ( this->EField[0]!= 0.0) ||
+         ( this->EField[1]!= 0.0) ||
+         ( this->EField[2]!= 0.0) )
+        return true;
+    else
+        return false;
+
+
+}
 
 void Electrodes::WriteElectrodes(FILE* fid)
 {
 
-	if (fid!=NULL)
-	{
-		fprintf(fid,"#======================\n");
-		fprintf(fid,"#  ELECTRIC STUFF\n" );
-		fprintf(fid,"#======================\n\n");
-			for (int i = 0 ; i < getnElectrodes() ; i ++ ) // write electrode #i
-			{
-
-				char str[10];
-				sprintf(str, "E%i", i+1);
-
-
-				fprintf(fid,"\t%s.Time = [%e", str, E[i]->Time[0]);
-				for (int t = 1 ; t < (int) E[i]->Time.size() ; t++ )
-				    {	fprintf(fid,",%e",E[i]->Time[t]);	}
+    if (fid!=NULL)
+    {
+        fprintf(fid,"#======================\n");
+        fprintf(fid,"#  ELECTRIC STUFF\n" );
+        fprintf(fid,"#======================\n\n");
+        for (int i = 0 ; i < getnElectrodes() ; i ++ ) // write electrode #i
+        {
+            char str[10];
+            sprintf(str, "E%i", i+1);
+            fprintf(fid,"\t%s.Time = [%e", str, E[i]->Time[0]);
+            for (int t = 1 ; t < (int) E[i]->Time.size() ; t++ )
+                fprintf(fid,",%e",E[i]->Time[t]);
 				
-				fprintf(fid,"]\n\t%s.Pot  = [%e",str , E[i]->Potential[0]);
-				
-				for (int p = 1 ; p < (int) E[i]->Potential.size() ; p++)
-				    {	fprintf(fid,",%e",E[i]->Potential[p]);	}
-				fprintf(fid,"]\n\n");
+            fprintf(fid,"]\n\t%s.Pot  = [%e",str , E[i]->Potential[0]);
 
-			}
+            for (int p = 1 ; p < (int) E[i]->Potential.size() ; p++)
+                fprintf(fid,",%e",E[i]->Potential[p]);
 
-		if (eps_dielectric.size()>0) // if dielectric permittivities are defined
-		{
-			fprintf(fid, "\teps_dielectric = [%2.4f",eps_dielectric[0]);
-			for (int e = 1 ; e < (int) eps_dielectric.size() ; e++)
-				fprintf(fid, ",%2.4f",eps_dielectric[e]);
+            fprintf(fid,"]\n\n");
 
-			fprintf(fid, "]\n");
+        }// end write electrodes
 
-		}
+        if (eps_dielectric.size()>0) // if dielectric permittivities are defined
+        {
+            fprintf(fid, "\teps_dielectric = [%2.4f",eps_dielectric[0]);
+            for (int e = 1 ; e < (int) eps_dielectric.size() ; e++)
+                fprintf(fid, ",%2.4f",eps_dielectric[e]);
 
+            fprintf(fid, "]\n");
+        }
 
-	}
+        fprintf(fid,"EField = [%e,%e,%e]", EField[0], EField[1], EField[2]);
+
+    }// end if fid!=NULL
 }

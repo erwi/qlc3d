@@ -51,13 +51,6 @@ void printlK(double* lK , int size){
    } //end for r
 }
 
-
-
-
-
-
-
-
 // Gauss integration
 // ---------------------------------------------------------
 //     3D Gauss-Legendre weights for N = 11, D = 4
@@ -163,7 +156,7 @@ void init_shapes_surf() // surface integral shape functions
 		sh1t[i][3]=1;
 	}
 }
-
+void setUniformEField( Electrodes& electrodes, SolutionVector& v, double* p);
 
 void calcpot3d(
         SparseMatrix* K,
@@ -179,8 +172,11 @@ void calcpot3d(
     // First check whether potential calculation is actually needed...
 
     if ( (v->getnFixed() == 0 ) || (!electrodes->getCalcPot()) ){
-        //v->PrintFixedNodes();
         v->setValuesTo(0.0); // if no potential calculation, set all values to zero
+
+        if ( electrodes->isEField() )
+            setUniformEField( *electrodes, *v, p);
+
         return;
     }
 
@@ -223,6 +219,9 @@ void calcpot3d(
 
     v->setToFixedValues();
 
+    // ADDS UNIFORM FIELD ONTOP OF CALCULATED POTENTIAL
+    if ( electrodes->isEField() )
+        setUniformEField( *electrodes, *v, p);
 
 }
 //end calcpot3d
@@ -576,6 +575,52 @@ void assemble_Neumann(
 }//end void assemble_Neumann
 
 
+void setUniformEField(Electrodes &electrodes, SolutionVector &v, double *p)
+{
+    // SETS POTENTIAL VALUES IN V SUCH THA A UNIFORM E-FIELD IS CREATED
+    // CENTRE OF STRUCTURE IS ASSUMED TO BE AT 0V, VOLTAGE VALUES FOR NODES
+    // IN THE DIRECTION OF THE EFIELD ARE SET ACCORDING TO THEIR DISTANCE
+    // TO THE CENTRE
+
+
+    // GET E-FIELD DIRECTION VECTOR AND MAGNITUDE
+    double*E = &(electrodes.EField[0]);
+    double Emag = sqrt( E[0]*E[0] + E[1]*E[1] + E[2]*E[2] );
+    double Ehat[3] = { E[0] / Emag,
+                       E[1] / Emag,
+                       E[2] / Emag};
+
+    //1. CALCULATE CENTRE OF STRUCTURE
+    int np = v.getnDoF();
+    double xmax = 0.0;
+    double ymax = 0.0;
+    double zmax = 0.0;
+    for (int i = 0 ; i < np ; i++)
+    {
+        xmax = p[3*i + 0 ] > xmax? p[3*i + 0] : xmax;
+        ymax = p[3*i + 1 ] > ymax? p[3*i + 1] : ymax;
+        zmax = p[3*i + 2 ] > zmax? p[3*i + 2] : zmax;
+    }
+
+    double centre[3] = {xmax/2.0 , ymax/2.0 , zmax / 2.0}; // centre of structure
+
+    //2. LOOP OVER EACH NODE AND CACLCULATE ITS DISTANCE TO CENTRE
+
+    for (int i = 0 ; i < np ; i++)
+    {
+        double* pos = &p[i*3]; // shortcut to this node
+        double vec[3] = { centre[0] - pos[0],
+                          centre[1] - pos[1],
+                          centre[2] - pos[2] }; // vector from centre to node i
+
+        // want distance along EField, i.e. dot product
+        double dist = vec[0]*Ehat[0] + vec[1]*Ehat[1] + vec[2]*Ehat[2];
+
+        // set potential value as distance*magnitude
+        v.setValue(i,0, dist*Emag + v.getValue(i) );
+    }
+
+}
 
 void Pot_PCG(SparseMatrix *K, double *b, SolutionVector *sv, Settings* settings )
 {
