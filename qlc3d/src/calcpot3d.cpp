@@ -171,7 +171,8 @@ void calcpot3d(
 {
     // First check whether potential calculation is actually needed...
 
-    if ( (v->getnFixed() == 0 ) ||      // if no fixed potential nodes
+    // NO NEED TO CALCULATE POTENTIAL:
+    if ( (v->getnFixed() == 0 ) ||      // if no fixed potential nodes OR
          (!electrodes->getCalcPot() ) ) // if no need to calculate potential
     {
         v->setValuesTo(0.0); // if no potential calculation, set all values to zero

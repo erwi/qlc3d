@@ -25,8 +25,13 @@ int minnode(int *t, int dim1, int dim2){ // what does this do?
 }
 void AdjustTimeStep(Simu& simu, const double& maxdq){
 
-    // if electrode switching etc. has just happened, dont adapt time step
-    if ( simu.restrictedTimeStep ) return;
+    // if electrode switching etc. has just happened, dont adapt time step this time
+    // but set switch to false to allow adjutment starting next step
+    if ( simu.restrictedTimeStep )
+    {
+        simu.restrictedTimeStep = false;
+        return;
+    }
 
     if (simu.getdt()>0){
         // ADAPT TIME STEP ACCORDING TO CONVERGENCE
