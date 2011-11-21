@@ -149,7 +149,11 @@ double ConsistencyLoop(SolutionVector& v, SolutionVector& q , SolutionVector& qn
 
 
 void HandleEvents(EventList* eventlist, Simu* simu, SolutionVector* v, Electrodes* electrodes, Mesh* ee){
-    if (simu->getdt() != 0){// if time stepping
+
+    // Do not handle events IF
+    if ( (!eventlist->getLength() ) ||    // event queue is empty
+         (simu->getdt() == 0 ) )        // not time-stepping
+         return ;
 
     // time until next event
     double te =  eventlist->getNextEventTime() - simu->getCurrentTime()  ;
@@ -196,9 +200,6 @@ void HandleEvents(EventList* eventlist, Simu* simu, SolutionVector* v, Electrode
 		simu->setdt(te);
 		printf("adjusting time step to %e s. due to event\n", simu->getdt() );
 	}
-	}// end if time stepping
-
-
 
 }//end void HandleEvents
 
