@@ -1,5 +1,8 @@
 
 #include <geometry.h>
+
+const unsigned int Geometry::NOT_AN_INDEX = std::numeric_limits<unsigned int>::max();
+
 Geometry::Geometry()
 {
 	np 					= 0;
@@ -422,21 +425,30 @@ void Geometry::checkForPeriodicGeometry()
 
 
 
-void Geometry::brute_force_search( unsigned int &ind, double* coord){
+bool Geometry::brute_force_search( unsigned int &ind,            // return index
+                                   double* coord,                // search coordinate
+                                   const bool& terminateOnError) // terminate if not found>
+{
 // BRUTE FORCE DEBUG SEARCH FOR TETRAHEFRON THAN CONTAINS POINT WITH COORDINATES IN coord
 // coord IS ASSUMED TO BE OF LENGTH 3, FOR x, y, z
-	// loop over each element
-	for (unsigned int i = 0 ; i < (unsigned int) t->getnElements() ; i++){
+    // loop over each element
+    for (unsigned int i = 0 ; i < (unsigned int) t->getnElements() ; i++)
+    {
         if ( ( t->ContainsCoordinate( i , getPtrTop(), coord ) ) // If coord is in tet i AND
                 && (t->getMaterialNumber(i) <= MAT_DOMAIN7) ){   // tet i material is LC
-			ind = i ;
-			return; // exit function when found
-		}
-	}// end for loop over all elems
+            ind = i ;
+            return true; // exit function when found
+        }
+    }// end for loop over all elems
 
-    printf("error - brute_force_search could not find coord %f,%f,%f - bye ! \n", coord[0], coord[1], coord[2] );
-	exit(1);
-
+    // IF COORDINATE WAS NOT FOUND APPLICATION MAY NEED TO BE TERMINATED
+    if (terminateOnError)
+    {
+        printf("error - brute_force_search could not find coord %f,%f,%f - bye ! \n", coord[0], coord[1], coord[2] );
+        exit(1);
+    }
+    // SIGNAL A NON-FOUND COORDINATE BY RETURNING FALSE
+    return false;
 }
 
 bool Geometry::getContainingTet(vector< set < unsigned int> >& p_to_t,
@@ -505,54 +517,67 @@ bool Geometry::getContainingTet(vector< set < unsigned int> >& p_to_t,
 }
 
 
-void Geometry::genIndToTetsByCoords(vector<unsigned int> &ind, double *coord, const unsigned int &nc){
-    /*! Generates index to tetrahedron that contain coordinate coord*/
+void Geometry::genIndToTetsByCoords(vector<unsigned int> &ind,   // return index
+                                    double *coord,               // search cordinate values
+                                    const unsigned int &nc,      // number of coordinate values
+                                    const bool& terminateOnError)// whther to terminate app. if coordinate not found. default = true;
+{
+/*!
+    Generates index to tetrahedron that contain coordinate coord.
+    The 'terminateOnError' flag is used to spcify whether to terminate app. if a coord
+    is not found, or to mark it as NOT_AN_INDEX. This may occur e.g. when
+    interpolating between two different meshes.
+*/
 
     ind.clear();
     ind.assign( nc, this->t->getnElements()); // assing with a value that is one too much initially
 
-	vector < set <unsigned int> > p_to_t;
-	t->gen_p_to_elem(p_to_t);
+    vector < set <unsigned int> > p_to_t;
+    t->gen_p_to_elem(p_to_t);
 
-	// FIND STARTING TET
-	//---------------------------
-	double mid[3] = { ( getXmax() - getXmin() )/2.0 , // CENTRE COORDINATE OF STRUCTURE
-					  ( getYmax() - getYmin() )/2.0 ,
-					  ( getZmax() - getZmin() )/2.0 };
+    // FIND STARTING TET
+    //---------------------------
+    double mid[3] = {   ( getXmax() - getXmin() )/2.0 , // CENTRE COORDINATE OF STRUCTURE
+                        ( getYmax() - getYmin() )/2.0 ,
+                        ( getZmax() - getZmin() )/2.0 };
 
-	unsigned int mt = 0;
-	if ( !getContainingTet( p_to_t, mid, mt) ){
-		mt = t->getnElements() / 2; // if mid tet not found, set to numtets/2
-	}
-	//---------------------------
+    unsigned int mt = 0;
+    if ( !getContainingTet( p_to_t, mid, mt) ){
+        mt = t->getnElements() / 2; // if mid tet not found, set to numtets/2
+    }
 
-	unsigned int n;
+    //---------------------------
 
-	#pragma omp parallel for
-	for ( n = 0 ; n < nc ; n++){ // for each coord
+    unsigned int n;
 
-		unsigned int t0 = mt ; // SET START ELEM
+    #pragma omp parallel for
+    for ( n = 0 ; n < nc ; n++) // for each coord
+    {
+        unsigned int t0 = mt ; // SET START ELEM
 
-		double* crd;
-		crd = coord + n*3; // n'th coordinate
+        double* crd;
+        crd = coord + n*3; // n'th coordinate
 
         // nearest neigbour search
-		if ( getContainingTet( p_to_t, crd, t0) ){
-			//cout << "found :" << t0<< endl;
-			ind[n] = t0;
-		}
+        if ( getContainingTet( p_to_t, crd, t0) )
+        {
+            ind[n] = t0;
+        }
         // if neares neighbour search fails, use brute force
         else{
-			cout << "warning - Geometry::genIndToTetsByCoords \n\tcould not find coord using fast method." << endl;
-			cout << "\tTrying slower brute force instead...";
-			fflush(stdout);
-			unsigned int bfind = 0;
-            brute_force_search( bfind, crd); // IF BRUTE FORCE DOES NOT FIND -> TERMINATE PROGRAM
-			cout << "OK, found it now!" << endl;
-			ind[n] = bfind;
-		}
+            unsigned int bfind = 0;
+            // TRY BRUTE FORCE. THIS MAY TERMINATE APP., DEPENDING ON BOOL FLAG
+            if ( brute_force_search( bfind, crd, terminateOnError ) )
+            {
+                ind[n] = bfind;
+            }
+            else    // BRUTE FORCE FAIL IS ALLOWED (NODE MAY BE OUTSIDE MESH)
+            {
+                ind[n] = Geometry::NOT_AN_INDEX; // MARK INDEX AS INVALID
+            }
+        }
 
-	}// end for each coord
+    }// end for each coord
 
 
 
