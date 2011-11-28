@@ -341,9 +341,18 @@ int main(int argc, char* argv[]){
 
 
     // -------------------------
-    regGrid.createFromTetMesh(2,2,2, geom1 );
-    regGrid.writeVTKGrid( "regular.vtk" , v.Values );
 
+    double* vec = tensortovector(q.Values, geom1.getnpLC() );
+
+
+    regGrid.createFromTetMesh(3,3,10, geom1 );
+    //regGrid.writeVTKGrid( "regular.vtk" , v.Values );
+    regGrid.writeVTKGrid( "regular.vtk", v.Values, vec, (size_t) geom1.getnpLC() );
+
+    delete [] vec;
+
+
+    // -------END REGULAR GRID OUTPUT-----------
 
 // writes a copy of settings file in results directory
     printf("Saving a copy of the settings file...");

@@ -530,7 +530,8 @@ void Geometry::genIndToTetsByCoords(vector<unsigned int> &ind,   // return index
 */
 
     ind.clear();
-    ind.assign( nc, this->t->getnElements()); // assing with a value that is one too much initially
+    unsigned int nt = (unsigned int) this->t->getnElements();
+    ind.assign( nc, nt ); // assing with a value that is one too much initially
 
     vector < set <unsigned int> > p_to_t;
     t->gen_p_to_elem(p_to_t);
