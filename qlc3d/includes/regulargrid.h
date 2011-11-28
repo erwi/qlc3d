@@ -3,6 +3,11 @@
 #include <geometry.h>
 #include <vector>
 #include <limits>
+#include <stdio.h>
+#include <stdlib.h>
+#include <fstream>
+#include <iostream>
+#include <vtkiofun.h>
 class RegularGrid {
 
     // A UNSTRCTURED NODES -> REGULAR NODE INTERPOLATION LOOKUP TABLE
@@ -40,8 +45,17 @@ public:
 
     RegularGrid();
 
-    bool createFromTetMesh(const int& nx, const int& ny, const int& nz, //number of points in each direction
+    // CREATES A TET MESH -> REGULAR GRID LOOKUP
+    bool createFromTetMesh(const int& nx,   //number of points in each direction
+                           const int& ny,
+                           const int& nz,
                            Geometry& geom); // underlying tet mesh
+
+    void interpolateToRegular( const double*& sclrIn,    // input values
+                               double*& sclrOut);        // output values
+
+    bool writeVTKGrid(const char* filename,
+                      const double* sclrIn );
 
 };
 

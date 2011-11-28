@@ -14,8 +14,8 @@
 #include <alignment.h>
 #include <material_numbers.h>
 #include <refinement.h>
-
-
+#include <regulargrid.h>
+#include <string>
 
 int minnode(int *t, int dim1, int dim2){ // what does this do?
 	int min = (int)1e9;
@@ -218,12 +218,13 @@ int main(int argc, char* argv[]){
 
 //*
 // Simulation settings (material parameters etc.)
-    Simu		simu;
+    Simu	simu;
     Electrodes	electrodes;
-    LC			lc;
-    Boxes		boxes;
+    LC		lc;
+    Boxes	boxes;
     Alignment	alignment;
     MeshRefinement  meshrefinement;
+    RegularGrid regGrid;
     string settings_filename = "./meshes/test.txt"; 	// default settings file, loaded when no i/p args.
     simu.setCurrentDir( getCurrentDirectory() );
 
@@ -338,6 +339,12 @@ int main(int argc, char* argv[]){
 
     calcpot3d(Kpot,&v,&q,&lc,geom1.t,geom1.e, geom1.getPtrTop(), &settings, &electrodes);
 
+
+    // -------------------------
+    regGrid.createFromTetMesh(2,2,2, geom1 );
+    regGrid.writeVTKGrid( "regular.vtk" , v.Values );
+
+
 // writes a copy of settings file in results directory
     printf("Saving a copy of the settings file...");
     CreateSaveDir(&simu);
@@ -347,6 +354,8 @@ int main(int argc, char* argv[]){
     printf("\nSaving starting configuration (iteration -1)...\n");
     WriteResult(&simu, &lc , &geom1, &v, &q);
     printf("OK\n");
+
+    return 0;
 
     Energy_fid = createOutputEnergyFile(simu); // done in inits
 
