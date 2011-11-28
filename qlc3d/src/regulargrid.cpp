@@ -66,13 +66,13 @@ bool RegularGrid::generateLookupList(Geometry &geom)
         for (unsigned int j = 0 ; j < ny_ ; j++ ) // loop over y
         {
             double y = getGridY( j );
-            for ( unsigned int i = 0 ; i < nz_ ; i++, cc++) // loop over x
+            for ( unsigned int i = 0 ; i < nx_ ; i++, cc++) // loop over x
             {
-                double x = getGridX( j );
-
-                coords[3*cc + 0 ] = x;//getGridX( i );
-                coords[3*cc + 1 ] = y;//getGridY( j );
-                coords[3*cc + 2 ] = z;//getGridY( k );
+                double x = getGridX( i );
+                size_t offset = 3*cc;
+                coords[offset + 0 ] = x;//getGridX( i );
+                coords[offset + 1 ] = y;//getGridY( j );
+                coords[offset + 2 ] = z;//getGridY( k );
             }
         }// end loop over y
     }// end loop over z
@@ -95,7 +95,9 @@ bool RegularGrid::generateLookupList(Geometry &geom)
     for (unsigned int i = 0; i < npr_ ; i++)
     {
 
-        lookup lu; // NEW LOOKUP TABLE ENTRY
+        lookup lu;                  // NEW LOOKUP TABLE ENTRY
+        lu.type = RegularGrid::OK;  // INITIALISE TO GOOD
+
         if ( indT[i] != Geometry::NOT_AN_INDEX ) // IF CONTAINING TET ELEMENT WAS FOUND
         {
             double* coord = &coords[3*i]; // pointer to coordinates of i'th regular point
@@ -111,6 +113,8 @@ bool RegularGrid::generateLookupList(Geometry &geom)
         }
         else // CONTAINING TET ELEMENT WAS NOT FOUND
         {
+            lu.type = RegularGrid::NOT_FOUND;   // containing element not found
+
             lu.ind[0] = NOT_AN_INDEX; lu.ind[1] = NOT_AN_INDEX;
             lu.ind[2] = NOT_AN_INDEX; lu.ind[3] = NOT_AN_INDEX;
             lu.weight[0] = 0; lu.weight[1] = 0;
@@ -129,59 +133,136 @@ bool RegularGrid::generateLookupList(Geometry &geom)
 void RegularGrid::interpolateToRegular(const double*& sclrIn,
                                        double*& sclrOut)
 {
-    // INTERPOLATES FROM TET MESH TO REGULAR GRID
+    // INTERPOLATES SINGLE SCALAR FROM TET MESH TO REGULAR GRID
+    if (!npr_)
+    {
+
+    }
+
+    for ( size_t i = 0 ; i < lookupList.size() ; i ++)
+    {
+        lookup L = lookupList[i];
+
+        if (L.type == RegularGrid::OK )
+        {
+            double s0 = sclrIn[ L.ind[0] ];
+            double s1 = sclrIn[ L.ind[1] ];
+            double s2 = sclrIn[ L.ind[2] ];
+            double s3 = sclrIn[ L.ind[3] ];
+
+            sclrOut[i] = L.weight[0]*s0 + L.weight[1]*s1 + L.weight[2]*s2 + L.weight[3]*s3;
+        }
+        else
+        {
+            sclrOut[i] = -1;
+        }
+    }
+
+}
+
+double RegularGrid::interpolateNode(const double* valuesIn,
+                       const RegularGrid::lookup& L)const
+{
+
+    return valuesIn[ L.ind[0] ]*L.weight[0] +
+            valuesIn[L.ind[1] ]*L.weight[1] +
+            valuesIn[L.ind[2] ]*L.weight[2] +
+            valuesIn[L.ind[3] ]*L.weight[3];
+
+
+}
+
+void RegularGrid::interpolateToRegular(const double *&vecIn,
+                                       double *&vecOut,
+                                       const size_t &np)
+
+{
+    // INTERPOLATES A x,y,z-VECTOR TO REGULAR GRID
     if (!npr_)
     {
         printf("error in %s, Regular grid doesn't seem to be initialised - bye!\n", __func__);
         exit(1);
     }
 
-    for ( size_t i = 0 ; i < lookupList.size() ; i ++)
+    for ( size_t i = 0 ; i < lookupList.size() ; i++ )
     {
         lookup L = lookupList[i];
-        double s0 = sclrIn[ L.ind[0] ];
-        double s1 = sclrIn[ L.ind[1] ];
-        double s2 = sclrIn[ L.ind[2] ];
-        double s3 = sclrIn[ L.ind[3] ];
+        if (L.type == RegularGrid::OK )
+        {
+            double nx = interpolateNode( vecIn, L );
+            double ny = interpolateNode( vecIn+np , L );
+            double nz = interpolateNode( vecIn+2*np, L);
 
-        sclrOut[i] = L.weight[0]*s0 + L.weight[1]*s1 + L.weight[2]*s2 + L.weight[3]*s3;
+            vecOut[i+0*npr_] = nx;
+            vecOut[i+1*npr_] = ny;
+            vecOut[i+2*npr_] = nz;
+        }
     }
-
 }
 
 
 bool RegularGrid::writeVTKGrid(const char* filename,
                                const double *sclrIn)
 {
-
-
     double* sclrR = new double[ npr_ ];
-
     interpolateToRegular( sclrIn,
                           sclrR);
-
     std::fstream fid;
     fid.open( filename , std::fstream::out);
 
 
-
-
     if ( !fid.is_open() )
         return false;
-
-    vtkIOFun::writeID( fid );
-    vtkIOFun::writeHeader( fid, "header string");
-    vtkIOFun::writeFileFormat(fid, vtkIOFun::FileFormat(vtkIOFun::ASCII) );
-    vtkIOFun::writeDatasetFormat(fid, nx_, ny_, nz_,
+    if ( ( !vtkIOFun::writeID( fid ) ) ||
+        (!vtkIOFun::writeHeader( fid, "header string")) ||
+        (!vtkIOFun::writeFileFormat(fid, vtkIOFun::FileFormat(vtkIOFun::ASCII) ) )||
+        (!vtkIOFun::writeDatasetFormat(fid, nx_, ny_, nz_,
                                  0.,0.0,0.,
-                                 dx_, dy_, dz_);
+                                 dx_, dy_, dz_)) ||
 
-    vtkIOFun::writeScalarData( fid , npr_, "potential", sclrR);
+        (!vtkIOFun::writeScalarData( fid , npr_, "potential", sclrR)) )
+    {
+         printf("error writing regular resultz\n");
+    }
 
     fid.close();
     delete [] sclrR;
     return true;
 }
 
+bool RegularGrid::writeVTKGrid(const char *filename,
+                               const double *pot,
+                               const double *n,
+                               const size_t& npLC)
+{
+    double* regU = new double[ npr_ ];
+    double* regN = new double[ 3*npr_];
 
+    interpolateToRegular( pot, regU );
+    interpolateToRegular( n, regN, npLC );
+
+    std::fstream fid;
+    fid.open( filename, std::fstream::out );
+
+    if ( ( !vtkIOFun::writeID( fid ) ) ||
+        (!vtkIOFun::writeHeader( fid, "header string")) ||
+        (!vtkIOFun::writeFileFormat(fid, vtkIOFun::FileFormat(vtkIOFun::ASCII) ) )||
+        (!vtkIOFun::writeDatasetFormat(fid, nx_, ny_, nz_,
+                                 0.,0.0,0.,
+                                 dx_, dy_, dz_)) ||
+
+        (!vtkIOFun::writeScalarData( fid , npr_, "potential", regU)) ||
+         (!vtkIOFun::writeVectorData(fid, npr_, "director", regN)))
+    {
+         printf("error writing regular resultz\n");
+    }
+
+
+
+
+
+
+    return true;
+
+}
 

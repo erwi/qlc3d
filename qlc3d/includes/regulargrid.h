@@ -9,11 +9,17 @@
 #include <iostream>
 #include <vtkiofun.h>
 class RegularGrid {
+public:
+    enum LookupType{ OK, NOT_LC, NOT_FOUND};
+private:
+
 
     // A UNSTRCTURED NODES -> REGULAR NODE INTERPOLATION LOOKUP TABLE
     struct lookup{
+        LookupType  type;    // descriptor of tet element containing sough node
         unsigned int ind[4]; // index to nodes from which to interpolate ( = tet corner nodes)
-        double weight[4];       // weights applied to each value ( = tet local coords)
+        double weight[4];    // weights applied to each value ( = tet local coords)
+
     };
 
 
@@ -39,6 +45,9 @@ class RegularGrid {
 
     bool generateLookupList(Geometry& geom);
 
+    double interpolateNode(const double* valueIn,
+                            const lookup& L) const;
+
 public:
 
     static const unsigned int NOT_AN_INDEX; // A MAGIC NUMBER INDICATING A NODE NOT IN THE GRID
@@ -51,11 +60,24 @@ public:
                            const int& nz,
                            Geometry& geom); // underlying tet mesh
 
+    // INTERPOLATES A SCALAR VALUE
     void interpolateToRegular( const double*& sclrIn,    // input values
                                double*& sclrOut);        // output values
 
+    // INTERPOLATES A VECTOR VALUE
+    void interpolateToRegular( const double*& vecIn,    // input irregular
+                               double*& vecOut,         // output regular
+                               const size_t& np);       // number of nodes in irregular input
+
+
     bool writeVTKGrid(const char* filename,
                       const double* sclrIn );
+
+    bool writeVTKGrid(const char* filename,
+                      const double* pot,
+                      const double* n,
+                      const size_t& npLC );
+
 
 };
 

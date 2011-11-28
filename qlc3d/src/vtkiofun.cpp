@@ -95,6 +95,29 @@ bool writeScalarData(std::fstream &fid,
     return true;
 }
 
+bool writeVectorData(std::fstream &fid,
+                     const unsigned int &np, // if this is 0, continues from previous point data
+                     const char *data_name,
+                     const double *vec_data)
+{
+    if ( !fidOK(fid) )
+        return false;
+
+    //if (np)
+    //fid <<"POINT_DATA " << np <<std::endl;
+
+    fid << "VECTORS "<< data_name <<" double"<<std::endl;
+
+    for (size_t i = 0 ; i < np ; i++)
+        fid << vec_data[i] <<" "<< vec_data[i+np] <<" "<< vec_data[i+2*np] << std::endl;
+
+
+    return true;
+
+
+}
+
+
 
 
 

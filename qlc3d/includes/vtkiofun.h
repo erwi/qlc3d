@@ -33,6 +33,12 @@ namespace vtkIOFun
                          const unsigned int& np,
                          const char* data_name,
                          const double* data);
+
+    bool writeVectorData(std::fstream& fid,
+                         const unsigned int& np,
+                         const char* data_name,
+                         const double* vec_data);
+
 }//end namespace
 
 #endif // VTKIOFUN_H
