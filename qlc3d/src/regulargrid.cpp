@@ -341,6 +341,7 @@ void RegularGrid::interpolateToRegular(const double*& sclrIn,
 
             sclrOut[i] = L.weight[0]*s0 + L.weight[1]*s1 + L.weight[2]*s2 + L.weight[3]*s3;
         }
+        // IF NON-LC LOCATION - FIX THIS
         else
         {
             sclrOut[i] = -1;
@@ -386,70 +387,67 @@ void RegularGrid::interpolateToRegular(const double *&vecIn,
             vecOut[i+1*npr_] = ny;
             vecOut[i+2*npr_] = nz;
         }
+        // IF TRYING TO INTEPOLATE DIRECTOR TO A NON-LC GRID NODE
+        else if (L.type == RegularGrid::NOT_LC )
+        {
+            vecOut[i + 0 * npr_] = 0;
+            vecOut[i + 1 * npr_] = 0;
+            vecOut[i + 2 * npr_] = 0;
+        }
     }
 }
 
-
-bool RegularGrid::writeVTKGrid(const char* filename,
-                               const double *sclrIn)
-{
-    double* sclrR = new double[ npr_ ];
-    interpolateToRegular( sclrIn,
-                          sclrR);
-    std::fstream fid;
-    fid.open( filename , std::fstream::out);
-
-
-    if ( !fid.is_open() )
-        return false;
-    if ( ( !vtkIOFun::writeID( fid ) ) ||
-        (!vtkIOFun::writeHeader( fid, "header string")) ||
-        (!vtkIOFun::writeFileFormat(fid, vtkIOFun::FileFormat(vtkIOFun::ASCII) ) )||
-        (!vtkIOFun::writeDatasetFormat(fid, nx_, ny_, nz_,
-                                 0.,0.0,0.,
-                                 dx_, dy_, dz_)) ||
-
-        (!vtkIOFun::writeScalarData( fid , npr_, "potential", sclrR)) )
-    {
-         printf("error writing regular resultz\n");
-    }
-
-    fid.close();
-    delete [] sclrR;
-    return true;
-}
 
 bool RegularGrid::writeVTKGrid(const char *filename,
                                const double *pot,
                                const double *n,
                                const size_t& npLC)
 {
-    double* regU = new double[ npr_ ];
-    double* regN = new double[ 3*npr_];
+// WRITES POTENTIAL, ORDER PARAMETER AND DIRECTOR ONTO VTK REGULAR GRID FILE
 
-    interpolateToRegular( pot, regU );
-    interpolateToRegular( n, regN, npLC );
+    if (npr_ == 0 )
+    {
+        printf("error in %s, regular grid doesn't seem to be initialised - bye!\n", __func__);
+        exit(1);
+    }
 
     std::fstream fid;
     fid.open( filename, std::fstream::out );
 
-    if ( ( !vtkIOFun::writeID( fid ) ) ||
-        (!vtkIOFun::writeHeader( fid, "header string")) ||
-        (!vtkIOFun::writeFileFormat(fid, vtkIOFun::FileFormat(vtkIOFun::ASCII) ) )||
-        (!vtkIOFun::writeDatasetFormat(fid, nx_, ny_, nz_,
-                                 0.,0.0,0.,
-                                 dx_, dy_, dz_)) ||
-
-        (!vtkIOFun::writeScalarData( fid , npr_, "potential", regU)) ||
-         (!vtkIOFun::writeVectorData(fid, npr_, "director", regN)))
-    {
-         printf("error writing regular resultz\n");
-    }
+    if (!fid.is_open() )    // EXIT IF COULDN'T OPEN FILE
+        return false;
 
 
+    double* regU = new double[ npr_ ];  // TEMPORARY STORAGE FOR INTERPOLATED VALUES
+    double* regN = new double[ 3*npr_];
+    double* regS = new double[ npr_];
 
+    const double* S = n+3*npLC;   // START OF IRREGULAR S
 
+    interpolateToRegular( pot , regU );     // IRREGULAR TO REGULAR CONVERSION
+    interpolateToRegular( n , regN, npLC );
+    interpolateToRegular( S , regS);
 
+    int num_points[3] = {nx_, ny_, nz_};
+    double grid_spacing[3] = {dx_, dy_, dz_};
+
+    bool ret = true;        // RETURN VALUE
+
+    vtkIOFun::writeID( fid );
+
+    vtkIOFun::writeHeader( fid,
+                           "header string",
+                           vtkIOFun::ASCII,
+                           num_points,
+                           grid_spacing);
+
+    vtkIOFun::writeScalarData( fid , npr_, "potential", regU);
+    vtkIOFun::writeScalarData( fid , npr_, "S", regS);
+    vtkIOFun::writeVectorData( fid, npr_, "director", regS);
+
+    delete [] regU;
+    delete [] regN;
+    delete [] regS;
 
     return true;
 

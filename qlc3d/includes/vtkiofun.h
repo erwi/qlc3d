@@ -59,15 +59,11 @@ namespace vtkIOFun
     bool writeID(std::fstream& fid); // writes file identifier
 
     bool writeHeader( std::fstream& fid,
-                      const char* headerString);
+                      const char* headerString,
+                      const FileFormat& format,
+                      const int num_points[3],
+                      const double grid_spacing[3]);
 
-    bool writeFileFormat(  std::fstream& fid,
-                           const FileFormat& format);
-
-    bool writeDatasetFormat(std::fstream& fid,
-                      const int& nx, const int& ny, const int& nz,
-                      const double& ox, const double& oy, const double& oz,     // origin coords
-                      const double& sx, const double& sy, const double& sz );   // grid spacing
 
     bool writeScalarData(std::fstream& fid,
                          const unsigned int& np,
