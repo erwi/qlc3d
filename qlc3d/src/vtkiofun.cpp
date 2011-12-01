@@ -23,22 +23,18 @@ bool writeID(std::fstream &fid)
 }
 
 bool writeHeader(std::fstream &fid,
-                 const char* headerString )
+                 const char* headerString,
+                 const FileFormat& format,
+                 const int num_points[3],
+                 const double grid_spacing[3]
+                 )
 {
     if ( !fidOK(fid) )
         return false;
 
     fid << headerString << "\n";
 
-    return true;
-}
-
-bool writeFileFormat(std::fstream &fid,
-                     const FileFormat &format)
-{
-    if ( !fidOK(fid) )
-        return false;
-
+// CHOOSE ASCII / BINARY
     switch( format )
     {
         case ASCII:
@@ -51,38 +47,27 @@ bool writeFileFormat(std::fstream &fid,
             return false;
 
     }
-
-    return true;
-
-}
-
-bool writeDatasetFormat(std::fstream &fid,
-                  const int &nx, const int &ny, const int &nz,
-                  const double &ox, const double &oy, const double &oz,
-                  const double &sx, const double &sy, const double &sz)
-{
-
-    if (!fidOK(fid))
-        return false;
-
+    int np = num_points[0] * num_points[1] * num_points[2];
     fid <<"DATASET STRUCTURED_POINTS"<<std::endl;
-    fid <<"DIMENSIONS "<<nx<<" "<<ny<<" "<<nz<<std::endl;
-    fid <<"ORIGIN "<<ox<<" "<<oy<<" "<<oz<<std::endl;
-    fid <<"SPACING "<<sx<<" "<<sy<<" "<<sz<<std::endl;
-
+    fid <<"DIMENSIONS "<<num_points[0]<<" "<<num_points[1]<<" "<<num_points[2]<<std::endl;
+    fid <<"ORIGIN "<<0<<" "<<0<<" "<<0<<std::endl;
+    fid <<"SPACING "<<grid_spacing[0]<<" "<<grid_spacing[1]<<" "<<grid_spacing[2]<<std::endl;
+    fid <<"POINT_DATA "<< np << std::endl;
     return true;
-
 }
+
 
 bool writeScalarData(std::fstream &fid,
-                     const unsigned int &np,
-                     const char *data_name,
-                     const double *data)
+                     const unsigned int &np,    // NUMBER OF REGULAR GRID POINTS
+                     const char *data_name,     //
+                     const double *data)        //
 {
+// APPENDS SCALAR DATA TO END OF FILE
+
+
     if (!fidOK(fid))
         return false;
 
-    fid <<"POINT_DATA "<< np << std::endl;
     fid <<"SCALARS "<< data_name <<" double 1" << std::endl;
     fid <<"LOOKUP_TABLE default"<<std::endl;
 
@@ -90,31 +75,25 @@ bool writeScalarData(std::fstream &fid,
         fid << data[i] <<" ";
 
     fid<<std::endl;
-
-
     return true;
 }
 
 bool writeVectorData(std::fstream &fid,
-                     const unsigned int &np, // if this is 0, continues from previous point data
+                     const unsigned int &np, //  NUMBER OF REGULAR GRID POINTS
                      const char *data_name,
                      const double *vec_data)
 {
+// APPENDS VECTOR DATA TO END OF FILE
+
     if ( !fidOK(fid) )
         return false;
-
-    //if (np)
-    //fid <<"POINT_DATA " << np <<std::endl;
 
     fid << "VECTORS "<< data_name <<" double"<<std::endl;
 
     for (size_t i = 0 ; i < np ; i++)
         fid << vec_data[i] <<" "<< vec_data[i+np] <<" "<< vec_data[i+2*np] << std::endl;
 
-
     return true;
-
-
 }
 
 

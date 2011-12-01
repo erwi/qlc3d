@@ -69,14 +69,15 @@ public:
                                double*& vecOut,         // output regular
                                const size_t& np);       // number of nodes in irregular input
 
-
+    // ==============================================
+    //
+    // FILE OUTPUT FUNCTIONS
+    //
+    // ==============================================
     bool writeVTKGrid(const char* filename,
-                      const double* sclrIn );
-
-    bool writeVTKGrid(const char* filename,
-                      const double* pot,
-                      const double* n,
-                      const size_t& npLC );
+                      const double* pot,        // POTENTIAL DATA
+                      const double* n,          // DIRECTOR DATA (INCLUDING S)
+                      const size_t& npLC );     // NUMBER OF LC NODES
 
 
 };

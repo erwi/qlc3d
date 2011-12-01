@@ -78,12 +78,17 @@ void AdjustTimeStep(Simu& simu, const double& maxdq){
 
 	simu.setCurrentChange(maxdq); // updates maximum change value for this iteration
 }
+
+
+// THESE SHOULD NOT BE HERE!!
 void copyTo(double* arr, const SolutionVector& sv){ // copies all values from solution vector to array
 	unsigned int n = sv.getnDoF() * sv.getnDimensions();
 	#pragma omp parallel for
 	for (unsigned int i = 0 ; i < n ; i++)
 		arr[i] = sv.getValue(i);
 }
+
+// THESE SHOULD NOT BE HERE!!
 double maxDiff(const double* arr, const SolutionVector& sv){// finds the maximum difference between array and solutionvector 
 	unsigned int n = sv.getnDoF() * sv.getnDimensions();
 	double md = 0;
