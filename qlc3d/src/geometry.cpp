@@ -382,40 +382,55 @@ void Geometry::MakePeriEquNodes(){
 
 void Geometry::checkForPeriodicGeometry()
 {
-	for (int i = 0 ; i < e->getnElements() ; i++)
-	{
-		if (e->getMaterialNumber(i) == MAT_PERIODIC) // if surface is periodic
-		{
-			// check to see which side surface is on by looking at the surface normal
-			double* snorm = e->getPtrToSurfaceNormal(i);
+// CHECKS FOR TYPES OF PERIODICITY PRESENT IN CURRENT STRUCTURE.
+// POSSIBLE PERIODIC SURFACES ARE:
+//      LEFT/RIGHT
+//      FRONT/BACK
+//      TOP/BOTTOM
+
+    for (int i = 0 ; i < e->getnElements() ; i++)
+    {
+        if (e->getMaterialNumber(i) == MAT_PERIODIC) // if surface is periodic
+        {
+            // check to see which side surface is on by looking at the surface normal
+            double* snorm = e->getPtrToSurfaceNormal(i);
 			
-			//if ( (snorm[0] == 1.0 ) || (snorm[0] == -1.0 ) ) // left right sides
-			if (fabs( fabs(snorm[0]) - 1.0 ) < EPS)
-				left_right_is_periodic = true;
-			else 
-			//if ( (snorm[1] == 1.0 ) || (snorm[1] == -1.0) ) // front back
-			if (fabs( fabs(snorm[1]) - 1.0 ) < EPS)
-				front_back_is_periodic = true;
-			else
-			//if ( (snorm[2] == 1.0 ) || ( snorm[2] == -1.0) ) // top bottom
-			if (fabs( fabs(snorm[2]) - 1.0 ) < EPS)
-				top_bottom_is_periodic = true;
-			else
-			{
-				printf("error - checkForPeriodicGeometry() - periodic surface element %i has invalid normal:\n [%f, %f, %f] - bye!\n",i, snorm[0] , snorm[1], snorm[2]);
-				exit(1);
-			}	
+            // IF SURFACE NORMAL X-COMPONENT = 1
+            if (fabs( fabs(snorm[0]) - 1.0 ) < EPS)
+                        left_right_is_periodic = true;
+            else
+            // IF SURFACE NORMAL Y-COMPONENT = 1
+            if (fabs( fabs(snorm[1]) - 1.0 ) < EPS)
+                front_back_is_periodic = true;
+            else
+            // IF SURFACE NORMAL Z-COMPONENT = 1
+            if (fabs( fabs(snorm[2]) - 1.0 ) < EPS)
+                top_bottom_is_periodic = true;
+            else
+            {
+                printf("error - checkForPeriodicGeometry() - periodic surface element %i has invalid normal:\n [%f, %f, %f] - bye!\n",i, snorm[0] , snorm[1], snorm[2]);
+
+                this->e->PrintNormals();
+
+                exit(1);
+            }
 	
-			if ((getleft_right_is_periodic()) && (getfront_back_is_periodic()) && (gettop_bottom_is_periodic() )) // if all surface are already periodic can break
-			break;
+            // IF ALL SURFACES HAVE ALREADY BEEN IDENTIFIED AS PERIODIC
+            // NO NEED TO CHECK FURTHER TRIANGLES
+            if ((getleft_right_is_periodic()) &&
+                    (getfront_back_is_periodic()) &&
+                    (gettop_bottom_is_periodic() ))
+                break;
 	
-		}
-	}
-	
-	if (getleft_right_is_periodic() || getfront_back_is_periodic() || gettop_bottom_is_periodic() )
-	{
-		MakePeriEquNodes();
-	} 
+        }
+    }
+    // IF ANY PERIODIC TRIANGLES WERE DETECTED
+    if (    getleft_right_is_periodic()
+        ||  getfront_back_is_periodic()
+        ||  gettop_bottom_is_periodic() )
+    {
+        MakePeriEquNodes();
+    }
 	
 }
 

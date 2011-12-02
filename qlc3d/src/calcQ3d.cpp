@@ -13,7 +13,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 	       LC *mat_par,
 	       Simu* simu,
 	       SparseMatrix* K,
-           Settings* settings,
+               Settings* settings,
 	       Alignment* alignment,
 	       double* NodeNormals)
 {
@@ -23,20 +23,17 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
     double maxdq_initial = 0;
 
     int npLC = q->getnDoF();
+    double* RHS(NULL);		// right hand side vector for Crank-Nicholson.
 
-    double* dq = (double*) malloc(q->getnFreeNodes() * q->getnDimensions() * sizeof(double) );
-    double*  L = (double*) malloc(q->getnFreeNodes() * q->getnDimensions() * sizeof(double) );
+    size_t numCols = (size_t) K->cols;
+    double* dq = (double*) malloc( numCols * sizeof(double) );
+    double*  L = (double*) malloc( numCols * sizeof(double) );
+    if ( simu->getdt() > 0 )
+        RHS =  (double*) malloc( numCols * sizeof(double) ); // ONLY NEEDED IF TIME-STEPPING
 
-    double* RHS = NULL;		// right hand side vector for Crank-Nicholson.
-    if ( simu->getdt() > 0 )	// only allocate if needed
-        RHS =  (double*) malloc(K->cols * sizeof(double) );
-
-
-
-    int newton_iter = 0;
+    int newton_iter = 0;    // COUNTER FOR NEWTON ITERATIONS
 
 // SAVE Q FROM PREVIOUS TIME STEP
-    // qn = q_old
     if (simu->getdt() >0){
         qn->setValuesTo(*q);
     }
@@ -44,79 +41,127 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
     bool LOOP = true;
 
     while ( LOOP){// Q-TENSOR SOLUTION LOOP
-	newton_iter++;
-	// ASSEMBLY
-	clock_t time1 = clock();
+        newton_iter++;
+        clock_t time1 = clock();
 
-	// ASSEMBLE RHS CONTRIBUTION FROM PREVIOUS TIME-STEP
-	if ( (newton_iter == 1) && (simu->getdt() > 0 ) ){
-	    memset(RHS, 0, K->cols * sizeof(double) );
-	    assemble_prev_rhs(RHS, *qn, *v, *t, *e, p , *mat_par, *simu);
-	}
+        // ASSEMBLE RHS CONTRIBUTION FROM PREVIOUS TIME-STEP
+        if ( (newton_iter == 1) && (simu->getdt() > 0 ) )
+        {
+            memset(RHS, 0, numCols*sizeof( double ) );
+            assemble_prev_rhs(RHS, *qn, *v, *t, *e, p , *mat_par, *simu);
+        }
 
+        if ( simu->IsAssembleMatrix() )
+            // CLEAR MATRIX, RHS AND dq
+            K->setAllValuesTo(0);
+            memset(L  , 0 , numCols * sizeof(double) );
+            memset(dq , 0 , numCols * sizeof(double) );
 
+            std::cout << " " <<newton_iter << " Assembly...";
+            // ASSEMBLE MATRIX AND RHS
+            assembleQ(K, L, q, v, t, e, p, mat_par, simu, settings, alignment, NodeNormals);
 
-	    if ( simu->IsAssembleMatrix() )
-		// CLEAR MATRIX, RHS AND dq
-		K->setAllValuesTo(0);
-		memset(L  , 0 , K->cols * sizeof(double) );
-		memset(dq , 0 , K->cols * sizeof(double) );
+            #ifdef DEBUG
+                K->DetectZeroDiagonals();
+            #endif
 
-		std::cout << " " <<newton_iter << " Assembly...";
-		// ASSEMBLE MATRIX AND RHS
-        assembleQ(K, L, q, v, t, e, p, mat_par, simu, settings, alignment, NodeNormals);
+/*
+    // DEBUG BLOCK
+     {
+     printf("Num fixed nodes = %i\n", q->getnFixed() );
+     for (int i = 0 ; i < q->getnDoF() ; i++ )
+      {
+          if
+              printf("L[%i] = %e, K[%i,%i] = %e\n",i, L[i], i,i,K->sparse_get(i,i));
 
-        //for (int i = 0 ; i < K->cols ; i++)
-        //    printf("L[%i] = %e\n",i,L[i]);
-
-
-
-		#ifdef DEBUG
-		    K->DetectZeroDiagonals();
-		#endif
-
-		float elapsed  = 0;
-		elapsed = ( (float) clock() - (float) time1 ) / (float) CLOCKS_PER_SEC; // get assembly time
-		time1 = clock(); // used for solver timing next.
-
-		printf("OK %1.3es. ", elapsed );
-		fflush(stdout);
-
-		if (simu->getdt() > 0){ // make Non-linear Crank-Nicholson RHS
-		    #pragma omp parallel for
-		    for (unsigned int i = 0 ; i < (unsigned int) K->cols ; i++){
-			L[i] += RHS[i];
-		    }
-
-		}
+       }
+     }//*/
+    // END DEBUG BLOCK
 
 
 
-		// SOLUTION
-		if (settings->getQ_Solver() == Q_SOLVER_PCG){			// use PCG for Q solution
-			printf("PCG...");
-			fflush( stdout );
-			solve_pcg(K,L,dq,settings);
-		}
-		else if (settings->getQ_Solver() == Q_SOLVER_GMRES){		// use GMRES for Q solution
-			printf("GMRES...");
-			fflush( stdout );
-			solve_gmres(K,L,dq,settings);
-		}
+            float elapsed  = 0;
+            elapsed = ( (float) clock() - (float) time1 ) / (float) CLOCKS_PER_SEC; // get assembly time
+            time1 = clock(); // used for solver timing next.
 
-		maxdq = 0;
+            printf("OK %1.3es. ", elapsed );
+            fflush(stdout);
 
-		// UPDATE SOLUTION VECTOR - USES getEquNode REDIRECTION FOR PERIODIC NODES
-		maxdq_previous = maxdq;
-		for (int i = 0 ; i < 5*npLC ; i++){
-            //printf("dq[%i] = %e\n", i , dq[i]);
-            if ( fabs(dq[q->getEquNode(i)]) > fabs(maxdq) )
-			    maxdq = dq[q->getEquNode(i)]; // find max dQ
+            if (simu->getdt() > 0) // make Non-linear Crank-Nicholson RHS
+            {
+                #pragma omp parallel for
+                for (unsigned int i = 0 ; i < (unsigned int) K->cols ; i++)
+                    L[i] += RHS[i];
+            }
 
-			q->Values[i] +=dq[q->getEquNode(i)];
-		}
+            // SOLUTION
+            if (settings->getQ_Solver() == Q_SOLVER_PCG)// use PCG for Q solution
+            {
+                printf("PCG...");
+                fflush( stdout );
+                solve_pcg(K,L,dq,settings);
+            }
+            else if (settings->getQ_Solver() == Q_SOLVER_GMRES)// use GMRES for Q solution
+            {
+                printf("GMRES...");
+                fflush( stdout );
+                solve_gmres(K,L,dq,settings);
+            }
+ /*
+            {// DEBUG
 
-		if (newton_iter==1) maxdq_initial = maxdq; // maxdq_initial is needed elsewhere to adjust time-step size
+                printf("\n");
+                for (int i = 0 ; i < 10 ; i++)
+                {
+                    printf("dq[%i] = %e\n", i, dq[i]);
+                }
+
+            }// END DEBUG
+  */
+
+
+
+
+            maxdq = 0;
+
+            // UPDATE SOLUTION VECTOR - USES getEquNode REDIRECTION FOR PERIODIC NODES
+            maxdq_previous = maxdq;
+            //int indMax = 0;
+            for (int i = 0 ; i < 5 ; i++)   // LOOP OVER DIMENSIONS
+            {
+                for (int j = 0; j < npLC ; j++) // LOOP OVER EACH NODE IN DIMENSION i
+                {
+                    int n = j + i*npLC;
+                    double dqj = dq[ q->getEquNode(n) ];
+
+                    //#ifdef DEBUG
+                    if ( fabs( dqj ) > fabs(maxdq) )// find max dQ
+                    {
+                        maxdq = dqj;
+                        //indMax = j;
+                        //printf("\nindMax = %i, dim %i\n", indMax, i);
+                    }
+                    //#endif
+
+                    q->Values[n] += dqj ;
+                }// end for j
+            }// end for i
+
+                /// DEBUG BLOCK
+                /*{
+                printf("\n----------------------------------------------\n");
+                printf("indMax = %i, maxdq = %e\n", indMax, maxdq);
+                printf("a"); fflush(stdout );
+                printf("p[indMax] = [%e,%e,%e]\n", p[indMax*3], p[indMax*3+1], p[indMax*3+2] );
+
+                int equMax = q->getEquNode(indMax);
+                printf("equMax = %i, at p = [%e,%e,%e]\n", equMax, p[equMax*3], p[equMax*3+1], p[equMax*3+2]);
+                printf("\n----------------------------------------------\n");
+                printf("a"); fflush(stdout );
+                }*/
+                /// END DEBUG BLOCK
+
+                if (newton_iter==1) maxdq_initial = maxdq; // maxdq_initial is needed elsewhere to adjust time-step size
 
 		// PRINT SOLUTION TIME
 		elapsed = ( (float) clock() - (float) time1 ) / (float) CLOCKS_PER_SEC ;

@@ -794,6 +794,29 @@ void Mesh::listElementsOfMaterial(std::vector<unsigned int> &elems, const int &m
 
 }
 
+void Mesh::listNodesOfMaterial(std::vector<unsigned int> &nodes, const int &mat)
+{
+    // MAKES A LIST OF NODES BLEONGING TO ELEMENTS OF MATERIAL mat
+
+    nodes.clear();
+
+    for (int i = 0 ; i < getnElements() ; i++)
+    {
+        if (this->getMaterialNumber(i) == mat )
+        {
+            for (int n = 0 ; n < this->getnNodes() ; n++)
+                nodes.push_back( (unsigned int) this->getNode(i, n) );
+        }
+    }
+
+    // REMOVE REPEATED ENTRIES
+    sort(nodes.begin() , nodes.end() );
+    std::vector< unsigned int> :: iterator u;
+    u = unique( nodes.begin() , nodes.end() );
+    nodes.erase( u , nodes.end() );
+
+}
+
 
 void Mesh::FindIndexToMaterialNodes(int mat_num, vector<int> *index){
     index->clear();
@@ -1183,6 +1206,19 @@ void Mesh::PrintElement(int e)
 	}
 }
 
+void Mesh::PrintNormals()
+{
+// PRINTS ALL SURFACE NORMALS, IF PRESENT
+    if (!this->SurfaceNormal)
+        return;
+
+
+    for (int i = 0 ; i < getnElements() ; i++)
+    {
+        double* nn = &SurfaceNormal[i*3];
+        printf("normal[%i] = [%e,%e,%e]\n", i , nn[0], nn[1], nn[2] );
+    }
+}
 
 bool Mesh::isOnXPlane(int e, double X, double* p)
 {

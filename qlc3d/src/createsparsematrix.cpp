@@ -75,9 +75,10 @@ void create_dangly_matrix(vector <Line>& lines, vector< list <unsigned int> >& d
 }
 
 void create_dangly_matrix(vector< list <unsigned int> > & dangly,
-						  Geometry& geom,
-						  SolutionVector& sol,
-						  const int& MatNum){
+                            Geometry& geom,
+                            SolutionVector& sol,
+                            const int& MatNum)
+{
     /* Creates a dangly sparse matrix of a Geometry, SolutionVector and material number */
 
     dangly.clear();

@@ -311,9 +311,10 @@ int main(int argc, char* argv[]){
         ReadLCD_B(&simu,&q);
         setStrongSurfacesQ(&q, &alignment, &lc, &geom1); // over writes surfaces with user specified values
     }
+
     q.setFixedNodesQ(&alignment, geom1.e);  // set fixed surface anchoring
     q.setPeriodicEquNodes(&geom1);          // periodic nodes
-	
+
     q.EnforceEquNodes();		    // makes sure values at periodic boundaies match
     qn=q;                                   // q-previous = q-current in first iteration
     cout << "OK" << endl;                   // Q-TENSOR CREATED OK
@@ -347,6 +348,8 @@ int main(int argc, char* argv[]){
     printf("\nSaving starting configuration (iteration -1)...\n");
     WriteResult(&simu, &lc , &geom1, &v, &q);
     printf("OK\n");
+
+    //exit(1);
 
     Energy_fid = createOutputEnergyFile(simu); // done in inits
 
@@ -448,13 +451,6 @@ int main(int argc, char* argv[]){
 
 	}while ( simu.IsRunning() ); // end MAIN LOOP - while simulation is runnning
 
-
-
-
-
-
-
-
     printf("\nSaving final result file...\n");
     simu.setCurrentIteration( SIMU_END_SIMULATION );
     WriteResult(&simu, &lc , &geom1, &v, &q);
@@ -464,12 +460,6 @@ int main(int argc, char* argv[]){
 
     delete Kpot;
     delete Kq;
-
-//#ifndef NO_QT
-//	a.quit();
-//#endif
-
-
 
     if (v_cons) free(v_cons);
     if (q_cons) free(q_cons);

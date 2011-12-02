@@ -86,16 +86,17 @@ public:
 
     // creates list of all elements of material numebr mat
     void listElementsOfMaterial(std::vector <unsigned int>& elems, const int& mat);
-
+    // Creates list of all nodes belonging to elements of material mat
+    void listNodesOfMaterial(std::vector <unsigned int>& nodes, const int& mat);
 
     bool ContainsAllNodes(int elem, int n, int* nodes); // checks if element elem, contains all n nodes in array nodes
     void ContainsNodes(list <int>* elems , list <int>* points ); // adds element number to elemes that contain any node in list points
     bool ContainsCoordinate(const unsigned int& elem, const double* p, const double* coord); // checks whether coordinate is within element elem
 
     void CompleteNodesSet(const unsigned int& elem, std::vector<unsigned int>& nodes) const; // completes nodes vector with those from element, if nodes is empty returns all elements
-    void PrintElements();		// prints all elements
+    void PrintElements();       // prints all elements
     void PrintElement(int e);	// prints element e
-    //void PrintNormals();
+    void PrintNormals();        // prints element surface normals, if present
 
     void CalculateDeterminants3D(double *p);
     void FindIndexToMaterialNodes(int mat, vector<int> *index);

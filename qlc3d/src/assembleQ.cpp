@@ -735,28 +735,23 @@ void wk_localKL(
 
 
 void assemble_volumes(
-	SparseMatrix* K,
-	double* L,
-	SolutionVector* q,
+    SparseMatrix* K,
+    double* L,
+    SolutionVector* q,
     SolutionVector* v,
-	Mesh* t, double* p,
-	LC* mat_par,
-	Simu* simu,
-	Settings* settings){
-
-
-
-    int nbad = 16643;
-
-
+    Mesh* t, double* p,
+    LC* mat_par,
+    Simu* simu,
+    Settings* settings)
+{
+    int nbad = 5;
     int npLC = q->getnDoF();
     init_shape();
     omp_set_num_threads( settings->getnThreads() ); // number of threads used
     #pragma omp parallel for
-// LOOP OVER EACH ELEMENT  it
-
-
-    for (int it= 0 ; it < t->getnElements () ;it++){
+    // LOOP OVER EACH ELEMENT  it
+    for (int it= 0 ; it < t->getnElements () ;it++)
+    {
 	double lK[20][20]; 	// local element matrix
 	double lL[20];		// local RHS vector
 	int eqr,eqc;
@@ -765,7 +760,12 @@ void assemble_volumes(
     if( t->getMaterialNumber(it) == MAT_DOMAIN1 ){// if LC element
         bool found = false;
         int *tt = t->getPtrToElement(it);
+
         if ( (tt[0] == nbad) ||(tt[1] == nbad) || (tt[2] == nbad) || (tt[3] == nbad) ){
+
+         //   int te[4] = {tt[0], tt[1], tt[2], tt[3]};
+         //   sort(te, te+4);
+         //   printf("te[%i] = [%i,%i, %i, %i]\n",it, te[0], te[1], te[2], te[3] );
             //t->PrintElement(it);
             found = true;
         }
@@ -773,35 +773,39 @@ void assemble_volumes(
         localKL(p,t,it,q,v,lK,lL,mat_par, simu);
 
         // ADD LOCAL MATRIX TO GLOBAL MATRIX
-        for (int i=0;i<20;i++){
-		int ri = t->getNode(it,i%4) + npLC*(i/4);
-                eqr = q->getEquNode(ri);
+        for (int i=0;i<20;i++)  // LOOP OVER ROWS
+        {
+            //int ri = tt[i%4]+npLC*(i/4); //
+            int ri = t->getNode(it,i%4) + npLC*(i/4);   // LOCAL TO GLOBAL
 
+            eqr = q->getEquNode(ri);    // eqr IS MAPPED INDEX TO GLOBAL MATRIX ROW
 
-
-
-        if(q->getIsFixed(ri)){
-            L[eqr] = 0; // RHS is zero for fixed nodes // <-this causes valgrind uninitialised value error in cg.h
-        }
-        else{
-           // cout << t->getNode(it,i%4) << "is a free node" << endl;
-            #pragma omp atomic
-		    L[eqr]+=lL[i]*BIGNUM;	///#pragma omp atomic
-		}
+            if(q->getIsFixed(ri))
+            {
+                L[eqr] = 0; // RHS is zero for fixed nodes // <-this causes valgrind uninitialised value error in cg.h
+            }
+            else
+            {
+                #pragma omp atomic
+                L[eqr]+=lL[i]*BIGNUM;	///#pragma omp atomic
+            }
 
 	    // LOOP OVER COLUMNS
-		for (int j=0 ; j<20  ;j++){
-		    int rj = t->getNode(it,j%4) + npLC*(j/4);
-		    eqc = q->getEquNode(rj);
+            for (int j=0 ; j<20  ;j++)
+            {
+                int rj = t->getNode(it,j%4) + npLC*(j/4);
+                eqc = q->getEquNode(rj);
 
-		// DIFFERENT CASES IF ROW OR COL IS FIXED
-		    if ( (q->getIsFixed(ri)) || (q->getIsFixed(rj)) ){// if row or col is fixed
-		    // IN CASE OF DIAGONAL -> SET TO 1, OFF-DIAGONALS ARE LEFT AS 0
-			if (ri == rj)   K->sparse_set(eqr,eqc,1.0);
-		    }
-		    else{
-			K->sparse_add(eqr,eqc,lK[i][j]*BIGNUM);// FREE NODES GO TO GLOBAL MATRIX
-		    }
+                // DIFFERENT CASES IF ROW OR COL IS FIXED
+                if ( (q->getIsFixed(ri)) || (q->getIsFixed(rj)) ) // IF EITHER ROW OR COL IS FIXED
+                {
+                    // IN CASE OF DIAGONAL -> SET GLOBAL MATRIX VALUE TO 1, OFF-DIAGONALS ARE LEFT AS 0
+                    if (ri == rj)   K->sparse_set(eqr,eqc,1.0);
+                }
+                else
+                {
+                    K->sparse_add(eqr,eqc,lK[i][j]*BIGNUM);// FREE NODES GO TO GLOBAL MATRIX
+                }
 		}//end for j
 	    }//end for i
 	  }//end for if tmat
@@ -918,19 +922,19 @@ void assemble_surfaces(
 }
 //*/
 void assembleQ(
-	SparseMatrix* K,
-	double* L,  // current RHS
-	SolutionVector *q,  // current Q-Tensor
-    SolutionVector* v,
-	Mesh* t,
-	Mesh* e,
-	double* p,
-	LC* mat_par,
-	Simu* simu,
-	Settings* settings,
-	Alignment* alignment,
-	double* NodeNormals){
-
+            SparseMatrix* K,
+            double* L,  // current RHS
+            SolutionVector *q,  // current Q-Tensor
+            SolutionVector* v,
+            Mesh* t,
+            Mesh* e,
+            double* p,
+            LC* mat_par,
+            Simu* simu,
+            Settings* settings,
+            Alignment* alignment,
+            double* NodeNormals)
+{
 	S0	= mat_par->S0;
 	L1 = mat_par->L1 ;
 	L2 = mat_par->L2 ;
@@ -947,11 +951,11 @@ void assembleQ(
 
     assemble_volumes(K, L, q,  v, t, p, mat_par, simu, settings);
 
-	//SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
-    assemble_Neumann_surfaces( L, q, v, t, e, p);
+    //SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
+   // assemble_Neumann_surfaces( L, q, v, t, e, p);
 
     //if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
-    assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
+   // assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
 
 }
 // end void assembleQ
