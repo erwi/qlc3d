@@ -90,7 +90,7 @@ int Mesh::getMaterialNumber(int e)
 
 
 }
-int Mesh::getFixLCNumber(int e)			{	return (int) getMaterialNumber(e) / MAT_FIXLC1;}
+int Mesh::getFixLCNumber(int e)		{	return (int) getMaterialNumber(e) / MAT_FIXLC1;}
 int Mesh::getDielectricNumber(int e) 	{	return (int) getMaterialNumber(e) / MAT_DIELECTRIC1;}
 double Mesh::getDeterminant(const int& i) const
 {

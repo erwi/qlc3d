@@ -41,6 +41,7 @@ private:
                         double* coords); // pointer to node coordinates
 public:
 
+    static const int FIXED_NODE = -1;  // INDEX VALUE OF A FIXED NODE
 
 // DATA
     bool IsVector;

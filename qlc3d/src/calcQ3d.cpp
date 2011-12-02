@@ -7,15 +7,16 @@
 double calcQ3d(SolutionVector *q,   // current Q-tensor
 	       SolutionVector* qn,  // previous Q-tensor
 	       SolutionVector *v,   // potential
-	       Mesh *t,		    // tet-mesh
-	       Mesh *e,		    // tri-mesh
-	       double *p,	    // node coordinates
-	       LC *mat_par,
+               //Mesh *t,		    // tet-mesh
+               //Mesh *e,		    // tri-mesh
+               //double *p,	    // node coordinates
+               Geometry& geom,
+               LC *mat_par,
 	       Simu* simu,
 	       SparseMatrix* K,
                Settings* settings,
-	       Alignment* alignment,
-	       double* NodeNormals)
+               Alignment* alignment)
+               //double* NodeNormals)
 {
 
     double maxdq = 10;
@@ -39,8 +40,8 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
     }
 
     bool LOOP = true;
-
-    while ( LOOP){// Q-TENSOR SOLUTION LOOP
+    while ( LOOP ) // Q-TENSOR SOLUTION LOOP
+    {
         newton_iter++;
         clock_t time1 = clock();
 
@@ -48,7 +49,12 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         if ( (newton_iter == 1) && (simu->getdt() > 0 ) )
         {
             memset(RHS, 0, numCols*sizeof( double ) );
-            assemble_prev_rhs(RHS, *qn, *v, *t, *e, p , *mat_par, *simu);
+            assemble_prev_rhs(RHS,
+                              *qn,
+                              *v,
+                              *mat_par,
+                              *simu,
+                              geom );
         }
 
         if ( simu->IsAssembleMatrix() )
@@ -59,25 +65,11 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 
             std::cout << " " <<newton_iter << " Assembly...";
             // ASSEMBLE MATRIX AND RHS
-            assembleQ(K, L, q, v, t, e, p, mat_par, simu, settings, alignment, NodeNormals);
+            assembleQ(K, L, q, v, geom.t, geom.e, geom.getPtrTop(), mat_par, simu, settings, alignment, geom.getPtrToNodeNormals());
 
             #ifdef DEBUG
                 K->DetectZeroDiagonals();
             #endif
-
-/*
-    // DEBUG BLOCK
-     {
-     printf("Num fixed nodes = %i\n", q->getnFixed() );
-     for (int i = 0 ; i < q->getnDoF() ; i++ )
-      {
-          if
-              printf("L[%i] = %e, K[%i,%i] = %e\n",i, L[i], i,i,K->sparse_get(i,i));
-
-       }
-     }//*/
-    // END DEBUG BLOCK
-
 
 
             float elapsed  = 0;
@@ -90,7 +82,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
             if (simu->getdt() > 0) // make Non-linear Crank-Nicholson RHS
             {
                 #pragma omp parallel for
-                for (unsigned int i = 0 ; i < (unsigned int) K->cols ; i++)
+                for (size_t i = 0 ; i < numCols ; i++)
                     L[i] += RHS[i];
             }
 
@@ -107,20 +99,6 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
                 fflush( stdout );
                 solve_gmres(K,L,dq,settings);
             }
- /*
-            {// DEBUG
-
-                printf("\n");
-                for (int i = 0 ; i < 10 ; i++)
-                {
-                    printf("dq[%i] = %e\n", i, dq[i]);
-                }
-
-            }// END DEBUG
-  */
-
-
-
 
             maxdq = 0;
 
@@ -132,53 +110,40 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
                 for (int j = 0; j < npLC ; j++) // LOOP OVER EACH NODE IN DIMENSION i
                 {
                     int n = j + i*npLC;
-                    double dqj = dq[ q->getEquNode(n) ];
+                    int effDoF = q->getEquNode(n);
 
-                    //#ifdef DEBUG
-                    if ( fabs( dqj ) > fabs(maxdq) )// find max dQ
+                    if (effDoF != SolutionVector::FIXED_NODE )
                     {
-                        maxdq = dqj;
-                        //indMax = j;
-                        //printf("\nindMax = %i, dim %i\n", indMax, i);
-                    }
-                    //#endif
+                        double dqj = dq[ effDoF ];
 
-                    q->Values[n] += dqj ;
+                        q->Values[n] += dqj ;
+
+                        if (fabs( dqj ) > fabs(maxdq) ) // KEEP TRACK OF LARGEST CHANGE IN Q-TENSOR
+                            maxdq = dqj;
+                    }
                 }// end for j
             }// end for i
 
-                /// DEBUG BLOCK
-                /*{
-                printf("\n----------------------------------------------\n");
-                printf("indMax = %i, maxdq = %e\n", indMax, maxdq);
-                printf("a"); fflush(stdout );
-                printf("p[indMax] = [%e,%e,%e]\n", p[indMax*3], p[indMax*3+1], p[indMax*3+2] );
-
-                int equMax = q->getEquNode(indMax);
-                printf("equMax = %i, at p = [%e,%e,%e]\n", equMax, p[equMax*3], p[equMax*3+1], p[equMax*3+2]);
-                printf("\n----------------------------------------------\n");
-                printf("a"); fflush(stdout );
-                }*/
-                /// END DEBUG BLOCK
-
-                if (newton_iter==1) maxdq_initial = maxdq; // maxdq_initial is needed elsewhere to adjust time-step size
-
-		// PRINT SOLUTION TIME
-		elapsed = ( (float) clock() - (float) time1 ) / (float) CLOCKS_PER_SEC ;
 
 
-		//elapsed = 0; maxdq = 0; //valgrind
-		printf("OK %1.3es.\tdQ = %1.3e\n", elapsed, maxdq);
-		fflush( stdout );
+            if (newton_iter==1) maxdq_initial = maxdq; // maxdq_initial is needed elsewhere to adjust time-step size
 
-		// PANIC!! if looks like no convergence
-		if (newton_iter > settings->getQ_Newton_Panic_Iter() ){
-			printf("Newton in distress!! - reducing time step by a factor of %f\n", settings->getQ_Newton_Panic_Coeff() );
-			simu->setdt(settings->getQ_Newton_Panic_Coeff() * simu->getdt() );
-			printf("new time step is : %f ms.\n",simu->getdt() * 1e3);
-			newton_iter = 0;
-			q->setValuesTo(*qn);
-		}// end if PANIC!!!
+            // PRINT SOLUTION TIME
+            elapsed = ( (float) clock() - (float) time1 ) / (float) CLOCKS_PER_SEC ;
+
+
+            //elapsed = 0; maxdq = 0; //valgrind
+            printf("OK %1.3es.\tdQ = %1.3e\n", elapsed, maxdq);
+            fflush( stdout );
+
+            // PANIC!! if looks like no convergence
+            if (newton_iter > settings->getQ_Newton_Panic_Iter() ){
+                printf("Newton in distress!! - reducing time step by a factor of %f\n", settings->getQ_Newton_Panic_Coeff() );
+                simu->setdt(settings->getQ_Newton_Panic_Coeff() * simu->getdt() );
+                printf("new time step is : %f ms.\n",simu->getdt() * 1e3);
+                newton_iter = 0;
+                q->setValuesTo(*qn);
+            }// end if PANIC!!!
 
 
 // DETERMINE WHETHER NEWTON LOOP IS DONE

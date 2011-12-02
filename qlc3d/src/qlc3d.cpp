@@ -108,40 +108,10 @@ double ConsistencyLoop(SolutionVector& v, SolutionVector& q , SolutionVector& qn
 	bool isPotCons = ( simu.getdt() > 0 ) && ( simu.getPotCons() != Off );
         isPotCons = false; // turn of consisteny loop
         calcpot3d(Kpot,&v, &q, &lc, geom1.t,geom1.e, geom1.getPtrTop(), &settings, &electrodes);
-        maxdq = calcQ3d(&q,&qn,&v,geom1.t,geom1.e,geom1.getPtrTop(),&lc, &simu, Kq, &settings, &alignment, geom1.getPtrToNodeNormals());
-
-	
-	// DO THIS LOOP UNTIL POTENTIAL CONSISTENCY IS ACHIEVED
-	/*
-	while( consistency > simu.getTargetPotCons() ){
-		maxdq = 0;
-		// make copies for potential consistency
-		if (isPotCons){
-			copyTo(v_cons , v);
-			copyTo(q_cons , q);
-			copyTo(qn_cons, qn);
-		}
-
-		// Q-Tensor
-        maxdq = calcQ3d(&q,&qn,&v,geom1.t,geom1.e,geom1.getPtrTop(),&lc, &simu, Kq, &settings, &alignment, geom1.getPtrToNodeNormals());
-		// Potential for consistency check
-
-		calcpot3d(Kpot,&v, &q, &lc, geom1.t,geom1.e, geom1.getPtrTop(), &settings, &electrodes);
 
 
-		if (!isPotCons) break; // can leave if no PotCons is needed
+        maxdq = calcQ3d(&q,&qn,&v,geom1,&lc, &simu, Kq, &settings, &alignment );
 
-
-		// get max potential difference between before and after Q-tensor calculation
-		consistency = maxDiff(v_cons, v);
-
-		if ( consistency > simu.getTargetPotCons() ){
-			cout << "\tpotential consistency :" << consistency <<" repeating iteration"<< endl;
-			q.setValuesTo(q_cons);
-			qn.setValuesTo(qn_cons);
-		}
-	}// end while
-*/
 	return maxdq;
 
 }
@@ -264,7 +234,7 @@ int main(int argc, char* argv[]){
     Geometry geom1 = Geometry();	    // working geometry
     Geometry geom_orig = Geometry();    // original, loaded from file
     Geometry geom_prev = Geometry();    // geometry from previous ref. iteration
-    prepareGeometry(geom_orig, simu);   // mesh file is read and geometry is loaded in this function (in inits.cpp)
+    prepareGeometry(geom_orig, simu, alignment);   // mesh file is read and geometry is loaded in this function (in inits.cpp)
     geom_prev.setTo( &geom_orig);	    // for first iteration, geom_prev = geom_orig
     geom1.setTo( &geom_orig);
     Refine(geom_orig, geom_prev, geom1 , &meshrefinement);
@@ -287,9 +257,15 @@ int main(int argc, char* argv[]){
     SolutionVector v( geom1.getnp() );
     v.setFixedNodesPot( &electrodes , geom1.e , simu.getCurrentTime());
     v.setPeriodicEquNodes( &geom1 ); // periodic nodes
+    v.setToFixedValues();
     v.EnforceEquNodes(); // makes sure values at periodic boundaries match
 
     cout << "OK"<<endl;
+
+
+
+
+
 
 // =============================================================
 //
@@ -331,6 +307,12 @@ int main(int argc, char* argv[]){
     SparseMatrix* Kq = createSparseMatrix(geom1, q, MAT_DOMAIN1);
     cout << "Q-tensor matrix OK" << endl;
 
+
+    //Kpot->SPY();
+
+
+
+
 //********************************************************************
 //*
 //*		Save Initial configuration and potential
@@ -348,7 +330,7 @@ int main(int argc, char* argv[]){
     printf("\nSaving starting configuration (iteration -1)...\n");
     WriteResult(&simu, &lc , &geom1, &v, &q);
     printf("OK\n");
-
+//exit(1);
     //exit(1);
 
     Energy_fid = createOutputEnergyFile(simu); // done in inits

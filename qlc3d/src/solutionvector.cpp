@@ -510,7 +510,9 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom){
     // IF NO PERIODIC NODES PRESENT, DON'T GENERATE EQUIVALENT NODES INDEXES
     if (!geom->getleft_right_is_periodic() &&
         !geom->gettop_bottom_is_periodic() &&
-        !geom->getfront_back_is_periodic() )
+        !geom->getfront_back_is_periodic() &&
+           ( this->nFixed == 0 )
+            )
     {
         return; // no periodic boundaries, can return
     }
@@ -877,6 +879,17 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom){
     // REPLACE DEPENDENT NODES WITH THEIR
     // INDEPENDENT EQUIVALENT NODES
 
+
+    // MARK FIXED NODES. THSE WILL BE REMOVED FROM
+    // FREE DEGREES OF FREEDOM
+    for (int i = 0 ; i < nDoF ; i++ )
+    {
+        if ( this->getIsFixed(i) )
+            Elim[i] = FIXED_NODE;
+    }
+
+
+
     nFreeNodes = 0;
 
     std::vector <int> elim(nDoF, 0 );   // convenience copy of Elim
@@ -906,13 +919,19 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom){
     // INDEPENDENT DOF
     for (int i = 0 ; i < nDoF ; i++) // SET CORRECT VALUES
     {
-        if (elim[i]!=i) // IF i'th NODE IS DEPENDENT
+        if ( (elim[i]!=i) && (elim[i]!= FIXED_NODE) ) // IF i'th NODE IS DEPENDENT ( AND NOT FIXED)
         {
             elima[i] = elima[ elim[i] ]; // IT WILL DEPEND ON THE CORRECTED DOF INDEX
         }
+        else
+        if ( elim[i] == FIXED_NODE )    // KEEP FIXED NODE FLAGS
+        {
+            elima[i] = FIXED_NODE;
+        }
+
     }
 
-    // TOTAL NUMBER OF FREE DOFs ( INCLUDING FIXED NODES )
+    // TOTAL NUMBER OF FREE DOFs THAT NEED TO BE SOLVED (PER DIMENSION)
     nFreeNodes = *max_element(elima.begin(), elima.end() ) + 1;
 
     // COPY BACK VALUES TO Elim ARRAY
@@ -926,7 +945,10 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom){
         {
             for (int i = 0 ; i < nDoF ; i ++ )
             {
-                Elim[j*nDoF + i] = Elim[i] + j*nFreeNodes;
+                if (Elim[i] == FIXED_NODE)
+                    Elim[j*nDoF+i] = FIXED_NODE;
+                else
+                    Elim[j*nDoF + i] = Elim[i] + j*nFreeNodes;
             }
         }
     }
@@ -1200,7 +1222,7 @@ void SolutionVector::EnforceEquNodes()
 // THIS MAY BE NEEDED e.g. AT THE START OF A SIMULATION
 // OR TO AVOID ACCUMULATION OF NUMERICAL NOISE(?)
 
-    // IF no periodic nodes exist, should leave as this will mess up things
+    // IF NO REORDERING OF DEGREES OF FREEDOM, CAN LEAVE
     if (nFreeNodes == nDoF)
     {
             return;
@@ -1218,17 +1240,14 @@ void SolutionVector::EnforceEquNodes()
     {
         for (int j = 0 ; j < nDoF; j++)
         {
-            int dep = i*nDoF + j;                   // DEPENDENT NODE
-            int indep = i*nDoF + getEquNode( j );   // EQUIVALENT INDEPENDENT NODE
+            int equDof = getEquNode(j);
+            if ( equDof != FIXED_NODE )
+            {
+                int dep = i*nDoF + j;          // DEPENDENT NODE
+                int indep = i*nDoF + equDof;   // EQUIVALENT INDEPENDENT NODE
 
-            // double valdep = Values[ dep ];
-            // double valind = Values[ indep ];
-            // if (valdep != valind )
-            // {
-            //     printf(" difference = %e\n", valdep-valind);
-            // }
-
-            Values[ dep ] = Values[ indep ];
+                Values[ dep ] = Values[ indep ];
+            }// END IF NOT FIXED NODE
         }
      }
 }

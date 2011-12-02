@@ -1,21 +1,22 @@
 
 #include <geometry.h>
-Geometry::Geometry()
+Geometry::Geometry():
+    numWeakSurf(0),
+    indWeakSurf(NULL)
+
 {
-	np 					= 0;
-	npLC				= 0;
-	p 					= NULL;
-	NodeNormals			= NULL;
-	t 					= new Mesh();
-	e					= new Mesh();
-	//oct				= NULL;
-	//this_oct			= NULL;
-	Xmin 				= 0;
-	Xmax				= 0;
-	Ymin				= 0;
-	Ymax				= 0;
-	Zmin				= 0;
-	Zmax				= 0;
+        np 			= 0;
+        npLC			= 0;
+        p 			= NULL;
+        NodeNormals		= NULL;
+        t 			= new Mesh();
+        e			= new Mesh();
+        Xmin			= 0;
+        Xmax    		= 0;
+        Ymin			= 0;
+        Ymax			= 0;
+        Zmin			= 0;
+        Zmax			= 0;
 	t->setDimension(3);
 	e->setDimension(2);
 	
@@ -32,12 +33,12 @@ Geometry::~Geometry()
         if (NodeNormals != NULL){
             free (NodeNormals);
         }
-		delete t;
-		delete e;
-		//t->~Mesh();
-		//e->~Mesh();
-        //printf("NOTE: ~Oct_Box() -> error, fix it!\n");
-	//oct->~Oct_Box();
+        delete t;
+        delete e;
+
+        if ( indWeakSurf != NULL )
+            free(indWeakSurf);
+
 }
 void Geometry::setTo(Geometry* geom)
 {
@@ -77,10 +78,14 @@ void Geometry::setTo(Geometry* geom)
 	front_back_is_periodic = geom->getfront_back_is_periodic();
 	top_bottom_is_periodic = geom->gettop_bottom_is_periodic();
 		
-		//Oct_Box* oct;				// octree mesh index for fast search
-		//Oct_Box* this_oct;
-		
-	//exit(0);
+        numWeakSurf = geom->numWeakSurf;
+        if (numWeakSurf)
+        {
+            if (indWeakSurf==NULL) free(indWeakSurf);
+            indWeakSurf = (size_t*) malloc( numWeakSurf*sizeof(size_t) );
+            memcpy(indWeakSurf , geom->indWeakSurf, numWeakSurf*sizeof(size_t) );
+
+        }
 	
 
 }
@@ -706,6 +711,36 @@ void Geometry::isValidNodeIndex(const unsigned int &i) const{
 		exit(1);
 	}
 }
+void Geometry::genIndWeakSurfaces(Alignment& alignment)
+{
+// GENERATES INDEX TO WEAK SURFACE ELEMENTS
+
+    // FIRST MAKE TEMPORARY VECTOR OF WEAK SURFACES
+    std::vector<size_t> ws;
+    for (size_t i = 0 ; i < (size_t) e->getnElements() ; i++)
+    {
+        int FixLCNum = e->getFixLCNumber((int) i); // MATERIAL NUMBER / FIXLC1
+
+        if ( (FixLCNum > 0) &&
+             (!alignment.IsStrong( FixLCNum- 1) ) )  // IS WEAK
+            ws.push_back( i );
+    }
+
+    numWeakSurf = ws.size();
+
+    // IF WEAK ANCHORING SURFACES EXIST, COPY TO PERMANENT ARRAY
+    if (numWeakSurf)
+    {
+        if (indWeakSurf) free( indWeakSurf );
+        indWeakSurf = (size_t*) malloc(numWeakSurf * sizeof(size_t) );
+
+        for (size_t i = 0 ; i < numWeakSurf ; i++)
+            indWeakSurf[i] = ws[i];
+
+    }
+
+}
+
 
 bool Geometry::checkForOverlapingNodes(){
     //bool isOK = true;
