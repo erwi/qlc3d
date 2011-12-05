@@ -34,13 +34,6 @@ using std::string;
 
 #define eps0 8.8541878176e-12
 #define COMPLEX std::complex<double>
-// struct spm{				// define sparse matrix link
-//		int row;
-//		spm *next;
-//		spm *prev;
-//	};
-
-//typedef struct llnode spm;
 
 void ReadGiDMesh3D(Simu *simu,double **p, int *np, int **t, int *nt,int **e, int *ne, int **matt, int **mate);
 
@@ -60,11 +53,9 @@ void solve_gmres(SparseMatrix *K, double *b, double *x ,Settings* settings);
 void assemble_prev_rhs(double* Ln,
 		       SolutionVector& qn,
 		       SolutionVector& v,
-		       Mesh& t,
-		       Mesh& e,
-		       double* p ,
-		       LC&mat_par,
-		       Simu& simu);
+                       LC&mat_par,
+                       Simu& simu,
+                       Geometry& geom);
 
 void assembleQ(SparseMatrix* K,
 	       double* L,	// current RHS
@@ -80,17 +71,16 @@ void assembleQ(SparseMatrix* K,
 	       double* NodeNormals);
 
 double calcQ3d(SolutionVector *q,
-	       SolutionVector* qn,
-		   SolutionVector *v,
-	       Mesh *t,
-	       Mesh *e,
-	       double *p,
-	       LC* mat_par,
-	       Simu* simu,
-	       SparseMatrix* Kq,
-           Settings* settings,
-	       Alignment* alignment,
-	       double* NodeNormals);
+               SolutionVector* qn,
+               SolutionVector *v,
+               Geometry& geom,
+               LC* mat_par,
+               Simu* simu,
+               SparseMatrix* Kq,
+               Settings* settings,
+               Alignment* alignment);//
+               //double* NodeNormals);
+
 
 
 //void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,Simu* simu);	// writes result as text file
@@ -125,7 +115,9 @@ void CreateSaveDir(Simu* simu); //creates new save dir, if needed
 //
 // -----------------------------
 
-void prepareGeometry(Geometry& geom, Simu& simu);// defined in inits.cpp
+void prepareGeometry(Geometry& geom,    // defined in inits.cpp
+                     Simu& simu,
+                     Alignment& ali);
 FILE* createOutputEnergyFile(Simu& simu); // defined in inits.cpp
 
 

@@ -24,16 +24,13 @@ void setGlobalAngles(SolutionVector *q, LC* lc,double tilt, double twist, vector
 	
 	//printf("setting angles for %i nodes\n", (int) ind_nodes->size() );
     for (itr = ind_nodes->begin() ; itr != ind_nodes->end() ; itr++)
-	{
-    	q->setValue(*itr,0, (a1+a2)*(sqrt(6)/-2) );
-		q->setValue(*itr,1, (a1+(a1+a2)/-2)*sqrt(2) );
-		q->setValue(*itr,2, a3*sqrt(2) );
-		q->setValue(*itr,3, a4*sqrt(2) );
-		q->setValue(*itr,4, a5*sqrt(2) );
-	}
-	
-
-	
+    {
+        q->setValue(*itr,0, (a1+a2)*(sqrt(6)/-2) );
+        q->setValue(*itr,1, (a1+(a1+a2)/-2)*sqrt(2) );
+        q->setValue(*itr,2, a3*sqrt(2) );
+        q->setValue(*itr,3, a4*sqrt(2) );
+        q->setValue(*itr,4, a5*sqrt(2) );
+    }
 }
 
 
@@ -116,7 +113,8 @@ void setSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* ge
 		
 		//printf("FIXLC%i - number of nodes %i\n", i , (int) ind_nodes.size() );
 		
-        if (ind_nodes.size()>0){ // if nodes found
+        if (ind_nodes.size()>0)
+        { // if nodes found
     
 	        string AnchoringType = alignment->surface[i]->getAnchoringType();
 	        if ((AnchoringType.compare("Strong") == 0) || 

@@ -56,43 +56,44 @@ void Surface::WriteSurface(FILE* fid, int surfnum)
 void Surface::setAnchoringType(string atype)
 {
 
-	if (atype.compare("Strong") == 0)
-	{
-		Anchoring = atype;
-		AnchoringNum = ANCHORING_STRONG;
-		isFixed = true;
-	}
-	else if (atype.compare("Homeotropic") == 0)
-	{
-		Anchoring = atype;
-		AnchoringNum = ANCHORING_HOMEOTROPIC;
-		isFixed = true;
-	}
-	else if (atype.compare("Weak") == 0)
-	{
-		Anchoring = atype;
-		AnchoringNum = ANCHORING_WEAK;
-	}
-	else if (atype.compare("Degenerate") == 0)
-	{
-		Anchoring = atype;
-		AnchoringNum = ANCHORING_DEGENERATE;
-		setUsesSurfaceNormal(true);
-		isFixed = false;
-	}
-	else if (atype.compare("Freeze") == 0 )
-	{
-		printf("Surface::setAnchoringType - freeze\n" );
-		Anchoring = atype;
-		AnchoringNum = ANCHORING_FREEZE;
-		isFixed = true;
-		setUsesSurfaceNormal(false);
-	}
-	else
-	{
-		printf("error - Surface::setAnchoring - \"%s\" is not a known anchoring type, bye!\n",atype.c_str());
-		exit(1);
-	}
+    if (atype.compare("Strong") == 0)
+    {
+        Anchoring = atype;
+        AnchoringNum = ANCHORING_STRONG;
+        isFixed = true;
+    }
+    else if (atype.compare("Homeotropic") == 0)
+    {
+        Anchoring = atype;
+        AnchoringNum = ANCHORING_HOMEOTROPIC;
+        isFixed = true;
+    }
+    else if (atype.compare("Weak") == 0)
+    {
+        Anchoring = atype;
+        AnchoringNum = ANCHORING_WEAK;
+        isFixed = false;
+    }
+    else if (atype.compare("Degenerate") == 0)
+    {
+        Anchoring = atype;
+        AnchoringNum = ANCHORING_DEGENERATE;
+        setUsesSurfaceNormal(true);
+        isFixed = false;
+    }
+    else if (atype.compare("Freeze") == 0 )
+    {
+        printf("Surface::setAnchoringType - freeze\n" );
+        Anchoring = atype;
+        AnchoringNum = ANCHORING_FREEZE;
+        isFixed = true;
+        setUsesSurfaceNormal(false);
+    }
+    else
+    {
+        printf("error - Surface::setAnchoring - \"%s\" is not a known anchoring type, bye!\n",atype.c_str());
+        exit(1);
+    }
 }// end setAnchoringType
 void Surface::setStrength(double str){	Strength = str;}
 void Surface::setK1(double k1){			K1 = k1;}

@@ -272,7 +272,31 @@ void ReadGiDMesh3D(Simu* simu,double **p, int *np, int **t, int *nt,int **e, int
 
 
 //ALLOCATE MEMORY FOR MESH DATA ---- use of double pointers
+    // ERROR CHECKING BLOCK
+    {
+        bool error = false;
+        if (*np == 0 )
+        {
+            printf("\nerror in reading GiD mesh.\nYour mesh seems to be missing points. Bye!\n");
+            error = true;
+        }
+        if (*ne == 0)
+        {
+            printf("\nerror in reading GiD mesh.\nYour mesh seems to be missing triangles. Bye!\n");
+            error = true;
+        }
+        if (*nt==0)
+        {
+            printf("\nerror in reading GiD mesh.\nYour mesh seems to be missing tetrahedra. Bye!\n");
+            error = true;
+        }
 
+        if (error)
+        {
+            fflush(stdout);
+            exit(1);
+        }
+    }   // END ERROR CHECKING BLOCK
 
 	double *dp 		= (double*) malloc(3*np[0]*sizeof(double));
 	//int *dperi; // periodic equivalencies
@@ -347,6 +371,7 @@ double xmin,ymin,zmin,xmax,ymax,zmax;
         if (ymin<0) {ymax-=ymin;  cout << "\tshifting all y by :"<<-ymin<<endl;ymin=0;}
         if (zmin<0) {zmax-=zmin;  cout << "\tshifting all z by :"<<-zmin<<endl;zmin=0;}
 
+        //*
 // REMOVE NUMERICAL NOISE FROM BOUNDARY NODES
 	for (int i=0;i<np[0];i++)
 	{
@@ -359,8 +384,25 @@ double xmin,ymin,zmin,xmax,ymax,zmax;
 		if( dp[i*3+2]-zmin <= TOLER) dp[i*3+2]=zmin;
 		if( zmax-dp[3*i+2] <= TOLER) dp[i*3+2]=zmax;
 	}
+        //*/
 
+    //  ROUND TO 5th DECIMAL
+     /*
+        double tens = 100000;
+        for (int i = 0 ; i < *np ; i++)
+        {
+            double x = dp[i*3+0];
+            double y = dp[i*3+1];
+            double z = dp[i*3+2];
 
+            x = ceil(x*tens - 0.49999999999999999999999999999999999999) / tens;
+            y = ceil(y*tens - 0.49999999999999999999999999999999999999) / tens;
+            z = ceil(z*tens - 0.49999999999999999999999999999999999999) / tens;
+            dp[i*3+0] = x;
+            dp[i*3+1] = y;
+            dp[i*3+2] = z;
+        }
+*/
 	if (pr!=NULL)
 		free(pr);
 	*p=dp;

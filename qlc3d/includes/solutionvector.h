@@ -14,85 +14,84 @@ using std::vector;
 using std::list;
 class SolutionVector
 {
-
+static const double BIGNUM;
 
 private:
-	int nDoF;		// number number of degrees of freedom per dimension
-	int nFixed;
-	int nDimensions;// number of dofs per node. e.g potential = 1, Q = 5
-	bool* IsFixed;
-	int* Elim; 		// effective node ordering after taking into account periodic nodes that need not solving
-	int* EquNodes;	// nodal equivalencies - i.e. periodic nodes
-	
+    int nDoF;		// number number of degrees of freedom per dimension
+    int nFixed;
+    int nDimensions;// number of dofs per node. e.g potential = 1, Q = 5
+    bool* IsFixed;
+    int* Elim; 		// effective node ordering after taking into account periodic nodes that need not solving
+    int* EquNodes;	// nodal equivalencies - i.e. periodic nodes
     int nFreeNodes; // number of independent degrees of freedom = nDoF - # number of nodes eliminated as periodic
-	void setBooleanFixedNodeList(); // creates list of booleans (bool* IsFixed) for each node true=fixed node, false = free node
-	
-	
-	void setCornerElim(	list <int>& corn0, // sets periodic equivalent nodes for 4 corners
-					list <int>& corn1, 	// corn1[i] = corn0[i]
-					list <int>& corn2,   // corn2[i] = corn0[i]
-					list <int>& corn3,   // corn3[i] = corn0[i]
-					int* Elim,
-					const int& dim, // dimension along which corner extends, 0,1,2 -> x,y,z
-					double* coords // node coordinates
-					); 
-	void setFaceElim( list <int>& face0, // face1[i] = face0[i]
-				list <int>& face1,
-				int* Elim,
-				const int& norm, // face normal, 0,1,2 -> x,y,z
-				double* coords); // pointer to node coordinates
-					
+
+    void setBooleanFixedNodeList(); // creates list of booleans (bool* IsFixed) for each node true=fixed node, false = free node
+    void setCornerElim(	list <int>& corn0, // sets periodic equivalent nodes for 4 corners
+                        list <int>& corn1, 	// corn1[i] = corn0[i]
+                        list <int>& corn2,   // corn2[i] = corn0[i]
+                        list <int>& corn3,   // corn3[i] = corn0[i]
+                        int* Elim,
+                        const int& dim, // dimension along which corner extends, 0,1,2 -> x,y,z
+                        double* coords // node coordinates
+                        );
+    void setFaceElim( list <int>& face0, // face1[i] = face0[i]
+                        list <int>& face1,
+                        int* Elim,
+                        const int& norm, // face normal, 0,1,2 -> x,y,z
+                        double* coords); // pointer to node coordinates
 public:
+
+    static const int FIXED_NODE = -1;  // INDEX VALUE OF A FIXED NODE
+
 // DATA
-	bool IsVector;
-	int *FixedNodes;
-	double *FixedValues;
-	double *Values;
+    bool IsVector;
+    int *FixedNodes;        // INDEX TO EACH FIXED NODE
+    double *FixedValues;    // HOLDS NODE VALUE FOR EACH FIXED NODE
+    double *Values;
 // END DATA
 
 
-	~SolutionVector();
-	SolutionVector();
-	SolutionVector(int np);
-	SolutionVector(int np, int dim);
+    ~SolutionVector();
+    SolutionVector();
+    SolutionVector(int np);
+    SolutionVector(int np, int dim);
 	
-	SolutionVector& operator=(const SolutionVector&);
+    SolutionVector& operator=(const SolutionVector&);
 	
+    inline int getnDoF()const {return nDoF;} // npLC
+    inline int getnFreeNodes()const {return nFreeNodes;} // nDof - periodic nodes
+    inline int getnFixed()const{return nFixed;}
+    inline int getnDimensions()const{return nDimensions;}
+    inline int getEquNode(const int &n) const// returns equivalent node to n (for periodic surfaces etc.)
+    {
+        #ifdef DEBUG
+                if (n>=nDoF*nDimensions)
+                {printf("error - SolutionVector::getEquNode(int n) - j = %i is too big!! - bye\n",n);exit(1);}
+        #endif
+        if (Elim)
+            return Elim[n];
+        else
+            return n;
+    }
 
-	
-	inline int getnDoF()const {return nDoF;} // npLC
-	inline int getnFreeNodes()const {return nFreeNodes;} // nDof - periodic nodes
-	inline int getnFixed()const{return nFixed;}
-	inline int getnDimensions()const{return nDimensions;}
-	inline int getEquNode(const int &n) const// returns equivalent node to n (for periodic surfaces etc.)
-	{
-		#ifdef DEBUG
-			if (n>=nDoF*nDimensions)
-			{printf("error - SolutionVector::getEquNode(int n) - j = %i is too big!! - bye\n",n);exit(1);}
-		#endif
-		if (Elim == NULL)
-			return n;
-		else
-			return Elim[n];
-	}
-	inline double getValue(const int &n) const // gets the nth value
-	{
-		#ifdef DEBUG
-			if ((n < 0 )  && (n >= getnDoF()) )
-				{	printf("error - SolutionVector::getValue(int n) - when trying to access n = %i, bye!",n);	exit(1);}
-		#endif
+    inline double getValue(const int &n) const // gets the nth value
+    {
+        #ifdef DEBUG
+                if ((n < 0 )  && (n >= getnDoF()) )
+                {	printf("error - SolutionVector::getValue(int n) - when trying to access n = %i, bye!",n);	exit(1);}
+        #endif
 		return Values[n];
-	}
+    }
 	
 	
-	inline double getValue(const int &n , const int &dim) // gets the nth value of dimension dim;
-	{
-		#ifdef DEBUG
-			if ((n < 0 )  && (n >= getnDoF()) && (dim < 0 ) && ( dim >= getnDimensions() ) )
-			{printf("error - SolutionVector::getValue(int n, int dim) - when trying to access n = %i, dim = %i, bye!",n,dim);exit(1);}
-		#endif
-		return Values[n + dim*nDoF];
-	}
+    inline double getValue(const int &n , const int &dim) // gets the nth value of dimension dim;
+    {
+        #ifdef DEBUG
+                if ((n < 0 )  && (n >= getnDoF()) && (dim < 0 ) && ( dim >= getnDimensions() ) )
+                {printf("error - SolutionVector::getValue(int n, int dim) - when trying to access n = %i, dim = %i, bye!",n,dim);exit(1);}
+        #endif
+        return Values[n + dim*nDoF];
+    }
 	
 	void setnDoF(int n);
 	void setnFixed(int n);

@@ -35,8 +35,9 @@ void potasm(SolutionVector *v, SolutionVector* q, LC* lc,Mesh *mesh, double *p, 
 void assemble_volume(double *p,SolutionVector *v,SolutionVector* q, LC* lc, Mesh *mesh, SparseMatrix *K, double* L, Electrodes* electrodes);
 void assemble_Neumann(double *p,SolutionVector *v, SolutionVector* q, LC* lc,Mesh *mesh, Mesh* surf_mesh, SparseMatrix *K, double* L);
 
-void Pot_PCG(SparseMatrix *K, double *b, SolutionVector* sv, Settings* settings );
-void Pot_GMRES(SparseMatrix *K, double *b, SolutionVector* sv, Settings* settings );
+//void Pot_PCG(SparseMatrix *K, double *b, SolutionVector* sv, Settings* settings );
+void Pot_PCG(SparseMatrix *K, double *b, double* V, Settings* settings );
+void Pot_GMRES(SparseMatrix *K, double *b, double* V, Settings* settings );
 void Pot_SuperLU(SparseMatrix *K, double *b, SolutionVector* sv, Settings* settings );
 
 
@@ -183,23 +184,23 @@ void calcpot3d(
         return;
     }
 
-
-
-
     K->setAllValuesTo(0); // clears values but keeps sparsity structure
-    v->setValuesTo((double) 0);
-    v->setToFixedValues();
 
-    double* L = (double*) malloc(v->getnFreeNodes()*sizeof(double));
-        if (L == NULL)
-                exit(1);
+    double* L = (double*) malloc(v->getnFreeNodes()*sizeof(double) );
+    double* V = (double*) malloc(v->getnFreeNodes()*sizeof(double) );
+    if ( (L == NULL) || (V == NULL) )
+    {
+        printf("error in %s, malloc returned NULL - bye!\n", __func__);
+        exit(1);
+    }
 
-    memset(L,0,v->getnFreeNodes()*sizeof(double));
-
-// Assemble system
+    memset(L,0,v->getnFreeNodes()*sizeof(double) );
+    memset(V,0,v->getnFreeNodes()*sizeof(double) );
+    // Assemble system
 
     init_shapes();
     assemble_volume(p,v,q,lc,mesh, K , L, electrodes);
+
 
     init_shapes_surf();
     assemble_Neumann(p , v , q , lc , mesh , surf_mesh , K , L);
@@ -208,19 +209,28 @@ void calcpot3d(
     K->DetectZeroDiagonals();
 #endif
 
-// Solve System
+    // Solve System
     if (settings->getV_Solver() == V_SOLVER_PCG)
-        Pot_PCG(K,L,v, settings);
+        Pot_PCG(K,L,V, settings);
     else if (settings->getV_Solver() == V_SOLVER_GMRES)
-        Pot_GMRES(K,L,v, settings);
+        Pot_GMRES(K,L,V, settings);
     else
-        {
-                printf("error - potential solver is set to %i\n", settings->getV_Solver());
-                exit(1);
-        }
+    {
+        printf("error - potential solver is set to %i\n", settings->getV_Solver());
+        exit(1);
+    }
     free(L);
 
-    v->setToFixedValues();
+    for (int i = 0 ; i < v->getnDoF() ; i++)
+    {
+        int ind = v->getEquNode(i);
+        if (ind != SolutionVector::FIXED_NODE)
+        {
+           v->setValue(i,0, V[ind] );
+        }
+    }
+
+    free(V);
 
     // ADDS UNIFORM FIELD ONTOP OF CALCULATED POTENTIAL
     if ( electrodes->isEField() )
@@ -484,28 +494,36 @@ void assemble_volume(
 
 	localKL(p,t,lK,lL,it, mesh,q,lc,electrodes);
 	//printlK( &lK[0][0] , npt);
-	for (int i=0; i<npt; i++){ // for rows
+        for (int i=0; i<npt; i++) // FOR ROWS
+        {
 	    int ri=v->getEquNode(t[i]);
-	    if ( v->getIsFixed(t[i]) ){ // if this node is dirchlet, set RHS vector value: L = K*v
-		for (int j = 0; j<4 ; j++){
-		    #pragma omp atomic
-		    L[v->getEquNode(t[j]) ] += lK[i][j]*v->getValue(t[i]); //
-		}
-		L[ri] = 0; // if not dirichlet, RHS = 0: L = 0
-	    }
-	    for (int j=0; j<npt; j++){ // for columns
-		int rj=v->getEquNode(t[j]);
-		if ((v->getIsFixed(t[i])) || (v->getIsFixed(t[j])) ){	// IF THIS ROW OR COL IS FIXED
-		    if (ri==rj) // if diagonal				// SET MATRIX DIAGONAL TO 1
-			K->sparse_set(ri,rj,1.0);			// OFF DIAGONALS TO 0 ELSEWHERE ?
-		}
-		else{
-                    K->sparse_add(rj,ri,lK[j][i]); // non-fixed
-		}// end else not fixed
-	    }//end for j
 
-	       }//end for i
-       }//end for it*/
+            // RHS FIXED NODE HANDLING
+            if ( ri == SolutionVector::FIXED_NODE ) // IF THIS NODE IS FIXED
+            {
+                for (int j = 0; j<4 ; j++)// SET CONTRIBUTION TO CONNECTED *FREE* NODES
+                {
+                    int nc = v->getEquNode( t[j] ); // INDEX TO CONNECTED NODE DEGREE OF FREEDOM POSITION
+                    if (nc != SolutionVector::FIXED_NODE )
+                    {
+                        #pragma omp atomic
+                        L[ nc ] -= lK[i][j]*v->getValue(t[i]); // L = -K*v
+                    }
+		}
+                //L[ri] = 0; // if not dirichlet, RHS = 0: L = 0
+            }// END IF ROW NODE IS FIXED
+
+            if ( ri!=SolutionVector::FIXED_NODE )
+                for (int j=0; j<npt  ; j++) // FOR COLUMNS
+                {
+                    int rj=v->getEquNode(t[j]);
+                    if (rj != SolutionVector::FIXED_NODE )
+                    {
+                        K->sparse_add(rj,ri,lK[j][i]);
+                    }
+                }//end for j
+          }//end for i
+       }//end for it
   }// end void assemble_volume
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -520,12 +538,13 @@ void assemble_Neumann(
        SparseMatrix *K,
        double* L){
    int it = 0;
-   #pragma omp parallel for
-   for (it=0; it < surf_mesh->getnElements(); it++){
-
+#pragma omp parallel for
+   for (it=0; it < surf_mesh->getnElements(); it++)
+   {
        int index_to_Neumann = surf_mesh->getConnectedVolume(it);
 
-       if ( (index_to_Neumann > -1) && (surf_mesh->getMaterialNumber(it) == MAT_NEUMANN)){ // if connected to LC tet
+       if ( (index_to_Neumann > -1) && (surf_mesh->getMaterialNumber(it) == MAT_NEUMANN))// if connected to LC tet
+       {
 
            double lK[4][4];
            double lL[4];
@@ -534,9 +553,9 @@ void assemble_Neumann(
                            surf_mesh->getNode(it,2) } ;
 
            int tt[4] = { tt[0] =   mesh->getNode(index_to_Neumann,0),
-                           mesh->getNode(index_to_Neumann,1),
-                           mesh->getNode(index_to_Neumann,2),
-                           mesh->getNode(index_to_Neumann,3)};
+                         mesh->getNode(index_to_Neumann,1),
+                         mesh->getNode(index_to_Neumann,2),
+                         mesh->getNode(index_to_Neumann,3)};
 
            int intr = 0;//find  index to internal node
 
@@ -547,34 +566,40 @@ void assemble_Neumann(
                }
            }
 
-       int ti[4] = { ee[0], ee[1], ee[2], tt[intr] }; // reordered local element, internal node is always last
+           int ti[4] = { ee[0], ee[1], ee[2], tt[intr] }; // reordered local element, internal node is always last
 
 	   localKL_N(p,&ti[0], lK , lL, it,index_to_Neumann, mesh, surf_mesh, q, lc);
 
 	   for (int i=0; i<4; i++){
 	       int ri=v->getEquNode(ti[i]);
 
-	       if ( v->getIsFixed(ti[i]) ){
+               if (ri == SolutionVector::FIXED_NODE ) // HANDLE FIXED NODE
+               {
 		   for (int j = 0; j<4 ; j++)
-               #pragma omp atomic
-		       L[v->getEquNode(ti[j]) ] += lK[j][i]*v->getValue(ti[i]);
-		   }
+                   {
+                       int cr = v->getEquNode( ti[j] ); // CONNECTED NODE DOF ORDER
+                       if (cr != SolutionVector::FIXED_NODE )
+                       {
+                            #pragma omp atomic
+                            L[cr ] -= lK[j][i]*v->getValue(ti[i]);
+                       }
+                   }
+               }// END HANDLE FIXED NODE
+               else // HANDLE FREE NODE
+               {
+                   for (int j=0; j<4; j++) // FOR COLUMNS
+                   {
+                       int rj=v->getEquNode(ti[j]);
 
-
-		   for (int j=0; j<4; j++){
-		       int rj=v->getEquNode(ti[j]);
-
-		       if ((v->getIsFixed(ti[i])) || (v->getIsFixed(ti[j])) ){
-                   if (ri==rj)
-                       K->sparse_set(ri,rj,1.0);
-		       }
-		       else{
-                   K->sparse_add(rj,ri,lK[j][i]);//, omp_get_thread_num());
-		       }
-		   }//end for j
-       }//end for i
-   }//end if LC
-  }//end for it
+                       if (rj != SolutionVector::FIXED_NODE )
+                       {
+                           K->sparse_add( rj,ri,lK[j][i] );
+                       }
+                   }//end for j
+               }// END HANDLE FREE NODES
+           }//end for i
+       }//end if LC
+   }//end for it
 }//end void assemble_Neumann
 
 
@@ -628,103 +653,104 @@ void setUniformEField(Electrodes &electrodes, SolutionVector &v, double *p)
 
 }
 
-void Pot_PCG(SparseMatrix *K, double *b, SolutionVector *sv, Settings* settings )
+void Pot_PCG(SparseMatrix *K, double *b, double *V, Settings* settings )
 {
-       int nnz = K->nnz;
-       int size = K->rows;
+    int nnz = K->nnz;
+    int size = K->rows;
 
        //for (int ee = 0 ; ee < size; ee++)
        //	printf("b[%i] =%f\n", ee, b[ee]*1e18);
 
        // Create SparseLib++ data structures
-	       CompCol_Mat_double A;
-           A.point_to(size, nnz, K->P, K->I, K->J);
+    CompCol_Mat_double A;
+    A.point_to(size, nnz, K->P, K->I, K->J);
 
 
-       //convert solution vector and RHS vector to SparseLib++
-           VECTOR_double X = VECTOR_double(sv->Values,A.dim(0));// cannot use "point_to" with potential due to reoredring of values.
-           VECTOR_double B;// = VECTOR_double(b,A.dim(0));
-           B.point_to(b , size );
+    //convert solution vector and RHS vector to SparseLib++
+    VECTOR_double X;// = VECTOR_double(V,A.dim(0));// cannot use "point_to" with potential due to reoredring of values.
+    X.point_to(V, size);
+    VECTOR_double B;// = VECTOR_double(b,A.dim(0));
+    B.point_to(b , size );
        // PCG settings...
-	       int return_flag =10;
-	       int maxiter =settings->getV_PCG_Maxiter();
-	       //printf("maxiter = %i\n",maxiter);
-	       double toler = settings->getV_PCG_Toler();
-	       //settings->PrintSettings();
+    int return_flag =10;
+    int maxiter =settings->getV_PCG_Maxiter();
 
-       // Solves with different preconditioners...
-           if (settings->getV_PCG_Preconditioner() == DIAG_PRECONDITIONER ){
-		       DiagPreconditioner_double D(A); // diagonal preconditioning, ~+3 times faster than cholesky
-		       return_flag = CG(A,X,B,D,maxiter,toler);
-	       }
-           else if (settings->getV_PCG_Preconditioner() == IC_PRECONDITIONER ){
-		       ICPreconditioner_double D(A);
-		       return_flag = CG(A,X,B,D,maxiter,toler);
-	       }
-           else if (settings->getV_PCG_Preconditioner() == ILU_PRECONDITIONER ){
-		       CompCol_ILUPreconditioner_double D(A); // compressed column format ILU
-		       return_flag = CG(A,X,B,D,maxiter,toler);
-	       }
+    double toler = settings->getV_PCG_Toler();
 
-       if (return_flag == 1) // if no convergence, print warning msg.
-		       printf("PCG did not converge in %i iterations \nTolerance achieved is %f\n",maxiter,toler);
+    // Solves with different preconditioners...
+    if (settings->getV_PCG_Preconditioner() == DIAG_PRECONDITIONER )
+    {
+        DiagPreconditioner_double D(A); // diagonal preconditioning, ~+3 times faster than cholesky
+       return_flag = CG(A,X,B,D,maxiter,toler);
+    }
+    else if (settings->getV_PCG_Preconditioner() == IC_PRECONDITIONER )
+    {
+        ICPreconditioner_double D(A);
+        return_flag = CG(A,X,B,D,maxiter,toler);
+    }
+    else if (settings->getV_PCG_Preconditioner() == ILU_PRECONDITIONER )
+    {
+       CompCol_ILUPreconditioner_double D(A); // compressed column format ILU
+       return_flag = CG(A,X,B,D,maxiter,toler);
+    }
+
+    if (return_flag == 1) // if no convergence, print warni
+        printf("PCG did not converge in %i iterations \nTolerance achieved is %f\n",maxiter,toler);
 
 
        //copy solution back to solution vector
-       for (int i = 0; i < sv->getnDoF() ; i++)
-	       sv->setValue(i , 0 , -X(sv->getEquNode(i)));
+       //for (int i = 0; i < sv->getnDoF() ; i++)
+//	       sv->setValue(i , 0 , -X(sv->getEquNode(i)));
 
 }
-void Pot_GMRES(SparseMatrix *K, double *b, SolutionVector* sv, Settings* settings ){
+void Pot_GMRES(SparseMatrix *K, double *b, double* V, Settings* settings ){
 /*! Solves the Linear simulatenous equation Ax=b using the GMRES method*/
 
-       int nnz = K->nnz;
-       int size = K->rows;
-       // Create SparseLib++ data structures
-	       CompCol_Mat_double A;
-           A.point_to(size , nnz, K->P, K->I, K->J);
+    int nnz = K->nnz;
+    int size = K->rows;
+    // Create SparseLib++ data structures
+    CompCol_Mat_double A;
+    A.point_to(size , nnz, K->P, K->I, K->J);
 
-           //Convert solution vector and RHS vector to SparseLib++
-           VECTOR_double X =  VECTOR_double(sv->Values,A.dim(0)); // cannot use "point_to" with potential values because reoredring is done after calculation
+   //Convert solution vector and RHS vector to SparseLib++
+    VECTOR_double X; //=  VECTOR_double(sv->Values,A.dim(0)); // cannot use "point_to" with potential values because reoredring is done after calculation
+    VECTOR_double B;
+    X.point_to( V , size );
+    B.point_to( b , size );
 
-           VECTOR_double B;
-           B.point_to(b , size );
+    // GMRES settings...
+    int return_flag =10;
+    int maxiter 	= settings->getV_GMRES_Maxiter();
+    int restart 	= settings->getV_GMRES_Restart();
+    double toler 	= settings->getV_GMRES_Toler();
 
-       // GMRES settings...
-	       int return_flag =10;
-	       int maxiter 	= settings->getV_GMRES_Maxiter();
-	       int restart 	= settings->getV_GMRES_Restart();
-	       double toler 	= settings->getV_GMRES_Toler();
+    MATRIX_double H(restart+1, restart, 0.0);	// storage for upper Hessenberg H
 
-//printf("VGRES toler = %f\n",toler);
+    // Solves with different preconditioners...
+    if (settings->getV_GMRES_Preconditioner() == DIAG_PRECONDITIONER )
+    {
+        DiagPreconditioner_double D(A);
+        return_flag = GMRES(A,X,B,D,H,restart,maxiter,toler);
+    }
+    else if (settings->getV_GMRES_Preconditioner() == IC_PRECONDITIONER )
+    {
+        ICPreconditioner_double D(A);
+        return_flag = GMRES(A,X,B,D,H,restart,maxiter,toler);
+    }
+    else if (settings->getV_GMRES_Preconditioner() == ILU_PRECONDITIONER )
+    {
+        CompCol_ILUPreconditioner_double D(A); // compressed column format ILU
+        return_flag = GMRES(A,X,B,D,H,restart,maxiter,toler);
+    }
 
-	       MATRIX_double H(restart+1, restart, 0.0);	// storage for upper Hessenberg H
-
-	       // Solves with different preconditioners...
-	       if (settings->getV_GMRES_Preconditioner() == DIAG_PRECONDITIONER )
-	       {
-		       DiagPreconditioner_double D(A);
-		       return_flag = GMRES(A,X,B,D,H,restart,maxiter,toler);
-	       }
-	       else if (settings->getV_GMRES_Preconditioner() == IC_PRECONDITIONER )
-	       {
-		       ICPreconditioner_double D(A);
-		       return_flag = GMRES(A,X,B,D,H,restart,maxiter,toler);
-	       }
-	       else if (settings->getV_GMRES_Preconditioner() == ILU_PRECONDITIONER )
-	       {
-		       CompCol_ILUPreconditioner_double D(A); // compressed column format ILU
-		       return_flag = GMRES(A,X,B,D,H,restart,maxiter,toler);
-	       }
-
-	       if (return_flag == 1)
-		       printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",maxiter,toler);
+    if (return_flag == 1)
+        printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",maxiter,toler);
 
 
-      //copy solution back to solution vector
-      #pragma omp parallel for
-      for (int i = 0; i < sv->getnDoF() ; i++)
-        sv->setValue(i , 0 , -X(sv->getEquNode(i)) );
+    //copy solution back to solution vector
+//#pragma omp parallel for
+//    for (int i = 0; i < sv->getnDoF() ; i++)
+//        sv->setValue(i , 0 , -X(sv->getEquNode(i)) );
 
 }
 

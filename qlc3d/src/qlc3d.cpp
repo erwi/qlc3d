@@ -113,40 +113,10 @@ double ConsistencyLoop(SolutionVector& v, SolutionVector& q , SolutionVector& qn
 	bool isPotCons = ( simu.getdt() > 0 ) && ( simu.getPotCons() != Off );
         isPotCons = false; // turn of consisteny loop
         calcpot3d(Kpot,&v, &q, &lc, geom1.t,geom1.e, geom1.getPtrTop(), &settings, &electrodes);
-        maxdq = calcQ3d(&q,&qn,&v,geom1.t,geom1.e,geom1.getPtrTop(),&lc, &simu, Kq, &settings, &alignment, geom1.getPtrToNodeNormals());
-
-	
-	// DO THIS LOOP UNTIL POTENTIAL CONSISTENCY IS ACHIEVED
-	/*
-	while( consistency > simu.getTargetPotCons() ){
-		maxdq = 0;
-		// make copies for potential consistency
-		if (isPotCons){
-			copyTo(v_cons , v);
-			copyTo(q_cons , q);
-			copyTo(qn_cons, qn);
-		}
-
-		// Q-Tensor
-        maxdq = calcQ3d(&q,&qn,&v,geom1.t,geom1.e,geom1.getPtrTop(),&lc, &simu, Kq, &settings, &alignment, geom1.getPtrToNodeNormals());
-		// Potential for consistency check
-
-		calcpot3d(Kpot,&v, &q, &lc, geom1.t,geom1.e, geom1.getPtrTop(), &settings, &electrodes);
 
 
-		if (!isPotCons) break; // can leave if no PotCons is needed
+        maxdq = calcQ3d(&q,&qn,&v,geom1,&lc, &simu, Kq, &settings, &alignment );
 
-
-		// get max potential difference between before and after Q-tensor calculation
-		consistency = maxDiff(v_cons, v);
-
-		if ( consistency > simu.getTargetPotCons() ){
-			cout << "\tpotential consistency :" << consistency <<" repeating iteration"<< endl;
-			q.setValuesTo(q_cons);
-			qn.setValuesTo(qn_cons);
-		}
-	}// end while
-*/
 	return maxdq;
 
 }
@@ -270,7 +240,7 @@ int main(int argc, char* argv[]){
     Geometry geom1 = Geometry();	    // working geometry
     Geometry geom_orig = Geometry();    // original, loaded from file
     Geometry geom_prev = Geometry();    // geometry from previous ref. iteration
-    prepareGeometry(geom_orig, simu);   // mesh file is read and geometry is loaded in this function (in inits.cpp)
+    prepareGeometry(geom_orig, simu, alignment);   // mesh file is read and geometry is loaded in this function (in inits.cpp)
     geom_prev.setTo( &geom_orig);	    // for first iteration, geom_prev = geom_orig
     geom1.setTo( &geom_orig);
     Refine(geom_orig, geom_prev, geom1 , &meshrefinement);
@@ -293,9 +263,15 @@ int main(int argc, char* argv[]){
     SolutionVector v( geom1.getnp() );
     v.setFixedNodesPot( &electrodes , geom1.e , simu.getCurrentTime());
     v.setPeriodicEquNodes( &geom1 ); // periodic nodes
+    v.setToFixedValues();
     v.EnforceEquNodes(); // makes sure values at periodic boundaries match
 
     cout << "OK"<<endl;
+
+
+
+
+
 
 // =============================================================
 //
@@ -317,9 +293,10 @@ int main(int argc, char* argv[]){
         ReadLCD_B(&simu,&q);
         setStrongSurfacesQ(&q, &alignment, &lc, &geom1); // over writes surfaces with user specified values
     }
+
     q.setFixedNodesQ(&alignment, geom1.e);  // set fixed surface anchoring
     q.setPeriodicEquNodes(&geom1);          // periodic nodes
-	
+
     q.EnforceEquNodes();		    // makes sure values at periodic boundaies match
     qn=q;                                   // q-previous = q-current in first iteration
     cout << "OK" << endl;                   // Q-TENSOR CREATED OK
@@ -335,6 +312,12 @@ int main(int argc, char* argv[]){
     cout << "Creating matrix for Q-tensor..." << endl;
     SparseMatrix* Kq = createSparseMatrix(geom1, q, MAT_DOMAIN1);
     cout << "Q-tensor matrix OK" << endl;
+
+
+    //Kpot->SPY();
+
+
+
 
 //********************************************************************
 //*
@@ -369,7 +352,6 @@ int main(int argc, char* argv[]){
     WriteResult(&simu, &lc , &geom1, &v, &q);
     printf("OK\n");
 
-    return 0;
 
     Energy_fid = createOutputEnergyFile(simu); // done in inits
 
@@ -471,13 +453,6 @@ int main(int argc, char* argv[]){
 
 	}while ( simu.IsRunning() ); // end MAIN LOOP - while simulation is runnning
 
-
-
-
-
-
-
-
     printf("\nSaving final result file...\n");
     simu.setCurrentIteration( SIMU_END_SIMULATION );
     WriteResult(&simu, &lc , &geom1, &v, &q);
@@ -487,12 +462,6 @@ int main(int argc, char* argv[]){
 
     delete Kpot;
     delete Kq;
-
-//#ifndef NO_QT
-//	a.quit();
-//#endif
-
-
 
     if (v_cons) free(v_cons);
     if (q_cons) free(q_cons);

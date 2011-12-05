@@ -75,9 +75,10 @@ void create_dangly_matrix(vector <Line>& lines, vector< list <unsigned int> >& d
 }
 
 void create_dangly_matrix(vector< list <unsigned int> > & dangly,
-						  Geometry& geom,
-						  SolutionVector& sol,
-						  const int& MatNum){
+                            Geometry& geom,
+                            SolutionVector& sol,
+                            const int& MatNum)
+{
     /* Creates a dangly sparse matrix of a Geometry, SolutionVector and material number */
 
     dangly.clear();
@@ -87,9 +88,11 @@ void create_dangly_matrix(vector< list <unsigned int> > & dangly,
     dangly.assign( sol.getnFreeNodes() , empty ); // pre-allocate columns
 
     const unsigned int npt = (unsigned int ) geom.t->getnNodes();
-    int* eqn = new int[ npt ]; // LOCAL EQU NODES
-
-    for (unsigned int it = 0 ; it < (unsigned int) geom.t->getnElements() ; it++){
+    //int* eqn = new int[ npt ]; // LOCAL EQU NODES
+    vector<int> eqn(npt, 0);
+    eqn.resize(npt);
+    for (size_t it = 0 ; it < (size_t) geom.t->getnElements() ; it++) // LOOP OVER EACH ELEMENT
+    {
         if ((!MatNum) ||    // if ignore material numebr OR
            ( MatNum == geom.t->getMaterialNumber(it))  ){// if correct material
 
@@ -103,22 +106,27 @@ void create_dangly_matrix(vector< list <unsigned int> > & dangly,
             // LOOP OVER LOCAL NODES
             for (unsigned int i = 0 ; i < npt ; i++){
                 // ALWAYS INSERT DIAGONAL
+                if (eqn[i] != SolutionVector::FIXED_NODE )
+                {
+                    dangly[eqn[i]].push_back( eqn[i] ); // DIAGONAL ENTRY
 
-                dangly[eqn[i]].push_back( eqn[i] );
-                for (unsigned int j = i+1 ; j < npt ; j++){
+                for (unsigned int j = i+1 ; j < npt ; j++)
+                {
                     // IF NODE IS NOT FIXED, CAN INSERT OFF DIAGONAL TOO
-                    if (    (!sol.getIsFixed( nn[i] ) ) ||
-                            ( ! sol.getIsFixed( nn[j] ) ) ){
+                    //if (    (!sol.getIsFixed( nn[i] ) ) ||
+                    //        ( ! sol.getIsFixed( nn[j] ) ) )
 
+                    if (eqn[j] != SolutionVector::FIXED_NODE)
+                    {
                         dangly[eqn[i]].push_back( eqn[j] );
                         dangly[eqn[j]].push_back( eqn[i] );
-                    }// end if not fixed
+                    }// end if j not fixed
                 }// end for node j
+                }// end if i not fixed
             }// end for node i
         }// end if correct material
     }// end for tets
 
-    delete [] eqn;
 
 
     // Remove repeated node indexes from columns. This step could be avoided if

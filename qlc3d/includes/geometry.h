@@ -9,7 +9,8 @@
 # include <iostream>
 # include <algorithm>
 # include <limits>
-#define EPS 1e-7
+# include  <alignment.h>
+# define EPS 1e-7
 
 using namespace std;
 class Geometry
@@ -33,7 +34,9 @@ class Geometry
 		bool top_bottom_is_periodic;
 	
 		vector < list <int> > peri_equ_nodes;
-	
+
+                size_t numWeakSurf;
+                size_t* indWeakSurf;     // index to all weak surface triangles
 	
 	public:
 
@@ -79,7 +82,7 @@ class Geometry
     int getnp();
     int getnpLC();
     double* getPtrTop();
-    inline double* getPtrTop(const int& i){ if (i<np) return &p[3*i]; return NULL; }; // pointer to node i
+    inline double* getPtrTop(const int& i){ if (i<np) return &p[3*i]; return NULL; } // pointer to node i
     double getpX(int i);	// return node coordinates at node i
     double getpY(int i);
     double getpZ(int i);
@@ -100,7 +103,8 @@ class Geometry
 
     void getTetBaryCentre(double* x, const unsigned int& it ); // calculates barycentre x,y,z components of tetrahedron it, x must be array of length 3
     void isValidNodeIndex(const unsigned int& i) const;
-		
+    void genIndWeakSurfaces(Alignment& alignment);  // generates index to weak surface elements
+
 
 
     // NodeNormal methods

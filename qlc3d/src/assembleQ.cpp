@@ -735,76 +735,60 @@ void wk_localKL(
 
 
 void assemble_volumes(
-	SparseMatrix* K,
-	double* L,
-	SolutionVector* q,
+    SparseMatrix* K,
+    double* L,
+    SolutionVector* q,
     SolutionVector* v,
-	Mesh* t, double* p,
-	LC* mat_par,
-	Simu* simu,
-	Settings* settings){
-
-
-
-    int nbad = 16643;
-
+    Mesh* t, double* p,
+    LC* mat_par,
+    Simu* simu,
+    Settings* settings)
+{
 
     int npLC = q->getnDoF();
     init_shape();
     omp_set_num_threads( settings->getnThreads() ); // number of threads used
     #pragma omp parallel for
-// LOOP OVER EACH ELEMENT  it
-
-
-    for (int it= 0 ; it < t->getnElements () ;it++){
+    // LOOP OVER EACH ELEMENT  it
+    for (int it= 0 ; it < t->getnElements () ;it++)
+    {
 	double lK[20][20]; 	// local element matrix
 	double lL[20];		// local RHS vector
 	int eqr,eqc;
-    // IF THIS ELEMENT IS LC ELEMENT, ASSEMBLE LOCAL MATRIX
+        // IF THIS ELEMENT IS LC ELEMENT, ASSEMBLE LOCAL MATRIX
 
-    if( t->getMaterialNumber(it) == MAT_DOMAIN1 ){// if LC element
-        bool found = false;
-        int *tt = t->getPtrToElement(it);
-        if ( (tt[0] == nbad) ||(tt[1] == nbad) || (tt[2] == nbad) || (tt[3] == nbad) ){
-            //t->PrintElement(it);
-            found = true;
-        }
+        if( t->getMaterialNumber(it) == MAT_DOMAIN1 ) // if LC element
+        {
+            localKL(p,t,it,q,v,lK,lL,mat_par, simu);
 
-        localKL(p,t,it,q,v,lK,lL,mat_par, simu);
+            // ADD LOCAL MATRIX TO GLOBAL MATRIX
+            for (int i=0;i<20;i++)  // LOOP OVER ROWS
+            {
+                //int ri = tt[i%4]+npLC*(i/4); //
+                int ri = t->getNode(it,i%4) + npLC*(i/4);   // LOCAL TO GLOBAL
 
-        // ADD LOCAL MATRIX TO GLOBAL MATRIX
-        for (int i=0;i<20;i++){
-		int ri = t->getNode(it,i%4) + npLC*(i/4);
-                eqr = q->getEquNode(ri);
+                eqr = q->getEquNode(ri);    // eqr IS MAPPED INDEX TO GLOBAL MATRIX ROW
+
+                if ( eqr != SolutionVector::FIXED_NODE ) // ONLY FOR NON-FIXED NODES
+                {
+                    #pragma omp atomic
+                    L[eqr]+= lL[i]*BIGNUM;
+
+                    for (int j = 0 ; j < 20 ; j++) // LOOP OVER COLUMNS
+                    {
+                        int rj = t->getNode(it,j%4) + npLC*(j/4);
+                        eqc = q->getEquNode( rj );
+
+                        if ( eqc != SolutionVector::FIXED_NODE )
+                        {
+                            K->sparse_add(eqr,eqc,lK[i][j]*BIGNUM);
+                        }
+                    }
+                }// end NON-FIXED NODE
 
 
-
-
-        if(q->getIsFixed(ri)){
-            L[eqr] = 0; // RHS is zero for fixed nodes // <-this causes valgrind uninitialised value error in cg.h
-        }
-        else{
-           // cout << t->getNode(it,i%4) << "is a free node" << endl;
-            #pragma omp atomic
-		    L[eqr]+=lL[i]*BIGNUM;	///#pragma omp atomic
-		}
-
-	    // LOOP OVER COLUMNS
-		for (int j=0 ; j<20  ;j++){
-		    int rj = t->getNode(it,j%4) + npLC*(j/4);
-		    eqc = q->getEquNode(rj);
-
-		// DIFFERENT CASES IF ROW OR COL IS FIXED
-		    if ( (q->getIsFixed(ri)) || (q->getIsFixed(rj)) ){// if row or col is fixed
-		    // IN CASE OF DIAGONAL -> SET TO 1, OFF-DIAGONALS ARE LEFT AS 0
-			if (ri == rj)   K->sparse_set(eqr,eqc,1.0);
-		    }
-		    else{
-			K->sparse_add(eqr,eqc,lK[i][j]*BIGNUM);// FREE NODES GO TO GLOBAL MATRIX
-		    }
-		}//end for j
 	    }//end for i
-	  }//end for if tmat
+        }//end for if tmat
     }//end fr it
 }
 // end void assemble_volumes
@@ -819,51 +803,58 @@ void assemble_Neumann_surfaces(
 
     int npLC = q->getnDoF();
     init_shape_N();
-    #pragma omp parallel for
-// LOOP OVER EVERY SURFACE ELEMENT
-    for (int it=0; it< surf_mesh->getnElements(); it++){
+#pragma omp parallel for
 
-    // ONLY NEUMANN TRIS CONNECTED TO LC TETS ARE ASSEMBLED
-	int index_to_Neumann = surf_mesh->getConnectedVolume(it);
-	if ( (index_to_Neumann > -1) && (surf_mesh->getMaterialNumber(it) != MAT_PERIODIC)){ // if connected to LC tet
-	   double lL[20];
+    for (int it=0; it< surf_mesh->getnElements(); it++) // LOOP OVER EVERY SURFACE ELEMENT
+    {
+        // ONLY TRIS CONNECTED TO LC TETS ARE ASSEMBLED
+        int index_to_Neumann = surf_mesh->getConnectedVolume(it);
+        if ( (index_to_Neumann > -1) &&                             // IF CONNECTED TO LC TET
+             (surf_mesh->getMaterialNumber(it) != MAT_PERIODIC))    // IF THIS IS NOT A PERIODIC TRIANGLE
+        {
+            double lL[20];
 
-	// ELEMENT NODE NUMBERS ARE RE-ORDERED SO THAT t[4] IS NOT PART OF TRI ELEMENT
+            // ELEMENT NODE NUMBERS ARE RE-ORDERED SO THAT t[4] IS NOT PART OF TRI ELEMENT
 	    int ee[3] = {   surf_mesh->getNode(it,0) ,
 			    surf_mesh->getNode(it,1) ,
 			    surf_mesh->getNode(it,2) } ;
-	
+
 	    int tt[4] = {   mesh->getNode(index_to_Neumann,0),
 			    mesh->getNode(index_to_Neumann,1),
 			    mesh->getNode(index_to_Neumann,2),
 			    mesh->getNode(index_to_Neumann,3)};
-		
+
 	    int intr=-1;//find  index to internal node
-	    for (int i=0;i<4;i++){
-		if ( (tt[i]!= ee[0]) && (tt[i]!= ee[1]) && (tt[i]!= ee[2]) ){
-		    intr = i;
+            for (int i=0;i<4;i++)
+            {
+                if ( (tt[i]!= ee[0]) && (tt[i]!= ee[1]) && (tt[i]!= ee[2]) )
+                {
+                    intr = i;
 		    break;
-		}
+                }
 	    }
-	    int ti[4] = { ee[0], ee[1], ee[2], tt[intr] }; // reordered local element, internal node is always last
-			
+            int ti[4] = { ee[0], ee[1], ee[2], tt[intr] }; // REORDER LOCAL TET ELEMENT
+                                                           // NODE-NUMBERING SO THAT
+                                                           // INTERNAL NODE IS ALWAYS LAST
+
 	    localKL_NQ(p, tt, lL , it , index_to_Neumann,mesh, surf_mesh, v);
 
-	    for (int i=0; i<20; i++){
-		int ri = ti[i%4] + npLC*(i/4);
-		int eqr = q->getEquNode(ri);
-				
-		if(q->getIsFixed(ri))
-		    L[eqr] = 0; // RHS is zero for fixed nodes
-		else{
-		    #pragma omp atomic
-		    L[eqr]+=lL[i]*2e16;
-		}
-	    }//end for i
+            for (int i=0; i<20; i++) // LOOP OVER ROWS
+            {
+                int ri = ti[i%4] + npLC*(i/4);
+                int eqr = q->getEquNode(ri);
+
+                if (eqr != SolutionVector::FIXED_NODE )
+                {
+                    #pragma omp atomic
+                    L[eqr]+=lL[i]*BIGNUM;
+                }
+            }//end for i
 	}//end if LC
     }//end for it
 }
 //end void assemble_Neumann
+
 
 // ASSEMBLE WEAK ANCHORING SURFACES
 void assemble_surfaces(
@@ -877,60 +868,64 @@ void assemble_surfaces(
 
     init_shape_surf();
     int npLC = q->getnDoF();
-    //omp_set_num_threads( settings->getnThreads() ); // number of threads used
+
     #pragma omp parallel for
-    for (int ie = 0 ; ie < e->getnElements() ; ie ++){
-		int FixLCNum = e->getFixLCNumber(ie); // gets FixLC number for surface element ie
-		if ((FixLCNum > 0) && ( !alignment->IsStrong(FixLCNum-1) ) ){ // if alignment surface
-			double lK[15][15];
-			double lL[15];
-			wk_localKL( e , ie , q , lL , lK , FixLCNum , alignment, lc , NodeNormals);
+    for (int ie = 0 ; ie < e->getnElements() ; ie ++)
+    {
+        int FixLCNum = e->getFixLCNumber(ie); // gets FixLC number for surface element ie
+        if ((FixLCNum > 0) && ( !alignment->IsStrong(FixLCNum-1) ) ) // if alignment surface
+        {
+            double lK[15][15];
+            double lL[15];
+            wk_localKL( e , ie , q , lL , lK , FixLCNum , alignment, lc , NodeNormals);
 
+            for (int i=0;i<15;i++)// LOOP OVER ROWS
+            {
+                int ri 	= e->getNode(ie,i%3) + npLC*(i/3);
+                int eqr = q->getEquNode(ri);
+                if (eqr != SolutionVector::FIXED_NODE )
+                {
+                    #pragma omp atomic
+                    L[eqr]+=lL[i]*2e16;
 
-			for (int i=0;i<15;i++){ //LOCAL to GLOBAL
-				
-				int ri 	= e->getNode(ie,i%3) + npLC*(i/3);
-				int eqr = q->getEquNode(ri);
-				L[eqr]+=lL[i]*2e16;
+                    for (int j=0;j<15;j++) // LOOP OVER COLUMNS
+                    {
+                        int rj  = e->getNode(ie,j%3) + npLC*(j/3);
+                        int eqc = q->getEquNode(rj);
 
-				for (int j=0;j<15;j++){
-			
-					int rj 	= e->getNode(ie,j%3) + npLC*(j/3);
-					int eqc = q->getEquNode(rj);
-					
-					if ( (q->getIsFixed(ri)) || (q->getIsFixed(rj)) ){
-						if (ri == rj)  // if diagonal fixed node
-							K->sparse_set(eqr,eqc,1.0);
-						}
-					else{
-						int ii = i;
-						int jj = j;
-						if (j<i){ // swap row and column, to only use upper diagonal of the symmetric local matrix
-							ii = j;
-							jj = i;
-							}
-						K->sparse_add(eqr,eqc,lK[ii][jj]*2e16);
-						}
-					}//end for j
-				}//end fr i
-			}// end if alignment surfce
-		}// end for ie, loop over surface elements
+                        if ( eqc != SolutionVector::FIXED_NODE )
+                        {
+                            int ii = i; // SURFACE CONTRIBUTION MATRIX IS
+                            int jj = j; // SYMMETRIC -> ONLY UPPER DIAGONAL
+                            if (j<i)    // IS ASSEMBLED
+                            {
+                                ii = j;
+                                jj = i;
+                            }
+
+                            K->sparse_add(eqr, eqc, lK[ii][jj]*BIGNUM);
+                        } // end if j not fixed
+                    }// end for j
+                }// end if i not fixed
+            }//end for i
+        }// end if alignment surfce
+    }// end for ie, loop over surface elements
 }
 //*/
 void assembleQ(
-	SparseMatrix* K,
-	double* L,  // current RHS
-	SolutionVector *q,  // current Q-Tensor
-    SolutionVector* v,
-	Mesh* t,
-	Mesh* e,
-	double* p,
-	LC* mat_par,
-	Simu* simu,
-	Settings* settings,
-	Alignment* alignment,
-	double* NodeNormals){
-
+            SparseMatrix* K,
+            double* L,  // current RHS
+            SolutionVector *q,  // current Q-Tensor
+            SolutionVector* v,
+            Mesh* t,
+            Mesh* e,
+            double* p,
+            LC* mat_par,
+            Simu* simu,
+            Settings* settings,
+            Alignment* alignment,
+            double* NodeNormals)
+{
 	S0	= mat_par->S0;
 	L1 = mat_par->L1 ;
 	L2 = mat_par->L2 ;
@@ -947,11 +942,11 @@ void assembleQ(
 
     assemble_volumes(K, L, q,  v, t, p, mat_par, simu, settings);
 
-	//SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
+    //SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
     assemble_Neumann_surfaces( L, q, v, t, e, p);
 
-    //if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
-    assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
+    if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
+        assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
 
 }
 // end void assembleQ
@@ -1191,53 +1186,60 @@ void assemble_local_prev_volumes(double lL[20],
 void assemble_prev_rhs(double* Ln,
 		       SolutionVector& qn,
 		       SolutionVector& v,
-		       Mesh& t,
-		       Mesh& e,
-		       double* p ,
+                       //Mesh& t,
+                       //Mesh& e,
+                       //double* p ,
 		       LC& mat_par,
-		       Simu& simu)
+                       Simu& simu,
+                       Geometry& geom
+                       )
 {
-    if (e.getnElements()){} // no warning of unused variables. WRITE fUNCTION FOR WEAK ANCHORING CONTRIBUTIONS
+    //if (e.getnElements()){} // no warning of unused variables. WRITE fUNCTION FOR WEAK ANCHORING CONTRIBUTIONS
 
     init_globals(mat_par, qn);
     init_shape();
-    unsigned int elem_cnt = (unsigned int) t.getnElements();
+    unsigned int elem_cnt = geom.t->getnElements();//unsigned int) t.getnElements();
 
-// OPENMP LOOP COMPILED WITH -march=native an -O3 RESULTS IN SEGFAULT ON
-// WINXP32, COMPILED WITHMinGW. THIS IS NOT A PROBLEM WITH UBUNTU,
-// NO PROBLEMS FOUND WITH gdb / valgrind. SGFAULTING LINE MARKED IN FUNTION
-// assemble_local_prev_volumes. ENABLING OPENMP ONLY FOR LINUX (02/12/2010)
+    // OPENMP LOOP COMPILED WITH -march=native an -O3 RESULTS IN SEGFAULT ON
+    // WINXP32, COMPILED WITHMinGW. THIS IS NOT A PROBLEM WITH UBUNTU,
+    // NO PROBLEMS FOUND WITH gdb / valgrind. SGFAULTING LINE MARKED IN FUNTION
+    // assemble_local_prev_volumes. ENABLING OPENMP ONLY FOR LINUX (02/12/2010)
 #ifndef __WIN32__
-    #pragma omp parallel for // PARALLEL LOOP IN LINUX
+#pragma omp parallel for // PARALLEL LOOP IN LINUX
 #endif
-    for ( unsigned int it = 0 ; it < elem_cnt ; it++){
-	int th = omp_get_thread_num();
+    int th = 0; // debug thread number
+    Mesh& t = *geom.t;
+    double* p = geom.getPtrTop();
+    for ( unsigned int it = 0 ; it < elem_cnt ; it++)
+    {
 
-	int eqr;
-	double lL[20];		// local RHS vector
-	// IF THIS ELEMENT IS LC ELEMENT, ASSEMBLE LOCAL MATRIX
-	    if( t.getMaterialNumber(it) == MAT_DOMAIN1 ){// if LC element
+        int eqr;
+        double lL[20];		// local RHS vector
 
-		assemble_local_prev_volumes(lL,
-					    qn, v ,
-					    t , p , it,
-					    mat_par , simu, th );
+        // IF THIS ELEMENT IS LC ELEMENT, ASSEMBLE LOCAL MATRIX
+        if( t.getMaterialNumber(it) == MAT_DOMAIN1 )// if LC element
+        {
+            assemble_local_prev_volumes(lL,
+                                        qn, v ,
+                                        t , p , it,
+                                        mat_par , simu, th );
 
 	    // ADD LOCAL MATRIX TO GLOBAL MATRIX
-	    //*
-	    for (int i=0;i<20;i++){
-		    int ri = t.getNode(it,i%4) + npLC*(i/4);
-		    eqr = qn.getEquNode(ri);
-		    if(qn.getIsFixed(ri))
-			Ln[0] = 0; // RHS is zero for fixed nodes // <-this causes valgrind uninitialised value error in cg.h
-		    else{
-			#pragma omp atomic
-			Ln[eqr]+=lL[i]*BIGNUM;	///#pragma omp atomic
-		    }
-		}//end for i
 
-	      }//end for if tmat
+            for (int i=0;i<20;i++)
+            {
+                int ri = t.getNode(it,i%4) + npLC*(i/4);
+                eqr = qn.getEquNode(ri);
+                if (eqr != SolutionVector::FIXED_NODE )
+                {
+                    #pragma omp atomic
+                    Ln[eqr] += lL[i]*BIGNUM;
+                }
+            }// end for i
+        }//end if LC material
 
-    }// end for loop elements
+    }//end for it
 
-}
+}// end function
+
+
