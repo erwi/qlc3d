@@ -1,61 +1,39 @@
-#include "../includes/electrodes.h"
-
+#include <electrodes.h>
+#include <algorithm>
+/*
 Electrode::Electrode()
 {
-	nTimes = 0;
-	Potential.clear();
-	Time.clear();
-	currentPotential = 0.;
+        //nTimes = 0;
+        //Potential.clear();
+        //Time.clear();
+        //currentPotential = 0.;
 
 }
 
+void Electrode::addSwitching(const double &Time, const double &Potential)
+{
+    // ADDS NEW SWITCHING INSTANCE TO THIS ELECTRODE
+    switching_.push_back( Switching(Time, Potential ) );
+    switching_.sort();
+}
 
-void Electrode::PrintElectrode()
+void Electrode::printElectrode(const int& num) const
 {
 
-	int npots = Potential.size();
-	int ntimes = Time.size();
-	printf("     number of potentials, times : %i, %i\n",npots,ntimes);
+// DEBUG PRINTOUT OF THIS ELECTRODES SWITCHING INSTANCES
+// NUM IS AN OPTIONAL PARAMETER WITH DEFAULT VALUE -1
 
-        if (npots!=ntimes){
-		printf("Problem with configuration file - number of potentials must equal number of times, bye!\n");
-		exit(1);
-	}
+    if ( num>=0 )
+        printf("Electrode %i:\n", num);
 
-        if (npots>0){
-            printf("     Pots:");
-            for (int i = 0; i<npots ; i++)
-		printf(" %e", Potential[i]);
-
-            printf("\n     Time:");
-            for (int i = 0; i<npots ; i++)
-		printf(" %e", Time[i]);
-
-		printf("\n");
-	} // end if npots>0
-
-}
-int Electrode::getnTimes()
-{
-	return Time.size();
-
-}
-void Electrode::setPotential(std::vector<double> pot){
-
-    Potential = pot;
-
-}
-
-void Electrode::setTime(std::vector<double> tme){
-    Time = tme;
-    nTimes = Time.size();
-    if (getnTimes() != (int) Potential.size() ){
-        std::cout << "error, Electrode times don't seem to match potentials - bye!" << std::endl;
-        exit(1);
+    std::list<Switching> ::const_iterator itr = switching_.begin();
+    for ( ; itr != switching_.end() ; itr++ )
+    {
+        printf("Time = %e, Pot = %e\n", itr->getTime(), itr->getPotential() );
     }
 
 }
-
+*/
 
 //===========================================================
 //
@@ -63,10 +41,11 @@ void Electrode::setTime(std::vector<double> tme){
 //
 //
 
-Electrodes::Electrodes()
+Electrodes::Electrodes():
+    CalcPot(false),
+    nElectrodes(0)
 {
-    nElectrodes =0;
-    CalcPot = false;
+
     eps_dielectric.push_back(1.0);
     EField[0] = 0.0;
     EField[1] = 0.0;
@@ -74,30 +53,34 @@ Electrodes::Electrodes()
 
 }
 Electrodes::~Electrodes(){
-	std::vector<Electrode*>::iterator itr;
 
-	for(itr = E.begin() ; itr!=E.end() ; itr++)
-		delete (*itr);
+    //std::vector<Electrode*>::iterator itr;
+
+//	for(itr = E.begin() ; itr!=E.end() ; itr++)
+//		delete (*itr);
 
 }
 
+/*
 void Electrodes::AddElectrode()
 {
 	// Adds new empty electrode
 	nElectrodes++;
 	E.push_back(new Electrode);
 }
-void Electrodes::AddElectrode(Electrode* El)
-{
+*/
+//void Electrodes::AddElectrode(Electrode* El)
+//{
     // adds non-empty electrode
-	nElectrodes++;
-    E.push_back( El );
-}
+//	nElectrodes++;
+//    E.push_back( El );
+//}
  
 /*
 void Electrodes::AddDielectricPermittivity(double eps){	eps_dielectric.push_back(eps); }
 */
-double Electrodes:: getDielectricPermittivity(int i)
+
+double Electrodes:: getDielectricPermittivity(int i)const
 {
 	if (i < (int) eps_dielectric.size() )
 		return eps_dielectric[i];
@@ -108,8 +91,9 @@ double Electrodes:: getDielectricPermittivity(int i)
 		}
 }
 
-void Electrodes::printElectrodes()
+void Electrodes::printElectrodes()const
 {
+/*
     for (int i = 0; i < nElectrodes; i++)
     {
         printf("E%i:\n",i+1);
@@ -123,11 +107,12 @@ void Electrodes::printElectrodes()
     std::cout << std::endl;
 
     std::cout << "EField = [" << EField[0] <<"," <<EField[1] << "," << EField[2] <<"] V/um" << std::endl;
+    */
 }
 void Electrodes::setCalcPot(bool yn)	{	CalcPot = yn;}
-bool Electrodes::getCalcPot()		{	return CalcPot;}
-int Electrodes::getnElectrodes()	{   return nElectrodes;}
-bool Electrodes::isEField()
+bool Electrodes::getCalcPot()const		{	return CalcPot;}
+//int Electrodes::getnElectrodes()const	{   return nElectrodes;}
+bool Electrodes::isEField()const
 {
     // CHECKS WHETHER UNIFORM E-FIELD HAS BEEN DEFINED
 
@@ -141,41 +126,41 @@ bool Electrodes::isEField()
 
 }
 
-void Electrodes::WriteElectrodes(FILE* fid)
+void Electrodes::WriteElectrodes(FILE* fid) const
 {
 
-    if (fid!=NULL)
+}
+
+void Electrodes::setElectrodePotential(const size_t &eNum, const double &pot)
+{
+// SETS THE CURRENT POTENTIAL OF ELECTRODE eNum TO VALUE pot
+
+    if ( eNum >= getnElectrodes() )
     {
-        fprintf(fid,"#======================\n");
-        fprintf(fid,"#  ELECTRIC STUFF\n" );
-        fprintf(fid,"#======================\n\n");
-        for (int i = 0 ; i < getnElectrodes() ; i ++ ) // write electrode #i
-        {
-            char str[10];
-            sprintf(str, "E%i", i+1);
-            fprintf(fid,"\t%s.Time = [%e", str, E[i]->Time[0]);
-            for (int t = 1 ; t < (int) E[i]->Time.size() ; t++ )
-                fprintf(fid,",%e",E[i]->Time[t]);
-				
-            fprintf(fid,"]\n\t%s.Pot  = [%e",str , E[i]->Potential[0]);
+        printf("error in %s, cant set potential of electrode %u.\n" , __func__ , eNum + 1);
+        printf("Total number of electrodes is %u\n", getnElectrodes() );
+        exit(1);
+    }
+    potentials_[eNum] = pot;
 
-            for (int p = 1 ; p < (int) E[i]->Potential.size() ; p++)
-                fprintf(fid,",%e",E[i]->Potential[p]);
+// CHECKS WHETHER POTENTIAL CALCULATION IS NEEDED
+    CalcPot = false;
+    double minPot = *std::min_element(potentials_.begin() , potentials_.end() );
+    double maxPot = *std::max_element(potentials_.begin() , potentials_.end() );
+    if (minPot != maxPot)
+        CalcPot = true;
 
-            fprintf(fid,"]\n\n");
 
-        }// end write electrodes
+}
 
-        if (eps_dielectric.size()>0) // if dielectric permittivities are defined
-        {
-            fprintf(fid, "\teps_dielectric = [%2.4f",eps_dielectric[0]);
-            for (int e = 1 ; e < (int) eps_dielectric.size() ; e++)
-                fprintf(fid, ",%2.4f",eps_dielectric[e]);
-
-            fprintf(fid, "]\n");
-        }
-
-        fprintf(fid,"EField = [%e,%e,%e]", EField[0], EField[1], EField[2]);
-
-    }// end if fid!=NULL
+double Electrodes::getCurrentElectrodePotential(const size_t &eNum) const
+{
+// RETURNS THE CURRENT POTENTIAL OF ELECTRODE eln
+    if ( eNum >= getnElectrodes() )
+    {
+        printf("error in %s, can't get potential of electrode %u\n",__func__, eNum + 1 );
+        printf("Total number of electrodes is %u\n", getnElectrodes() );
+        exit(1);
+    }
+    return potentials_[eNum];
 }

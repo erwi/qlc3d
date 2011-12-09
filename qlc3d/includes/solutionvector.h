@@ -12,6 +12,26 @@
 //#include "material_numbers.h"
 using std::vector;
 using std::list;
+
+
+namespace SolutionVectorNameSpace
+{
+    class node{
+    public:
+        int nodenum;
+        int mat;
+        node(const int& num, const int& mat):nodenum(num),mat(mat){}
+        bool operator<(const node& other)const
+        {
+            return ( other.nodenum < nodenum );
+        }
+        bool operator==(const node& other)const
+        {
+            return (other.nodenum == nodenum);
+        }
+    };
+}
+
 class SolutionVector
 {
 static const double BIGNUM;
@@ -20,6 +40,7 @@ private:
     int nDoF;		// number number of degrees of freedom per dimension
     int nFixed;
     int nDimensions;// number of dofs per node. e.g potential = 1, Q = 5
+    int* FixedNodeMaterial;  // material number of fixed nodes
     bool* IsFixed;
     int* Elim; 		// effective node ordering after taking into account periodic nodes that need not solving
     int* EquNodes;	// nodal equivalencies - i.e. periodic nodes
@@ -93,20 +114,23 @@ public:
         return Values[n + dim*nDoF];
     }
 	
-	void setnDoF(int n);
-	void setnFixed(int n);
-	void Allocate(const unsigned int& np, const unsigned int& ndim = 1);
-	void setnDimensions(int n);
-	void setValuesTo(const double& value); // sets all values to value
-	void setValuesTo(const double* values); // sets all values to those in array 'values'. length of 'values' must be correct
-	void setValuesTo(const SolutionVector& other); // copies values from other SolutionVector
-	void setValue(const unsigned int& n,const unsigned int& dim, const double& val);// sets nth value of dimension dim to val
-	void setToFixedValues();
-	void setFixedNodes(vector<int> *Material, vector<double> *val ,int *Elem,int *Mat,int nElem,int nNodes);
-	void setFixedNodes(Alignment *alignment, int* e);
-	void setFixedNodesQ(Alignment* alignment, Mesh* e);
-	void setFixedNodesPot(Electrodes* electrodes, Mesh* e);
-	void setFixedNodesPot(Electrodes* electrodes, Mesh* e, double CurrentTime); // fixed potential for switching
+    void setnDoF(int n);
+    void setnFixed(int n);
+    void Allocate(const unsigned int& np, const unsigned int& ndim = 1);
+    void setnDimensions(int n);
+    void setValuesTo(const double& value); // sets all values to value
+    void setValuesTo(const double* values); // sets all values to those in array 'values'. length of 'values' must be correct
+    void setValuesTo(const SolutionVector& other); // copies values from other SolutionVector
+    void setValue(const unsigned int& n,const unsigned int& dim, const double& val);// sets nth value of dimension dim to val
+    void setToFixedValues();
+    void setFixedNodes(vector<int> *Material, vector<double> *val ,int *Elem,int *Mat,int nElem,int nNodes);
+    void setFixedNodes(Alignment *alignment, int* e);
+    void setFixedNodesQ(Alignment* alignment, Mesh* e);
+    void setFixedNodesPot(Electrodes* electrodes);
+    void setFixedNodesPot(Electrodes& electrodes, Mesh* e, double CurrentTime); // fixed potential for switching
+
+    void allocateFixedNodesArrays(Geometry& geom); // ALLOCATES FIXED NODE ARRAYS FOR POTENTIAL.
+
     void Resize(const unsigned int& n, const unsigned int& dim = 1); // resizes Values data, clears all data
     void ClearAll();
 

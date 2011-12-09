@@ -265,11 +265,9 @@ void Simu::setStretchVectorZ(double sz)
 }
 
 
-string Simu::getLoadQ()						{	return LoadQ;		}
-string Simu::getLoadDir()					{ 	return LoadDir;		}
-string Simu::getSaveDir()					{	return SaveDir;		}
-string Simu::getEndCriterion()                                  {       return EndCriterion;    }
-string Simu::getMeshName(){ // returns mesh name with mesh number appended
+string Simu::getMeshName() const
+{
+    // returns mesh name with mesh number appended
     std::string meshname(this->MeshName );
     std::stringstream ss;
     ss << MeshNumber;
@@ -294,44 +292,35 @@ string Simu::getMeshFileNameOnly(){
     return meshname;
 }
 
-double Simu::getMaxError()					{	return MaxError;	}
-//double Simu::getdt()						{	return dt;		}
-//double Simu::getMaxdt()						{	return Maxdt;	}
-double Simu::getCurrentTime()           	{	return CurrentTime;	}
-double Simu::getCurrentChange()         	{	return CurrentChange;   }
-double Simu::getEndValue()              	{       return EndValue;        }
-double Simu::getStretchVectorX()			{	return StretchVector[0];}
-double Simu::getStretchVectorY()			{	return StretchVector[1];}
-double Simu::getStretchVectorZ()			{	return StretchVector[2];}
-
-
-int Simu::getCurrentIteration() 			{	return CurrentIteration;}
-int Simu::getOutputEnergy()					{	return OutputEnergy;}
-int Simu::getOutputFormat()					{	return OutputFormat;}
-void Simu::IncrementCurrentTime()			{	CurrentTime+=dt;}
+void Simu::IncrementCurrentTime(){	CurrentTime+=dt;}
 void Simu::IncrementCurrentIteration()		{	CurrentIteration ++;}
-bool Simu::IsRunning(){
-	if ( EndCriterion.compare("Iterations") == 0 )	{
-                if (CurrentIteration > (int) EndValue) return false;
-	}
-	else if ( EndCriterion.compare("Time") == 0)	{
-                if (CurrentTime > EndValue) return false;
-	}
-        else if (EndCriterion.compare("Change") == 0){
-            if (dt >0){
-                printf("\tdQ / dt = %1.3e , EndValue = %1.3e\n", fabs( getCurrentChange() ), EndValue );
-                if ( fabs(getCurrentChange()  ) <= EndValue) // if dQ / dt < maxchange
-                    return false;
-		}
+bool Simu::IsRunning()const{
+    if ( EndCriterion.compare("Iterations") == 0 )
+    {
+        if (CurrentIteration > (int) EndValue) return false;
+    }
+    else if ( EndCriterion.compare("Time") == 0)
+    {
+        if (CurrentTime > EndValue) return false;
+    }
+    else if (EndCriterion.compare("Change") == 0)
+    {
+        if (dt >0)
+        {
+            printf("\tdQ / dt = %1.3e , EndValue = %1.3e\n", fabs( getCurrentChange() ), EndValue );
+            if ( fabs(getCurrentChange()  ) <= EndValue) // if dQ / dt < maxchange
+                return false;
+        }
 
-		if (fabs(getCurrentChange()) <= EndValue )
-                    return false;
+        if (fabs(getCurrentChange()) <= EndValue )
+            return false;
 	}
-        else{
-		printf("error - Simu::IsRunning() - unknowns EndCriterion %s , bye!\n",EndCriterion.c_str());
-		exit(1);
-	}
-	return true;
+    else
+    {
+        printf("error - Simu::IsRunning() - unknowns EndCriterion %s , bye!\n",EndCriterion.c_str());
+        exit(1);
+    }
+    return true;
 }
-//bool Simu::IsAssembleMatrix()	{	}
+
 

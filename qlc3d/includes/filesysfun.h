@@ -23,20 +23,18 @@
 #else
     #error "OS NOT DEFINED: Linux or Windows"
 #endif
-//void backSlashToForwardSlash( std::string& str); // converts backslashes to fw slashes
+
+namespace FilesysFun{
 
 
 bool setCurrentDirectory(const std::string& destdir);
 
 std::string getCurrentDirectory();
 
-
 bool dirExists(const std::string& dir);
 bool fileExists(const std::string& file);       // check whether file exists already
-
 bool createDirectory(const std::string& newdir);
 
-
-
+}// end namespace FilesysFun
 
 #endif // FILESYSFUN_H

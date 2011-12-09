@@ -156,9 +156,9 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         }// end if
 	}//end while dq > MaxError  ---- ENDS NEWTON LOOP
 
-	if ( simu->getdt() > 0 ){
-	    simu->IncrementCurrentTime();
-    }// end if dt>0
+//	if ( simu->getdt() > 0 ){
+//	    simu->IncrementCurrentTime();
+//        }// end if dt>0
 
 	simu->IncrementCurrentIteration();
 

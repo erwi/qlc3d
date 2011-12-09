@@ -41,7 +41,7 @@ void problemo(std::string& name, int ret){
 // end problemo (optional parameter problem)
 
 
-void readLC(LC* lc,Reader& reader)
+void readLC(LC& lc,Reader& reader)
 {
 
     /// THIS CHECKING SHOULD BE DONE IN THE READER CLASS
@@ -58,81 +58,81 @@ void readLC(LC* lc,Reader& reader)
 	name = "K11";
 	ret = reader.readNumber(name , val);
 	if (ret == READER_SUCCESS)
-	lc->K11 = val;
+        lc.K11 = val;
 	problem(name, ret);
 
 	name = "K22";
 	ret = reader.readNumber(name , val);
 	if (ret == READER_SUCCESS)
-	lc->K22 = val;
+        lc.K22 = val;
     problem(name, ret);
 
 	name = "K33";
 	ret = reader.readNumber(name , val);
 	if (ret == READER_SUCCESS)
-	lc->K33 = val;
+        lc.K33 = val;
     problem(name, ret);
 
 	name = "p0";
 	ret = reader.readNumber(name , val);
 	if(ret == READER_SUCCESS)
-	lc->p0 = val;
+        lc.p0 = val;
     problem(name, ret);
 // THERMOTROPIC COEFFS
 	name = "A";
 	ret = reader.readNumber(name , val);
 	if(ret == READER_SUCCESS)
-	lc->A = val;
+        lc.A = val;
     problem(name,ret);
 
 	name = "B";
 	ret = reader.readNumber(name, val);
 	if(ret == READER_SUCCESS)
-	lc->B = val;
+        lc.B = val;
     problem(name,ret);
 
 	name = "C";
 	ret = reader.readNumber(name, val);
 	if(ret == READER_SUCCESS)
-	lc->C = val;
+        lc.C = val;
     problem(name,ret);
 
 // ELECTRIC COEFFS
 	name = "eps_par";
 	ret = reader.readNumber(name, val);
 	if(ret == READER_SUCCESS)
-	lc->eps_par = val;
+        lc.eps_par = val;
     problem(name, ret);
 
 	name = "eps_per";
 	ret = reader.readNumber(name, val);
 	if(ret == READER_SUCCESS)
-	lc->eps_per = val;
+        lc.eps_per = val;
     problem(name, ret);
 
 	name = "e11";
 	ret = reader.readNumber(name, val);
 	if(ret == READER_SUCCESS)
-	lc->e11 = val;
+        lc.e11 = val;
     problem(name,ret);
 
 	name = "e33";
 	ret = reader.readNumber(name, val);
 	if(ret == READER_SUCCESS)
-	lc->e33 = val;
+        lc.e33 = val;
     problem(name, ret);
 
 // VISCOUS COEFFICIENTS
     name = "gamma1";
     ret = reader.readNumber(name, val);
     if(ret == READER_SUCCESS)
-	lc->gamma1 = val;
+        lc.gamma1 = val;
 	problem(name, ret);
 
     name = "gamma2";
     ret = reader.readNumber(name, val);
     if(ret == READER_SUCCESS)
-	lc->gamma2 = val;
+        lc.gamma2 = val;
 	problem(name, ret);
 
 // DO THIS LATER IF NEEDED
@@ -466,7 +466,7 @@ void readAlignment(Alignment* alignment, Reader& reader)
             if (vec.size() == 3 ){
                 double ez[3] = {vec[0] , vec[1] , vec[2] };
                 s->setEasyAngles( ez );
-				s->calcV1V2(); // calculates surface vectors from easy angles
+                s->calcV1V2(); // calculates surface vectors from easy angles
             }
             else{
                 cout << "error - Easy direction "<< name <<" needs 3 angles - bye!" << endl;
@@ -498,73 +498,69 @@ void readAlignment(Alignment* alignment, Reader& reader)
 
 }//end void readAlignment
 
-void readElectrodes(Electrodes* electrodes, Reader& reader)
+void readElectrodes(Electrodes* electrodes,
+                    Reader& reader,
+                    EventList& evli)
 {
-    int num_electrodes = 100;
-    stringstream ss;
-    string name = "";
-    std::vector < double > vec;
-    int ret = 0;
-    for (int i = 1 ; i < num_electrodes ; i++){
-        ss.clear() ; name.clear();
-        ss << "E" << i << ".Pot";
+
+    std::string name;
+    std::stringstream ss;
+    // COUNT NUMBER OF ELECTRODES
+    int i = 1;
+    for ( ; i < 100 ; i++)
+    {
+
+        std::vector <double> dummy;
+
+        name.clear();
+        ss.clear();
+        ss << "E"<< i <<".Pot";
         ss >> name;
 
-        ret = reader.readNumberArray(name , vec );
-    // IF ELECTRODE FOUND
-        if (ret == READER_SUCCESS){
-            
-			//printf("A"); fflush(stdout);
-			electrodes->setCalcPot(true);
-            Electrode* el = new Electrode();
+        int ret = reader.readNumberArray(name,dummy );
 
-            el->setPotential(vec);
+        if (ret!=READER_SUCCESS)
+            break;
+    }
+    size_t numElectrodes = i - 1 ;
+    electrodes->setnElectrodes( numElectrodes );
 
-            ss.clear(); name.clear();
-            ss << "E" << i << ".Time";
-            ss >> name;
-            ret = reader.readNumberArray(name , vec);
-            problem(name , ret);
-            el->setTime(vec);
 
-            electrodes->AddElectrode(el);
 
-        }// end if Electrode found
-    }// end for i = 1:num_electrodes
-
-// ===============================
-//  GET DIELECTRIC COEFFICENTS
-// ===============================
-    ss.clear(); name.clear();
-    name = "eps_dielectric";
-
-    ret = reader.readNumberArray(name, vec);
-    if (ret == READER_SUCCESS)
-        electrodes->eps_dielectric = vec;
-
-    problemo(name , ret);
-
-// ==================================
-//  READ UNIFORM E-FIELD, IF DEFINED
-// ==================================
-    ss.clear();
-    name.clear();
-    vec.clear();
-    ret = reader.readNumberArray("EField", vec);
-    if (ret == READER_SUCCESS)
+    for (i = 1 ; i < numElectrodes + 1 ; i++)
     {
-        if (vec.size()==3)
+        std::vector<double> times;
+        std::vector<double> pots;
+
+        name.clear();
+        ss.clear();
+        ss << "E"<<i<<".Time";
+        ss >> name;
+        int ret = reader.readNumberArray(name,times);
+        problem(name, ret);
+
+        name.clear();
+        ss.clear();
+        ss << "E"<<i<<".Pot";
+        ss >> name;
+        ret = reader.readNumberArray(name, pots);
+
+        if (times.size() != pots.size() )
         {
-            electrodes->EField[0] = vec[0];
-            electrodes->EField[1] = vec[1];
-            electrodes->EField[2] = vec[2];
-        }
-        else
-        {
-            fprintf(stderr,"error - EField must be of length 3 - bye!\n");
+            cout <<" error reading E" << i <<" Time/Pot lengths do not match - bye!"<<endl;
             exit(1);
         }
+
+
+        // ADD CODE HERE TO DISTINGUISH BETWEEN TIME/ITERATION SWITCHING
+        for (size_t j = 0 ; j < times.size() ; j++)
+        {
+            SwitchingEvent *swEvent = new SwitchingEvent( times[j], pots[j] , i-1 ); // CREATE NEW SWITCHING EVENT ON HEAP
+            evli.insertTimeEvent( swEvent );
+        }
     }
+
+    evli.printEventList();
 
 }
 // end readElectrodes
@@ -678,6 +674,7 @@ void readAutorefinement( MeshRefinement* meshrefinement, Reader& reader){
 
         }// end if autoref i found
     }// end for possible autorefs, i
+
 }
 
 void readEndrefinement( MeshRefinement* meshrefinement, Reader& reader){
@@ -738,34 +735,35 @@ void readEndrefinement( MeshRefinement* meshrefinement, Reader& reader){
 void ReadSettings(
 	string settings_filename,
 	Simu* simu,
-	LC* lc,
+        LC& lc,
 	Boxes* boxes,
 	Alignment* alignment,
 	Electrodes* electrodes,
-	MeshRefinement* meshrefinement
-    ){
+        MeshRefinement* meshrefinement,
+        EventList& eventlist)
+{
 
     Reader reader;
     using namespace std;
     if ( reader.openFile(settings_filename) ){
         cout << "reading: "<< settings_filename << endl;
     // READ SIMU
-        readSimu(simu , reader);
-	//simu->PrintSimu();
-	// READ LC
-	readLC(lc , reader);
-	lc->convert_params_n2Q();
+    readSimu(simu , reader);
+
+    // READ LC
+    readLC(lc , reader);
+    lc.convert_params_n2Q();
 
     // READ BOXES
-	readBoxes(boxes , reader);
+    readBoxes(boxes , reader);
 
     // READ ALIGNMENT SURFACES
-	readAlignment(alignment, reader);
+    readAlignment(alignment, reader);
 
     // READ ELECTRODES
-        readElectrodes(electrodes , reader);
+    readElectrodes(electrodes , reader, eventlist);
     // READ MESH REFINEMENT
-	readMeshrefinement(meshrefinement, reader);
+    readMeshrefinement(meshrefinement, reader);
     // READ AUTOREFINEMENT
     readAutorefinement(meshrefinement, reader);
 
@@ -790,7 +788,7 @@ void ReadSolverSettings(const char* filename, Settings* settings)
     // CALLED "solver.qfg", BUT NOW ALSO READS "solver.txt", IF "solver.qfg"
     // IS NOT FOUND
     std::string fn = filename;
-    if ( !fileExists(fn) )
+    if ( !FilesysFun::fileExists(fn) )
     {
         fn = "solver.txt";
     }
@@ -898,3 +896,4 @@ void ReadSolverSettings(const char* filename, Settings* settings)
     }
 
 } // end readSolverSettings
+

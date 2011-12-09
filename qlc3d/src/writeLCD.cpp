@@ -6,6 +6,10 @@
 #include <simu.h>
 #include <filesysfun.h>
 
+namespace WriteResults{
+
+
+
 void WriteMesh(Simu* simu, double* p, Mesh* t, Mesh* e, int np)
 {
     int i;
@@ -245,7 +249,7 @@ void ReadLCD_B(Simu* simu, SolutionVector *q)
 void WriteSettings(Simu* simu , LC* lc, Boxes* box, Alignment* alignment, Electrodes* electrodes){
     string fname = "settings.qfg";
 
-    setCurrentDirectory( simu->getSaveDir() ); // go to save directory
+    FilesysFun::setCurrentDirectory( simu->getSaveDir() ); // go to save directory
 
     FILE *fid = fopen(fname.c_str(),"wt");
     if (fid!=NULL)
@@ -264,7 +268,7 @@ void WriteSettings(Simu* simu , LC* lc, Boxes* box, Alignment* alignment, Electr
         exit(1);
     }
 
-    setCurrentDirectory( simu->getCurrentDir() ); // go back to working directory
+    FilesysFun::setCurrentDirectory( simu->getCurrentDir() ); // go back to working directory
 }
 
 void WriteResult(
@@ -296,7 +300,7 @@ void WriteResult(
         (simu->getCurrentIteration() == SIMU_END_SIMULATION ))  // ...OR FINAL RESULT
     {
 
-        setCurrentDirectory( simu->getSaveDir() ); // go to save directory
+        FilesysFun::setCurrentDirectory( simu->getSaveDir() ); // go to save directory
 
         switch( simu->getOutputFormat() ){
             case SIMU_OUTPUT_FORMAT_BINARY:
@@ -317,28 +321,32 @@ void WriteResult(
             }
         } // end switch
 
-        setCurrentDirectory( simu->getCurrentDir() ); // go back to work directory
+        FilesysFun::setCurrentDirectory( simu->getCurrentDir() ); // go back to work directory
 
     }// end if write result file
 }
 // end void WriteREsult
 
 
-void CreateSaveDir(Simu* simu){
-// Creates savedir for results, if necessary
+void CreateSaveDir(Simu& simu)
+{
+    // CREATES DIRECTORY FOR RESULTS, IF IT DOES NOT
+    // ALREADY EXIST
+
 
 // first check if savedit already exists
-    if ( dirExists( simu->getSaveDir() ) )
+    if ( FilesysFun::dirExists( simu.getSaveDir() ) )
         return;             // if yes, can leave
 
 // try to create savedir.
-    if ( createDirectory(simu->getSaveDir() ) )
+    if ( FilesysFun::createDirectory(simu.getSaveDir() ) )
         return;             // if succesful, can leave
     else
 
     // if not succesful:
-    cout << "error - cold not create SaveDir:\n"<< simu->getSaveDir() <<"\nbye!"<<endl;
+    cout << "error - cold not create SaveDir:\n"<< simu.getSaveDir() <<"\nbye!"<<endl;
     exit(1);
 
 }
 // end void CreateSaveDir
+} // end namespace // WriteResults

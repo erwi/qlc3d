@@ -8,7 +8,7 @@
 #include <alignment.h>
 #include <simu.h>
 #include <mesh.h>
-//#include "nodes.h"
+
 #include <solutionvector.h>
 #include <material_numbers.h>
 #include <sparsematrix.h>
@@ -18,9 +18,7 @@
 #include <energy.h>
 #include <line.h>
 #include <meshrefinement.h>
-//#include <meshrefinement.h"
-//#include "line.h"
-
+#include <eventlist.h>
 #include <vector>
 #include <list>
 #include <iostream>
@@ -44,7 +42,17 @@ void readBinaryMesh(std::string filename ,  // same as above
                     int *&t, int *&tmat,
                     int *&e, int *&emat,
                     int *np, int *nt, int *ne);
-void calcpot3d(SparseMatrix* Kpot,SolutionVector *v, SolutionVector *q,LC* lc, Mesh *mesh, Mesh* surf_mesh, double *p, Settings* settings, Electrodes* electrodes);
+
+//void calcpot3d(SparseMatrix* Kpot,
+//               SolutionVector *v,
+//               SolutionVector *q,
+//               LC* lc,
+               //Mesh *mesh,
+               //Mesh* surf_mesh,
+               //double *p,
+//               Geometry& geom,
+//               Settings* settings,
+//               Electrodes* electrodes);
 
 void solve_pcg(SparseMatrix *K, double *b, double *x ,Settings* settings);
 void solve_gmres(SparseMatrix *K, double *b, double *x ,Settings* settings);
@@ -85,28 +93,20 @@ double calcQ3d(SolutionVector *q,
 
 //void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,Simu* simu);	// writes result as text file
 //void WriteLCD_B(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,Simu* simu, LC* lc); // writes result file in binary format
-void WriteResult(
-	Simu* simu, 		// Simulation settings
-	LC* lc,				// LC material paramters
-	Geometry* geom,		// mesh geometry data 
-	SolutionVector* v,  // potential solution
-    SolutionVector* q,  // Q-tensor solution
-    MeshRefinement* meshref = NULL); // meshrefinement info. including whether a new mesh has been generated
 
-void ReadLCD_B(Simu* simu, SolutionVector* q);
 
 void ReadSettings(
         string settings_filename,
         Simu* simu,
-        LC* lc,
+        LC& lc,
         Boxes* boxes,
         Alignment* alignment,
 	Electrodes* electrodes,
-	MeshRefinement* meshrefinement
+        MeshRefinement* meshrefinement,
+        EventList& eventlist
 	);
 
 void ReadSolverSettings(const char* filename, Settings* settings);
-void WriteSettings(Simu* simu, LC* lc, Boxes* box, Alignment* alignment , Electrodes* electrodes);
 void CreateSaveDir(Simu* simu); //creates new save dir, if needed
 
 // -----------------------------

@@ -7,7 +7,7 @@
 #include <lc.h>
 #include <sparsematrix.h>
 #include <settings.h>
-
+#include <geometry.h>
 #ifndef COMPLEX
     #define COMPLEX std::complex<double>
 #endif
@@ -164,22 +164,23 @@ void calcpot3d(
         SolutionVector *v,
         SolutionVector* q,
         LC* lc,
-        Mesh *mesh,
-        Mesh* surf_mesh,
-        double *p,
+        //Mesh *mesh,
+        //Mesh* surf_mesh,
+        //double *p,
+        Geometry& geom,
         Settings* settings,
         Electrodes* electrodes)
 {
     // First check whether potential calculation is actually needed...
 
-    // NO NEED TO CALCULATE POTENTIAL:
-    if ( (v->getnFixed() == 0 ) ||      // if no fixed potential nodes OR
-         (!electrodes->getCalcPot() ) ) // if no need to calculate potential
+    // NO NEED TO CALCULATE POTENTIAL IF...
+    if ( (v->getnFixed() == 0 ) ||      // no fixed potential nodes OR
+         (!electrodes->getCalcPot() ) ) // no need to calculate potential
     {
         v->setValuesTo(0.0); // if no potential calculation, set all values to zero
         if ( electrodes->isEField() )
         {
-            setUniformEField( *electrodes, *v, p);
+            setUniformEField( *electrodes, *v, geom.getPtrTop());
         }
         return;
     }
@@ -199,11 +200,11 @@ void calcpot3d(
     // Assemble system
 
     init_shapes();
-    assemble_volume(p,v,q,lc,mesh, K , L, electrodes);
+    assemble_volume(geom.getPtrTop(),v,q,lc,geom.t, K , L, electrodes);
 
 
     init_shapes_surf();
-    assemble_Neumann(p , v , q , lc , mesh , surf_mesh , K , L);
+    assemble_Neumann(geom.getPtrTop() , v , q , lc , geom.t , geom.e , K , L);
 
 #ifdef DEBUG
     K->DetectZeroDiagonals();
@@ -232,9 +233,9 @@ void calcpot3d(
 
     free(V);
 
-    // ADDS UNIFORM FIELD ONTOP OF CALCULATED POTENTIAL
+    // UNIFORM FIELD
     if ( electrodes->isEField() )
-        setUniformEField( *electrodes, *v, p);
+        setUniformEField( *electrodes, *v, geom.getPtrTop() );
 
 }
 //end calcpot3d

@@ -240,10 +240,10 @@ bool RegularGrid::writeVTKGrid(const char *filename,
     interpolateToRegular( n , regN, npLC );
     interpolateToRegular( S , regS);
 
+
+
     int num_points[3] = {nx_, ny_, nz_};
     double grid_spacing[3] = {dx_, dy_, dz_};
-
-    bool ret = true;        // RETURN VALUE
 
     vtkIOFun::writeID( fid );
 
@@ -254,9 +254,11 @@ bool RegularGrid::writeVTKGrid(const char *filename,
                            grid_spacing);
 
     vtkIOFun::writeScalarData( fid , npr_, "potential", regU);
-    vtkIOFun::writeScalarData( fid , npr_, "S", regS);
-    vtkIOFun::writeVectorData( fid, npr_, "director", regS);
 
+    vtkIOFun::writeScalarData( fid , npr_, "S", regS);
+
+    vtkIOFun::writeVectorData( fid, npr_, "director", regN);
+   printf("VTK\n"); fflush(stdout);
     delete [] regU;
     delete [] regN;
     delete [] regS;

@@ -76,7 +76,7 @@ class Settings
 		void setQ_PCG_Preconditioner(int pc);
 		
 		int  	getQ_PCG_Maxiter();
-		int		getQ_PCG_Preconditioner();
+                int	getQ_PCG_Preconditioner();
 		double	getQ_PCG_Toler();
 		
 	// GMRES Q-tensor solver settings	
@@ -87,7 +87,7 @@ class Settings
 		
 		int  	getQ_GMRES_Maxiter();
 		int     getQ_GMRES_Restart();
-		int		getQ_GMRES_Preconditioner();
+                int	getQ_GMRES_Preconditioner();
 		double	getQ_GMRES_Toler();
 
 //
@@ -100,7 +100,7 @@ class Settings
 		void setV_PCG_Preconditioner(int pc);
 		
 		int  	getV_PCG_Maxiter();
-		int		getV_PCG_Preconditioner();
+                int	getV_PCG_Preconditioner();
 		double	getV_PCG_Toler();
 		
 	// GMRES potential solver settings	

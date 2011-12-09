@@ -137,8 +137,8 @@ void Surface::calcV1V2()
 	l[1] = cos(a)*sin(g) + sin(a)*sin(b)*cos(g);
 	l[2] = cos(b)*cos(g);
 	
-	printf("k = [%f,%f,%f]\n", k[0], k[1], k[2] );
-	printf("l = [%f,%f,%f]\n", l[0], l[1], l[2] );
+        //printf("k = [%f,%f,%f]\n", k[0], k[1], k[2] );
+        //printf("l = [%f,%f,%f]\n", l[0], l[1], l[2] );
 
 	// v1 is surface normal = (0,0,1) for flat bottom surface
 	this->setv1( l );

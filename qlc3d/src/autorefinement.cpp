@@ -358,7 +358,7 @@ void autoref(   Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new,
 
     // REALLOCATE POTENTIAL
     v.Allocate( geom_new.getnp() , 1);
-    v.setFixedNodesPot(&electrodes, geom_new.e, 0.0 ); // <-- sets current time to zero!!! this may be a problem
+    v.setFixedNodesPot(electrodes, geom_new.e, 0.0 ); // <-- sets current time to zero!!! this may be a problem
     v.setPeriodicEquNodes( &geom_new);
     //cout << "v reallocated " << endl;
 

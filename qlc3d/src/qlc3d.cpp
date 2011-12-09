@@ -16,14 +16,16 @@
 #include <refinement.h>
 #include <regulargrid.h>
 #include <string>
-
+#include <eventhandler.h>
+#include <calcpot3d.h>
+#include <resultoutput.h>
 int minnode(int *t, int dim1, int dim2){ // what does this do?
 	int min = (int)1e9;
 	for (int i =0 ; i < dim1 * dim2 ; i++ )
 		if (t[i]<min) min = t[i];
 	return min;
 }
-void AdjustTimeStep(Simu& simu, const double& maxdq){
+void AdjustTime(Simu& simu, const double& maxdq){
 
     // if electrode switching etc. has just happened, dont adapt time step this time
     // but set switch to false to allow adjutment starting next step
@@ -34,6 +36,12 @@ void AdjustTimeStep(Simu& simu, const double& maxdq){
     }
 
     if (simu.getdt()>0){
+
+        // INCREMENT CURRENT TIME BEFORE CHANGING TIME STEP SIZE
+        // dt SHOULD BE CORRECT HERE TO MAKE SURE THAT A TIME STEP
+        // COINCIDES WITH AN EVENT, IF ANY.
+         simu.IncrementCurrentTime();
+
         // ADAPT TIME STEP ACCORDING TO CONVERGENCE
 
         double R = simu.getTargetdQ() / fabs(maxdq);
@@ -77,6 +85,7 @@ void AdjustTimeStep(Simu& simu, const double& maxdq){
 	}
 
 	simu.setCurrentChange(maxdq); // updates maximum change value for this iteration
+
 }
 
 
@@ -112,7 +121,7 @@ double ConsistencyLoop(SolutionVector& v, SolutionVector& q , SolutionVector& qn
 	// in some cases Pot Cons loops are not needed (if gong for steady state or PotCons == Off)
 	bool isPotCons = ( simu.getdt() > 0 ) && ( simu.getPotCons() != Off );
         isPotCons = false; // turn of consisteny loop
-        calcpot3d(Kpot,&v, &q, &lc, geom1.t,geom1.e, geom1.getPtrTop(), &settings, &electrodes);
+        calcpot3d(Kpot,&v, &q, &lc, geom1, &settings, &electrodes);
 
 
         maxdq = calcQ3d(&q,&qn,&v,geom1,&lc, &simu, Kq, &settings, &alignment );
@@ -122,61 +131,6 @@ double ConsistencyLoop(SolutionVector& v, SolutionVector& q , SolutionVector& qn
 }
 
 
-
-void HandleEvents(EventList* eventlist, Simu* simu, SolutionVector* v, Electrodes* electrodes, Mesh* ee){
-
-    // Do not handle events IF
-    if ( (!eventlist->getLength() ) ||    // event queue is empty
-         (simu->getdt() == 0 ) )        // not time-stepping
-         return ;
-
-    // time until next event
-    double te =  eventlist->getNextEventTime() - simu->getCurrentTime()  ;
-    simu->restrictedTimeStep = false; // no restriction needed on time step adaptation
-
-    while ( te < 1e-20 ){ // if time to next event is ridiculously small (or has just passed, te < 0 )
-
-        if  ( eventlist->getNextEventNumber() == EVENT_SWITCHING ){ // IF SWITCHING EVENT
-
-            simu->restrictedTimeStep = true; // time step shoul be set to minimum after switchign
-            simu->setdt( simu->getMindt() );
-
-            v->setFixedNodesPot(electrodes,ee,simu->getCurrentTime() );  // set potential boundary conditions for all electrodes
-            eventlist->RemoveFirstEvent();	// remove event from list
-
-            // check if potential calculation needed
-            bool needsCalcpot = false;
-            double currentPot = 0;
-            if ( electrodes->getnElectrodes() >= 2 ) {
-                currentPot = electrodes->E[0]->getCurrentPotential();
-
-                for (int i = 0 ; i < electrodes->getnElectrodes() ; i ++)// for each electrode
-                {
-                    // if differing potentials are applied to any electrode, potential must be calculated
-                    if (electrodes->E[i]->getCurrentPotential() != currentPot)
-                    {
-                        needsCalcpot = true;
-                        break;
-                    }
-                }
-            }// end if potential calc needed
-			
-            electrodes->setCalcPot( needsCalcpot ); // sets flag whether to calculate potential
-            if (! needsCalcpot) v->setValuesTo( currentPot ); // if no calculation needed, all values will be same
-            if (eventlist->getLength() == 0) break; // leave if no more events to check
-        }// end if EVENT_SWITCHING
-
-        te = fabs( eventlist->getNextEventTime() - simu->getCurrentTime() ) ;
-
-        }// end while next event
-
-	// adjust time step if an event will occur during next time-step
-	if (( te > 0  ) && (te < simu->getdt() )){ 
-		simu->setdt(te);
-		printf("adjusting time step to %e s. due to event\n", simu->getdt() );
-	}
-
-}//end void HandleEvents
 
 int main(int argc, char* argv[]){
 
@@ -200,8 +154,9 @@ int main(int argc, char* argv[]){
     Alignment	alignment;
     MeshRefinement  meshrefinement;
     RegularGrid regGrid;
+    EventList eventlist;
     string settings_filename = "./meshes/test.txt"; 	// default settings file, loaded when no i/p args.
-    simu.setCurrentDir( getCurrentDirectory() );
+    simu.setCurrentDir( FilesysFun::getCurrentDirectory() );
 
 
 
@@ -216,14 +171,23 @@ int main(int argc, char* argv[]){
         simu.setCurrentDir( argv[2] );
     }
 
-    if ( !setCurrentDirectory( simu.getCurrentDir() ) )
+    if ( !FilesysFun::setCurrentDirectory( simu.getCurrentDir() ) )
     {
         printf("error - could not set working directory to:\n%s\nbye!", simu.getCurrentDir().c_str() );
         exit(1);
     }
 
-    printf("current working directory:\n%s\n", getCurrentDirectory().c_str() );
-    ReadSettings(settings_filename,&simu,&lc,&boxes,&alignment,&electrodes, &meshrefinement);
+    printf("current working directory:\n%s\n", FilesysFun::getCurrentDirectory().c_str() );
+
+    ReadSettings(settings_filename, // CHANGE POINTERS TO REFS.
+                 &simu,
+                 lc,
+                 &boxes,
+                 &alignment,
+                 &electrodes,
+                 &meshrefinement,
+                 eventlist);
+
 
     FILE* Energy_fid = NULL; // file for outputting free energy
 
@@ -255,17 +219,25 @@ int main(int argc, char* argv[]){
 //
 //================================================
 
-    EventList eventlist = EventList();
-    eventlist.setElectrodeEvents(&electrodes);
-    eventlist.printEventList();
-	
+
+
+    //eventlist.addElectrodeEvents(electrodes, simu );
+    // add saveEvents
+    // add refinemenetEvents
+
+    //eventlist.printEventList();
+
+
+
     cout << "Creating V...";
     SolutionVector v( geom1.getnp() );
-    v.setFixedNodesPot( &electrodes , geom1.e , simu.getCurrentTime());
+    //v.setFixedNodesPot( electrodes , geom1.e , simu.getCurrentTime());
+    v.allocateFixedNodesArrays( geom1 );
+    //v.setFixedNodesPot(&electrodes, geom1.e);
     v.setPeriodicEquNodes( &geom1 ); // periodic nodes
-    v.setToFixedValues();
-    v.EnforceEquNodes(); // makes sure values at periodic boundaries match
-
+    //v.setToFixedValues();
+    //v.EnforceEquNodes(); // makes sure values at periodic boundaries match
+    v.PrintFixedNodes();
     cout << "OK"<<endl;
 
 
@@ -290,7 +262,7 @@ int main(int argc, char* argv[]){
 //  LOAD Q FROM RESULT FILE
     if (!simu.getLoadQ().empty() )
     {
-        ReadLCD_B(&simu,&q);
+        WriteResults::ReadLCD_B(&simu,&q);
         setStrongSurfacesQ(&q, &alignment, &lc, &geom1); // over writes surfaces with user specified values
     }
 
@@ -298,20 +270,25 @@ int main(int argc, char* argv[]){
     q.setPeriodicEquNodes(&geom1);          // periodic nodes
 
     q.EnforceEquNodes();		    // makes sure values at periodic boundaies match
+    //printf("aaaa\n"); fflush(stdout);
+    q.PrintFixedNodes();
     qn=q;                                   // q-previous = q-current in first iteration
+
     cout << "OK" << endl;                   // Q-TENSOR CREATED OK
- 
+
 
 // autoref( geom_orig, geom_prev, geom1, q,qn, v, meshrefinement, simu, alignment , electrodes, lc);
 
 // Make matrices for potential and Q-tensor..
     cout << "Creating sparse matrix for potential...";
+
     SparseMatrix* Kpot = createSparseMatrix(geom1 , v);
     cout << "potential matrix OK"<< endl;
 
     cout << "Creating matrix for Q-tensor..." << endl;
     SparseMatrix* Kq = createSparseMatrix(geom1, q, MAT_DOMAIN1);
     cout << "Q-tensor matrix OK" << endl;
+
 
 
     //Kpot->SPY();
@@ -324,87 +301,95 @@ int main(int argc, char* argv[]){
 //*		Save Initial configuration and potential
 //*
 //********************************************************************
-
-    calcpot3d(Kpot,&v,&q,&lc,geom1.t,geom1.e, geom1.getPtrTop(), &settings, &electrodes);
-
-
-    // -------------------------
-
-    double* vec = tensortovector(q.Values, geom1.getnpLC() );
-
-
-    regGrid.createFromTetMesh(3,3,10, geom1 );
-    //regGrid.writeVTKGrid( "regular.vtk" , v.Values );
-    regGrid.writeVTKGrid( "regular.vtk", v.Values, vec, (size_t) geom1.getnpLC() );
-
-    delete [] vec;
-
-
-    // -------END REGULAR GRID OUTPUT-----------
-
-// writes a copy of settings file in results directory
-    printf("Saving a copy of the settings file...");
-    CreateSaveDir(&simu);
-    simu.setCurrentTime(0);
-    WriteSettings(&simu, &lc, &boxes, &alignment, &electrodes);
-
     printf("\nSaving starting configuration (iteration -1)...\n");
-    WriteResult(&simu, &lc , &geom1, &v, &q);
+    WriteResults::CreateSaveDir(simu);
+    Energy_fid = createOutputEnergyFile(simu); // done in inits
+    handleInitialEvents(eventlist,
+                 electrodes,
+                 simu,
+                 v,
+                 geom1,
+                 meshrefinement,
+                 Kpot,
+                 q,
+                 lc,
+                 settings);
     printf("OK\n");
 
 
-    Energy_fid = createOutputEnergyFile(simu); // done in inits
+   // v.PrintValues();
+    //printf("aaaa\n"); fflush(stdout);
+    //calcpot3d(Kpot,&v,&q,&lc,geom1, &settings, &electrodes);
+    //printf("bbbb\n"); fflush(stdout);
+   // v.PrintValues();
+   // printf("cccc\n"); fflush(stdout);
 
+    // -------------------------
+
+    //double* vec = tensortovector(q.Values, geom1.getnpLC() );
+    //regGrid.createFromTetMesh(3,3,10, geom1 );
+    //regGrid.writeVTKGrid( "regular.vtk", v.Values, vec, (size_t) geom1.getnpLC() );
+    //delete [] vec;
+
+
+    // -------END REGULAR GRID OUTPUT-----------
 
     // TEMPORARY ARRAYS, USED IN POTENTIAL CONSISTENCY CALCULATIONS
     simu.setPotCons( Off );
     double* v_cons = NULL ;
     double* q_cons = NULL ;
     double* qn_cons= NULL ;
-    if ( (simu.getPotCons() != Off) && (simu.getdt() > 0 ) ){
-            v_cons  = (double*) malloc(v.getnDoF() * sizeof(double) );
-            q_cons  = (double*) malloc(q.getnDoF() * q.getnDimensions() * sizeof(double) );
-            qn_cons = (double*) malloc(q.getnDoF() * q.getnDimensions() * sizeof(double) );
-	}
+    if ( (simu.getPotCons() != Off) && (simu.getdt() > 0 ) )
+    {
+        v_cons  = (double*) malloc(v.getnDoF() * sizeof(double) );
+        q_cons  = (double*) malloc(q.getnDoF() * q.getnDimensions() * sizeof(double) );
+        qn_cons = (double*) malloc(q.getnDoF() * q.getnDimensions() * sizeof(double) );
+    }
 
 //===============================================
 //	 Start simulation
 //
 //===============================================
 
-	simu.setCurrentTime(0);
+
+        simu.setCurrentIteration( 1 );
 	time_t t1, t2;
 	time(&t1);
 	time(&t2);
 	double maxdq = 0;
 	// MAIN LOOP - while simulation is running
 
-	do{
+    do{
+        time(&t2);
+        printf("=======================================================================\n");
+        printf("Iteration %i, Time = %1.3es. Real time = %1.2es. dt = %1.3es. \n\b\b",simu.getCurrentIteration(),simu.getCurrentTime(),(float) t2-t1,simu.getdt());
+        fflush(stdout);
 
-            time(&t2);
-            printf("=======================================================================\n");
-            printf("Iteration %i, Time = %1.3es. Real time = %1.2es. dt = %1.3es. \n\b\b",simu.getCurrentIteration(),simu.getCurrentTime(),(float) t2-t1,simu.getdt());
-            fflush(stdout);
+        // mve this to event handling/result output
+        CalculateFreeEnergy(Energy_fid, &simu, &lc, &geom1, &v, &q);
 
-            CalculateFreeEnergy(Energy_fid, &simu, &lc, &geom1, &v, &q);
+        // CALCULATES Q-TENSOR AND POTENTIAL
+        maxdq = ConsistencyLoop(v,q,qn,v_cons,q_cons,qn_cons,
+                                    geom1, simu, lc, settings,
+                                    alignment, electrodes,
+                                    Kq, Kpot);
 
-            //EVENTS (ELECTRODES SWITCHING ETC.)
-            HandleEvents(&eventlist, &simu, &v, &electrodes, geom1.e);
+        //EVENTS (ELECTRODES SWITCHING ETC.)
+        handleEvents(eventlist,
+                     electrodes,
+                     simu,
+                     v,
+                     geom1,
+                     meshrefinement,
+                     Kpot,
+                     q,
+                     lc,settings);
 
-            // CALCULATES Q-TENSOR AND POTENTIAL
-            maxdq = ConsistencyLoop(v,q,qn,v_cons,q_cons,qn_cons,
-                                        geom1, simu, lc, settings,
-                                        alignment, electrodes,
-                                        Kq, Kpot);
 
+        // ADAPTS TIME STEP SIZE AND INCREMENTS CURRENT TIME
+        AdjustTime(simu, maxdq);
 
-
-            // SAVE
-            WriteResult(&simu, &lc , &geom1, &v, &q);
-
-            AdjustTimeStep(simu, maxdq); // also increments current time
-
-/* AUTOREFINEMENT
+//* AUTOREFINEMENT ---- MOVE TO EVENTS
         if (( (meshrefinement.isRefinementIteration( simu.getCurrentIteration() ) ) ))  // if this is a refinement iteration
              //|| (simu.getCurrentIteration() == 1) ) &&                               // or if first iteration this should be done before start of simulation
             //(needsRefinement(geom1,q,meshrefinement) ) ) {
@@ -414,21 +399,16 @@ int main(int argc, char* argv[]){
             autoref(geom_orig, geom_prev, geom1, q, qn, v,  meshrefinement, simu,alignment, electrodes, lc);
             Kpot = createSparseMatrix(geom1, v );
             Kq   = createSparseMatrix(geom1, q, MAT_DOMAIN1);
-            calcpot3d(Kpot,&v,&q,&lc,geom1.t,geom1.e, geom1.getPtrTop(), &settings, &electrodes);
+            calcpot3d(Kpot,&v,&q,&lc,geom1, &settings, &electrodes);
 
             if (simu.getdt() > 0 )// if not steady state
             {
                 simu.setdt( simu.getMindt() );
             }
 
-            WriteResult(&simu, &lc, &geom1, &v, &q, &meshrefinement);
+            WriteResults::WriteResult(&simu, &lc, &geom1, &v, &q, &meshrefinement);
         }
-//*/
 
-	// LAZY....
-	//#ifndef NO_QT
-	//	cout << "Total iteration duration: " << (float) timer.elapsed()/1000<<"s." << endl;
-	//#endif
 
 	// if need end-refinement
     if ( (!simu.IsRunning() ) && (needsEndRefinement( geom1, q , meshrefinement ) ) )
@@ -441,9 +421,9 @@ int main(int argc, char* argv[]){
 	  	autoref(geom_orig, geom_prev, geom1, q, qn, v,  meshrefinement, simu,alignment, electrodes, lc);
         Kpot = createSparseMatrix(geom1, v );
         Kq   = createSparseMatrix(geom1, q, MAT_DOMAIN1);
-        calcpot3d(Kpot,&v,&q,&lc,geom1.t,geom1.e, geom1.getPtrTop(), &settings, &electrodes);
+        calcpot3d(Kpot,&v,&q,&lc,geom1, &settings, &electrodes);
 
-        WriteResult(&simu, &lc, &geom1, &v, &q, &meshrefinement);
+        WriteResults::WriteResult(&simu, &lc, &geom1, &v, &q, &meshrefinement);
 
         if ( simu.getdt() > 0.0 )
         {
@@ -451,11 +431,11 @@ int main(int argc, char* argv[]){
         }
     }// end if need end-refinement
 
-	}while ( simu.IsRunning() ); // end MAIN LOOP - while simulation is runnning
+}while ( simu.IsRunning() ); // end MAIN LOOP - while simulation is runnning
 
     printf("\nSaving final result file...\n");
     simu.setCurrentIteration( SIMU_END_SIMULATION );
-    WriteResult(&simu, &lc , &geom1, &v, &q);
+    WriteResults::WriteResult(&simu, &lc , &geom1, &v, &q);
     printf("OK\n");
 
     closeEnergyFile(Energy_fid , simu);
@@ -466,6 +446,7 @@ int main(int argc, char* argv[]){
     if (v_cons) free(v_cons);
     if (q_cons) free(q_cons);
     if (qn_cons) free(qn_cons);
+
     return (0);
 }
 // end main

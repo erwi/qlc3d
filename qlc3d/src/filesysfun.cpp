@@ -1,5 +1,8 @@
 #include <filesysfun.h>
 
+namespace FilesysFun
+{
+
 bool setCurrentDirectory(const std::string& destdir)
 {
 // Changes current working directory to destdir.
@@ -86,7 +89,6 @@ bool createDirectory(const std::string& newdir)
 #ifdef Windows
     return CreateDirectoryA( newdir.c_str(), NULL );
 #endif
-
-
-
 }
+
+}//end namespace FilesysFun
