@@ -17,9 +17,15 @@
 
 enum PotentialConsistency {Off, Loop};
 
+
 using namespace std;
 class Simu
 {
+
+public:
+    enum SaveFormats {LCview=1,         // SAVE FORMATS OPTIONSo
+                      RegularVTK=2};
+private:
 
     PotentialConsistency PotCons;
     double TargetPotCons; // minimum potential consistency when PotCons == Loop
@@ -49,9 +55,18 @@ class Simu
     int MeshNumber;     // counts number of modifications. This number is appended to the end of mesh name
     int	OutputEnergy;	// boolean whether or not to calculate energy
     int	OutputFormat;
-    int	SaveIter; // determines frequency of saving intermediate result files
+    int	SaveIter;       // determines frequency of saving intermediate result files
+    size_t SaveFormat;  // bit field with different save formats
+
+
 
 public:
+
+    // SAVE FORMAT ID STRINGS
+    static const char* SF_LCVIEW;
+    static const char* SF_REGULAR_VTK;
+
+
     string MeshName;
     double dt;
     bool restrictedTimeStep; // flag to allow/disallow adapting time step size (e.g. just after potential switching)
@@ -138,7 +153,8 @@ public:
     inline void setMeshNumber(const int& n) {MeshNumber = n;}
     inline void IncrementMeshNumber(){ MeshNumber++;}
 
-
-
+    size_t getSaveFormat()const {return SaveFormat;}
+    void clearSaveFormat(){SaveFormat = 0;} // CLEARS ALL SAVE TYPES
+    void addSaveFormat(std::string format); // ADDS A SAVE FORMAT
 };
 #endif

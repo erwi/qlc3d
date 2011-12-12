@@ -160,7 +160,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 //	    simu->IncrementCurrentTime();
 //        }// end if dt>0
 
-	simu->IncrementCurrentIteration();
+//	simu->IncrementCurrentIteration();
 
 	free(dq);
 	free(L);

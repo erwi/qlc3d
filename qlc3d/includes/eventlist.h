@@ -100,8 +100,8 @@ class EventList
         bool eventOccursNow(const Simu& simu) const;
 
         void insertTimeEvent(TimeEvent* tEvent);
+        void setSaveIter(const size_t& si){saveIter_ = si;}
 
-        //void insertIterEvent(const size_t& iter, const EventType& et);
 
         Event* getCurrentEvent(const Simu& simu);    // removes current event from queue and returns a copy of it
         double timeUntilNextEvent(const Simu& simu) const;

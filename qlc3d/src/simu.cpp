@@ -1,46 +1,55 @@
 #include <simu.h>
 
 
+const char* Simu::SF_LCVIEW = "LCview";
+const char* Simu::SF_REGULAR_VTK = "RegularVTK";
 
-Simu::Simu()
+Simu::Simu():
+PotCons(Off),
+    TargetPotCons(1e-3),
+    MaxError(1e-7),
+    CurrentTime(0),
+    CurrentChange(0),
+    TargetdQ(1e-3),
+    Maxdt(1e-4),
+    EndCriterion("Time"),
+    LoadQ(""),
+    CurrentDir(""),
+    SaveDir("res"),
+    LoadDir(""),
+    EndValue(1e-3),
+    EndValue_orig(0),
+    CurrentIteration(0),
+
+    AssembleMatrix(true),
+    MeshModified(true),
+    MeshNumber(0),
+    OutputEnergy(0),
+    OutputFormat(SIMU_OUTPUT_FORMAT_BINARY),
+    SaveIter(1),
+    SaveFormat( LCview ),
+
+    MeshName(""),
+    dt(1e-9),
+    restrictedTimeStep(false) // !! CHECK IF THIS IS STILL USED ANYWHERE !!
+
+
 {
-    PotCons				= Loop;
-    TargetPotCons		= 1e-3;
-    EndValue 			= 0;
-    EndValue_orig       = 0;
-    MeshName 		= "";
-    LoadQ		= "";
-    CurrentDir          = "";
-    SaveDir		= "res";
-    SaveIter		= 1;
-    MeshNumber          = 0;
-    LoadDir		= "";
-    EndCriterion        = "Time";
-		
-    dt                  = 1e-6;
+
     dtLimits[0]         = 1e-9;
     dtLimits[1]         = 1e-3;
-    TargetdQ            = 1e-3;
 
     dtFunction[0]       = 0.5;	// value of R where S = 0
     dtFunction[1]       = 0.8; // S = R (min)
     dtFunction[2]       = 1.2; // S = R (max)
     dtFunction[3]       = 10.0;  // S = 2
 
-    Maxdt               = 1e-4; // deprecated, use dtLimits[1]
     restrictedTimeStep     = false;
 
-    CurrentTime 		= 0;
-    CurrentIteration 	= 0;
-    CurrentChange		= 1;
-    setMaxError(1e-7);
-    AssembleMatrix 		= true;
-    MeshModified        = true; // Always assume mesh has changed -> output mesh file
-    OutputEnergy		= 0;
     StretchVector[0]    = 1.0;	StretchVector[1]	= 1.0;	StretchVector[2]	= 1.0;
     EnergyRegion [0]	= 0.0;	EnergyRegion [1]	= 0.0;	EnergyRegion [2]	= 0.0;
     OutputFormat		= SIMU_OUTPUT_FORMAT_BINARY;
-		//OutputEnergy_fid	= NULL;
+//OutputEnergy_fid	= NULL;
 }
 void Simu::PrintSimu(){}
 
@@ -323,4 +332,23 @@ bool Simu::IsRunning()const{
     return true;
 }
 
+void Simu::addSaveFormat(std::string format)
+{
+// SETS BIT FOR EACH FORMAT TO TRUE
+    if ( !format.compare( SF_LCVIEW ) )
+    {
+        SaveFormat = SaveFormat | Simu::LCview;
+    }
+    else
+    if ( !format.compare( SF_REGULAR_VTK ) )
+    {
+        SaveFormat = SaveFormat | Simu::RegularVTK;
+    }
+    else
+    {
+        printf("error in %s, unknown SaveFormat:%s - bye!\n", __func__, format.c_str() );
+        exit(1);
+    }
 
+
+}

@@ -145,7 +145,7 @@ void readLC(LC& lc,Reader& reader)
 }//end void readLC
 
 
-void readSimu(Simu* simu, Reader& reader)
+void readSimu(Simu* simu, Reader& reader, EventList& evel)
 {
 	std::string name;
 	std::string str_var;
@@ -197,7 +197,10 @@ void readSimu(Simu* simu, Reader& reader)
     name = "SaveIter";
     ret = reader.readNumber(name, int_var);
     if (ret == READER_SUCCESS)
+    {
         simu->setSaveIter(int_var);
+        evel.setSaveIter( (size_t) int_var );
+    }
     //problemo(name, ret);
     name = "EndValue";
     ret = reader.readNumber(name, dbl_var);
@@ -242,7 +245,33 @@ void readSimu(Simu* simu, Reader& reader)
     ret = reader.readNumber(name , int_var);
     if(ret == READER_SUCCESS)
         simu->setOutputFormat(int_var);
-    //problemo(name , ret);
+
+    name = "SaveFormat";
+    std::vector < std::string > vec_str;
+    ret = reader.readStringArray( name , vec_str );
+
+    if ( ret == READER_SUCCESS )
+    {
+        if (vec_str.size() == 0 )
+        {
+            simu->addSaveFormat( Simu::SF_LCVIEW );
+        }
+        else
+        {
+            for (size_t i = 0 ; i < vec_str.size() ; i++)
+            {
+                simu->addSaveFormat( vec_str[i] );
+            }
+        }
+
+    }
+    else if (ret == READER_NOT_FOUND)   // IF NOT SPECIFIED, BY DEFAULT USE LCview
+    {
+        simu->addSaveFormat( Simu::SF_LCVIEW );
+    }
+    else
+        problem(name, ret);
+
 //------------------------------------------
 //
 // READ VECTOR VALUES
@@ -527,7 +556,7 @@ void readElectrodes(Electrodes* electrodes,
 
 
 
-    for (i = 1 ; i < numElectrodes + 1 ; i++)
+    for (size_t i = 1 ; i < numElectrodes + 1 ; i++)
     {
         std::vector<double> times;
         std::vector<double> pots;
@@ -748,7 +777,7 @@ void ReadSettings(
     if ( reader.openFile(settings_filename) ){
         cout << "reading: "<< settings_filename << endl;
     // READ SIMU
-    readSimu(simu , reader);
+    readSimu(simu , reader, eventlist);
 
     // READ LC
     readLC(lc , reader);

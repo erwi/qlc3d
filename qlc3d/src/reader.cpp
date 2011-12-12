@@ -230,19 +230,19 @@ bool Reader::removeBlanks(std::string& str){
     itr = str.begin();
 
     string temp_str = "";
-	string space    = " ";	// POSSIBLE "BLANK" CHARACTERS
+    string space    = " ";	// POSSIBLE "BLANK" CHARACTERS
     string tab      = "\t";
-	string nl		= "\n";
-	string ret		= "\r";
-    for (size_t pos1 = 0 ; pos1 < str.length() ; pos1++){
-		if ( (str.compare(pos1,1,space) != 0) &&
-			 (str.compare(pos1,1,tab) != 0 ) &&
-			 (str.compare(pos1,1,nl) != 0 ) &&
-			 (str.compare(pos1,1,ret) != 0)	)
-			 {
-            temp_str.append( &str.at(pos1) , 1 ) ; // add 1 character only
-            
-        }
+    string nl       = "\n";
+    string ret      = "\r";
+    for (size_t pos1 = 0 ; pos1 < str.length() ; pos1++)
+    {
+        if ( (str.compare(pos1,1,space) != 0) &&
+             (str.compare(pos1,1,tab) != 0 ) &&
+             (str.compare(pos1,1,nl) != 0 ) &&
+             (str.compare(pos1,1,ret) != 0)	)
+             {
+                temp_str.append( &str.at(pos1) , 1 ) ; // add 1 character only
+            }
     }
 
     str.clear();
@@ -387,6 +387,69 @@ int  Reader::stringToDoubleVec(std::string& str , std::vector <double>& vec){
 
 	return READER_SUCCESS;
 
+}
+
+int Reader::stringToStringVec(std::string &str, std::vector<std::string> &ret_str)
+{
+// SPLITS COMMA DELIMITED STRING TO VECTOR OF STRINGS
+    ret_str.clear();
+    this->removeComments( str );
+    this->removeBlanks( str );
+    // REMOVE BRACKETS.
+    size_t opn = str.find('[');
+    size_t cls = str.find(']');
+    if ( (cls<opn) ||
+         (opn == std::string::npos) ||
+         (cls == std::string::npos) )
+        return READER_BAD_FORMAT;
+
+    str = str.substr( opn+1, cls-1 );
+
+    if ( !str.size() ) // EMPTY STRING
+        return READER_SUCCESS;
+
+    // START BREAKING COMMA SEPARATED LIST AND PUSHING TO RETURN VECTOR
+    size_t pos = str.find_first_of(',');
+
+    while ( pos < std::string::npos ) // IF COMMA FOUND
+    {
+        std::string temp = str.substr( 0 , pos );
+        ret_str.push_back( temp );
+
+        str = str.substr( pos+1 , std::string::npos );
+        pos = str.find_first_of(',');
+    }
+    ret_str.push_back( str ); // LAST ITEM OR ONLY ITEM (NO MORE COMMAS)
+    return READER_SUCCESS;
+
+}
+
+int Reader::readStringArray(std::string var, std::vector<std::string> &val)
+{
+     val.clear();
+     file.seekg(0);
+     if( ! file.good() )
+         return READER_BAD_FILE;
+
+     int ln = this->findVariableLine( var );
+     if (ln >= 0)
+     {
+         this->gotoLine( (unsigned int) ln );
+         std::string line;
+         getline( file, line );
+         line = this->extractRHS( line );
+
+         std::vector <std::string> str_vec;
+         int ret = this->stringToStringVec( line , str_vec );    // COMMA DELIMITED TO VECTOR OF STRINGS
+
+         if (ret == READER_SUCCESS)
+             val.insert( val.begin(), str_vec.begin(), str_vec.end() );
+
+         file.seekg(0);
+         file.clear();
+         return ret;
+     }// END IF FOUND
+     return READER_NOT_FOUND;
 }
 
 

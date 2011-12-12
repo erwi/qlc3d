@@ -39,7 +39,19 @@ void handleResultOutput(Simu& simu,
                         SolutionVector& v,
                         SolutionVector& q)
 {
-    WriteResults::WriteResult(&simu, &lc, &geom, &v, &q);
+    if ( simu.getSaveFormat() & Simu::LCview )
+    {
+        printf("LCview \n");
+        WriteResults::WriteResult(&simu, &lc, &geom, &v, &q);
+    }
+    if ( simu.getSaveFormat() & Simu::RegularVTK )
+    {
+        printf("VTK GRID\n");
+    }
+
+
+
+
 }
 
 
@@ -119,7 +131,10 @@ void handleEvents(EventList& evel,      // EVENT LIST
 
 // LEAVE IF NO EVENTS LEFT IN QUEUE
     if ( !evel.eventsInQueue() )    // event queue is empty
+    {
+        evel.manageReoccurringEvents( simu );
         return ;
+    }
 
 
 // EVENTS ARE ORDERED BY TIME/ITERATION NUMBER,

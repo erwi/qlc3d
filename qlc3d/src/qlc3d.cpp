@@ -40,8 +40,8 @@ void AdjustTime(Simu& simu, const double& maxdq){
         // INCREMENT CURRENT TIME BEFORE CHANGING TIME STEP SIZE
         // dt SHOULD BE CORRECT HERE TO MAKE SURE THAT A TIME STEP
         // COINCIDES WITH AN EVENT, IF ANY.
-         simu.IncrementCurrentTime();
-
+        simu.IncrementCurrentTime();
+        simu.IncrementCurrentIteration();
         // ADAPT TIME STEP ACCORDING TO CONVERGENCE
 
         double R = simu.getTargetdQ() / fabs(maxdq);
@@ -109,7 +109,7 @@ double maxDiff(const double* arr, const SolutionVector& sv){// finds the maximum
 
 	return md;
 }
-double ConsistencyLoop(SolutionVector& v, SolutionVector& q , SolutionVector& qn,
+double updateSolutions(SolutionVector& v, SolutionVector& q , SolutionVector& qn,
 					   double* v_cons, double* q_cons, double* qn_cons,
 					   Geometry& geom1,
 					   Simu& simu, LC& lc, Settings& settings,
@@ -122,8 +122,6 @@ double ConsistencyLoop(SolutionVector& v, SolutionVector& q , SolutionVector& qn
 	bool isPotCons = ( simu.getdt() > 0 ) && ( simu.getPotCons() != Off );
         isPotCons = false; // turn of consisteny loop
         calcpot3d(Kpot,&v, &q, &lc, geom1, &settings, &electrodes);
-
-
         maxdq = calcQ3d(&q,&qn,&v,geom1,&lc, &simu, Kq, &settings, &alignment );
 
 	return maxdq;
@@ -237,7 +235,7 @@ int main(int argc, char* argv[]){
     v.setPeriodicEquNodes( &geom1 ); // periodic nodes
     //v.setToFixedValues();
     //v.EnforceEquNodes(); // makes sure values at periodic boundaries match
-    v.PrintFixedNodes();
+    //v.PrintFixedNodes();
     cout << "OK"<<endl;
 
 
@@ -369,7 +367,7 @@ int main(int argc, char* argv[]){
         CalculateFreeEnergy(Energy_fid, &simu, &lc, &geom1, &v, &q);
 
         // CALCULATES Q-TENSOR AND POTENTIAL
-        maxdq = ConsistencyLoop(v,q,qn,v_cons,q_cons,qn_cons,
+        maxdq = updateSolutions(v,q,qn,v_cons,q_cons,qn_cons,
                                     geom1, simu, lc, settings,
                                     alignment, electrodes,
                                     Kq, Kpot);
@@ -418,7 +416,7 @@ int main(int argc, char* argv[]){
         delete Kpot;
         delete Kq;
                     
-	  	autoref(geom_orig, geom_prev, geom1, q, qn, v,  meshrefinement, simu,alignment, electrodes, lc);
+        autoref(geom_orig, geom_prev, geom1, q, qn, v,  meshrefinement, simu,alignment, electrodes, lc);
         Kpot = createSparseMatrix(geom1, v );
         Kq   = createSparseMatrix(geom1, q, MAT_DOMAIN1);
         calcpot3d(Kpot,&v,&q,&lc,geom1, &settings, &electrodes);

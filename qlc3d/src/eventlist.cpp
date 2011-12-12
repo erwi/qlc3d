@@ -87,6 +87,12 @@ Event* EventList::getCurrentEvent(const Simu &simu)
 // FIRST CHECK TIME EVENTS
     if ( nextTimeEvent_ == simu.getCurrentTime() )
     {
+        if ( ! timeEvents_.size() )
+        {
+            printf("error in %s, no time events in queue - bye!\n", __func__ );
+            exit(1);
+        }
+
 
         TimeEvent* timeEve( ( *timeEvents_.begin() ) );   // MAKE A POINTER TO OBJECT ON HEAP
         Event* eve = static_cast<Event*>( timeEve );      // CAST TO EVENT
@@ -108,6 +114,11 @@ Event* EventList::getCurrentEvent(const Simu &simu)
     else
     if ( nextIterEvent_ == (size_t) simu.getCurrentIteration() )
     {
+        if ( ! iterationEvents_.size() )
+        {
+            printf("error in %s, no iteration event is queue - bye !\n");
+            exit(1);
+        }
 
         const IterEvent* iterEve ( (*iterationEvents_.begin() ) ); // MAKE A POINTER TO OBJECT ON HEAP
         const Event* eve = static_cast<const Event*>( iterEve );   // CAST TO EVENT
@@ -117,6 +128,10 @@ Event* EventList::getCurrentEvent(const Simu &simu)
         if ( iterationEvents_.size() )  // THIS NEED MODIFYING TO ALLOW FOR REPEATING EVENTS
         {
             nextIterEvent_ = ( *iterationEvents_.begin() )->getEventIteration();
+        }
+        else
+        {
+            nextIterEvent_ = NO_ITER_EVENTS;
         }
 
         return const_cast<Event*>(eve);
@@ -151,6 +166,12 @@ void EventList::manageReoccurringEvents(const Simu& simu)
 // NEW EVENTS WILL BE SCEDULED FOR NEXT ITERATION/TIME STEP.
 // NOTE THAT THIS SHOULD BE CALLED AFTER ALL EVENTS FOR CURRENT
 // ITERATION/TIMESTEP HAVE BEEN PROCESSED.
+
+    if( simu.getCurrentIteration() == 7 )
+    {
+        int b = 5;
+    }
+
 
 // ADD ITER EVENTS
     size_t nextIter = (size_t) simu.getCurrentIteration() + 1;

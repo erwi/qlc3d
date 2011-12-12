@@ -63,7 +63,7 @@ void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
     char str[15];
     // check whether final result in sumlation, if yes, use special filename
     if (simu->getCurrentIteration() != SIMU_END_SIMULATION )
-        sprintf(str, "result%05i", simu->getCurrentIteration()-1 );
+        sprintf(str, "result%05i", simu->getCurrentIteration() );
     else
         sprintf(str,"result_final");
 	
@@ -127,7 +127,7 @@ void WriteLCD_B(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *
 	
     // check whether final result in simulation, if yes, use special filename
     if (simu->getCurrentIteration() != SIMU_END_SIMULATION )
-        sprintf(str, "result%05i", simu->getCurrentIteration()-1 );
+        sprintf(str, "result%05i", simu->getCurrentIteration() );
     else
         sprintf(str,"result_final");
 	
