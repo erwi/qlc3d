@@ -650,7 +650,7 @@ void setUniformEField(Electrodes &electrodes, SolutionVector &v, double *p)
         v.setValue(i,0, dist*Emag + v.getValue(i) );
     }
 
-    //v.EnforceEquNodes(); // force periodic boundaries.
+
 
 }
 

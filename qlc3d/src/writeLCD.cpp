@@ -96,7 +96,7 @@ void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
         }
 	
         fclose(fid);
-        free(n);
+        delete [] n;
     }
     else
     {
@@ -300,7 +300,7 @@ void WriteResult(
         (simu->getCurrentIteration() == SIMU_END_SIMULATION ))  // ...OR FINAL RESULT
     {
 
-        FilesysFun::setCurrentDirectory( simu->getSaveDir() ); // go to save directory
+        //FilesysFun::setCurrentDirectory( simu->getSaveDir() ); // go to save directory
 
         switch( simu->getOutputFormat() ){
             case SIMU_OUTPUT_FORMAT_BINARY:
@@ -321,7 +321,7 @@ void WriteResult(
             }
         } // end switch
 
-        FilesysFun::setCurrentDirectory( simu->getCurrentDir() ); // go back to work directory
+        //FilesysFun::setCurrentDirectory( simu->getCurrentDir() ); // go back to work directory
 
     }// end if write result file
 }

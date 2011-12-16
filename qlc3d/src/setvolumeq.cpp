@@ -3,44 +3,41 @@
 #include <qlc3d.h>
 using namespace std;
 
-void setNormalBox(
+void setNormalBox(  Box* box,
+                    double* nx,
+                    double* ny,
+                    double* nz,
+                    double* p,
+                    int npLC)
+{
 /*! Sets the Q-tensor initial configuration (volume) within a normal Box*/
-
-    Box* box,
-    double* nx,
-    double* ny,
-    double* nz,
-    double* p,
-    int npLC){
-
     double d_th = box->Tilt[1] *PI/180.0; // delta tilt bottom to top of box
     double d_ph = box->Twist[1] *PI/180.0;// delta twist
     double power = box->Params[0];
 
-    for (int i = 0; i < npLC ; i++){ // loop over each node
+    for (int i = 0; i < npLC ; i++) // loop over each node
+    {
 	double px = p[i*3 + 0];
 	double py = p[i*3 + 1];
 	double pz = p[i*3 + 2];
 
 	if ((px >= box->X[0]) && ( px <= box->X[1])) // if within X
 	{
-		if (( py >= box->Y[0]) &&( py <= box->Y[1])) // Y
-		{
-			if (( pz >= box->Z[0])&&( pz <= box->Z[1])) // Z
-			{
-				
-				// Twist, Tilt
-				double  ph = box->Twist[0] * PI /180.0 + pow(p[i*3+2]*d_ph, power);
-				double  th =  pow(( pz- box->Z[0] ) / (box->Z[1] - box->Z[0]), power ) * d_th  + box->Tilt[0]*PI/180.0;
-			
-                nx[i] = cos(th)*cos(ph); // sets director
-				ny[i] = sin(ph)*cos(th);
-				nz[i] = sin(th);
+            if (( py >= box->Y[0]) &&( py <= box->Y[1])) // Y
+            {
+                if (( pz >= box->Z[0])&&( pz <= box->Z[1])) // Z
+                {
 
-		} // if inside z limits
-	    }//if inside Y limits
+                    // Twist, Tilt
+                    double  ph = box->Twist[0] * PI /180.0 + pow(p[i*3+2]*d_ph, power);
+                    double  th =  pow(( pz- box->Z[0] ) / (box->Z[1] - box->Z[0]), power ) * d_th  + box->Tilt[0]*PI/180.0;
+
+                    nx[i] = cos(th)*cos(ph); // sets director
+                    ny[i] = sin(ph)*cos(th);
+                    nz[i] = sin(th);
+                } // if inside z limits
+            }//if inside Y limits
 	} // end if inside X limits
-
     }// end loop over each node
 
 }//end void setNormalBox
@@ -146,11 +143,17 @@ void SetVolumeQ(
     double *a5 = (double*)malloc (npLC * sizeof (double));// memory for temporary Qxz
 	
     for (int i =0; i<npLC ; i++){
-	a1[i] = (lc->S0)*(3* nx[i] * nx[i] - 1)/2.0;
+
+        a1[i] = (lc->S0)*(3* nx[i] * nx[i] - 1)/2.0;
 	a2[i] = (lc->S0)*(3* ny[i] * ny[i] - 1)/2.0;
 	a3[i] = (lc->S0)*(3* nx[i] * ny[i])/2.0;
 	a4[i] = (lc->S0)*(3* ny[i] * nz[i])/2.0;
 	a5[i] = (lc->S0)*(3* nx[i] * nz[i])/2.0;
+
+        //if (i == 1053)
+        //{
+        //    printf(" n = %f,%f,%f\n", nx[i], ny[i], nz[i]);
+        //}
     }
 
     // convert tensor basis to symmetric traceless

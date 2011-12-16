@@ -630,7 +630,8 @@ void SolutionVector::setToFixedValues()
 
 
 
-void SolutionVector::setPeriodicEquNodes(Geometry* geom){
+void SolutionVector::setPeriodicEquNodes(Geometry* geom)
+{
 /*!
     SET VALUES IN THE ELIM ARRAY. THE ELIM ARRAY CONTAINS
     MAPPINGS FORM A NODE NUMBER TO ITS ACTUAL
@@ -648,13 +649,17 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom){
 
 
     if (Elim != NULL) free(Elim);						// allocate memory for equivalent nodes
-    if (EquNodes != NULL) free(EquNodes);
+    //if (EquNodes != NULL) free(EquNodes);
     Elim        = (int*) malloc(nDoF*nDimensions*sizeof(int));
 
-    for (int i = 0; i < nDoF*nDimensions ; i++ )
-        Elim[i] = i; // set to 0,1,2,3....
+    // PERIODIC EQUIVALENT NODE INDEXES HAVE BEEN MADE IN
+    // GEOMETRY INITIALISATION.
 
-	
+    //for (int i = 0; i < nDoF*nDimensions ; i++ )
+    //{
+    //    Elim[i] = geom->getPeriodicEquNode(i);
+    //}
+        /*
 // CREATE LIST OF PERIODIC NODE INDEXES
     vector <unsigned int> periNodes;
     geom->e->listNodesOfMaterial( periNodes, MAT_PERIODIC );
@@ -796,13 +801,13 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom){
             list <int> corn2; //x = max, y = max
             list <int> corn3; //x = max, y = 0
 
-            // Horizontal corners along X
+            // Horizontal edges along X
             list <int> corna; // y = 0, z = 0
             list <int> cornb; // y = max, z = 0
             list <int> cornc; // y = max, z = max
             list <int> cornd; // y = 0, z = max
 
-            // Horizontal corners along Y
+            // Horizontal edges along Y
             list <int> cornA; // x = 0, z = 0
             list <int> cornB; // x = max, z = 0
             list <int> cornC; // x = max, z = max
@@ -818,8 +823,6 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom){
 
 
             // LOOP OVER ALL NODES AND INSERT TO CORRECT LIST
-
-
             int corner_nodes[8] = {-1,-1,-1,-1,-1,-1,-1,-1};
             for (size_t i = 0 ; i < periNodes.size() ; i++)
             {
@@ -1002,11 +1005,17 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom){
             //printf("front/back, left/right and top/bottom are periodic, but this has not been implemented yet - bye!");
             //exit(1);
 	}// end if 3 different periodicity cases
-
+*/
 
     // NODAL EQUIVALENCIES HAVE BEEN SET.
     // REPLACE DEPENDENT NODES WITH THEIR
     // INDEPENDENT EQUIVALENT NODES
+
+    std::vector <int> elim(nDoF, 0 );   // convenience copy of Elim
+    for (size_t i = 0 ; i < this->getnDoF() ; i++)
+    {
+        elim[i] =  geom->getPeriodicEquNode( i ) ;
+    }
 
 
     // MARK FIXED NODES. THSE WILL BE REMOVED FROM
@@ -1014,16 +1023,14 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom){
     for (int i = 0 ; i < nDoF ; i++ )
     {
         if ( this->getIsFixed(i) )
-            Elim[i] = FIXED_NODE;
+            elim[i] = FIXED_NODE;
     }
-
-
 
     nFreeNodes = 0;
 
-    std::vector <int> elim(nDoF, 0 );   // convenience copy of Elim
-    elim.insert(elim.begin(), Elim, Elim+nDoF);
-    elim.resize( nDoF );
+
+    //elim.insert(elim.begin(), Elim, Elim+nDoF);
+    //elim.resize( nDoF );
 
     std::vector <int> elima(nDoF,0);    // Elim altered
     for (int i = 0 ; i < nDoF ; i++)    // SET TO 1,2,3...
@@ -1211,6 +1218,9 @@ void SolutionVector::setCornerElim(
         }
     }// end for loop over corn0 nodes c0
 }// end void setCornerElim
+
+
+
 void SolutionVector::setFaceElim( list <int>& face0, // face1[i] = face0[i]
 				list <int>& face1,
 				int* Elim,
@@ -1345,40 +1355,28 @@ void SolutionVector::AddFixed(int mat, double val, Mesh *mesh)
 
 	
 }
-void SolutionVector::EnforceEquNodes()
+void SolutionVector::EnforceEquNodes(const Geometry& geom)
 {
 // MAKES SURE THAT VALUES ON PERIODIC SURFACES ARE OK.
 // THIS MAY BE NEEDED e.g. AT THE START OF A SIMULATION
 // OR TO AVOID ACCUMULATION OF NUMERICAL NOISE(?)
 
-    // IF NO REORDERING OF DEGREES OF FREEDOM, CAN LEAVE
-    if (nFreeNodes == nDoF)
-    {
-            return;
-    }
-
-    if (Elim == NULL)
-    {
-        printf("error - SolutionVector::EnforceEquNodes(), Elim = NULL - bye\n");
-        exit(1);
-    }
 
     // CALCULATES PERIODIC EQUIVALEN NODE FROM ELIM IN CASES WHERE
     // WHERE MORE THAN 1 DEGREE OF FREEDOM EXISTS (i.e. Q-TENSOR)
-    for (int i =0 ; i < nDimensions ; i ++)
+    for (size_t i =0 ; i < nDimensions ; i ++)
     {
-        for (int j = 0 ; j < nDoF; j++)
+        for (size_t j = 0 ; j < nDoF; j++)
         {
-            int equDof = getEquNode(j);
-            if ( equDof != FIXED_NODE )
-            {
-                int dep = i*nDoF + j;          // DEPENDENT NODE
-                int indep = i*nDoF + equDof;   // EQUIVALENT INDEPENDENT NODE
+            size_t equDof = geom.getPeriodicEquNode(j);
 
-                Values[ dep ] = Values[ indep ];
-            }// END IF NOT FIXED NODE
+            size_t dep = i*nDoF + j;          // DEPENDENT NODE
+            size_t indep = i*nDoF + equDof;   // EQUIVALENT INDEPENDENT NODE
+
+            Values[ dep ] = Values[ indep ];
+
         }
-     }
+    }
 }
 
 

@@ -22,7 +22,8 @@ namespace vtkIOFun
                       const char* headerString,
                       const FileFormat& format,
                       const int num_points[3],
-                      const double grid_spacing[3]);
+                      const double grid_spacing[3],
+                      const double origin[3]);
 
 
     bool writeScalarData(std::fstream& fid,
@@ -33,7 +34,9 @@ namespace vtkIOFun
     bool writeVectorData(std::fstream& fid,
                          const unsigned int& np,
                          const char* data_name,
-                         const double* vec_data);
+                         const double* vec_data1,
+                         const double* vec_data2,
+                         const double* vec_data3);
 
 }//end namespace
 

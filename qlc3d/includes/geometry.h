@@ -9,55 +9,68 @@
 # include <iostream>
 # include <algorithm>
 # include <limits>
-# include  <alignment.h>
+# include <alignment.h>
+# include <regulargrid.h>
 # define EPS 1e-7
+
+class RegularGrid; // DECLARE HERE TO AVOID CIRCULAR #inlcude
 
 using namespace std;
 class Geometry
 {
-	private:
-		int np;						// number of nodes
-		int npLC;					// number of LC nodes
-		double* p;					// nodal coordinates x,y,z
-		double* NodeNormals;
-                //Oct_Box* oct;				// octree mesh index for fast search
-                //Oct_Box* this_oct;
-		double Xmin;
-		double Xmax;
-		double Ymin;
-		double Ymax;
-		double Zmin;
-		double Zmax;
+private:
+    size_t np;						// number of nodes
+    size_t npLC;					// number of LC nodes
+    double* p;					// nodal coordinates x,y,z
+    double* NodeNormals;
+
+    double Xmin;
+    double Xmax;
+    double Ymin;
+    double Ymax;
+    double Zmin;
+    double Zmax;
 		
-		bool left_right_is_periodic;
-		bool front_back_is_periodic;
-		bool top_bottom_is_periodic;
+    bool left_right_is_periodic;
+    bool front_back_is_periodic;
+    bool top_bottom_is_periodic;
 	
-		vector < list <int> > peri_equ_nodes;
+    vector < list <int> > peri_equ_nodes;
 
-                size_t numWeakSurf;
-                size_t* indWeakSurf;     // index to all weak surface triangles
-	
-	public:
+    size_t numWeakSurf;
+    size_t* indWeakSurf;     // index to all weak surface triangles
+    vector<size_t> periNodes_;
 
+    void setEdgePeriNodes(  list <size_t>& edge0,
+                             list <size_t>& edge1,
+                            // list <size_t>& edge2,
+                            // list <size_t>& edge3,
+                             const int& dim);   // edge direction 0,1,2 -> x,y,z
+
+    void setFacePeriNodes( list <size_t>& face0,
+                           list <size_t>& face1,
+                           const int& norm);    // face normal 0,1,2 -> x,y,z
+
+
+public:
     // UNFORTUNATE HACKERY... SPECIAL INDEX VALUE FOR AN UNSIGNED INDEX THAT WAS NOT FOUND
     static const unsigned int NOT_AN_INDEX;// = std::numeric_limits<unsigned int>::max();
 
     Mesh* t;						// volume mesh
     Mesh* e;						// surface mesh
-		
+    RegularGrid* regularGrid;
     Geometry();
     ~Geometry();
 
-    void setCoordinates(double * coords, int np); // copies coords to p, sizeof(coords) is 3 * np
-    void addCoordinates(double * coords, int np); // adds new coordinates to existing ones by extending p
+    void setCoordinates(double * coords, const size_t& np); // copies coords to p, sizeof(coords) is 3 * np
+    void addCoordinates(double * coords, const size_t& np); // adds new coordinates to existing ones by extending p
     void addCoordinates( vector<double>& coords);  // adds new coordinates to end of existing ones
-    void setNodeNormals();							// calculates surface node normals
+    void setNodeNormals();		// calculates surface node normals
     void setnp(int n);
-    void setnpLC(int n);							// set number of LC nodes
-    void ReorderDielectricNodes();					// reorder nodes so that dielectric material nodes are last
-    void MakePeriEquNodes();						// generates periodic equivalent nodes data structure
-    void ClearGeometry();							// clears all data for geometry
+    void setnpLC(int n);		// set number of LC nodes
+    void ReorderDielectricNodes();	// reorder nodes so that dielectric material nodes are last
+    void makePeriEquNodes();	// generates periodic equivalent nodes index
+    void ClearGeometry();       // clears all data for geometry
     void CreateOctree();
     bool getleft_right_is_periodic();
     bool getfront_back_is_periodic();
@@ -73,16 +86,32 @@ class Geometry
                             double* coord,      // pointer to x,y,coords to search
                             const bool& terminateOnError = true); // whether application terminates if coord is not found
 
+    size_t recursive_neighbour_search(double crd[3],
+                                      const vector< set < unsigned int> > & p_to_t,
+                                      const size_t& currentTet,
+                                      std::set<size_t>& tetHistory);
 
-    bool getContainingTet( vector<set< unsigned int> >& p_to_t, double* crd, unsigned int& t0);
+    bool getContainingTet( vector<set< unsigned int> >& p_to_t, double crd[3], unsigned int& t0);
+
+    void makeRegularGrid(const size_t& nx, // GENERATES REGULAR GRID LOOKUP INDEXES AND WEIGHTS
+                         const size_t& ny,
+                         const size_t& nz);
 
     void setTo(Geometry* geom);						// makes this = geom
     void checkForPeriodicGeometry();	// detects type of periodicity of the strucuture
-		
-    int getnp();
-    int getnpLC();
+
+    size_t getPeriodicEquNode(const size_t& i) const // RETURNS INDEX TO NODE PERIODIC TO i
+    {
+        if (i<periNodes_.size())
+            return periNodes_[i];
+        else
+            return i;
+    }
+
+    size_t getnp() const {return np;}
+    size_t getnpLC()const  {return npLC;}
     double* getPtrTop();
-    inline double* getPtrTop(const int& i){ if (i<np) return &p[3*i]; return NULL; } // pointer to node i
+    inline double* getPtrTop(const size_t& i){ if (i<np) return &p[3*i]; return NULL; } // pointer to node i
     double getpX(int i);	// return node coordinates at node i
     double getpY(int i);
     double getpZ(int i);
@@ -114,7 +143,7 @@ class Geometry
      void PrintNodeNormals();
      void PrintNodes();
      void PrintNode(int i);
-
+     void PrintPeriodicNodes();
 
      bool checkForOverlapingNodes(); // Debug function that chaecks makes sure not nodes are overlapping. Returns TRUE if some are, false if everyting is OK
      void countNodeReferences(vector <int>& refc, Mesh& mesh); // counts the number of times each node is used in mesh. DEBUG

@@ -16,7 +16,7 @@ double * dir = tensortovector(q.Values, npLC );
 
 double max = *max_element( dir+3*npLC, dir+4*npLC );
 
- if (dir) free(dir);
+if (dir) delete [] dir;
 
 return max;
 
@@ -102,7 +102,7 @@ void interpolate(SolutionVector& qnew,
 		}
 	}// end for all new coords
 
-	if (dir) free(dir);
+    if (dir) delete [] dir;
 }
 
 

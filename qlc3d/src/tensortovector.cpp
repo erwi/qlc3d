@@ -55,8 +55,8 @@ void tensorToEigs(double* a,		// input Q-tensor, traceless basis
 //  Q-tensor ..."
 double *tensortovector(double *a, int npLC){ // a = Q-tensor in traceless base
 	int i;
-	double *vector = (double*)malloc(5*npLC*sizeof(double)); // output vector
-	double *q = (double*)malloc(5*npLC*sizeof(double));
+        double *vector =  new double[5*npLC];  //(double*)malloc(5*npLC*sizeof(double)); // output vector
+        double *q = new double[5*npLC];//(double*)malloc(5*npLC*sizeof(double));
 	atoq(a, q, npLC); // change basis
 	
 	const int n=3;
@@ -101,7 +101,7 @@ double *tensortovector(double *a, int npLC){ // a = Q-tensor in traceless base
 		vector[i+3*npLC]=  2.0/3.0*(A[iMax]-A[iMin]);    // save S1
 		vector[i+4*npLC]= -2.0/3.0*(A[iMax]+2*A[iMin]); // save S2
 	}// end for i	
-    free(q);
+        delete [] q;
 	
 	return(vector);
 }

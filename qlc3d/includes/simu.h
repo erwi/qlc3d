@@ -57,7 +57,7 @@ private:
     int	OutputFormat;
     int	SaveIter;       // determines frequency of saving intermediate result files
     size_t SaveFormat;  // bit field with different save formats
-
+    size_t RegularGridSize[3];  // NUMBER OF NODES IN X,Y AND Z-DIRECTIONS
 
 
 public:
@@ -156,5 +156,16 @@ public:
     size_t getSaveFormat()const {return SaveFormat;}
     void clearSaveFormat(){SaveFormat = 0;} // CLEARS ALL SAVE TYPES
     void addSaveFormat(std::string format); // ADDS A SAVE FORMAT
+
+// REGULAR GRID SIZE
+    void setRegularGridSize(const size_t& nx,
+                            const size_t& ny,
+                            const size_t& nz){RegularGridSize[0] = nx;
+                                              RegularGridSize[1] = ny;
+                                              RegularGridSize[2]= nz;}
+    size_t getRegularGridXCount(){return RegularGridSize[0];}
+    size_t getRegularGridYCount(){return RegularGridSize[1];}
+    size_t getRegularGridZCount(){return RegularGridSize[2];}
+
 };
 #endif

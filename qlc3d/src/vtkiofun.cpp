@@ -27,7 +27,8 @@ bool writeHeader(std::fstream &fid,
                  const char* headerString,
                  const FileFormat& format,
                  const int num_points[3],
-                 const double grid_spacing[3]
+                 const double grid_spacing[3],
+                 const double origin[3]
                  )
 {
     if ( !fidOK(fid) )
@@ -51,7 +52,7 @@ bool writeHeader(std::fstream &fid,
     int np = num_points[0] * num_points[1] * num_points[2];
     fid <<"DATASET STRUCTURED_POINTS"<<std::endl;
     fid <<"DIMENSIONS "<<num_points[0]<<" "<<num_points[1]<<" "<<num_points[2]<<std::endl;
-    fid <<"ORIGIN "<<0<<" "<<0<<" "<<0<<std::endl;
+    fid <<"ORIGIN "<<origin[0]<<" "<<origin[1]<<" "<<origin[2]<<std::endl;
     fid <<"SPACING "<<grid_spacing[0]<<" "<<grid_spacing[1]<<" "<<grid_spacing[2]<<std::endl;
     fid <<"POINT_DATA "<< np << std::endl;
     return true;
@@ -64,7 +65,7 @@ bool writeScalarData(std::fstream &fid,
                      const double *data)        //
 {
 // APPENDS SCALAR DATA TO END OF FILE
-
+// NON-LC VALUES ARE SET TO 0 (VTK DOES NOT LIKE NaN)
 
     if (!fidOK(fid))
         return false;
@@ -73,7 +74,12 @@ bool writeScalarData(std::fstream &fid,
     fid <<"LOOKUP_TABLE default"<<std::endl;
 
     for (unsigned int i = 0 ; i < np ; i++ )
-        fid << data[i] <<" ";
+    {
+        if (data[i]!= data[i]) // IF NaN
+            fid << 0 << " ";
+        else
+            fid << data[i] <<" ";
+    }
 
     fid<<std::endl;
     return true;
@@ -82,7 +88,9 @@ bool writeScalarData(std::fstream &fid,
 bool writeVectorData(std::fstream &fid,
                      const unsigned int &np, //  NUMBER OF REGULAR GRID POINTS
                      const char *data_name,
-                     const double *vec_data)
+                     const double *vec_data1,
+                     const double *vec_data2,
+                     const double *vec_data3)
 {
 // APPENDS VECTOR DATA TO END OF FILE
 
@@ -92,7 +100,12 @@ bool writeVectorData(std::fstream &fid,
     fid << "VECTORS "<< data_name <<" double"<<std::endl;
 
     for (size_t i = 0 ; i < np ; i++)
-        fid << vec_data[i] <<" "<< vec_data[i+np] <<" "<< vec_data[i+2*np] << std::endl;
+        if ( (vec_data1[i]!=vec_data1[i]) ||    // IF NaN
+             (vec_data2[i]!=vec_data2[i]) ||
+             (vec_data3[i]!=vec_data3[i]))
+            fid << 0 <<" " << 0 << " " << 0 << std::endl;
+        else
+            fid << vec_data1[i] <<" "<< vec_data2[i] <<" "<< vec_data3[i] << std::endl;
 
     return true;
 }

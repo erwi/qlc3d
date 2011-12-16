@@ -42,7 +42,7 @@ private:
     int nDimensions;// number of dofs per node. e.g potential = 1, Q = 5
     int* FixedNodeMaterial;  // material number of fixed nodes
     bool* IsFixed;
-    int* Elim; 		// effective node ordering after taking into account periodic nodes that need not solving
+    int* Elim; 		// effective node ordering after taking into account periodic nodes that need not solving NOT SAME AS PERIODIC EQUIVALENT NODE
     int* EquNodes;	// nodal equivalencies - i.e. periodic nodes
     int nFreeNodes; // number of independent degrees of freedom = nDoF - # number of nodes eliminated as periodic
 
@@ -143,7 +143,7 @@ public:
 	
 	
 	
-	void EnforceEquNodes(); // enforces periodicity
+        void EnforceEquNodes(const Geometry& geom); // enforces periodicity
 	void PrintFixedNodes();
 	void PrintValues();
 	void PrintElim();

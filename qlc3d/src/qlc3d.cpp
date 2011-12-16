@@ -27,6 +27,9 @@ int minnode(int *t, int dim1, int dim2){ // what does this do?
 }
 void AdjustTime(Simu& simu, const double& maxdq){
 
+
+      simu.IncrementCurrentIteration();
+
     // if electrode switching etc. has just happened, dont adapt time step this time
     // but set switch to false to allow adjutment starting next step
     if ( simu.restrictedTimeStep )
@@ -41,7 +44,7 @@ void AdjustTime(Simu& simu, const double& maxdq){
         // dt SHOULD BE CORRECT HERE TO MAKE SURE THAT A TIME STEP
         // COINCIDES WITH AN EVENT, IF ANY.
         simu.IncrementCurrentTime();
-        simu.IncrementCurrentIteration();
+
         // ADAPT TIME STEP ACCORDING TO CONVERGENCE
 
         double R = simu.getTargetdQ() / fabs(maxdq);
@@ -229,13 +232,11 @@ int main(int argc, char* argv[]){
 
     cout << "Creating V...";
     SolutionVector v( geom1.getnp() );
-    //v.setFixedNodesPot( electrodes , geom1.e , simu.getCurrentTime());
+
     v.allocateFixedNodesArrays( geom1 );
-    //v.setFixedNodesPot(&electrodes, geom1.e);
+
     v.setPeriodicEquNodes( &geom1 ); // periodic nodes
-    //v.setToFixedValues();
-    //v.EnforceEquNodes(); // makes sure values at periodic boundaries match
-    //v.PrintFixedNodes();
+
     cout << "OK"<<endl;
 
 
@@ -255,24 +256,19 @@ int main(int argc, char* argv[]){
 
     SetVolumeQ(&q, &lc, &boxes, geom1.getPtrTop());
     setSurfacesQ(&q, &alignment, &lc, &geom1);
-		
 
-//  LOAD Q FROM RESULT FILE
+    //  LOAD Q FROM RESULT FILE
     if (!simu.getLoadQ().empty() )
     {
         WriteResults::ReadLCD_B(&simu,&q);
         setStrongSurfacesQ(&q, &alignment, &lc, &geom1); // over writes surfaces with user specified values
     }
-
     q.setFixedNodesQ(&alignment, geom1.e);  // set fixed surface anchoring
     q.setPeriodicEquNodes(&geom1);          // periodic nodes
-
-    q.EnforceEquNodes();		    // makes sure values at periodic boundaies match
-    //printf("aaaa\n"); fflush(stdout);
-    q.PrintFixedNodes();
+    q.EnforceEquNodes(geom1);		    // makes sure values at periodic boundaies match
     qn=q;                                   // q-previous = q-current in first iteration
-
     cout << "OK" << endl;                   // Q-TENSOR CREATED OK
+
 
 
 // autoref( geom_orig, geom_prev, geom1, q,qn, v, meshrefinement, simu, alignment , electrodes, lc);
@@ -286,12 +282,6 @@ int main(int argc, char* argv[]){
     cout << "Creating matrix for Q-tensor..." << endl;
     SparseMatrix* Kq = createSparseMatrix(geom1, q, MAT_DOMAIN1);
     cout << "Q-tensor matrix OK" << endl;
-
-
-
-    //Kpot->SPY();
-
-
 
 
 //********************************************************************
@@ -314,23 +304,6 @@ int main(int argc, char* argv[]){
                  settings);
     printf("OK\n");
 
-
-   // v.PrintValues();
-    //printf("aaaa\n"); fflush(stdout);
-    //calcpot3d(Kpot,&v,&q,&lc,geom1, &settings, &electrodes);
-    //printf("bbbb\n"); fflush(stdout);
-   // v.PrintValues();
-   // printf("cccc\n"); fflush(stdout);
-
-    // -------------------------
-
-    //double* vec = tensortovector(q.Values, geom1.getnpLC() );
-    //regGrid.createFromTetMesh(3,3,10, geom1 );
-    //regGrid.writeVTKGrid( "regular.vtk", v.Values, vec, (size_t) geom1.getnpLC() );
-    //delete [] vec;
-
-
-    // -------END REGULAR GRID OUTPUT-----------
 
     // TEMPORARY ARRAYS, USED IN POTENTIAL CONSISTENCY CALCULATIONS
     simu.setPotCons( Off );
@@ -384,7 +357,7 @@ int main(int argc, char* argv[]){
                      lc,settings);
 
 
-        // ADAPTS TIME STEP SIZE AND INCREMENTS CURRENT TIME
+        // ADAPTS TIME STEP SIZE AND INCREMENTS CURRENT TIME AND ITERATION
         AdjustTime(simu, maxdq);
 
 //* AUTOREFINEMENT ---- MOVE TO EVENTS

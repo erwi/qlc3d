@@ -9,9 +9,13 @@
 #include <fstream>
 #include <iostream>
 #include <vtkiofun.h>
+
+
+class Geometry; // NEED TO DECLARE EXISTENCE OF Geometry CLASS HERE TO AVOID CIRCULAR #includes
+
 class RegularGrid {
 public:
-    enum LookupType{ OK, NOT_LC, NOT_FOUND};
+    enum LookupType{ OK, NOT_LC, NOT_FOUND}; // TYPE OF REGULAR FRID NODE
 private:
 
 
@@ -36,15 +40,15 @@ private:
     double xLimits_[2];  // min and max values
     double yLimits_[2];
     double zLimits_[2];
-
-    // Return position of i'th regular grid coordinate
-    double getGridX(const unsigned int& xi) const {return xLimits_[0] + xi*dx_;}
-    double getGridY(const unsigned int& yi) const {return yLimits_[0] + yi*dy_;}
-    double getGridZ(const unsigned int& zi) const {return zLimits_[0] + zi*dz_;}
-
     std::vector <lookup> lookupList; // pre-calculated index-weight values for each node
+// ---------------------------------------------------------------------------
+// MEMBER FUNCTIONS
+    // Return position of i'th regular grid coordinate
+    double getGridX(const unsigned int& xi)const;// const {return xLimits_[0] + xi*dx_;}
+    double getGridY(const unsigned int& yi)const;// const {return yLimits_[0] + yi*dy_;}
+    double getGridZ(const unsigned int& zi)const;// const {return zLimits_[0] + zi*dz_;}
 
-    bool generateLookupList(Geometry& geom);
+    bool generateLookupList(Geometry* geom);
 
     double interpolateNode(const double* valueIn,
                             const lookup& L) const;
@@ -52,23 +56,26 @@ private:
 public:
 
     static const unsigned int NOT_AN_INDEX; // A MAGIC NUMBER INDICATING A NODE NOT IN THE GRID
-
+    static const unsigned int MAX_SIZE_T;
     RegularGrid();
+    RegularGrid(const RegularGrid& rg);
 
     // CREATES A TET MESH -> REGULAR GRID LOOKUP
-    bool createFromTetMesh(const int& nx,   //number of points in each direction
-                           const int& ny,
-                           const int& nz,
-                           Geometry& geom); // underlying tet mesh
+    bool createFromTetMesh(const unsigned int& nx,   //number of points in each direction
+                           const unsigned int& ny,
+                           const unsigned int& nz,
+                           Geometry* geom); // underlying tet mesh
 
     // INTERPOLATES A SCALAR VALUE
-    void interpolateToRegular( const double*& sclrIn,    // input values
-                               double*& sclrOut);        // output values
+    //void interpolateToRegular( const double*& sclrIn,    // input values
+    //                           double*& sclrOut,        // output values
+    //                           const size_t& maxnp = MAX_SIZE_T);
+
 
     // INTERPOLATES A VECTOR VALUE
-    void interpolateToRegular( const double*& vecIn,    // input irregular
-                               double*& vecOut,         // output regular
-                               const size_t& np);       // number of nodes in irregular input
+    void interpolateToRegular( const double* valIn,    // input irregular
+                               double*& valOut,         // output regular
+                               const size_t& maxnp = MAX_SIZE_T); // number of nodes in irregular input
 
     // ==============================================
     //

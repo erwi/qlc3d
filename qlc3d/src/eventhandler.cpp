@@ -1,5 +1,6 @@
 #include <eventhandler.h>
-
+#include <filesysfun.h>
+#include <qlc3d.h>
 
 
 void handleElectrodeSwitching(Event* currentEvent,
@@ -18,7 +19,9 @@ void handleElectrodeSwitching(Event* currentEvent,
         exit(1);
     }
 
-    simu.setdt( simu.getMindt() );
+// IF TIME-STEPPING REDUCE STEP SIZE TO MINIMUM
+    if ( simu.getdt()!= 0.0 )
+        simu.setdt( simu.getMindt() );
 
 
     // FIND WHICH ELECTRODE IS SWITCHING, AND TO WHAT VALUE
@@ -39,6 +42,14 @@ void handleResultOutput(Simu& simu,
                         SolutionVector& v,
                         SolutionVector& q)
 {
+// TAKES CARE OF CALLING APPROPRIATE RESULT OUTPUT FUNCTION
+
+
+    FilesysFun::setCurrentDirectory( simu.getSaveDir() ); // GOTO OUPUT DIR
+    double* director(NULL);
+    //double* vReg(NULL);
+
+
     if ( simu.getSaveFormat() & Simu::LCview )
     {
         printf("LCview \n");
@@ -47,10 +58,27 @@ void handleResultOutput(Simu& simu,
     if ( simu.getSaveFormat() & Simu::RegularVTK )
     {
         printf("VTK GRID\n");
+
+        std::stringstream ss;
+        std::string filename;
+        ss << "regular"<<simu.getCurrentIteration() << ".vtk";
+        ss >> filename;
+        if (!director)
+            director = tensortovector( q.Values, geom.getnpLC() );
+
+        RegularGrid& rGrid = *geom.regularGrid;
+        rGrid.writeVTKGrid( filename.c_str() ,
+                                        v.Values,
+                                        director,
+                                        geom.getnpLC() );
+
+
     }
 
 
-
+// CLEANUP AFTER ALL SAVING HAS BEEN DONE
+    if (director) delete [] director;
+    FilesysFun::setCurrentDirectory( simu.getCurrentDir() ); // GOTO EXECUTION DIR
 
 }
 
@@ -110,7 +138,9 @@ void handleInitialEvents(EventList& evel,      // EVENT LIST
                &electr);
 
 // WRITE INITIAL RESULT FILE
+    FilesysFun::setCurrentDirectory( simu.getSaveDir() );
     WriteResults::WriteResult(&simu, &lc, &geom, &v, &q );
+    FilesysFun::setCurrentDirectory( simu.getCurrentDir() );
 
 // ADD REOCCURRING EVENTS
     evel.manageReoccurringEvents(simu);

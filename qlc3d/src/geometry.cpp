@@ -7,7 +7,8 @@ const unsigned int Geometry::NOT_AN_INDEX = std::numeric_limits<unsigned int>::m
 
 Geometry::Geometry():
     numWeakSurf(0),
-    indWeakSurf(NULL)
+    indWeakSurf(NULL),
+    regularGrid(NULL)
 {
         np 			= 0;
         npLC			= 0;
@@ -43,6 +44,8 @@ Geometry::~Geometry()
         if ( indWeakSurf != NULL )
             free(indWeakSurf);
 
+        delete regularGrid;
+
 }
 void Geometry::setTo(Geometry* geom)
 {
@@ -70,12 +73,12 @@ void Geometry::setTo(Geometry* geom)
 	
 	// copy coordinates
 	double* temp = geom->getPtrTop();
-	for (int i = 0 ; i < 3*getnp(); i++)
+        for (size_t i = 0 ; i < 3*getnp(); i++)
 		p[i] = temp[i];
 		
 	// copy node normals
 	temp = geom->getPtrToNodeNormals();
-	for (int i = 0 ; i < 3*getnp(); i ++)
+        for (size_t i = 0 ; i < 3*getnp(); i ++)
 		NodeNormals[i] = temp[i];
 	
 	left_right_is_periodic = geom->getleft_right_is_periodic();
@@ -91,6 +94,14 @@ void Geometry::setTo(Geometry* geom)
 
         }
 	
+        this->periNodes_.clear();
+        periNodes_.insert(periNodes_.end(), geom->periNodes_.begin(), geom->periNodes_.end() );
+
+
+
+        if (this->regularGrid) delete regularGrid;
+        if ( geom->regularGrid )
+            regularGrid = new RegularGrid( *geom->regularGrid );
 
 }
 void Geometry::ClearGeometry()
@@ -122,7 +133,7 @@ void Geometry::ClearGeometry()
 
 }
 
-void Geometry::setCoordinates(double* coords, int np)
+void Geometry::setCoordinates(double* coords, const size_t& np)
 {
 	if (p!=NULL) free(p);
 	if (NodeNormals!=NULL) free(NodeNormals);
@@ -159,17 +170,17 @@ void Geometry::setCoordinates(double* coords, int np)
 	setnp(np);	
 	setnpLC(np);
 }
-void Geometry::addCoordinates(double* coords, int npn){
+void Geometry::addCoordinates(double* coords, const size_t& npn){
 // APPENDS npn NEW COORDIANTES IN coords TO this->p
     if ( ( npn > 0 ) && (coords) ){ // don't do anything if no new coordinates
-	int np_new = np + npn;
+        size_t np_new = np + npn;
 	double* pnew = (double*) malloc( 3*np_new*sizeof(double));
 	
 	// first copy old coordinates
-	for(int i = 0 ; i < 3*np ; i++)
+        for(size_t i = 0 ; i < 3*np ; i++)
 		pnew[i] = p[i];
 	// then add new ones
-	for(int i = 0 ; i < 3* npn ; i ++)
+        for(size_t i = 0 ; i < 3* npn ; i ++)
 		pnew[3*np+i] = coords[i];
 	
 	// set p to point to new extended cordinates
@@ -208,46 +219,56 @@ void Geometry::addCoordinates(vector<double> &coords){
 
 void Geometry::setnp(int n)		{np = n;}
 void Geometry::setnpLC(int n)	{npLC = n;}
-void Geometry::setNodeNormals(){
-	
-	if (e->getnElements() == 0){
-			printf("error - Geometry::setNodeNormals() - surface mesh not defined, bye!\n");
-			exit(1);
-	}
-	
-	if (NodeNormals!=NULL) free(NodeNormals);						// ALLOCATE
-		NodeNormals = (double*)malloc(3 * np * sizeof(double));
+void Geometry::setNodeNormals()
+{
+// CALCULATES NODE NORMALS BASED ON CONNECTED TRIANGLE NORMALS
+    if (e->getnElements() == 0)
+    {
+        printf("error - Geometry::setNodeNormals() - surface mesh not defined, bye!\n");
+        exit(1);
+    }
 
-	memset(NodeNormals, 0, 3 * np * sizeof(double));
-		
-	double tempn[3] ={0,0,0};	
-	//printf("nelemenst = %i, np = %i\n",e->getnElements(),np);
-	
-	for (int i = 0 ; i < e->getnElements() ; i ++){ // add neighbouring surface normals
-		int m = e->getMaterialNumber(i);
-		if ((m != MAT_PERIODIC) && (m!= MAT_NEUMANN)){ //if element is not periodic or neuman surface
-			e->CopySurfaceNormal(i,&tempn[0]);	// copy surface triangle normal to temp normal
-			
-			for (int j = 0; j < e->getnNodes() ; j++){
-				NodeNormals[e->getNode(i,j)*3 + 0] += tempn[0]; // add x, y, z components for each node in triangle i
-				NodeNormals[e->getNode(i,j)*3 + 1] += tempn[1];
-				NodeNormals[e->getNode(i,j)*3 + 2] += tempn[2];
-			}// end for j
-			tempn[0] = 0; tempn[1] = 0; tempn[2] = 0;
-		}// end if not periodic 
-	}// end for i
+    if (NodeNormals!=NULL) free(NodeNormals);						// ALLOCATE
+    NodeNormals = (double*)malloc(3 * np * sizeof(double));
 
-	for (int i = 0 ; i < np ; i ++){ // normalise length
-		double len = sqrt( NodeNormals[i*3+0]*NodeNormals[i*3+0] + NodeNormals[i*3+1]*NodeNormals[i*3+1] + NodeNormals[i*3+2]*NodeNormals[i*3+2] );
-		if (len>0){
-			NodeNormals[i*3+0] = NodeNormals[i*3+0] / len;
-			NodeNormals[i*3+1] = NodeNormals[i*3+1] / len;
-			NodeNormals[i*3+2] = NodeNormals[i*3+2] / len;
-		}
-	
-	} // end normalise loop, i 
+    memset(NodeNormals, 0, 3 * np * sizeof(double));
 
+    double tempn[3] ={0,0,0};
+
+    for (int i = 0 ; i < e->getnElements() ; i ++) // add neighbouring surface normals
+    {
+        int m = e->getMaterialNumber(i);
+        //if ((m != MAT_PERIODIC) && (m!= MAT_NEUMANN))//if element is not periodic or neuman surface <---SHOULD THIS BE FIXLC ONLY?? ARE NODE NORMALS USED BESIDES IN ANCHORING?
+        if ( MATNUM_TO_FIXLC_NUMBER(m) ) // IF FIXLC SURFACE
+        {
+            e->CopySurfaceNormal(i,&tempn[0]);	// copy surface triangle normal to temp normal
+
+            for (int j = 0; j < e->getnNodes() ; j++)
+            {
+                NodeNormals[e->getNode(i,j)*3 + 0] += tempn[0]; // add x, y, z components for each node in triangle i
+                NodeNormals[e->getNode(i,j)*3 + 1] += tempn[1];
+                NodeNormals[e->getNode(i,j)*3 + 2] += tempn[2];
+            }// end for j
+
+            tempn[0] = 0; tempn[1] = 0; tempn[2] = 0;
+        }// end if not periodic
+    }// end for i
+
+    for (int i = 0 ; i < np ; i ++) // normalise length
+    {
+        double len = sqrt( NodeNormals[i*3+0]*NodeNormals[i*3+0] +
+                           NodeNormals[i*3+1]*NodeNormals[i*3+1] +
+                           NodeNormals[i*3+2]*NodeNormals[i*3+2] );
+        if (len>0)
+        {
+            NodeNormals[i*3+0] = NodeNormals[i*3+0] / len;
+            NodeNormals[i*3+1] = NodeNormals[i*3+1] / len;
+            NodeNormals[i*3+2] = NodeNormals[i*3+2] / len;
+        }
 	
+    } // end normalise loop, i
+
+
 }
 void Geometry::PrintNodeNormals()
 {
@@ -379,14 +400,449 @@ void Geometry::ReorderDielectricNodes()
 }
 
 
-void Geometry::MakePeriEquNodes(){
-        //printf("in MakePeriEquNodes()...\n");
-        if (p == NULL){
-		printf("error - can't find periodic equ nodes - bye\n");
-		exit(1);
-	}
-	peri_equ_nodes.resize(getnp());
-	
+
+
+void Geometry::setFacePeriNodes(list<size_t> &face0,
+                                list<size_t> &face1,
+                                const int &norm)
+{
+// SETS INDEX VALUES IN periNodes_ FOR FACES
+
+    // norm is face normal, need coordinates to vectors parallel to it
+    int ind1 = ( norm + 1 ) % 3; // ind is a pre-calculated offeset to coordinate comparison in p.
+    int ind2 = ( norm + 2 ) % 3; // e.g. norm = 0 -> ind1 = 1, ind2 = 2
+    double eps = 1e-5; // accuracy of coordinate comparison
+    // SEARCH FOR NODE EQUIVALENCIES BY COMPARING COORDINATES
+    // THAT ARE PERPENDICULAR TO FACE NORMAL
+    list <size_t>:: iterator F0;    // FACE 0 NODES
+    list <size_t>:: iterator F1;    // FACE 1 NODES
+    int fc, bc; // debug counters
+    for (F0 = face0.begin(), fc = 0; F0!=face0.end() ; F0++, fc++ ) // LOOP OVER FACE 0
+    {
+        bool found = false;
+        int ind_n  = 0;     // index to neares (debug)
+        double dist = 1000000;
+        double f1 = p[3*(*F0) + ind1 ]; // coordinates of node F2 in face0
+        double f2 = p[3*(*F0) + ind2 ];
+
+        for (F1 = face1.begin() , bc = 0; F1!= face1.end() ; F1++, bc ++)
+        {
+            double fa = p[3*(*F1) + ind1]; // coordinates of node F1 in face 1
+            double fb = p[3*(*F1) + ind2];
+
+            //compare coordinates
+            double dist1 = fabs(f1 - fa); // distances in plane
+            double dist2 = fabs(f2 - fb);
+            double tdist = dist1*dist1 + dist2*dist2;
+
+            if (tdist < dist) // debug info only, keep track of nearest found node
+            {
+                dist = tdist; // nearest distance
+                ind_n = *F1;  // index to nearest distance
+            }
+
+            if (tdist < eps*eps) // compare squared distances
+            {
+                this->periNodes_[*F1] =*F0;
+                found = true;
+                break;
+            }
+        }// end for B
+        if (!found)
+        {
+            printf("error - no matching periodic faces with normal %i - bye!\n", norm);
+            //printf("front = p[%i] = %f, %f, %f\n", *F, geom->getpX(*F) , geom->getpY(*F) , geom->getpZ(*F) );
+            //printf("nearest back = p[%i] = %f, %f, %f\n", ind_n , geom->getpX(ind_n) , geom->getpY(ind_n) , geom->getpZ(ind_n) );
+            //printf("distance = %f, fc = %i, bc = %i\n", dist, fc, bc);
+            exit(1);
+        }
+    }//end for F
+}
+
+
+void Geometry::setEdgePeriNodes(list<size_t> &edge0,
+                                list<size_t> &edge1,
+                                const int &dim)
+{
+
+    const double BIGNUM = 1e99;
+    list<size_t> :: iterator e0;
+    list<size_t> :: iterator e1;
+    double eps = 1e-5;
+
+    // LOOP OVER EACH NODE IN EDGE 0 AND FIND ITS EQUIVALENT IN OTHER EDGES
+    for (e0 = edge0.begin() ; e0 != edge0.end() ; e0++ )
+    { // outer corner loop - corn0
+        bool found = false;
+        double dist = 0;
+
+        double p0 = p[(*e0) * 3 + dim ]; // dim coordinate of node c0
+        int iNearest = -1;
+        double minDist = BIGNUM;
+
+        // COMPARISON WITH C1
+        for (e1 = edge1.begin() ; e1 != edge1.end() ; e1++)
+        { // inner corner loop - corn1
+            double p1 = p[(*e1) * 3 + dim];
+            dist = fabs( p0 - p1 );
+
+            if ( dist <= minDist )
+            {
+                minDist = dist;
+                iNearest = *e1;
+            }
+
+
+            if ( dist <= eps ) // if same coordinate -> match!
+            {
+
+                periNodes_[*e1] = *e0;
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+        {
+
+            printf("error - edge node 1 not found - bye\n");
+            printf("edge node 0 = %i,\tat [%e,%e,%e]\n", *e0, p[*e0*3 + 0], p[*e0*3 + 1], p[*e0*3 + 2] );
+            printf("nearest node  = %i,\tat [%e,%e,%e]\n", iNearest, p[iNearest*3 + 0], p[iNearest*3 + 1], p[iNearest*3 + 2]);
+            printf("distance = %e\n", minDist);
+            exit(1);
+        }
+    }// end loop over all nodes in edge0
+}
+
+
+void Geometry::makePeriEquNodes()
+{
+// GENERATES INDEX OF PERIODIC NODE EQUIVALENCIES
+
+// LIST OF INDEXES TO ALL PERIODIC NODES
+    vector <unsigned int> nodes;
+    e->listNodesOfMaterial( nodes , MAT_PERIODIC );
+
+    size_t numPeri = nodes.size();
+    if ( !numPeri )
+    {
+        periNodes_.clear();
+        return;
+    }
+
+    periNodes_.reserve( getnp() );
+    for ( size_t i = 0 ; i < getnp() ; i++ )
+        periNodes_.push_back(i);
+
+
+    // NEED TO CONSIDER 3 DIFFERENT CASES, DEPENDING ON TYPE OF PERIODICITY OF MODELLING WINDOW
+    double eps = 1e-5; // accuracy for coordinate comparisons
+    double xmin = getXmin(); // convenience shortcuts to geometry min and max dimensions
+    double xmax = getXmax();
+    double ymin = getYmin();
+    double ymax = getYmax();
+    double zmin = getZmin();
+    double zmax = getZmax();
+    /// PROBABLY EVIL, BUT SO CONVENIENT...
+#define LEFT    ( getAbsXDist(n, xmin) <= eps )
+#define RIGHT   ( getAbsXDist(n, xmax) <= eps )
+#define FRONT   ( getAbsYDist(n, ymin) <= eps )
+#define BACK    ( getAbsYDist(n, ymax) <= eps )
+#define BOTTOM  ( getAbsZDist(n, zmin) <= eps )
+#define TOP     ( getAbsZDist(n, zmax) <= eps )
+
+    //CASE 1 FRONT BACK IS PERIODIC ONLY
+    if (getfront_back_is_periodic() &&
+        !getleft_right_is_periodic() &&
+            !gettop_bottom_is_periodic() )
+    {
+
+        //SEPARATE NODES INTO TWO LISTS FOR FRONT AND BACK SURFACES
+        list <size_t> front;
+        list <size_t> back;
+
+        for (size_t i = 0 ; i < nodes.size() ; i ++ )
+        {
+            unsigned int n = nodes[i];
+
+            if ( FRONT ) // check if node i is on front surface
+            { front.push_back(n) ; }
+            else
+                if ( BACK) // check if node i is on back surface
+                { back.push_back(n); }
+
+                else // ERROR
+                {
+                    printf("error in %s, CASE 1 - bye \n", __func__ );
+                    exit(1);
+                }
+        }//end for i
+
+
+        /// MAKE SURE EQUAL NUMBER OF NODES HAVE BEEN FOUND ON BOTH SURFACES
+        if (front.size() != back.size() ){
+            printf("error - SolutionVector::setPeriosdicEquNodes\n");
+            printf("front and back surfaces do not have same number of nodes\n");
+            printf("front = %i , back = %i - bye!\n " , (int) front.size() , (int) back.size() );
+            exit(1);
+        }
+
+        // SEARCH FOR NODE EQUIVALENCIES BY COMPARING X AND Y COORDINATES
+        // BACK NODES MAP TO FRONT NODES
+        this->setFacePeriNodes( front, back, 1 );
+        // setFaceElim( front, back, Elim, 1, geom->getPtrTop() );
+    }
+
+    // CASE 2 FRONT-BACK AND LEFT-RIGHT ARE PERIODIC
+    else if (    getfront_back_is_periodic() &&
+                 getleft_right_is_periodic() &&
+                 !gettop_bottom_is_periodic() )
+    {
+
+        // separate nodes into 8 lists, 4 x corners left/right and front/back planes
+        list <size_t> edge0; //x = 0, y = 0
+        list <size_t> edge1; //x = 0, y = max
+        list <size_t> edge2; //x = max, y = max
+        list <size_t> edge3; //x = max, y = 0
+        list <size_t> front; //x = 0
+        list <size_t> back;  //x = max
+        list <size_t> right; //y = max
+        list <size_t> left;  //y = 0
+
+        for (size_t i = 0 ; i < nodes.size() ; i++) // loop over all nodes and insert to correct list
+        {
+            int n = nodes[i];
+            if ( LEFT && FRONT ) // edge0
+            {edge0.push_back(n);}
+            else if ( LEFT && BACK ) // edge1
+            {edge1.push_back(n);}
+            else if ( RIGHT  &&  BACK ) // edge2
+            {edge2.push_back(n);}
+            else if ( RIGHT && FRONT ) // edge3
+            {edge3.push_back(n);}
+            else if ( FRONT ) // front surface
+            {front.push_back(n);}
+            else if ( BACK ) // back surface
+            {back.push_back(n);}
+            else if ( LEFT ) // left surface
+            {left.push_back(n);}
+            else if ( RIGHT ) // right surface
+            {right.push_back(n);}
+        }
+
+        if ( ( edge0.size() != edge1.size() ) ||
+             ( edge0.size() != edge2.size() )  ||
+             ( edge0.size() != edge3.size() )  ||
+             ( left.size() != right.size() ) ||
+             ( front.size() != back.size() ) )
+        {
+            printf("error, different number of periodic boundary nodes\n");
+            printf("corners 0,1,2,3 = %i,%i,%i,%i\n", (int) edge0.size() , (int) edge1.size() , (int) edge2.size() , (int) edge3.size() );
+            printf("front/back , left/right = %i/%i , %i/%i \n", (int) front.size() , (int) back.size() , (int) left.size() , (int) right.size() );
+            exit(1);
+        }
+        setEdgePeriNodes(edge0, edge1, 2 );
+        setEdgePeriNodes(edge0, edge2, 2 );
+        setEdgePeriNodes(edge0, edge3, 2 );
+        setFacePeriNodes(left  , right, 0);
+        setFacePeriNodes(front , back , 1 );
+
+
+    }// END CASE 2
+
+// CASE 3 FRONT-BACK, LEFT-RIGHT AND TOP-BOTTOM ARE PERIODIC
+        else if ( getfront_back_is_periodic() &&
+                  getleft_right_is_periodic() &&
+                  gettop_bottom_is_periodic() )
+
+        {
+            // separate nodes into lists, 12 x edges left/right, front/back and top/bottom planes
+            // Vertical corners along Z
+
+            // Additionally, 7 corner nodes must point to bottom left (origin xmin,ymin,zmin) corner
+
+            list <size_t> edge0; //x = 0, y = 0
+            list <size_t> edge1; //x = 0, y = max
+            list <size_t> edge2; //x = max, y = max
+            list <size_t> edge3; //x = max, y = 0
+
+            // Horizontal edges along X
+            list <size_t> edgea; // y = 0, z = 0
+            list <size_t> edgeb; // y = max, z = 0
+            list <size_t> edgec; // y = max, z = max
+            list <size_t> edged; // y = 0, z = max
+
+            // Horizontal edges along Y
+            list <size_t> edgeA; // x = 0, z = 0
+            list <size_t> edgeB; // x = max, z = 0
+            list <size_t> edgeC; // x = max, z = max
+            list <size_t> edgeD; // x = 0, z = max
+
+            list <size_t> front; //x = 0
+            list <size_t> back;  //x = max
+            list <size_t> right; //y = max
+            list <size_t> left;  //y = 0
+            list <size_t> top;   //z = max
+            list <size_t> bottom;//z = 0;
+
+
+
+            // LOOP OVER ALL NODES AND INSERT TO CORRECT LIST
+            int corner_nodes[8] = {-1,-1,-1,-1,-1,-1,-1,-1};
+            for (size_t i = 0 ; i < nodes.size() ; i++)
+            {
+                int n = nodes[i];
+
+                // CORNER NODES TAKE PRECEDENCE OVER OTHER NODES
+                // FRONT LEFT BOTTOM
+                if ( FRONT && LEFT && BOTTOM )
+                    corner_nodes[0] = n;
+                // FRONT RIGHT BOTTOM
+                else if ( FRONT && RIGHT && BOTTOM )
+                    corner_nodes[1] = n;
+                else if ( FRONT && LEFT && TOP )  /// FRONT LEFT TOP
+                    corner_nodes[2] = n;
+                else if (FRONT && RIGHT && TOP)   /// FRONT RIGHT TOP
+                    corner_nodes[3] = n;
+                else  if (BACK && LEFT && BOTTOM)
+                    corner_nodes[4] = n;
+                else  if (BACK && RIGHT && BOTTOM)
+                    corner_nodes[5] = n;
+                else  if (BACK && LEFT && TOP)
+                    corner_nodes[6] = n;
+                else  if (BACK && RIGHT && TOP)
+                    corner_nodes[7] = n;
+
+                // EDGE NODES
+                // 4 x Vertical Corners
+                else if ( LEFT && FRONT ) // edge0
+                {edge0.push_back(n);}
+                else if ( LEFT  && BACK ) // edge1
+                {edge1.push_back(n);}
+                else if (RIGHT  && BACK ) // edge2
+                {edge2.push_back(n);}
+                else if ( RIGHT && FRONT ) // edge3
+                {edge3.push_back(n);}
+                // 4 x Horizontal along X
+                else if ( FRONT && BOTTOM)	// ymin and zmin
+                {edgea.push_back(n);}
+                else if (BACK && BOTTOM) // ymax and zmin
+                {edgeb.push_back(n);}
+                else if (BACK && TOP) // ymax and zmax
+                {edgec.push_back(n);}
+                else if (FRONT && TOP)  // ymin and zmax
+                {edged.push_back(n);}
+                // 4 x Horizontal along Y
+                else if( LEFT && BOTTOM)
+                {edgeA.push_back(n);} // xmin and zmin
+                else if( RIGHT && BOTTOM)
+                {edgeB.push_back(n);} // xmax and zmin
+                else if( RIGHT && TOP )
+                {edgeC.push_back(n);} // xmax and zmax
+                else if( LEFT && TOP)
+                {edgeD.push_back(n);} // xmin and zmax
+                // FRONT/BACK, LEFT/RIGHT, TOP/BOTTOM FACES
+                else if ( FRONT ) // front surface
+                {front.push_back(n);}
+                else if ( BACK ) // back surface
+                {back.push_back(n);}
+                else if ( LEFT ) // left surface
+                {left.push_back(n);}
+                else if ( RIGHT ) // right surface
+                {right.push_back(n);}
+                else if ( BOTTOM ) // bottom surface
+                {bottom.push_back(n); }
+                else if ( TOP ) // top surface
+                {top.push_back(n); }
+
+                else
+                {
+                    printf("error in %s, periodic node not on external surface - bye!\n",__func__);
+                    exit(1);
+                }
+
+            }// end for i, loop over all nodes
+
+            // CHECK THAT OPPOSITE FACES HAVE EQUAL NUMBER OF NODES
+            {// start dummy scope
+
+                int mincorner = *min_element( corner_nodes, corner_nodes+8);
+                if (mincorner < 0)
+                {
+                    printf(" error - corner nodes not found - bye!\n");
+                    printf("indexes are = [%i,%i,%i,%i,%i,%i,%i,%i]\n", corner_nodes[0],corner_nodes[1],corner_nodes[2],corner_nodes[3],
+                           corner_nodes[4],corner_nodes[5],corner_nodes[6],corner_nodes[7]);
+                    exit(1);
+
+                }
+
+
+                if (top.size() != bottom.size() )
+                {
+                    printf("error - top and bottom surfaces do not match - bye!\n");
+                    printf("sizes are top,bottom = %i,%i\n", top.size(), bottom.size() );
+                    exit(1);
+                }
+                if (left.size() != right.size() )
+                {
+                    printf("error - left and right surfaces do not match - bye!\n");
+                    exit(1);
+                }
+                if (front.size() != back.size() )
+                {
+                    printf("error - front and back surfaces do not match - bye!\n");
+                    exit(1);
+                }
+                // CHECK ALL CORNERS HAVE CORRECT NUMBER OF NODES
+                size_t s0, s1, s2, s3;
+                s0 = edge0.size(); s1 = edge1.size(); s2 = edge2.size() ; s3 = edge3.size();
+                if ( (s1!=s0) || (s2 != s0) || (s3!=s0) )
+                {
+                    printf("error - vertical corner node counts do not match\n");
+                    exit(1);
+                }
+                s0 = edgea.size(); s1 = edgeb.size(); s2 = edgec.size(); s3 = edged.size();
+                if ( (s1!=s0) || (s2 != s0) || (s3!=s0) )
+                {
+                    printf("error - horizontal corner (along x) node counts do not match\n");
+                    exit(1);
+                }
+                s0 = edgeA.size(); s1 = edgeB.size(); s2 = edgeC.size(); s3 = edgeD.size();
+                if ( (s1!=s0) || (s2 != s0) || (s3!=s0) )
+                {
+                    printf("error - horizontal corner (along y) node counts do not match\n");
+                    exit(1);
+                }
+            }// end dummy scope
+
+            // set corner nodes
+            periNodes_[corner_nodes[1] ] = corner_nodes[0];
+            periNodes_[corner_nodes[2] ] = corner_nodes[0];
+            periNodes_[corner_nodes[3] ] = corner_nodes[0];
+            periNodes_[corner_nodes[4] ] = corner_nodes[0];
+            periNodes_[corner_nodes[5] ] = corner_nodes[0];
+            periNodes_[corner_nodes[6] ] = corner_nodes[0];
+            periNodes_[corner_nodes[7] ] = corner_nodes[0];
+
+            // match edge nodes
+            setEdgePeriNodes(edge0, edge1 , 2 );  // VERTICAL EDGES
+            setEdgePeriNodes(edge0, edge2 , 2 );
+            setEdgePeriNodes(edge0, edge3 , 2 );
+
+            setEdgePeriNodes(edgea, edgeb, 0); // HORIZONTAL ALONG X
+            setEdgePeriNodes(edgea, edgec, 0);
+            setEdgePeriNodes(edgea, edged, 0);
+
+            setEdgePeriNodes(edgeA, edgeB, 1);  // HORIZONTAL ALONG Y
+            setEdgePeriNodes(edgeA, edgeC, 1);
+            setEdgePeriNodes(edgeA, edgeD, 1);
+
+            setFacePeriNodes(left, right, 0);
+            setFacePeriNodes(front, back, 1);
+            setFacePeriNodes(bottom, top, 3);
+
+        }// end if 3 different periodicity cases
+
+
 }// end void MakePEriEquNodes()
 
 void Geometry::checkForPeriodicGeometry()
@@ -438,13 +894,26 @@ void Geometry::checkForPeriodicGeometry()
         ||  getfront_back_is_periodic()
         ||  gettop_bottom_is_periodic() )
     {
-        MakePeriEquNodes();
+        makePeriEquNodes();
     }
 	
 }
 
 
+void Geometry::makeRegularGrid(const size_t &nx,
+                               const size_t &ny,
+                               const size_t &nz)
+{
+// CREATES REUGLAR GRID OBJECT USED FOR INTERPOLATING VALUES FROM
+// TETRAHEDRAL MESH ONTO REGULARLY SPACED GRID
 
+    printf("generating regular grid lookup..."); fflush(stdout);
+    if ( regularGrid ) delete regularGrid;
+
+    regularGrid = new RegularGrid();
+    regularGrid->createFromTetMesh(nx, ny, nz, this );
+    printf("OK\n"); fflush(stdout);
+}
 
 bool Geometry::brute_force_search( unsigned int &ind,            // return index
                                    double* coord,                // search coordinate
@@ -455,8 +924,8 @@ bool Geometry::brute_force_search( unsigned int &ind,            // return index
     // loop over each element
     for (unsigned int i = 0 ; i < (unsigned int) t->getnElements() ; i++)
     {
-        if ( ( t->ContainsCoordinate( i , getPtrTop(), coord ) ) // If coord is in tet i AND
-                && (t->getMaterialNumber(i) <= MAT_DOMAIN7) ){   // tet i material is LC
+        if  ( t->ContainsCoordinate( i , getPtrTop(), coord ) ) // If coord is in tet i
+        {
             ind = i ;
             return true; // exit function when found
         }
@@ -473,69 +942,158 @@ bool Geometry::brute_force_search( unsigned int &ind,            // return index
 }
 
 bool Geometry::getContainingTet(vector< set < unsigned int> >& p_to_t,
-								double *crd,  // coords to search
-								unsigned int& t0){ // start tet
-
-	bool found = false;
-	unsigned int t_prev = t->getnElements();
-    for (size_t i = 0 ; i < (size_t) t->getnElements() ; i++){ // for all elements
-
-        if  ( ( t->ContainsCoordinate(t0, p , crd) ) &&   // if element t0 contains coordinate AND
-            ( t->getMaterialNumber(t0) <= MAT_DOMAIN7) ){ // is an LC element
-				found = true;
-				break;
-		}
-		set<unsigned int> :: iterator nitr;
-			set<unsigned int> setneighs;
-			vector <unsigned int> vecneighs;
-			// make UNIQUE list of all tets sharing nodes with t0
-			setneighs.insert( p_to_t[ t->getNode(t0, 0 ) ].begin(), p_to_t[ t->getNode(t0, 0 ) ].end() );
-			setneighs.insert( p_to_t[ t->getNode(t0, 1 ) ].begin(), p_to_t[ t->getNode(t0, 1 ) ].end() );
-			setneighs.insert( p_to_t[ t->getNode(t0, 2 ) ].begin(), p_to_t[ t->getNode(t0, 2 ) ].end() );
-			setneighs.insert( p_to_t[ t->getNode(t0, 3 ) ].begin(), p_to_t[ t->getNode(t0, 3 ) ].end() );
+                                double crd[3],  // coords to search
+                                unsigned int& t0) // start tet
+{
+// TRIENS TO FIND INDEX TO TETRAHEDRON THAT CONTAINS THE POINT
+// WITH CORRDINATES DEFINED IN crd. USING A NEIGHBOUR SEARCH.
+// STARTS FROM INITIAL TET t0, AND ADVANCES TO ITS NEIGHBOUR WHOSE
+// BARYCENTRE IS CLOSEST TO crd.
+// SOMETIMES THIS FAILS AND A BRUTE FORCE SEARCH MAY BE NEEDED
 
 
-			// MAKE RANDOM ACCESS COPY OF UNIQUE NEIGHBOUR LIST
-			vecneighs.insert( vecneighs.end(), setneighs.begin(), setneighs.end() );
 
-			// CALCULATE DISTANCES FOR EACH NEIGBOUR
-			vector <double > dst;
-			for (unsigned int d = 0 ; d<vecneighs.size() ; d++){
-				dst.push_back( t->CalcBaryDistSqr(p , vecneighs[d], crd));
-			}
-			// FIND INDEX TO MINIMUM DISTANCE AND SET t0 TO THAT
-			unsigned int ind_min = min_element(dst.begin(), dst.end() ) - dst.begin();
-			t_prev = t0;
-			t0 = vecneighs[ind_min];
+    bool found = false;
+    unsigned int t_prev = t->getnElements();
+    for (size_t i = 0 ; i < (size_t) t->getnElements() ; i++) // for all elements
+    {
 
-			// SEARCH MAY GET STUCK WHEN POINT IS CLOSE TO A CORNER NODE OF A LONG THIN
-			// TET CONTAINING THE COORD. IN THAT CASE, THE BARYCENTRE OF A NEIGHBORING
-			// TET MAY BE CLOSER -> SEARCH WILL NOT FIND THE ACTUAL TET
-			if (t_prev == t0){ // IF STUCK, TRY ALL NEIGHBOURS IN ORDER OF DISTANCE
+        if  (  t->ContainsCoordinate(t0, p , crd)  ) // if element t0 contains coordinate
+        {
+            found = true;
+            break;
+        }
+        set<unsigned int> :: iterator nitr;
+        set<unsigned int> setneighs;
+        vector <unsigned int> vecneighs;
+        // make UNIQUE list of all tets sharing nodes with t0
+        setneighs.insert( p_to_t[ t->getNode(t0, 0 ) ].begin(), p_to_t[ t->getNode(t0, 0 ) ].end() );
+        setneighs.insert( p_to_t[ t->getNode(t0, 1 ) ].begin(), p_to_t[ t->getNode(t0, 1 ) ].end() );
+        setneighs.insert( p_to_t[ t->getNode(t0, 2 ) ].begin(), p_to_t[ t->getNode(t0, 2 ) ].end() );
+        setneighs.insert( p_to_t[ t->getNode(t0, 3 ) ].begin(), p_to_t[ t->getNode(t0, 3 ) ].end() );
 
-                dst[ind_min] = DBL_MAX; // SET CURRENT t0 TO MAXIMUM POSSIBLE DISTANCE AS DEFINED IN <float.h>
+        // MAKE RANDOM ACCESS COPY OF UNIQUE NEIGHBOUR LIST
+        vecneighs.insert( vecneighs.end(), setneighs.begin(), setneighs.end() );
 
-				for (size_t ind = 0 ; ind < vecneighs.size() ; ind++){ // LOOP OVER ALL NEIGHBOURS
-					ind_min = min_element(dst.begin(), dst.end() ) - dst.begin(); // refind new closest value
+        // CALCULATE DISTANCES FOR EACH NEIGBOUR
+        vector <double > dst;
+        for (unsigned int d = 0 ; d<vecneighs.size() ; d++)
+        {
+            dst.push_back( t->CalcBaryDistSqr(p , vecneighs[d], crd));
+        }
 
-                    if ( ( t->ContainsCoordinate( vecneighs[ind_min], p, crd ) )&& // If contains coordinate AND
-                    (t->getMaterialNumber(vecneighs[ind_min]) <= MAT_DOMAIN7 ) )   // If is LC element
-                    {
-						found = true;
-						t0 = vecneighs[ind_min];
-						break;
-					}
-					else{
-                        dst[ind_min] = DBL_MAX; // STILL NOT FOUND?, TRY AGAIN WITH TET THAT IS NEXT CLOSEST
-					}
-				}// end for all neighbours
-				// IF REALLY STUCK EXIT AND TEST USING BRUTE FORCE
-				break;
-			} // end if stuck
+        // FIND INDEX TO MINIMUM DISTANCE AND SET t0 TO THAT
+        unsigned int ind_min = min_element(dst.begin(), dst.end() ) - dst.begin();
+        t_prev = t0;
+        t0 = vecneighs[ind_min];
 
-	}// end for all tets
+        // SEARCH MAY GET STUCK WHEN POINT IS CLOSE TO A CORNER NODE OF A LONG THIN
+        // TET CONTAINING THE COORD. IN THAT CASE, THE BARYCENTRE OF A NEIGHBORING
+        // TET MAY BE CLOSER -> SEARCH WILL NOT FIND THE ACTUAL TET
+        if (t_prev == t0) // IF STUCK, TRY ALL NEIGHBOURS IN ORDER OF DISTANCE
+        {
+            dst[ind_min] = DBL_MAX; // SET CURRENT t0 TO MAXIMUM POSSIBLE DISTANCE AS DEFINED IN <float.h>
+
+            for (size_t ind = 0 ; ind < vecneighs.size() ; ind++) // LOOP OVER ALL NEIGHBOURS
+            {
+                ind_min = min_element(dst.begin(), dst.end() ) - dst.begin(); // refind new closest value
+                if ( t->ContainsCoordinate( vecneighs[ind_min], p, crd ) )    // If contains coordinate
+                {
+                    found = true;
+                    t0 = vecneighs[ind_min];
+                    break;
+                }
+                else
+                {
+                    dst[ind_min] = DBL_MAX; // STILL NOT FOUND?, TRY AGAIN WITH TET THAT IS NEXT CLOSEST
+                }
+            }// end for all neighbours
+            // IF REALLY STUCK EXIT AND TEST USING BRUTE FORCE
+            break;
+        } // end if stuck
+
+    }// end for all tets
 	return found;
 }
+
+
+size_t Geometry::recursive_neighbour_search(double crd[3],
+                                            const vector<set<unsigned int> > &p_to_t,
+                                            const size_t &currentTet,
+                                            std::set<size_t>& tetHistory)
+{
+    // TRIES TO FIND TETRAHEDRON CONTAINING POINT crd bY RECURSIVELY
+    // SELECTING NEIGHBOUR TET WHOSE BARYHENTRE IS NEARES TO crd
+
+    if ( t->ContainsCoordinate(currentTet, p, crd) )
+        return currentTet;
+
+    tetHistory.insert( currentTet );
+
+    if (tetHistory.size() > 10000 ) return NOT_AN_INDEX;
+
+
+    // CREATE LIST OF NEIGHBOURING ELEMENTS
+    std::vector <unsigned int> neighs;
+    for (int i = 0 ; i < t->getnNodes() ; i++)
+    {
+        int n = t->getNode(currentTet, i);
+        neighs.insert(neighs.end(), p_to_t[n].begin(), p_to_t[n].end() );
+    }
+
+    sort(neighs.begin(), neighs.end() );
+    vector<unsigned int>::iterator itr = unique( neighs.begin(),
+                                                 neighs.end() );
+    neighs.erase( itr, neighs.end() );
+    // REMOVE REFERENCE TO SELF TOO....
+
+    vector <double> dists;
+    for(size_t i = 0 ; i < neighs.size() ; i++)
+    {
+        dists.push_back( t->CalcBaryDistSqr(p, neighs[i], crd) );
+    }
+
+    // FIND INDEX TO NEIGHBOUR THAT IS NEAREST
+    size_t indn = min_element( dists.begin(), dists.end() ) - dists.begin();
+
+
+    while ( dists[indn] < DBL_MAX )
+    {
+        size_t indt = neighs[indn]; // actual element number
+        //double d = dists[indn];
+
+        size_t ifound = NOT_AN_INDEX;
+
+        if ( tetHistory.find(indt) == tetHistory.end() )
+        {
+            //printf("dist[%u] =%e\n",indt,d );
+            //t->PrintElement(indt);
+            ifound =  recursive_neighbour_search( crd,
+                                           p_to_t,
+                                           indt,
+                                           tetHistory );
+
+            if (ifound != NOT_AN_INDEX)
+            {
+                return ifound;
+            }
+
+        }
+
+
+        // SET DISTANCE TO MAX TO INDICATE THAT THIS TET HAS ALREADY
+        // BEEN TRIED
+        dists[indn] = DBL_MAX;
+        indn = min_element( dists.begin() , dists.end() ) - dists.begin();
+
+    }
+
+    // IF ALL NEIGHBOURS FAIL
+    return NOT_AN_INDEX;
+
+
+}
+
 
 
 void Geometry::genIndToTetsByCoords(vector<unsigned int> &ind,   // return index
@@ -564,9 +1122,16 @@ void Geometry::genIndToTetsByCoords(vector<unsigned int> &ind,   // return index
                         ( getZmax() - getZmin() )/2.0 };
 
     unsigned int mt = 0;
-    if ( !getContainingTet( p_to_t, mid, mt) ){
-        mt = t->getnElements() / 2; // if mid tet not found, set to numtets/2
-    }
+    //if ( !getContainingTet( p_to_t, mid, mt) )
+    //{
+    //    mt = t->getnElements() / 2; // if mid tet not found, set to numtets/2
+    //}
+    std::set<size_t> tetHistory;
+    mt = recursive_neighbour_search( mid,
+                                     p_to_t,
+                                     0,
+                                     tetHistory);
+
 
     //---------------------------
 
@@ -575,18 +1140,27 @@ void Geometry::genIndToTetsByCoords(vector<unsigned int> &ind,   // return index
     #pragma omp parallel for
     for ( n = 0 ; n < nc ; n++) // for each coord
     {
-        unsigned int t0 = mt ; // SET START ELEM
 
-        double* crd;
-        crd = coord + n*3; // n'th coordinate
-
+        std::set<size_t> searchHistory;
+        double crd[3];
+        //crd = coord + n*3; // n'th coordinate
+        crd[0] = *(coord + n*3 + 0);
+        crd[1] = *(coord + n*3 + 1);
+        crd[2] = *(coord + n*3 + 2);
         // nearest neigbour search
-        if ( getContainingTet( p_to_t, crd, t0) )
+        //if ( getContainingTet( p_to_t, crd, t0) )
+        size_t t0 = recursive_neighbour_search( crd,
+                                                p_to_t,
+                                                mt,
+                                                searchHistory);
+
+        if (t0 != NOT_AN_INDEX )
         {
             ind[n] = t0;
         }
         // if neares neighbour search fails, use brute force
-        else{
+        else
+        {
             unsigned int bfind = 0;
             // TRY BRUTE FORCE. THIS MAY TERMINATE APP., DEPENDING ON BOOL FLAG
             if ( brute_force_search( bfind, crd, terminateOnError ) )
@@ -596,6 +1170,7 @@ void Geometry::genIndToTetsByCoords(vector<unsigned int> &ind,   // return index
             else    // BRUTE FORCE FAIL IS ALLOWED (NODE MAY BE OUTSIDE MESH)
             {
                 ind[n] = Geometry::NOT_AN_INDEX; // MARK INDEX AS INVALID
+                //printf("FAIL!\n");
             }
         }
 
@@ -606,8 +1181,6 @@ void Geometry::genIndToTetsByCoords(vector<unsigned int> &ind,   // return index
 
 }
 
-int 	Geometry::getnp()		{ return np;}
-int 	Geometry::getnpLC()		{ return npLC;}
 double* Geometry::getPtrTop() 	{ return p;}
 double Geometry::getpX(int i)	
 { 
@@ -700,18 +1273,26 @@ double Geometry::getYmax()	{return Ymax;}
 double Geometry::getZmin()	{return Zmin;}
 double Geometry::getZmax() 	{return Zmax;}
 
-void Geometry::PrintNodes(){
-	printf("printting %i nodes:\n",getnp());
-	for (int i = 0 ; i < getnp() ; i ++)
-	{
-		printf("\t%i = [%f,%f,%f]\n", i , getpX(i) , getpY(i) , getpZ(i) );
-	}
+void Geometry::PrintNodes()
+{
+    printf("printting %i nodes:\n",getnp());
+    for (size_t i = 0 ; i < getnp() ; i ++)
+    {
+        printf("\t%i = [%f,%f,%f]\n", i , getpX(i) , getpY(i) , getpZ(i) );
+    }
 
 
 }
 void Geometry::PrintNode(int i )
 {
 	printf("node %i = [%f,%f,%f]\n",i , getpX(i) , getpY(i) , getpZ(i));
+
+}
+void Geometry::PrintPeriodicNodes()
+{
+
+    for (size_t i = 0 ; i < periNodes_.size() ; i++)
+        printf("periNodes_[%u] = %u\n", i, periNodes_[i]);
 
 }
 
@@ -800,7 +1381,8 @@ void Geometry::countNodeReferences(vector <int>& refc, Mesh& mesh){
     refc.assign( (size_t) this->getnp() , 0 ); // set all counts to zero
 
     for (unsigned int i = 0 ; i < (unsigned int) mesh.getnElements() ; i++){ // for each element
-        for (int n = 0 ; n < mesh.getnNodes() ; n++){ // for each node in element i
+        for (int n = 0 ; n < mesh.getnNodes() ; n++)
+        { // for each node in element i
            refc[mesh.getNode(i,n)] ++ ;
         }
     }

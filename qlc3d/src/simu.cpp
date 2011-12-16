@@ -49,7 +49,9 @@ PotCons(Off),
     StretchVector[0]    = 1.0;	StretchVector[1]	= 1.0;	StretchVector[2]	= 1.0;
     EnergyRegion [0]	= 0.0;	EnergyRegion [1]	= 0.0;	EnergyRegion [2]	= 0.0;
     OutputFormat		= SIMU_OUTPUT_FORMAT_BINARY;
-//OutputEnergy_fid	= NULL;
+
+    RegularGridSize[0] = 0; RegularGridSize[1] = 0; RegularGridSize[2] = 0;
+    //OutputEnergy_fid	= NULL;
 }
 void Simu::PrintSimu(){}
 

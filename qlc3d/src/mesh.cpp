@@ -430,7 +430,7 @@ bool Mesh::ContainsCoordinate(const unsigned int &elem, const double *p, const d
    // CALCULATE 4 DETERMINANTS FOR TETS FORMED USING NODES FROM THIS ELEMENT
    // AND THE TESTED COORDINATE AND ONE USING THIS TET ONLY. IF SUM OF DETS OF TETS FORMED USING coord
    // EQUALS THAT OF FOR THIS ELEMENT ONLY, THEN THE COORDINATE IS WITHIN THIS TET
-	const double eps = 1e-15; // accuracy used for coordinate comparions
+    const double eps = 1e-15; // accuracy used for coordinate comparions
     double x[4] , y[4] , z[4];
     int*n = &Elem[elem*nNodes]; // shortcut to all node numbers in this tet
     double Det = 0.0;    // cumulative determinant for tets formed using coord
@@ -444,9 +444,9 @@ bool Mesh::ContainsCoordinate(const unsigned int &elem, const double *p, const d
     x[3] = p[3*n[3]];   y[3] = p[3*n[3]+1]; z[3] = p[3*n[3]+2];
 
 	if  ( (	  ( fabs( coord[0]- x[0]) < eps ) && (fabs(coord[1] - y[0]) < eps) && (fabs(coord[2] - z[0])<eps) )|| // node 1
-			( ( fabs( coord[0]- x[1]) < eps ) && (fabs(coord[1] - y[1]) < eps) && (fabs(coord[2] - z[1])<eps) )|| // node 2
-			( ( fabs( coord[0]- x[2]) < eps ) && (fabs(coord[1] - y[2]) < eps) && (fabs(coord[2] - z[2])<eps) )|| // node 3
-			( ( fabs( coord[0]- x[3]) < eps ) && (fabs(coord[1] - y[3]) < eps) && (fabs(coord[2] - z[3])<eps) )){ // node 4
+            ( ( fabs( coord[0]- x[1]) < eps ) && (fabs(coord[1] - y[1]) < eps) && (fabs(coord[2] - z[1])<eps) )|| // node 2
+            ( ( fabs( coord[0]- x[2]) < eps ) && (fabs(coord[1] - y[2]) < eps) && (fabs(coord[2] - z[2])<eps) )|| // node 3
+            ( ( fabs( coord[0]- x[3]) < eps ) && (fabs(coord[1] - y[3]) < eps) && (fabs(coord[2] - z[3])<eps) )){ // node 4
 	//cout << "coerner node found" << endl;
 	return true;
     }
@@ -609,93 +609,98 @@ void Mesh::CalculateDeterminants3D(double *p)
 
 }
 void Mesh::CalculateSurfaceNormals(double *p, Mesh* tets){
-	if ((Dimension != 2) || (getnElements() <1) || (getnNodes() <1)){
-		printf("error - Mesh::CalculateSurfaceNormals(double *p) - cannot calculate surface normals, bye!");
-		exit(1);
-	}
-	printf("calculating %i surface normals and 2D determinants ",getnElements());
-	
-	if (SurfaceNormal != NULL) free(SurfaceNormal);
+    if ((Dimension != 2) ||
+        (getnElements() <1) ||
+        (getnNodes() <1))
+    {
+        printf("error - Mesh::CalculateSurfaceNormals(double *p) - cannot calculate surface normals, bye!");
+        exit(1);
+    }
 
-	SurfaceNormal = (double*) malloc(3 * getnElements() * sizeof(double));
-	
-	if (Determinant != NULL) free(Determinant);
-	
-	Determinant = (double*) malloc( getnElements() * sizeof(double) );
-	
-	if ((SurfaceNormal==NULL) || (Determinant==NULL))
-	{
-		printf("error - MeshCalculateSurfaceNormals(dobule*) - could not allocate memory- bye!\b");
-		exit(1);
-	}
+    printf("calculating %i surface normals and 2D determinants ",getnElements());
+    if (SurfaceNormal != NULL) free(SurfaceNormal);
+    if (Determinant != NULL) free(Determinant);
+
+    SurfaceNormal = (double*) malloc(3 * getnElements() * sizeof(double));
+    Determinant = (double*) malloc( getnElements() * sizeof(double) );
+
+    if ((SurfaceNormal==NULL) || (Determinant==NULL))
+    {
+        printf("error - MeshCalculateSurfaceNormals(dobule*) - could not allocate memory- bye!\b");
+        exit(1);
+    }
 	
 	
 // Loop over each element and calculate determinant and surface normal
-	double Ax,Ay,Az, Bx,By,Bz;
-	double cross[3];
-	int fraction = (int) getnElements() / 10;
-	TotalSize = 0;
-	//printf("num tri elem:%i\n", getnElements() );
-	for ( int i = 0 ; i < getnElements() ; i ++){
+    double Ax,Ay,Az, Bx,By,Bz;
+    double cross[3];
+    int fraction = (int) getnElements() / 10;
+    TotalSize = 0;
 
-		if (  i%fraction  == 0 ) // progress dots printing
-			printf(".");
-		
+    for ( int i = 0 ; i < getnElements() ; i ++)
+    {
 
-		Ax = p[getNode(i,1)*3+0] - p[getNode(i,0)*3 + 0];
-		Ay = p[getNode(i,1)*3+1] - p[getNode(i,0)*3 + 1];
-		Az = p[getNode(i,1)*3+2] - p[getNode(i,0)*3 + 2];
+        if (  i%fraction  == 0 ) // progress dots printing
+            printf(".");
+
+
+        Ax = p[getNode(i,1)*3+0] - p[getNode(i,0)*3 + 0];
+        Ay = p[getNode(i,1)*3+1] - p[getNode(i,0)*3 + 1];
+        Az = p[getNode(i,1)*3+2] - p[getNode(i,0)*3 + 2];
 	
 	
-		Bx = p[getNode(i,2)*3 + 0] - p[getNode(i,0)*3 + 0];
-		By = p[getNode(i,2)*3 + 1] - p[getNode(i,0)*3 + 1];
-		Bz = p[getNode(i,2)*3 + 2] - p[getNode(i,0)*3 + 2];
+        Bx = p[getNode(i,2)*3 + 0] - p[getNode(i,0)*3 + 0];
+        By = p[getNode(i,2)*3 + 1] - p[getNode(i,0)*3 + 1];
+        Bz = p[getNode(i,2)*3 + 2] - p[getNode(i,0)*3 + 2];
 	
-		cross[0] = Ay*Bz - Az*By;
-		cross[1] = Az*Bx - Ax*Bz;
-		cross[2] = Ax*By - Ay*Bx;
-		double det = sqrt( cross[0]*cross[0] + cross[1]*cross[1] + cross[2]*cross[2]);
+        cross[0] = Ay*Bz - Az*By;
+        cross[1] = Az*Bx - Ax*Bz;
+        cross[2] = Ax*By - Ay*Bx;
+        double det = sqrt( cross[0]*cross[0] + cross[1]*cross[1] + cross[2]*cross[2]);
 
-		if (det < 0 ){ // if det is negative make it not...
-			#ifdef DEBUG
-			printf("triangle det[%i] < 0 , det = %f\n", i , det);
-			#endif
-			det = -1.0*det;
-		}
+        if (det < 0 )
+        { // if det is negative make it not...
+#ifdef DEBUG
+            printf("triangle det[%i] < 0 , det = %f\n", i , det);
+#endif
+            det = -1.0*det;
+        }
 
-		setDeterminant(i,  det );
-		TotalSize+= det / 2.0;
-		//normalise cross
-		cross[0] = cross[0] / det;
-		cross[1] = cross[1] / det;
-		cross[2] = cross[2] / det;
+        setDeterminant(i,  det );
+        TotalSize+= det / 2.0;
+        //normalise cross
+        cross[0] = cross[0] / det;
+        cross[1] = cross[1] / det;
+        cross[2] = cross[2] / det;
 
-		// CHEK THAT SURFACE NORMAL POINTS TOWARDS LC REGION. I.E. INWARDS
-		// IF NOT REVERSE ITS ORIENTATION
+        // CHEK THAT SURFACE NORMAL POINTS TOWARDS LC REGION. I.E. INWARDS
+        // IF NOT REVERSE ITS ORIENTATION
 
-		if ((ConnectedVolume) && (tets) ){ // only if connected volumes have been set and tets are provided
+        if ((ConnectedVolume) && (tets) ) // only if connected volumes have been set and tets are provided
+        {
+            int t = getConnectedVolume( i ); // index to neighbouring tet
+            if ( t > -1 )
+            { // TRIANGLE IS NOT CONNECTED TO AN LC. PROBABLY A DIELECTRIC NRIGHBOUT ONLY TRIANGLE
+                // triangle barycentre
+                double tri_bary[3] = { ( p[getNode(i,0)*3+0] + p[getNode(i,1)*3+0] +p[getNode(i,2)*3+0] ) / 3.0 ,  // x
+                                       ( p[getNode(i,0)*3+1] + p[getNode(i,1)*3+1] +p[getNode(i,2)*3+1] ) / 3.0 ,  // y
+                                       ( p[getNode(i,0)*3+2] + p[getNode(i,1)*3+2] +p[getNode(i,2)*3+2] ) / 3.0 }; // z
+                // tet barycentre
+                int n[4] = { tets->getNode(t,0) , tets->getNode(t,1) , tets->getNode(t,2), tets->getNode(t,3) };
+                double tet_bary[3] = {  (p[n[0]*3+0] + p[n[1]*3+0] + p[n[2]*3+0] + p[n[3]*3+0] )/ 4.0 ,	// x
+                                        (p[n[0]*3+1] + p[n[1]*3+1] + p[n[2]*3+1] + p[n[3]*3+1] )/ 4.0 ,	// y
+                                        (p[n[0]*3+2] + p[n[1]*3+2] + p[n[2]*3+2] + p[n[3]*3+2] )/ 4.0 };	// z
 
-			int t = getConnectedVolume( i ); // index to neighbouring tet
-			if ( t > -1 ){ // TRIANGLE IS NOT CONNECTED TO AN LC. PROBABLY A DIELECTRIC NRIGHBOUT ONLY TRIANGLE
-			    // triangle barycentre
-			    double tri_bary[3] = { ( p[getNode(i,0)*3+0] + p[getNode(i,1)*3+0] +p[getNode(i,2)*3+0] ) / 3.0 ,  // x
-						   ( p[getNode(i,0)*3+1] + p[getNode(i,1)*3+1] +p[getNode(i,2)*3+1] ) / 3.0 ,  // y
-						   ( p[getNode(i,0)*3+2] + p[getNode(i,1)*3+2] +p[getNode(i,2)*3+2] ) / 3.0 }; // z
-			    // tet barycentre
-			    int n[4] = { tets->getNode(t,0) , tets->getNode(t,1) , tets->getNode(t,2), tets->getNode(t,3) };
-			    double tet_bary[3] = {  (p[n[0]*3+0] + p[n[1]*3+0] + p[n[2]*3+0] + p[n[3]*3+0] )/ 4.0 ,	// x
-						    (p[n[0]*3+1] + p[n[1]*3+1] + p[n[2]*3+1] + p[n[3]*3+1] )/ 4.0 ,	// y
-						    (p[n[0]*3+2] + p[n[1]*3+2] + p[n[2]*3+2] + p[n[3]*3+2] )/ 4.0 };	// z
+                // vector from tri barycentre to tet barycentre
+                double v1[3] = {tet_bary[0] - tri_bary[0],
+                                tet_bary[1] - tri_bary[1],
+                                tet_bary[2] - tri_bary[2]};
 
-			    // vector from tri barycentre to tet barycentre
-			    double v1[3] = {tet_bary[0] - tri_bary[0],
-					    tet_bary[1] - tri_bary[1],
-					    tet_bary[2] - tri_bary[2]};
+                // dot product between surface normal and v1 determines orientation of surface normal
+                double dot = cross[0]*v1[0] + cross[1]*v1[1] + cross[2]*v1[2];
 
-			    // dot product between surface normal and v1 determines orientation of surface normal
-			    double dot = cross[0]*v1[0] + cross[1]*v1[1] + cross[2]*v1[2];
-
-			    if (dot < 0.0 ){
+                if (dot < 0.0 )
+                {
                     // IF SURFACE NORMAL IS IN WRONG DIRECTION,
                     // REVERSE NODE ORDER AND INVERT VECTOR DIRECTION
                     int* e = &Elem[i * getnNodes() ]; // pointer to first node in this element
@@ -706,20 +711,24 @@ void Mesh::CalculateSurfaceNormals(double *p, Mesh* tets){
                     cross[0]*=-1.0;
                     cross[1]*=-1.0;
                     cross[2]*=-1.0;
-			    }
-			}// end if index to neighbouring tet exists
+                }
+            }// end if index to neighbouring tet exists
 
-		} // if connected volume found
-        else {
+        } // if connected volume found
+        else
+        {
             printf("error in Mesh::CalculateSurfaceNormals - Connected volumes or tets do not exist - bye\n");
             exit(1);
         }
-		setSurfaceNormal(i,cross);
+       // if (getMaterialNumber(i)>4000)
+       //     printf("surf[%i] = %e,%e,%e, mat = %i\n", i, cross[0], cross[1], cross[2], getMaterialNumber(i) );
 
-	}
-	printf("OK\n");
-	
-	
+
+        setSurfaceNormal(i,cross);
+    }
+    printf("OK\n");
+
+
 
 }
 

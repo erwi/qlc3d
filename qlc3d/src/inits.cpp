@@ -39,7 +39,7 @@ void prepareGeometry(Geometry& geom,
     }
 
 
-    geom.setCoordinates(p, np);
+    geom.setCoordinates(p, (size_t) np);
     if (p) free(p);
 
     // set up volume mesh
@@ -73,9 +73,13 @@ void prepareGeometry(Geometry& geom,
     geom.e->ScaleDeterminants(1e-12); // scale to microns
 
     geom.setNodeNormals();
-    geom.checkForPeriodicGeometry();
+    geom.checkForPeriodicGeometry(); // also makes periodic node indexes
+
     geom.genIndWeakSurfaces(alignment);
 
+    geom.makeRegularGrid(simu.getRegularGridXCount(),
+                         simu.getRegularGridYCount(),
+                         simu.getRegularGridZCount());
 }
 
 FILE* createOutputEnergyFile(Simu& simu){

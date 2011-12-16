@@ -272,6 +272,9 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
     else
         problem(name, ret);
 
+
+
+
 //------------------------------------------
 //
 // READ VECTOR VALUES
@@ -321,34 +324,17 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
 	}
         //problemo(name , ret);
 
+        name = "RegularGridSize";
+        ret = reader.readNumberArray( name, vec);
+        if (ret == READER_SUCCESS )
+        {
+            if (vec.size()!= 3)
+                problem(name, READER_BAD_FORMAT );
 
+            simu->setRegularGridSize( (size_t) vec[0], (size_t) vec[1], (size_t) vec[2] );
 
-//------------------------------------------
-//
-// READ POTENTIAL CONSISTENCY CALCULATION
-//
-//------------------------------------------
+        }
 
-// DETERMINES WHICH METHOD IS USED FOR POTENTIAL CONSISTENCY
-	//name = "PotCons";
-	//ret = reader.readString(name, str_var);
-	//if (ret == READER_SUCCESS){
-	//	if ( str_var.compare("Off") == 0 )
-	//		simu->setPotCons(Off);
-	//	else if (str_var.compare("Loop") == 0)
-	//		simu->setPotCons(Loop);
-	//}
-	//problemo("PotCons");
-// SETS MINIMUM CONSISTENCY ACCURACY
-	//name = "TargetPotCons";
-	//ret = reader.readNumber(name, dbl_var);
-	//if (ret == READER_SUCCESS){//
-	//	simu->setTargetPotCons(dbl_var);
-	//}
-	//
-//else
-	//
-	//problemo("TargetPotCons");
 
 }//end void readSimu
 

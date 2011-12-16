@@ -116,7 +116,7 @@ Event* EventList::getCurrentEvent(const Simu &simu)
     {
         if ( ! iterationEvents_.size() )
         {
-            printf("error in %s, no iteration event is queue - bye !\n");
+            printf("error in %s, no iteration event is queue - bye !\n", __func__);
             exit(1);
         }
 
@@ -166,12 +166,6 @@ void EventList::manageReoccurringEvents(const Simu& simu)
 // NEW EVENTS WILL BE SCEDULED FOR NEXT ITERATION/TIME STEP.
 // NOTE THAT THIS SHOULD BE CALLED AFTER ALL EVENTS FOR CURRENT
 // ITERATION/TIMESTEP HAVE BEEN PROCESSED.
-
-    if( simu.getCurrentIteration() == 7 )
-    {
-        int b = 5;
-    }
-
 
 // ADD ITER EVENTS
     size_t nextIter = (size_t) simu.getCurrentIteration() + 1;
