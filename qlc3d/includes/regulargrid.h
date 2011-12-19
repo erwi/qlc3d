@@ -66,16 +66,11 @@ public:
                            const unsigned int& nz,
                            Geometry* geom); // underlying tet mesh
 
-    // INTERPOLATES A SCALAR VALUE
-    //void interpolateToRegular( const double*& sclrIn,    // input values
-    //                           double*& sclrOut,        // output values
-    //                           const size_t& maxnp = MAX_SIZE_T);
 
-
-    // INTERPOLATES A VECTOR VALUE
+    // INTERPOLATES A VALUE
     void interpolateToRegular( const double* valIn,    // input irregular
                                double*& valOut,         // output regular
-                               const size_t& maxnp = MAX_SIZE_T); // number of nodes in irregular input
+                               const size_t& maxnp = MAX_SIZE_T); // number of nodes in irregular input (npLC or np)
 
     // ==============================================
     //

@@ -81,10 +81,10 @@ bool RegularGrid::createFromTetMesh(const unsigned int &nx,
     dy_ = ( yLimits_[1] - yLimits_[0] ) / ( ny_ - 1 );
     dz_ = ( zLimits_[1] - zLimits_[0] ) / ( nz_ - 1 );
 
-    // SPECIAL CASE, WHEN ONLY A SINGLE NODE IN A DIRECTION IS REQUIRED -> di = 0
-    if ( nx_ == 1 ) dx_ = 0;
-    if ( ny_ == 1 ) dy_ = 0;
-    if ( nz_ == 1 ) dz_ = 0;
+    // SPECIAL CASE, WHEN ONLY A SINGLE NODE IN A DIRECTION IS REQUIRED, MAKE dx WHOLE WIDTH OF STRUCTURE
+    if ( nx_ == 1 ) dx_ = xLimits_[1] - xLimits_[0];
+    if ( ny_ == 1 ) dy_ = yLimits_[1] - yLimits_[0];
+    if ( nz_ == 1 ) dz_ = zLimits_[1] - zLimits_[0];
 
     generateLookupList(geom);
 

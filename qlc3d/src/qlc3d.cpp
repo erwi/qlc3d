@@ -220,16 +220,6 @@ int main(int argc, char* argv[]){
 //
 //================================================
 
-
-
-    //eventlist.addElectrodeEvents(electrodes, simu );
-    // add saveEvents
-    // add refinemenetEvents
-
-    //eventlist.printEventList();
-
-
-
     cout << "Creating V...";
     SolutionVector v( geom1.getnp() );
 
@@ -238,11 +228,6 @@ int main(int argc, char* argv[]){
     v.setPeriodicEquNodes( &geom1 ); // periodic nodes
 
     cout << "OK"<<endl;
-
-
-
-
-
 
 // =============================================================
 //

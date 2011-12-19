@@ -1033,6 +1033,7 @@ size_t Geometry::recursive_neighbour_search(double crd[3],
     if (tetHistory.size() > 10000 ) return NOT_AN_INDEX;
 
 
+
     // CREATE LIST OF NEIGHBOURING ELEMENTS
     std::vector <unsigned int> neighs;
     for (int i = 0 ; i < t->getnNodes() ; i++)

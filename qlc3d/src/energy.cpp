@@ -43,29 +43,33 @@ namespace Energy
 
 void init_shape()
 {
-	for (int i=0; i<ngp; i++) {
-		// P1 Shape functions
-		sh1[i][0]=1-gp[i][0]-gp[i][1]-gp[i][2];
-		sh1[i][1]=gp[i][0];
-		sh1[i][2]=gp[i][1];
-		sh1[i][3]=gp[i][2];
-		// P1 Shape functions r-derivatives
-		sh1r[i][0]=-1.0;
-		sh1r[i][1]=1.0;
-		sh1r[i][2]=0.0;
-		sh1r[i][3]=0.0;
-		// P1 Shape functions s-derivatives
-		sh1s[i][0]=-1.0;
-		sh1s[i][1]=0.0;
-		sh1s[i][2]=1.0;
-		sh1s[i][3]=0.0;
-		// P1 Shape functions t-derivatives
-		sh1t[i][0]=-1.0;
-		sh1t[i][1]=0.0;
-		sh1t[i][2]=0.0;
-		sh1t[i][3]=1.0;
-	//printf("sh1[%i][1] = %f\n",i,sh1[i][1]);
+    printf("B");
+    for (int i=0; i<ngp; i++)
+    {
+        // P1 Shape functions
+        sh1[i][0]=1-gp[i][0]-gp[i][1]-gp[i][2];
+        sh1[i][1]=gp[i][0];
+        sh1[i][2]=gp[i][1];
+        sh1[i][3]=gp[i][2];
+        // P1 Shape functions r-derivatives
+        sh1r[i][0]=-1.0;
+        sh1r[i][1]=1.0;
+        sh1r[i][2]=0.0;
+        sh1r[i][3]=0.0;
+        // P1 Shape functions s-derivatives
+        sh1s[i][0]=-1.0;
+        sh1s[i][1]=0.0;
+        sh1s[i][2]=1.0;
+        sh1s[i][3]=0.0;
+        // P1 Shape functions t-derivatives
+        sh1t[i][0]=-1.0;
+        sh1t[i][1]=0.0;
+        sh1t[i][2]=0.0;
+        sh1t[i][3]=1.0;
+        //printf("B%i\n",i);
 	}
+
+    printf("D");
 }// enf void init_shape
 
 }// end namespace Energy
@@ -91,8 +95,10 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
 	//
 	//
 	using namespace Energy;
-	init_shape();
-	double e0 = 8.8541878176*1e-12;
+
+        init_shape();
+        printf("A");
+        double e0 = 8.8541878176*1e-12;
 	double S0 = lc->S0;
 
 	double epsav = lc->eps_per / S0;
@@ -105,11 +111,6 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
 	efe2+= 0; //no warnings...
 	double f0=(3.0* A / 4.0)*(S0*S0) + (B/4.0)*(S0*S0*S0) + (9.0*C/16.0)*(S0*S0*S0*S0);
         double* p = geom->getPtrTop();
-
-    //bool is3K = false;
-	//if ( (lc->L2!=0) || (lc->L6!= 0) )
-   //         is3K = true;
-	
 
 	// energy variables
 	double Fd = 0;		// distortion energy

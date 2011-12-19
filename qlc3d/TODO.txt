@@ -1,3 +1,10 @@
+13. Interpolation function does not give preference to LC tets.
+    This results in som dielectric-LC interface nodes being reported as
+    dielectric -> regular grid nodes without director.
+
+12. Energy calculation crashes in "initialise shape files"-function
+    when not in debug mode. Adding a printf in loop stops crash.
+    Check with Valgrind!
 
 10. Potential calculation is done even when not needed.
     Also, dont make a potential matrix when not needed.
