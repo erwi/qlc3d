@@ -1012,7 +1012,7 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
     // INDEPENDENT EQUIVALENT NODES
 
     std::vector <int> elim(nDoF, 0 );   // convenience copy of Elim
-    for (size_t i = 0 ; i < this->getnDoF() ; i++)
+    for (size_t i = 0 ; i < (size_t) this->getnDoF() ; i++)
     {
         elim[i] =  geom->getPeriodicEquNode( i ) ;
     }
@@ -1364,9 +1364,9 @@ void SolutionVector::EnforceEquNodes(const Geometry& geom)
 
     // CALCULATES PERIODIC EQUIVALEN NODE FROM ELIM IN CASES WHERE
     // WHERE MORE THAN 1 DEGREE OF FREEDOM EXISTS (i.e. Q-TENSOR)
-    for (size_t i =0 ; i < nDimensions ; i ++)
+    for (size_t i =0 ; i < (size_t) nDimensions ; i ++)
     {
-        for (size_t j = 0 ; j < nDoF; j++)
+        for (size_t j = 0 ; j < (size_t) nDoF; j++)
         {
             size_t equDof = geom.getPeriodicEquNode(j);
 

@@ -152,7 +152,7 @@ void Geometry::setCoordinates(double* coords, const size_t& np)
 	Ymin = 1e9; Ymax = -1e9;
 	Zmin = 1e9; Zmax = -1e9;
 	
-	for (int i = 0 ; i < np ; i ++) // copy coordinates
+        for (size_t i = 0 ; i < np ; i ++) // copy coordinates
 	{
 		p[i*3+0] = coords[i*3+0];
 		p[i*3+1] = coords[i*3+1];
@@ -254,7 +254,7 @@ void Geometry::setNodeNormals()
         }// end if not periodic
     }// end for i
 
-    for (int i = 0 ; i < np ; i ++) // normalise length
+    for (size_t i = 0 ; i < np ; i ++) // normalise length
     {
         double len = sqrt( NodeNormals[i*3+0]*NodeNormals[i*3+0] +
                            NodeNormals[i*3+1]*NodeNormals[i*3+1] +
@@ -274,7 +274,7 @@ void Geometry::PrintNodeNormals()
 {
 	printf("going to print %i node normals\n",np);
 	fflush(stdout);
-for (int i = 0 ; i < np ; i ++)	{
+for (size_t i = 0 ; i < np ; i ++)	{
 		printf("NodeNormals[%i] = [%f,%f,%f]\n", i, NodeNormals[i*3], NodeNormals[i*3+1], NodeNormals[i*3+2]);
 		fflush(stdout);
 	}
@@ -333,14 +333,14 @@ void Geometry::ReorderDielectricNodes()
 	vector <int> v_mat_index;
 	
 	
-	for (int i=0; i< getnp() ;i++)// first add all nodes marked as LC
-		if (lcde[i] == 1)
-		{
-			v_mat_index.push_back(i);
-			npLC++;
-		}
+        for (size_t i=0; i< getnp() ;i++)// first add all nodes marked as LC
+            if (lcde[i] == 1)
+            {
+                v_mat_index.push_back(i);
+                npLC++;
+            }
 	
-	for (int i=0; i< getnp() ;i++) // then add all non-LC nodes
+        for (size_t i=0; i< getnp() ;i++) // then add all non-LC nodes
 		if (lcde[i] == 0 )
 			v_mat_index.push_back(i);
 	
@@ -350,7 +350,7 @@ void Geometry::ReorderDielectricNodes()
 	//make inverse map
 	vector <int> v_invmap;
 	v_invmap.resize( v_mat_index.size() , -1);
-	for (int i = 0 ; i < getnp() ; i ++)
+        for (size_t i = 0 ; i < getnp() ; i ++)
 		v_invmap[v_mat_index[i]]= i;//v_mat_index[i];//= i;
 	
 	
@@ -360,15 +360,11 @@ void Geometry::ReorderDielectricNodes()
 
 //REORDER NODES 
 	double* newp = (double*)malloc( 3*getnp() *sizeof(double)); // memory for reordered node coordinates
-	for (int i = 0 ; i < getnp() ; i++)
+        for (size_t i = 0 ; i < getnp() ; i++)
 	{
-		
-		newp[i*3+0]=getpX( v_mat_index[i] ); //x-coord
-		
-		newp[i*3+1]=getpY( v_mat_index[i] ); //y-coord
-		
-		newp[i*3+2]=getpZ( v_mat_index[i] ); //z-coord
-		
+            newp[i*3+0]=getpX( v_mat_index[i] ); //x-coord
+            newp[i*3+1]=getpY( v_mat_index[i] ); //y-coord
+            newp[i*3+2]=getpZ( v_mat_index[i] ); //z-coord
 	}
 	
 	free(p); // make p = new reordered p
