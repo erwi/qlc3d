@@ -26,7 +26,7 @@ PotCons(Off),
     MeshNumber(0),
     OutputEnergy(0),
     OutputFormat(SIMU_OUTPUT_FORMAT_BINARY),
-    SaveIter(1),
+    SaveIter(0),
     SaveFormat( LCview ),
 
     MeshName(""),
@@ -122,6 +122,22 @@ void Simu::setdt(double td){
 	dt = 0;
     }
 }
+
+void Simu::setdtForced(const double &dt)
+{
+// FORCES VALUE OF DT
+#ifdef DEBUG
+    if (dt<=0)
+    {
+        printf("warning in %s, trying to set dt to %e\n", dt);
+        exit(1);
+    }
+#endif
+
+    this->dt = dt;
+}
+
+
 void Simu::setdtLimits(const double &min, const double &max){
     if ((min>max) || (min<=0)){
 	cout << "error - Simu::setdtLimits - invalid dtLimits - bye! \n" << endl;

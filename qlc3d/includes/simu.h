@@ -55,7 +55,7 @@ private:
     int MeshNumber;     // counts number of modifications. This number is appended to the end of mesh name
     int	OutputEnergy;	// boolean whether or not to calculate energy
     int	OutputFormat;
-    int	SaveIter;       // determines frequency of saving intermediate result files
+    int	SaveIter;       // determines frequency of saving intermediate result files !! CAN THIS BE REMOVED FROM SIMU??
     size_t SaveFormat;  // bit field with different save formats
     size_t RegularGridSize[3];  // NUMBER OF NODES IN X,Y AND Z-DIRECTIONS
 
@@ -83,7 +83,8 @@ public:
     void setEndCriterion( string ec);
     void setEndValue(double ev);
     void resetEndCriterion();       // starts simulation from beginning
-    void setdt(double td);
+    void setdt(double td);  // set dt, but clamps between min-max values
+    void setdtForced(const double& dt); // force-sets dt, does not care about min-max values
     void setdtLimits(const double& min, const double& max);
     void setdtFunction(double* f4); // array of length 4
     void getdtFunction(double* f );

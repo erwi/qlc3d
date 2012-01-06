@@ -1,10 +1,9 @@
+14. Creation of regular grid interpolation table is slow and may not work
+	in cases where LC regions are disconnected.
+
 13. Interpolation function does not give preference to LC tets.
     This results in som dielectric-LC interface nodes being reported as
     dielectric -> regular grid nodes without director.
-
-12. Energy calculation crashes in "initialise shape files"-function
-    when not in debug mode. Adding a printf in loop stops crash.
-    Check with Valgrind!
 
 10. Potential calculation is done even when not needed.
     Also, dont make a potential matrix when not needed.
@@ -15,6 +14,13 @@
     interpolate each eigenvector/eigenvalue istead
 
 ============ DONE ==============================
+
+12. Energy calculation crashes in "initialise shape files"-function
+    when not in debug mode. Adding a printf in loop stops crash.
+    Check with Valgrind!
+	04/01/2012 - done. Seems to have been an optimzation related issue (level -O3). 
+	Added compiler flag: -fno-tree-vectorize to fix it. 
+
 11. Remove dependencies to Qt, it is annoying. Create own 'filesystem' class
     that deals with creating directories on different OSs. 
 	07/11/2011 - done. filesystem functions in filesysfun.h and filesysfun.cpp

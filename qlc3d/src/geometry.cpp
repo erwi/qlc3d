@@ -905,8 +905,11 @@ void Geometry::makeRegularGrid(const size_t &nx,
 
     printf("generating regular grid lookup..."); fflush(stdout);
     if ( regularGrid ) delete regularGrid;
-
     regularGrid = new RegularGrid();
+
+    if ( !nx || !ny || !nz )    // IF NO REGULAR GRID SIZE IS DEFINED. DONT MAKE ONE
+        return;
+
     regularGrid->createFromTetMesh(nx, ny, nz, this );
     printf("OK\n"); fflush(stdout);
 }

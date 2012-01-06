@@ -22,6 +22,10 @@ void problem(std::string& name, int ret){
     /*! Checks reader return value. If it is an error, prints error message and quits.
         Use this for mandatory settings.
      */
+
+    if ( ret == READER_SUCCESS )
+        return;
+
     Reader temp;
     if (ret!= READER_SUCCESS){
         cout << "Problem reading " << name << " , computer says: " << temp.getErrorString(ret) << endl;
@@ -39,6 +43,30 @@ void problemo(std::string& name, int ret){
     }
 }
 // end problemo (optional parameter problem)
+
+
+bool isOK(const std::string& name, int ret)
+{
+// EXITS AND PRINTS ERROR IF PROBLEM READING A VALUE THAT IS FOUND.
+// USE THIS TO CHECK THE SYNTAX OF OPTIONAL VALUE DEFINITIONS
+
+    // ALL OK.
+    if ( ret == READER_SUCCESS ) return true;
+
+
+    if ( ( ret == READER_BAD_FORMAT ) ||
+         (ret == READER_BAD_VALUE  ) ||
+         (ret == READER_BAD_FILE) )
+    {
+        Reader temp;
+        cout << "Problem reading " << name << ", computer says: " << temp.getErrorString( ret ) << endl;
+        exit(ret);
+    }
+
+    return false;   // SILENTLY RETURN FALSE IF KEY/VALUE PAIR WAS NOT FOUND
+
+}
+
 
 
 void readLC(LC& lc,Reader& reader)
@@ -201,7 +229,15 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
         simu->setSaveIter(int_var);
         evel.setSaveIter( (size_t) int_var );
     }
-    //problemo(name, ret);
+
+    name = "SaveTime";
+    ret = reader.readNumber(name, dbl_var );
+    if ( isOK(name, ret) )
+    {
+        evel.setSaveTime( dbl_var );
+    }
+
+
     name = "EndValue";
     ret = reader.readNumber(name, dbl_var);
     if (ret == READER_SUCCESS)

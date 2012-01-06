@@ -20,11 +20,10 @@ enum EventType {    EVENT_SWITCHING,    // SWITCH ELECTRODE
                     EVENT_SAVE,         // SAVE RESULT
                     EVENT_REFIENEMENT,  // MESH REFINEMENT
                     EVENT_INVALID};     // BAD/ERROR EVENT
-// ABSTRACT EVENT CLASS
+// BASE EVENT CLASS
 class Event
 {
     const EventType eventType_;
-    //Event():eventType_(EVENT_SWITCHING){}   // THIS SHOULD NEVER BE CALLED
 public:
     Event(const EventType& et): eventType_(et) { }
     ~Event(){}
@@ -74,6 +73,8 @@ public:
 
 
 
+
+
 class EventList
 {
     private:
@@ -90,10 +91,13 @@ class EventList
 	
         // REOCCURRING EVENTS
         size_t saveIter_;    // SAVE PERIOD IN ITERATIONS
+
+        double saveTime_;    // SAVE PERIOD IN SECONDS
+        size_t saveTimeCount_; // KEEPS COUNT OF PROCESSED REOCCURRING SAVE ITERS SO FAR
         //TimeEvent saveTime_;    // SAVE PERIOD IN SECONDS
 
         void prependReoccurringIterEvent(IterEvent* iEvent);
-        void insertReoccurringTimeEvent(TimeEvent* tEvent);
+
     public:
         EventList();
         bool eventsInQueue() const; // return true if further events exist in queue
@@ -101,14 +105,17 @@ class EventList
 
         void insertTimeEvent(TimeEvent* tEvent);
         void setSaveIter(const size_t& si){saveIter_ = si;}
-
+        void setSaveTime(const double& st);//{saveTime_ = st;}
 
         Event* getCurrentEvent(const Simu& simu);    // removes current event from queue and returns a copy of it
         double timeUntilNextEvent(const Simu& simu) const;
 
-        void manageReoccurringEvents(const Simu& simu); // PERIODICALLY ADDS REOCCURING EVENTS TO EVENT QUEQUE
+        void manageReoccurringEvents(Simu& simu); // PERIODICALLY ADDS REOCCURING EVENTS TO EVENT QUEQUE
 
         void printEventList() const;
+
+        size_t getSaveIter() const {return saveIter_;}
+        double getSaveTime() const {return saveTime_;}
 };
 
 

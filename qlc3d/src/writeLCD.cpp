@@ -280,50 +280,25 @@ void WriteResult(
         MeshRefinement* meshref)
 {
 
-// DETERMINE IF SAVING OF RESULT IS NEEDED THIS ITERATION.
-// IF MODULUS OF CURRENT ITERATION NUMBER AND SAVEITER IS 0 -> SAVE
-// ALSO, SAVE INITIAL AND FINAL RESULTS
-
-    int mod = 1; // assume NO by default
-    // take care of undefined x%0
-    if (simu->getSaveIter() != 0)
-	mod = simu->getCurrentIteration() % simu->getSaveIter() ;
-
-    // If a new mesh has been generated
-    if ( (meshref) && (meshref->isNeedsNewMesh() ) )
-        mod = 0;
-
-
-    // WRITE RESULT FILE IF...
-    if ((mod == 0 )||                                           // ITERATION IS A SAVE ITERATION
-        (simu->getCurrentIteration() == 0) ||                   // ...OR ITERATION IS INITIAL CONFIGURATION
-        (simu->getCurrentIteration() == SIMU_END_SIMULATION ))  // ...OR FINAL RESULT
+    switch( simu->getOutputFormat() )
     {
-
-        //FilesysFun::setCurrentDirectory( simu->getSaveDir() ); // go to save directory
-
-        switch( simu->getOutputFormat() ){
-            case SIMU_OUTPUT_FORMAT_BINARY:
-            {
-                WriteLCD_B(geom->getPtrTop(), geom->t, geom->e, v, q, simu, lc); // WRITES BINARY FILE
-                break;
-            }
-            case SIMU_OUTPUT_FORMAT_TEXT:
-            {
-                WriteLCD(geom->getPtrTop(), geom->t, geom->e, v, q, simu); // WRITES TEXT FILE
-                break;
-            }
-            default:
-            {
-                printf("error in WriteResult, Simu.OutputFormat is not recognised - bye!\n");
-                fflush(stdout);
-                exit(1);
-            }
-        } // end switch
-
-        //FilesysFun::setCurrentDirectory( simu->getCurrentDir() ); // go back to work directory
-
-    }// end if write result file
+        case SIMU_OUTPUT_FORMAT_BINARY:
+        {
+            WriteLCD_B(geom->getPtrTop(), geom->t, geom->e, v, q, simu, lc); // WRITES BINARY FILE
+            break;
+        }
+        case SIMU_OUTPUT_FORMAT_TEXT:
+        {
+            WriteLCD(geom->getPtrTop(), geom->t, geom->e, v, q, simu); // WRITES TEXT FILE
+            break;
+        }
+        default:
+        {
+            printf("error in WriteResult, Simu.OutputFormat is not recognised - bye!\n");
+            fflush(stdout);
+            exit(1);
+        }
+    } // end switch
 }
 // end void WriteREsult
 

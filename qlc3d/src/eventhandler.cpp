@@ -27,7 +27,7 @@ void handleElectrodeSwitching(Event* currentEvent,
     // FIND WHICH ELECTRODE IS SWITCHING, AND TO WHAT VALUE
     size_t electrodeNum = se->getElectrodeNumber();
     double potential    = se->getElectrodePotential();
-    delete se;
+
     // SET THE NEW ELECTRODE VALUE
     electr.setElectrodePotential( electrodeNum, potential);
 
@@ -68,9 +68,9 @@ void handleResultOutput(Simu& simu,
 
         RegularGrid& rGrid = *geom.regularGrid;
         rGrid.writeVTKGrid( filename.c_str() ,
-                                        v.Values,
-                                        director,
-                                        geom.getnpLC() );
+                            v.Values,
+                            director,
+                            geom.getnpLC() );
 
 
     }
@@ -147,6 +147,27 @@ void handleInitialEvents(EventList& evel,      // EVENT LIST
 
 }
 
+void reduceTimeStep(Simu& simu, EventList& evel)
+{
+// REDUCES TIME STEP SIZE IF NECESSARY, SO THAT NEXT ITERATION
+// COINCIDES WITH NEXT TIME EVENT
+
+    if (simu.getdt() == 0 ) return; // ONLY NEEDED WHEN TIME-STEPPING
+
+    // FIND TIME UNTIL NEXT EVENT
+    double tNext = evel.timeUntilNextEvent( simu );
+    if (tNext < 0 )
+    {
+        printf("error in %s, event missed - bye %es.!\n", __func__,tNext);
+        evel.printEventList();
+        exit(1);
+    }
+
+    if ( tNext < simu.getdt() )
+        simu.setdtForced( tNext );
+
+}
+
 void handleEvents(EventList& evel,      // EVENT LIST
                   Electrodes& electr,   // ELECTRODES WITH POTENTIALS AND TIMING
                   Simu& simu,           // VARIOUS SIMU SETTINGS
@@ -159,10 +180,19 @@ void handleEvents(EventList& evel,      // EVENT LIST
                   Settings& settings)   // SPARSE SOLVER SETTINGS
 {
 
+
+
+    if( simu.getCurrentIteration() == 10 )
+    {
+     int a = 0;
+    }
+
+
 // LEAVE IF NO EVENTS LEFT IN QUEUE
     if ( !evel.eventsInQueue() )    // event queue is empty
     {
         evel.manageReoccurringEvents( simu );
+        reduceTimeStep(simu, evel);
         return ;
     }
 
@@ -181,11 +211,9 @@ void handleEvents(EventList& evel,      // EVENT LIST
 // FLAGS + OTHER PRE-EVENT PROCESSING
     while ( evel.eventOccursNow(simu) )
     {
-
+        // REMOVE EVENT FROM LIST AND GET ITS TYPE
         Event* currentEvent = evel.getCurrentEvent( simu ); // removes event from queue to be processed
         EventType et = currentEvent->getEventType();
-        // REMOVE EVENT FROM LIST AND GET ITS TYPE
-        ///EventType et = evel.popCurrentEvent( simu );
 
         // DEPENDING ON EVENT TYPE, DO STUFF
         switch (et)
@@ -197,6 +225,10 @@ void handleEvents(EventList& evel,      // EVENT LIST
         case(EVENT_SWITCHING):  // SWITCH ELECTRODES
             handleElectrodeSwitching(currentEvent, electr, v, simu );
             recalculatePotential = true;
+
+            if ( (evel.getSaveIter() > 1) || (evel.getSaveTime()>0) ) // OUTPUT RESULT ON SWITCHING ITERATION
+                saveResult = true;
+
             break;
         case(EVENT_REFIENEMENT): // REFINE MESH
             refineMesh = true;
@@ -207,9 +239,11 @@ void handleEvents(EventList& evel,      // EVENT LIST
             printf("error in %s, unknown event type - bye !\n", __func__);
             exit(1);
         }
+
+        delete currentEvent;
     }
 
-// ADDS REOCCURRING EVENTS TO QUEUEU FOR NEXT ITERATION
+// ADDS REOCCURRING EVENTS TO QUEUE FOR NEXT ITERATION
     evel.manageReoccurringEvents(simu);
 
 // IF MESH REFINEMENT
@@ -231,20 +265,13 @@ void handleEvents(EventList& evel,      // EVENT LIST
     if (saveResult)
     {
         handleResultOutput(simu, lc, geom, v, q);
+
     }
 
 
     // IF TIME-STEPPING, REDUCE dt IF IT IS LARGER THAN
     // TIME UNTIL NEXT EVENT
-    double tNext = evel.timeUntilNextEvent( simu );
-    if ( tNext < simu.getdt() )
-        simu.dt = tNext;
-    else if (tNext < 0 )
-    {
-        printf("error , event missed - bye!\n");
-        exit(1);
-    }
-
+    reduceTimeStep( simu, evel );
 
 }//end void HandleEvents
 

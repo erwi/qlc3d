@@ -25,10 +25,9 @@ int minnode(int *t, int dim1, int dim2){ // what does this do?
 		if (t[i]<min) min = t[i];
 	return min;
 }
-void AdjustTime(Simu& simu, const double& maxdq){
+void adjustTimeStepSize(Simu& simu, const double& maxdq){
 
-
-      simu.IncrementCurrentIteration();
+      //simu.IncrementCurrentIteration();
 
     // if electrode switching etc. has just happened, dont adapt time step this time
     // but set switch to false to allow adjutment starting next step
@@ -43,7 +42,8 @@ void AdjustTime(Simu& simu, const double& maxdq){
         // INCREMENT CURRENT TIME BEFORE CHANGING TIME STEP SIZE
         // dt SHOULD BE CORRECT HERE TO MAKE SURE THAT A TIME STEP
         // COINCIDES WITH AN EVENT, IF ANY.
-        simu.IncrementCurrentTime();
+
+        /// simu.IncrementCurrentTime();
 
         // ADAPT TIME STEP ACCORDING TO CONVERGENCE
 
@@ -91,6 +91,12 @@ void AdjustTime(Simu& simu, const double& maxdq){
 
 }
 
+//void incrementIteration(Simu& simu)
+//{
+//    simu.IncrementCurrentIteration();
+//    simu.setdt( simu.getdt() + simu.getCurrentTime() );
+//}
+
 
 // THESE SHOULD NOT BE HERE!!
 void copyTo(double* arr, const SolutionVector& sv){ // copies all values from solution vector to array
@@ -113,11 +119,11 @@ double maxDiff(const double* arr, const SolutionVector& sv){// finds the maximum
 	return md;
 }
 double updateSolutions(SolutionVector& v, SolutionVector& q , SolutionVector& qn,
-					   double* v_cons, double* q_cons, double* qn_cons,
-					   Geometry& geom1,
-					   Simu& simu, LC& lc, Settings& settings,
-					   Alignment& alignment, Electrodes& electrodes,
-                       SparseMatrix* Kq, SparseMatrix* Kpot ){
+                        double* v_cons, double* q_cons, double* qn_cons,
+                        Geometry& geom1,
+                        Simu& simu, LC& lc, Settings& settings,
+                        Alignment& alignment, Electrodes& electrodes,
+                        SparseMatrix* Kq, SparseMatrix* Kpot ){
         //double consistency = 1e99; // arb. bignumber!
 	double maxdq = 0;
 
@@ -194,7 +200,6 @@ int main(int argc, char* argv[]){
 
     // Solver settings	(choose solver, preconditioner etc.)
     Settings settings = Settings();
-
     ReadSolverSettings("solver.qfg", &settings);
 
 
@@ -329,7 +334,10 @@ int main(int argc, char* argv[]){
                                     geom1, simu, lc, settings,
                                     alignment, electrodes,
                                     Kq, Kpot);
-
+        /// UPDATE CURRENT TIME
+        simu.setCurrentTime( simu.getCurrentTime() + simu.getdt() );
+        /// CALCULATE NEW TIME STEP SIZE BASED ON maxdq
+        adjustTimeStepSize( simu, maxdq );
         //EVENTS (ELECTRODES SWITCHING ETC.)
         handleEvents(eventlist,
                      electrodes,
@@ -342,9 +350,8 @@ int main(int argc, char* argv[]){
                      lc,settings);
 
 
-        // ADAPTS TIME STEP SIZE AND INCREMENTS CURRENT TIME AND ITERATION
-        AdjustTime(simu, maxdq);
-
+        /// INCREMENT ITERATION COUNTER
+        simu.IncrementCurrentIteration();
 //* AUTOREFINEMENT ---- MOVE TO EVENTS
         if (( (meshrefinement.isRefinementIteration( simu.getCurrentIteration() ) ) ))  // if this is a refinement iteration
              //|| (simu.getCurrentIteration() == 1) ) &&                               // or if first iteration this should be done before start of simulation
@@ -391,10 +398,13 @@ int main(int argc, char* argv[]){
 
     printf("\nSaving final result file...\n");
     simu.setCurrentIteration( SIMU_END_SIMULATION );
+    FilesysFun::setCurrentDirectory( simu.getSaveDir() ); // GOTO OUPUT DIR
     WriteResults::WriteResult(&simu, &lc , &geom1, &v, &q);
+    FilesysFun::setCurrentDirectory( simu.getCurrentDir() );// GO BACK TO EXECUTABLE DIR
     printf("OK\n");
-
     closeEnergyFile(Energy_fid , simu);
+
+
 
     delete Kpot;
     delete Kq;

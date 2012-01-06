@@ -198,7 +198,8 @@ void RegularGrid::interpolateToRegular(const double *valIn,
     // INTERPOLATES A VARIABLE TO REGULAR GRID
     if (!npr_)
     {
-        printf("error in %s, Regular grid doesn't seem to be initialised - bye!\n", __func__);
+        printf("error in %s, Regular grid doesn't seem to be initialised.\n", __func__);
+        printf("grid count in x,y,z is %u, %u, %u - bye!\n", this->nx_, this->ny_, this->nz_);
         exit(1);
     }
 
@@ -230,8 +231,10 @@ bool RegularGrid::writeVTKGrid(const char *filename,
 
     if (npr_ == 0 )
     {
-        printf("error in %s, regular grid doesn't seem to be initialised - bye!\n", __func__);
+        printf("error in %s, Regular grid doesn't seem to be initialised.\n", __func__);
+        printf("grid count in x,y,z is %u, %u, %u - bye!\n", this->nx_, this->ny_, this->nz_);
         exit(1);
+
     }
 
     std::fstream fid;

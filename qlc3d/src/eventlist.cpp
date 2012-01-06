@@ -12,7 +12,13 @@ TimeEvent::TimeEvent(const EventType &et, const double &time):
 }
 bool TimeEvent::operator <(const TimeEvent& other) const
 {
-    return ( getEventTime() < other.getEventTime() );
+    return ( this->getEventTime() < other.getEventTime() );
+}
+
+bool compare(const TimeEvent* first, const TimeEvent* second)
+{
+    // COMPARISON OF POINTERS TO TIME EVENTS
+    return ( first->getEventTime() < second->getEventTime() );
 }
 
 
@@ -50,7 +56,9 @@ EventList::EventList():
     NO_ITER_EVENTS(std::numeric_limits<size_t>::max() ),
     nextTimeEvent_(NO_TIME_EVENTS),
     nextIterEvent_(NO_ITER_EVENTS),
-    saveIter_(1)
+    saveIter_(0),
+    saveTime_(0),
+    saveTimeCount_(0)
 {
 
 
@@ -147,20 +155,33 @@ Event* EventList::getCurrentEvent(const Simu &simu)
 }// end getCurrent Event
 
 
+void EventList::setSaveTime(const double &st)
+{
+// CHECK AND SET REOCCURING SAVE EVENT TIME
+    if ( st >= 0 )
+    {
+        saveTime_ = st;
+    }
+    else
+    {
+        printf("error in %s. Bad SaveTime = %e - bye!\n", __func__ , st);
+        exit(1);
+    }
+}
 
 
 void EventList::insertTimeEvent(TimeEvent *tEvent)
 {
 // ADDS TIMED EVENT TO EVENT QUEUE
     timeEvents_.push_back( tEvent );
-    timeEvents_.sort();
+    timeEvents_.sort( compare );    // USE COMPARISON OF *POINTERS* TO TIME EVENT (OTHERWISE SORTING BY ADDRESS VALUE)
 
 // KEEP NEXT TIME EVENT TRACKER UP TO DATE
     if (tEvent->getEventTime() < nextTimeEvent_ )
         nextTimeEvent_ = tEvent->getEventTime();
 }
 
-void EventList::manageReoccurringEvents(const Simu& simu)
+void EventList::manageReoccurringEvents(Simu& simu)
 {
 // ADDS REOCCURRING EVENTS TO FRONT OF QUEUE IF NEEDED.
 // NEW EVENTS WILL BE SCEDULED FOR NEXT ITERATION/TIME STEP.
@@ -169,18 +190,62 @@ void EventList::manageReoccurringEvents(const Simu& simu)
 
 // ADD ITER EVENTS
     size_t nextIter = (size_t) simu.getCurrentIteration() + 1;
-    if ( ( nextIter % saveIter_ ) == 0 )
+    double nextTime = simu.getCurrentTime() + simu.getdt(); // TIME AT NEXT ITERATION
+
+
+// REOCCURRING SAVE ITERATION
+    if ( ( saveIter_ > 0 ) &&
+         ( nextIter % saveIter_ ) == 0 )
+    {
         prependReoccurringIterEvent( new IterEvent(EVENT_SAVE ,  nextIter) );
+    }
+
+// REOCCURRING SAVE TIME
+    if (saveTime_ > 0 )
+    {
+
+        // PREDICTED NUM SAVE EVENTS BY NEXT TIME STEP, IF dt IS NOT ADJUSTED
+        size_t num_next = static_cast<size_t> (nextTime / saveTime_ );
+
+        // IF A REOCCURRING SAVE EVENT BETWEEN NOW AND NEXT TIME STEP
+        if (num_next > saveTimeCount_ )
+        {
+            // FIND EXACT TIME OF NEXT SAVE EVENT
+            double t_next = (saveTimeCount_ + 1 ) * saveTime_;
+
+            // THIS SHOULD NEVER HAPPEN! FORCE REOCCURRING SAVE TIME DUE TO FLOATING POINT ACCURACY PROBLEMS
+            if ( t_next <= simu.getCurrentTime() )
+            {
+                t_next =  simu.getCurrentTime() + simu.getMindt();
+                printf("Warning in %s, floating point numerical accuracy in determining reoccurring save time\n", __func__);
+            }
+
+            this->insertTimeEvent( new TimeEvent(EVENT_SAVE, t_next) );
+            saveTimeCount_++;
+        }
+    }
+
+// REOCCURRING REFINEMENT ITERATION
 
 }
 
 void EventList::prependReoccurringIterEvent(IterEvent *iEvent)
 {
 // ADDS NEW EVENT AT FRONT OF QUEUE
+
+    // MAKE SURE ADDED EVENT REALLY BELONGS TO FRONT OF QUEUE
+    if (nextIterEvent_ < iEvent->getEventIteration() )
+    {
+        printf("error in %s. Trying to add event with iteration number %u to front of queue when first existing event has number %u - bye!\n",
+               __func__,
+               iEvent->getEventIteration(),
+               nextIterEvent_ );
+        exit(1);
+    }
+
     iterationEvents_.push_front( iEvent );
     nextIterEvent_ = iEvent->getEventIteration();
 }
-
 
 
 double EventList::timeUntilNextEvent(const Simu &simu) const

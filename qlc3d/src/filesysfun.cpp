@@ -16,7 +16,15 @@ bool setCurrentDirectory(const std::string& destdir)
 
 #ifdef Windows
 
-    return SetCurrentDirectoryA( destdir.c_str() );
+    bool success = SetCurrentDirectoryA( destdir.c_str() );
+
+    if (!success)
+    {
+        printf("error in %s, invalid destination directory: %s\n", __func__, destdir.c_str() );
+        exit(1);
+    }
+
+    return success;
 #endif
 
 }
