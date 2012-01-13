@@ -80,16 +80,20 @@ public:
     void genIndToTetsByCoords(vector <unsigned int>& ind,   // Return index
                               double* coord,                // searchable coorinate values
                               const unsigned int& nc,      // length of coord / 3
-                              const bool& terminateOnError = true); // terminate app. if coord not found
+                              const bool& terminateOnError = true, // terminate app. if coord not found
+                              const bool& requireLCElement = false); // only LC elements are considered
 
     bool brute_force_search(unsigned int &ind,  // found index, return value
                             double* coord,      // pointer to x,y,coords to search
-                            const bool& terminateOnError = true); // whether application terminates if coord is not found
-
+                            const bool& terminateOnError = true, // whether application terminates if coord is not found
+                            const bool& requireLCElement = false // only LC elements are considered
+                            );
     size_t recursive_neighbour_search(double crd[3],
                                       const vector< set < unsigned int> > & p_to_t,
                                       const size_t& currentTet,
-                                      std::set<size_t>& tetHistory);
+                                      std::set<size_t>& tetHistory,
+                                      const bool& requireLCElement = false   // only LC elements are considered
+                                      );
 
     bool getContainingTet( vector<set< unsigned int> >& p_to_t, double crd[3], unsigned int& t0);
 

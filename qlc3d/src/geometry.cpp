@@ -916,7 +916,9 @@ void Geometry::makeRegularGrid(const size_t &nx,
 
 bool Geometry::brute_force_search( unsigned int &ind,            // return index
                                    double* coord,                // search coordinate
-                                   const bool& terminateOnError) // terminate if not found>
+                                   const bool& terminateOnError, // terminate if not found>
+                                   const bool& requireLCEelement // only LC element index may be returned
+                                   )
 {
 // BRUTE FORCE DEBUG SEARCH FOR TETRAHEFRON THAN CONTAINS POINT WITH COORDINATES IN coord
 // coord IS ASSUMED TO BE OF LENGTH 3, FOR x, y, z
@@ -925,8 +927,19 @@ bool Geometry::brute_force_search( unsigned int &ind,            // return index
     {
         if  ( t->ContainsCoordinate( i , getPtrTop(), coord ) ) // If coord is in tet i
         {
-            ind = i ;
-            return true; // exit function when found
+            if (requireLCEelement) // WANT LC
+            {
+                if (t->getMaterialNumber( i ) <= MAT_DOMAIN7 ) // IF LC
+                {
+                    ind = i;
+                    return true;
+                }
+            }
+            else // DON'T CARE WHETHER LC OR DE
+            {
+                ind = i ;
+                return true; // exit function when found
+            }
         }
     }// end for loop over all elems
 
@@ -1019,15 +1032,29 @@ bool Geometry::getContainingTet(vector< set < unsigned int> >& p_to_t,
 size_t Geometry::recursive_neighbour_search(double crd[3],
                                             const vector<set<unsigned int> > &p_to_t,
                                             const size_t &currentTet,
-                                            std::set<size_t>& tetHistory)
+                                            std::set<size_t>& tetHistory,
+                                            const bool& requireLCElement    // only LC element index can be returned
+                                            )
 {
     // TRIES TO FIND TETRAHEDRON CONTAINING POINT crd bY RECURSIVELY
     // SELECTING NEIGHBOUR TET WHOSE BARYHENTRE IS NEARES TO crd
 
     if ( t->ContainsCoordinate(currentTet, p, crd) )
-        return currentTet;
+    {
+        if (!requireLCElement)  // if not worried about whether LC or DE element
+        {
+            return currentTet;
+        }
+        else // LC element is required
+        {
+            if (  this->t->getMaterialNumber(currentTet) <= MAT_DOMAIN7 ) // if LC element
+            {
+                return currentTet;
+            }
+        }
 
-    tetHistory.insert( currentTet );
+    }
+    tetHistory.insert( currentTet ); // history should be used to avoid visiting same element multiple times (this isn't implemented yet)
 
     if (tetHistory.size() > 10000 ) return NOT_AN_INDEX;
 
@@ -1066,12 +1093,12 @@ size_t Geometry::recursive_neighbour_search(double crd[3],
 
         if ( tetHistory.find(indt) == tetHistory.end() )
         {
-            //printf("dist[%u] =%e\n",indt,d );
-            //t->PrintElement(indt);
             ifound =  recursive_neighbour_search( crd,
                                            p_to_t,
                                            indt,
-                                           tetHistory );
+                                           tetHistory,
+                                            requireLCElement // WHETHER ONLY LC ELEMENTS ARE ACCEPTABLE
+                                                  );
 
             if (ifound != NOT_AN_INDEX)
             {
@@ -1099,13 +1126,20 @@ size_t Geometry::recursive_neighbour_search(double crd[3],
 void Geometry::genIndToTetsByCoords(vector<unsigned int> &ind,   // return index
                                     double *coord,               // search cordinate values
                                     const unsigned int &nc,      // number of coordinate values
-                                    const bool& terminateOnError)// whther to terminate app. if coordinate not found. default = true;
+                                    const bool& terminateOnError,// whther to terminate app. if coordinate not found. default = true;
+                                    const bool& requireLCElement)// only LC element can be re returned
 {
 /*!
     Generates index to tetrahedron that contain coordinate coord.
-    The 'terminateOnError' flag is used to spcify whether to terminate app. if a coord
+
+The 'terminateOnError' flag is used to spcify whether to terminate app. if a coord
     is not found, or to mark it as NOT_AN_INDEX. This may occur e.g. when
     interpolating between two different meshes.
+
+'requireLCElement' determines whether only LC elements can be considered. if this is false,
+also dielectrinc elements indexes may be returned. This is often problematic when searching
+for an LC node on the boundary between LC and DE regions, i.e. it exists in both regions, but
+is only properly defined in the LC element.
 */
 
     ind.clear();
@@ -1130,9 +1164,13 @@ void Geometry::genIndToTetsByCoords(vector<unsigned int> &ind,   // return index
     mt = recursive_neighbour_search( mid,
                                      p_to_t,
                                      0,
-                                     tetHistory);
+                                     tetHistory
+                                     );
 
-
+    if ( mt == NOT_AN_INDEX ) // starting index at centre of structure not found (probably a hole)
+    {
+        mt = 0;
+    }
     //---------------------------
 
     unsigned int n;
@@ -1152,7 +1190,14 @@ void Geometry::genIndToTetsByCoords(vector<unsigned int> &ind,   // return index
         size_t t0 = recursive_neighbour_search( crd,
                                                 p_to_t,
                                                 mt,
-                                                searchHistory);
+                                                searchHistory,
+                                                requireLCElement    // WHETHER TO ONLY ACCEPT LC ELEMENTS ARE RETURN VALUE
+                                                );
+
+        if (t->getMaterialNumber( t0 ) == 36)
+        {
+            int a = 0;
+        }
 
         if (t0 != NOT_AN_INDEX )
         {
@@ -1163,8 +1208,18 @@ void Geometry::genIndToTetsByCoords(vector<unsigned int> &ind,   // return index
         {
             unsigned int bfind = 0;
             // TRY BRUTE FORCE. THIS MAY TERMINATE APP., DEPENDING ON BOOL FLAG
-            if ( brute_force_search( bfind, crd, terminateOnError ) )
+            if ( brute_force_search( bfind,
+                                     crd,
+                                     terminateOnError,  // TEMINATE PROGRAM IF NODE NOT FOUND
+                                     requireLCElement   // WHETHER ONLY LC ELEMENTS ARE ACCEPTED
+                                     ) )
             {
+
+                if (t->getMaterialNumber( bfind ) == 36)
+                {
+                    int a = 0;
+                }
+
                 ind[n] = bfind;
             }
             else    // BRUTE FORCE FAIL IS ALLOWED (NODE MAY BE OUTSIDE MESH)

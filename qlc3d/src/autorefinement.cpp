@@ -40,23 +40,29 @@ void interpolate(SolutionVector& qnew,
 
 	// MAKE COORDINATE TO CONTAINING ELEMENT IDEX pint
     vector < unsigned int> pint; // index from point to containing tet
-	geom_old.genIndToTetsByCoords( pint, geom_new.getPtrTop(), geom_new.getnpLC() );
+        geom_old.genIndToTetsByCoords( pint,
+                                       geom_new.getPtrTop(),
+                                       geom_new.getnpLC(),
+                                       true,    // ERROR IF COORDINATE IS NOT FOUND
+                                       true     // ONLY CONSIDER LC ELEMENTS
+                                       );
 
     unsigned int npLC_old = (unsigned int) geom_old.getnpLC();
     double* dir = tensortovector( qold.Values , npLC_old ); // director on old mesh
 
 
     // Loop over all new nodes and set Q-tensor
-    for (size_t ind = 0 ; ind < (size_t) geom_new.getnpLC() ; ind++){ // for all new nodes
+    for (size_t ind = 0 ; ind < (size_t) geom_new.getnpLC() ; ind++)// for all new nodes
+    {
 
-#ifdef DEBUG
+//#ifdef DEBUG
         if (geom_old.t->getMaterialNumber(pint[ind]) != MAT_DOMAIN1 ){
             printf("error in intepolate (autorefinement.cpp)  \n");
             printf("new node %i, at coordinate %e,%e,%e in old structure\n", (int) ind, geom_new.getpX(ind) , geom_new.getpY(ind) , geom_new.getpZ(ind) );
             printf("the material of found tet is %i, which is not DOMAIN1 \n", geom_old.t->getMaterialNumber(pint[ind]) );
             exit(1);
         }
-#endif
+//#endif
 
 
         double loc[4]; // LOCAL ELEMENT COORDS

@@ -1,9 +1,7 @@
+15. Check need for LC surface integrals with 3 elastic coeffs. e.g. 2D case with neumann boundaries, single K vs 3K edge effects (13/01/12)
+
 14. Creation of regular grid interpolation table is slow and may not work
 	in cases where LC regions are disconnected.
-
-13. Interpolation function does not give preference to LC tets.
-    This results in som dielectric-LC interface nodes being reported as
-    dielectric -> regular grid nodes without director.
 
 10. Potential calculation is done even when not needed.
     Also, dont make a potential matrix when not needed.
@@ -14,6 +12,14 @@
     interpolate each eigenvector/eigenvalue istead
 
 ============ DONE ==============================
+
+13. Interpolation function does not give preference to LC tets.
+    This results in som dielectric-LC interface nodes being reported as
+    dielectric -> regular grid nodes without director.
+    13/1/12 - added ugly boolean switches that determine whether looking for LC element only or not.
+
+15. Custom SaveDir creation does not seem to work (11/1/12)
+    fixed (13/1/12)
 
 12. Energy calculation crashes in "initialise shape files"-function
     when not in debug mode. Adding a printf in loop stops crash.

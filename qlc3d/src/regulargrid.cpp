@@ -126,8 +126,8 @@ bool RegularGrid::generateLookupList(Geometry *geom)
     geom->genIndToTetsByCoords(indT,
                               coords,
                               npr_,
-                              false); // do NOT terminate app if a coord is not found
-
+                              false, // do NOT terminate app if a coord is not found
+                              false );//do NOT require LC element (although it should be preferred, add this option later)
 
 // NOW CALCULATE WEIGHTS AND NODE INDEXES FOR EACH REGULAR GRID POINT
     lookupList.clear();
