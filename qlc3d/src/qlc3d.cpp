@@ -386,7 +386,9 @@ int main(int argc, char* argv[]){
         Kq   = createSparseMatrix(geom1, q, MAT_DOMAIN1);
         calcpot3d(Kpot,&v,&q,&lc,geom1, &settings, &electrodes);
 
+        FilesysFun::setCurrentDirectory( simu.getSaveDir() );
         WriteResults::WriteResult(&simu, &lc, &geom1, &v, &q, &meshrefinement);
+        FilesysFun::setCurrentDirectory( simu.getCurrentDir() );
 
         if ( simu.getdt() > 0.0 )
         {

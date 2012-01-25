@@ -30,6 +30,7 @@ IterEvent::IterEvent(const EventType &et, const size_t &iter):
 
 }
 
+/*
 //---------SwitchingEvent DEFINITIONS ---------------
 SwitchingEvent::SwitchingEvent(const double &time,
                                const double &potential,
@@ -40,7 +41,7 @@ SwitchingEvent::SwitchingEvent(const double &time,
 {
 
 }
-
+*/
 
 
 

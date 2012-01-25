@@ -606,7 +606,15 @@ void readElectrodes(Electrodes* electrodes,
         // ADD CODE HERE TO DISTINGUISH BETWEEN TIME/ITERATION SWITCHING
         for (size_t j = 0 ; j < times.size() ; j++)
         {
-            SwitchingEvent *swEvent = new SwitchingEvent( times[j], pots[j] , i-1 ); // CREATE NEW SWITCHING EVENT ON HEAP
+            //SwitchingEvent *swEvent = new SwitchingEvent( times[j], pots[j] , i-1 ); // CREATE NEW SWITCHING EVENT ON HEAP
+
+
+            TimeEvent* swEvent = new TimeEvent(EVENT_SWITCHING, times[j]);
+            SwitchingInstance* si = new SwitchingInstance(times[j],  // WHEN
+                                                         pots[j],   // NEW POTENTIAL VALUE
+                                                         i-1);      // WHICH ELECTRODE
+            swEvent->setEventDataPtr( static_cast<void*>(si) );
+
             evli.insertTimeEvent( swEvent );
         }
     }

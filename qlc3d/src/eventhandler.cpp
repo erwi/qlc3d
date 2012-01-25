@@ -10,10 +10,14 @@ void handleElectrodeSwitching(Event* currentEvent,
 {
 // SWITCHES ELECTRODE
 
-    // CONVERT GENERIC EVENT TO A SWITCHING EVENT
-    SwitchingEvent *se = static_cast<SwitchingEvent*>(currentEvent);
 
-    if(!se)
+    // GET SWITCHING EVENT DATA
+    SwitchingInstance* si = static_cast<SwitchingInstance*> ( currentEvent->getEventDataPtr() );
+
+    // SWITCHING EVENT NOLONGER OWNS SWITCHING DATA
+    currentEvent->setEventDataPtr( NULL );
+
+    if(!si)
     {
         printf("error in %s, NULL pointer received\n", __func__);
         exit(1);
@@ -24,16 +28,15 @@ void handleElectrodeSwitching(Event* currentEvent,
         simu.setdt( simu.getMindt() );
 
 
-    // FIND WHICH ELECTRODE IS SWITCHING, AND TO WHAT VALUE
-    size_t electrodeNum = se->getElectrodeNumber();
-    double potential    = se->getElectrodePotential();
-
     // SET THE NEW ELECTRODE VALUE
-    electr.setElectrodePotential( electrodeNum, potential);
+    electr.setElectrodePotential( si->electrodeNumber, si->potential);
 
     // SET POTENTIAL BOUNDARY CONDITIONS FOR ALL ELECTRODES
     v.setFixedNodesPot(&electr );
     v.setToFixedValues();
+
+    // SWITCHING DATA IS NOT NEEDED ANYMORE, DELETE IT
+    delete si;
 }
 
 void handleResultOutput(Simu& simu,
@@ -179,13 +182,6 @@ void handleEvents(EventList& evel,      // EVENT LIST
                   LC& lc,               // MATERIAL PARAMS.
                   Settings& settings)   // SPARSE SOLVER SETTINGS
 {
-
-
-
-    if( simu.getCurrentIteration() == 10 )
-    {
-     int a = 0;
-    }
 
 
 // LEAVE IF NO EVENTS LEFT IN QUEUE

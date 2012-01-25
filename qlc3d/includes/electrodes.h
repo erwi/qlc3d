@@ -9,8 +9,18 @@
 #include <eventlist.h>
 
 
+// SWITCHING INSTANCE CONTAINS INFORMATION FOR EACH SWITCHING EVENT
+class SwitchingInstance
+{
+public:
+    SwitchingInstance(const double t, const double pot, const size_t en):
+        time(t), potential(pot), electrodeNumber(en)
+    {}
 
-
+    double time;
+    double potential;
+    size_t electrodeNumber;
+};
 
 
 

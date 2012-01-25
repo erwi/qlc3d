@@ -24,10 +24,23 @@ enum EventType {    EVENT_SWITCHING,    // SWITCH ELECTRODE
 class Event
 {
     const EventType eventType_;
+    void *eventData_;    // EVENT DATA IS AN OPTIONAL CUSTOM STRUCT/OBJECT WITH ADDITIONAL DATA ABOUT THE EVENT
 public:
-    Event(const EventType& et): eventType_(et) { }
+    Event(const EventType& et, void* const ed = NULL):
+        eventType_(et),
+        eventData_(ed)
+    { }
     ~Event(){}
     EventType getEventType()const {return eventType_;}
+    void* getEventDataPtr()
+    {
+        return eventData_;
+    }
+
+    void setEventDataPtr(void* ed)
+    {
+        eventData_ = ed;
+    }
 };
 
 class TimeEvent:public Event
@@ -56,7 +69,7 @@ public:
     bool occursNow(const Simu& simu) const;
 };
 
-
+/*
 class SwitchingEvent:public TimeEvent
 {
     const double potential_;
@@ -69,7 +82,7 @@ public:
     size_t getElectrodeNumber()const{return electrodeNumber_;}
     double getElectrodePotential()const{return potential_;}
 };
-
+*/
 
 
 
