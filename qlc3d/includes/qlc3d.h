@@ -43,17 +43,6 @@ void readBinaryMesh(std::string filename ,  // same as above
                     int *&e, int *&emat,
                     int *np, int *nt, int *ne);
 
-//void calcpot3d(SparseMatrix* Kpot,
-//               SolutionVector *v,
-//               SolutionVector *q,
-//               LC* lc,
-               //Mesh *mesh,
-               //Mesh* surf_mesh,
-               //double *p,
-//               Geometry& geom,
-//               Settings* settings,
-//               Electrodes* electrodes);
-
 void solve_pcg(SparseMatrix *K, double *b, double *x ,Settings* settings);
 void solve_gmres(SparseMatrix *K, double *b, double *x ,Settings* settings);
 
@@ -88,11 +77,6 @@ double calcQ3d(SolutionVector *q,
                Settings* settings,
                Alignment* alignment);//
                //double* NodeNormals);
-
-
-
-//void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,Simu* simu);	// writes result as text file
-//void WriteLCD_B(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,Simu* simu, LC* lc); // writes result file in binary format
 
 
 void ReadSettings(

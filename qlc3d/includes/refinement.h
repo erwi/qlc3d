@@ -89,9 +89,10 @@ void create_new_elements(   Geometry& geom,		    // refinable geom
 			 );
 
 void autoref(Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new,
-			 SolutionVector& q, SolutionVector& qn,
-			 SolutionVector& v,
-             MeshRefinement& meshrefinement,
+             SolutionVector& q, SolutionVector& qn,
+             SolutionVector& v,
+             //MeshRefinement& meshrefinement,
+             const list<RefInfo>& refInfos,
              Simu& simu, Alignment& alignment,  Electrodes& electrodes, LC& lc);
 
 // Checks for maximum dq within an element, as specified in meshrefinement.

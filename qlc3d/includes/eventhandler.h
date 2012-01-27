@@ -11,7 +11,25 @@
 #include <settings.h>
 #include <calcpot3d.h>
 #include <resultoutput.h>
+#include <refinfo.h>
 
+// CONVENIENCE STRUCT WITH POINTERS TO THE DIFFERENT GEOMETRY OBJECTS
+// NEEDED IN MESH REFINEMENT.
+struct Geometries
+{
+    Geometry* geom_orig;    // ORIGINAL, LOADED FROM FILE
+    Geometry* geom_prev;    // FROM PREVIOUS REFINEMENT ITERATION
+    Geometry* geom;         // CURRENT, WORKING GEOMETRY
+    Geometries(): geom_orig(NULL), geom_prev(NULL), geom(NULL){}
+};
+
+struct SolutionVectors
+{
+    SolutionVector* q;      // CURRENT Q-TENSOR
+    SolutionVector* qn;     // PREVIOUS Q-TENSOR
+    SolutionVector* v;      // POTENTIAL
+    SolutionVectors(): q(NULL), qn(NULL), v(NULL){}
+};
 
 
 void setElectrodePotentials(EventList& evel,
@@ -35,14 +53,21 @@ void handleInitialEvents(EventList& evel,      // EVENT LIST
 
 void handleEvents(EventList& evel,      // EVENT LIST
                   Electrodes& electr,   // ELECTRODES WITH POTENTIALS AND TIMING
+                  Alignment& alignment, // ANCHORING DATA
                   Simu& simu,
-                  SolutionVector& v,    // POTENTIAL SOLUTION
-                  Geometry& geom,       // CURRENT MESH
-                  MeshRefinement& ref,  // MESH REFINEMENT INFO
+                  Geometries& geometries,   // POINTERS TO CURRENT GEOMETRIES
+                  SolutionVectors& solutionvectors, // POINTERS TO SOLUTIONS
                   SparseMatrix* Kpot,   // POTENTIAL CALCULATION MATRIX
-                  SolutionVector& q,    // Q-TENSOR
                   LC& lc,               // MATERIAL PARAMS.
                   Settings& settings);  // SPARSE SOLVER SETTINGS
 
 
+void handleMeshRefinement(std::list<Event*>& refEvents,
+                          Geometries& geometries,    // PTRS TO MESHES
+                          SolutionVectors& solutionvectors,
+                          Simu& simu,
+                          Alignment& alignment,
+                          Electrodes& electrodes,
+                          LC& lc
+                          );
 #endif // EVENTHANDLER_H

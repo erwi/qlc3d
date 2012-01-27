@@ -129,7 +129,7 @@ void Simu::setdtForced(const double &dt)
 #ifdef DEBUG
     if (dt<=0)
     {
-        printf("warning in %s, trying to set dt to %e\n", dt);
+        printf("warning in %s, trying to set dt to %e\n", __func__, dt);
         exit(1);
     }
 #endif

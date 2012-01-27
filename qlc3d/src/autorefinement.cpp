@@ -275,13 +275,27 @@ bool needsEndRefinement(Geometry &geom, SolutionVector &q, MeshRefinement &meshr
 void autoref(   Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new,
                 SolutionVector& q, SolutionVector& qn,
                 SolutionVector& v,
-                MeshRefinement& meshrefinement,
+                //MeshRefinement& meshrefinement,
+                const list<RefInfo> &refInfos,
                 Simu& simu, Alignment& alignment,Electrodes& electrodes, LC& lc){
     bool bRefined   = false; // indicates whether mesh is changed or not
     int refiter     = 0;     // refinement iteration counter
-    int maxrefiter  = meshrefinement.getMaxNumAutoRefIterations(); // maximum possible number of refinement iterations
+    int maxrefiter(0);
+    //int maxrefiter  = meshrefinement.getMaxNumAutoRefIterations(); // maximum possible number of refinement iterations
+
+    // DETERMINE MAXIMUM REFINEMENT ITERATIONS NUMBER
+    list<RefInfo>::const_iterator ri_itr = refInfos.begin();
+    for (;ri_itr != refInfos.end() ; ri_itr++)  // find max in list of RefInfo objects
+    {
+        maxrefiter = maxrefiter > (*ri_itr).getRefIter() ? maxrefiter : (*ri_itr).getRefIter();
+    }
+    if (maxrefiter == 0){   // IF NO REFINEMENT
+        simu.setMeshModified(false);
+        return;             // LEAVE REFINEMENT FUNCTION NOW
+    }
 
     bool IsEndRefinement = false; // switch between Auto-Refinement and End-Refinement
+    /*
     if ( !simu.IsRunning() )
     {
          printf("\nEnd-Refinement\n");
@@ -298,29 +312,21 @@ void autoref(   Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new,
 
          printf("\nEnd-Refinement, refiter = %i , maxrefiter = %i\n", refiter, maxrefiter );
     }
+    */
 
-
-
+    // CREATE TEMPORARY WORKING COPIES OF VARIOUS DATA
     Geometry geom_temp;     // temporary "working" geometry
-    SolutionVector q_prev;  // INPUT Q-TENSOR
+    SolutionVector q_prev = q;  // INPUT Q-TENSOR KEEP BACKUP
 
-    if (maxrefiter == 0){   // IF NO REFIENMENT
-        return;             // LEAVE REFINEMENT FUNCTION NOW
-        simu.setMeshModified(false);
-    }
-    else{// ELSE YES REFINEMENT
-        // TEMPORARY SOLUTION VECTOR USED TO HOLD PREVIOUS Q-TENSOR
-        q_prev = q;
+    // PREVIOUS Q IS INTERPOLATED TO ORIGINAL MESH - downsampling, this loses information
+    // Q IS RESIZED TO MATCH THE ORIGIANL MESH
+    q.Resize( geom_orig.getnpLC(), 5 ); // presumably this resets q
+    interpolate(q, geom_orig, q_prev, geom_prev ); // overwrites with interplated values
 
-        // PREVIOUS Q IS INTERPOLATED TO ORIGINAL MESH - downsampling, this loses information
-        // Q IS RESIZED TO MATCH THE ORIGIANL MESH
-        q.Resize( geom_orig.getnpLC(), 5 ); // presumably this resets q
-        interpolate(q, geom_orig, q_prev, geom_prev ); // overwrites with interplated values
+    // REFINEMENT START FROM ORIGINAL GEOMETRY
+    geom_new.setTo(  &geom_orig );
+    geom_temp.setTo( &geom_orig );
 
-        // REFINEMENT START FROM ORIGINAL GEOMETRY
-        geom_new.setTo(  &geom_orig );
-        geom_temp.setTo( &geom_orig );
-    }
 
     //=====================================
     // DO REFINEMENT ITERATIONS, SPLIT TETS
@@ -328,6 +334,10 @@ void autoref(   Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new,
     printf("=========================================== \n");
     printf("Doing a maximum of %i refinement iterations \n", maxrefiter);
     printf("=========================================== \n");
+    exit(1);
+
+
+    /*
     for ( refiter = 0 ; refiter < maxrefiter ; refiter ++){ // for max refiter
         printf("starting refiter = %i\n", refiter);
         // GET INDEX TO RED TETS IN geom_new
@@ -398,7 +408,7 @@ void autoref(   Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new,
             simu.resetEndCriterion(); // resets end citerion = forces additional simulation steps on new mesh
         }
     }
-
+*/
 }
 
 

@@ -207,7 +207,7 @@ int main(int argc, char* argv[]){
     //	CREATE GEOMETRY
     //	NEED 3 GEOMETRY OBJECTS WHEN USING MESH REFINEMENT
     // ================================================================
-    Geometry geom1 = Geometry();	    // working geometry
+    Geometry geom1 = Geometry();	// working geometry
     Geometry geom_orig = Geometry();    // original, loaded from file
     Geometry geom_prev = Geometry();    // geometry from previous ref. iteration
     prepareGeometry(geom_orig, simu, alignment);   // mesh file is read and geometry is loaded in this function (in inits.cpp)
@@ -218,6 +218,12 @@ int main(int argc, char* argv[]){
     geom_orig.setTo( &geom1);
     geom_prev.setTo( &geom_orig);	    // for first iteration, geom_prev = geom_orig
     geom1.setTo( &geom_orig);
+
+    // SET CONVENIENCE STRUCT OF POINTERS
+    Geometries geometries;
+    geometries.geom = &geom1;
+    geometries.geom_orig = &geom_orig;
+    geometries.geom_prev = &geom_prev;
 
 // ==============================================
 //
@@ -259,7 +265,11 @@ int main(int argc, char* argv[]){
     qn=q;                                   // q-previous = q-current in first iteration
     cout << "OK" << endl;                   // Q-TENSOR CREATED OK
 
-
+    // SET CONVENIENCE POINTERS STRUCTURE
+    SolutionVectors solutionvectors;
+    solutionvectors.q = &q;
+    solutionvectors.qn = &qn;
+    solutionvectors.v = &v;
 
 // autoref( geom_orig, geom_prev, geom1, q,qn, v, meshrefinement, simu, alignment , electrodes, lc);
 
@@ -282,16 +292,15 @@ int main(int argc, char* argv[]){
     printf("\nSaving starting configuration (iteration -1)...\n");
     WriteResults::CreateSaveDir(simu);
     Energy_fid = createOutputEnergyFile(simu); // done in inits
-    handleInitialEvents(eventlist,
-                 electrodes,
-                 simu,
-                 v,
-                 geom1,
-                 meshrefinement,
-                 Kpot,
-                 q,
-                 lc,
-                 settings);
+   // handleInitialEvents(eventlist,
+   //              electrodes,
+   //              alignment,
+   //              simu,
+   //              geometries,
+   //              solutionvectors,
+   //              Kpot,
+   //              lc,
+   //              settings);
     printf("OK\n");
 
 
@@ -341,18 +350,19 @@ int main(int argc, char* argv[]){
         //EVENTS (ELECTRODES SWITCHING ETC.)
         handleEvents(eventlist,
                      electrodes,
+                     alignment,
                      simu,
-                     v,
-                     geom1,
-                     meshrefinement,
+                     geometries,
+                     solutionvectors,
                      Kpot,
-                     q,
-                     lc,settings);
+                     lc,
+                     settings);
 
 
         /// INCREMENT ITERATION COUNTER
         simu.IncrementCurrentIteration();
 //* AUTOREFINEMENT ---- MOVE TO EVENTS
+        /*
         if (( (meshrefinement.isRefinementIteration( simu.getCurrentIteration() ) ) ))  // if this is a refinement iteration
              //|| (simu.getCurrentIteration() == 1) ) &&                               // or if first iteration this should be done before start of simulation
             //(needsRefinement(geom1,q,meshrefinement) ) ) {
@@ -371,9 +381,10 @@ int main(int argc, char* argv[]){
 
             WriteResults::WriteResult(&simu, &lc, &geom1, &v, &q, &meshrefinement);
         }
-
+*/
 
 	// if need end-refinement
+        /*
     if ( (!simu.IsRunning() ) && (needsEndRefinement( geom1, q , meshrefinement ) ) )
 	{
         printf("End refinement\n");
@@ -395,7 +406,7 @@ int main(int argc, char* argv[]){
             simu.setdt( simu.getMindt() );
         }
     }// end if need end-refinement
-
+    */
 }while ( simu.IsRunning() ); // end MAIN LOOP - while simulation is runnning
 
     printf("\nSaving final result file...\n");

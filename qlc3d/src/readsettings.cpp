@@ -6,6 +6,7 @@
 #include <reader.h>
 #include <iostream>
 #include <meshrefinement.h>
+#include <refinfo.h>
 #include <filesysfun.h>
 using namespace std;
 
@@ -43,7 +44,22 @@ void problemo(std::string& name, int ret){
     }
 }
 // end problemo (optional parameter problem)
+void problem_format(std::string &name, int ret)
+{
+    // CHECKS READER RETURN VALUE. QUITS IN CASE OF BAD FORMAT, BUT NOT IF
+    // VALUE WAS NOT FOUND
 
+    // RETURN IF ...
+    if  ( (ret == READER_NOT_FOUND) ||  // NOT FOUND
+          (ret == READER_SUCCESS) )     // EVERYTHING WENT BETTER THAN EXPECTED
+        return;
+
+    Reader temp; // SHOULD MAKE A STATIC FUNCTION INSTEAD
+    std::string error = temp.getErrorString( ret );
+    cout << "Problem reading " << name << " , computer says: " << error << endl;
+    cout << "bye!"<<endl;
+    exit(1);
+}
 
 bool isOK(const std::string& name, int ret)
 {
@@ -67,6 +83,15 @@ bool isOK(const std::string& name, int ret)
 
 }
 
+
+std::string setStructureKey(const char* struct_name, const unsigned int number, const char* key_name)
+{
+    std::stringstream ss;
+    ss << struct_name << number <<"."<<key_name;
+    std::string key;
+    ss >> key;
+    return key;
+}
 
 
 void readLC(LC& lc,Reader& reader)
@@ -606,20 +631,16 @@ void readElectrodes(Electrodes* electrodes,
         // ADD CODE HERE TO DISTINGUISH BETWEEN TIME/ITERATION SWITCHING
         for (size_t j = 0 ; j < times.size() ; j++)
         {
-            //SwitchingEvent *swEvent = new SwitchingEvent( times[j], pots[j] , i-1 ); // CREATE NEW SWITCHING EVENT ON HEAP
-
-
             TimeEvent* swEvent = new TimeEvent(EVENT_SWITCHING, times[j]);
             SwitchingInstance* si = new SwitchingInstance(times[j],  // WHEN
                                                          pots[j],   // NEW POTENTIAL VALUE
                                                          i-1);      // WHICH ELECTRODE
             swEvent->setEventDataPtr( static_cast<void*>(si) );
-
             evli.insertTimeEvent( swEvent );
         }
     }
 
-    evli.printEventList();
+
 
 }
 // end readElectrodes
@@ -790,6 +811,107 @@ void readEndrefinement( MeshRefinement* meshrefinement, Reader& reader){
     }// end for possible autorefs, i
 }
 
+void readRefinement(Reader& reader,
+                    EventList& evli)
+{
+// READS SETINGS FOR MESH REFINEMENT AND ADDS REFINEMENT EVENT TO EVENT QUEUE
+
+    // FIRST READ "GLOBAL" REPEATED REFINMENT SETTINGS
+    string key = "RepRefIter";
+    size_t  repRefIter(0);
+    int ret = reader.readNumber( key, repRefIter );
+    problem_format( key, ret );
+    evli.setRepRefIter( repRefIter );
+
+    key = "RepRefTime";
+    double repRefTime(0);
+    ret = reader.readNumber( key , repRefTime );
+    problem_format(key, ret );
+    evli.setRepRefTime( repRefTime );
+
+    // LOOP OVER POSSIBLE REFINEMENT SETTINGS VALUES
+    unsigned int max_num_ref = 100;
+    for (unsigned int i = 1 ; i <= max_num_ref ; i++) // FOR REFINEMENTS
+    {
+        string type = "";    // SETTING RETURN STRING VALUE
+        key = setStructureKey("REFINEMENT", i , "Type");
+        int ret = reader.readString(key, type);
+
+
+        if ( ret == READER_SUCCESS ) // IF REFINEMENTi IS DEFINED IN SETTINGS FILE
+        {
+            // OPTIONAL, EXPLICIT ITERATIONS WHEN REFINEMENT OCCURS
+            key = setStructureKey("REFINEMENT", i , "Iterations");
+            vector <long int> iterations;
+            ret = reader.readNumberArray( key, iterations );
+            problem_format( key , ret );
+
+            // OPTIONAL, EXPLICIT TIMES WHEN REFINEMENT OCCURS
+            key = setStructureKey("REFINEMENT",i,"Times");
+            vector <double> times;
+            reader.readNumberArray( key, times );
+            problem_format( key , ret );
+
+            // MAKE SURE THAT ONLY Iterations OR Times IS DEFINED, NOT BOTH
+            if ( (iterations.size() > 0 ) &&
+                 (times.size()>0) )
+            {
+                char msg[200];
+                sprintf( msg, "error with REFINEMENT%i, can't define both Iterations AND Times for same setting - bye!", i);
+                problem( msg );
+            }
+
+        // START READING ALL POSSIBLE RefInfo DATA FIELDS
+            key = setStructureKey("REFINEMENT", i , "Values");
+            vector<double> values;
+            ret = reader.readNumberArray(key, values);
+            problem_format(key, ret);
+        // DATA HAS BEEN COLLECTED. DEPENDING ON WHETHER EXPLICIT REFINEMENT
+        // EVENTS HAVE BEEN DEFINED ADD EVENT(s) TO EVENT LIST
+
+            // IF EXPLICIT ITERATIOSN ARE DEFINED, BREAK THEM TO SEPARATE EVENT
+            if (iterations.size() )
+            {
+                for (size_t j = 0 ; j < iterations.size() ; j++)
+                {
+                    long int itr = iterations[j];
+                    RefInfo* refinfo = new RefInfo(type);
+                    refinfo->setIteration( itr );
+                    refinfo->setValues( values );
+                    IterEvent* e = new IterEvent(EVENT_REFINEMENT, itr);
+                    e->setEventDataPtr( static_cast<void*> (refinfo) );
+                    evli.insertIterEvent( e );
+                }
+
+            }
+            // IF EXPLICIT TIMES ARE DEFINED, BREAK INTO SEPARATE EVENTS
+            else if (times.size() )
+            {
+                for (size_t j = 0 ; j < times.size() ; j++)
+                {
+                    double tme = times[j];
+                    RefInfo* refinfo = new RefInfo(type);
+                    refinfo->setTime( tme );
+                    refinfo->setValues( values );
+                    TimeEvent* e = new TimeEvent( EVENT_REFINEMENT, tme );
+                    e->setEventDataPtr( static_cast<void*> (refinfo) );
+                    evli.insertTimeEvent( e );
+                }
+            }
+            // REPEATING REFINEMENT
+            else
+            {
+                RefInfo* refinfo = new RefInfo(type);
+                refinfo->setValues( values );
+
+                Event* e = new Event(EVENT_REFINEMENT);
+                e->setEventDataPtr( static_cast<void*> (refinfo) );
+                evli.addRepRefInfo( e );
+            }
+
+        }// END IF SUCCESS
+    }// END FOR LOOP OVER REFINEMENTi
+}
 
 void ReadSettings(
 	string settings_filename,
@@ -822,13 +944,19 @@ void ReadSettings(
     // READ ELECTRODES
     readElectrodes(electrodes , reader, eventlist);
     // READ MESH REFINEMENT
-    readMeshrefinement(meshrefinement, reader);
+    //readMeshrefinement(meshrefinement, reader);
     // READ AUTOREFINEMENT
-    readAutorefinement(meshrefinement, reader);
-
+    //readAutorefinement(meshrefinement, reader);
     // READ ENDREFINEMENT
-    readEndrefinement(meshrefinement, reader);
+    //readEndrefinement(meshrefinement, reader);
 
+// ----------------------------------
+//    NEW STUFF TO REPLACE MeshRefinemnt, AutoRefinment, EndRefinemnt
+// ----------------------------------
+    // READ REFINEMENT
+    readRefinement( reader, eventlist );
+
+   // exit(0);
 
     reader.closeFile();
     }

@@ -1,3 +1,6 @@
+16. Reader incorrectly returns SUCCESS when trying to read single number, when actually
+    value is array of numbers.
+
 15. Check need for LC surface integrals with 3 elastic coeffs. e.g. 2D case with neumann boundaries, single K vs 3K edge effects (13/01/12)
 
 14. Creation of regular grid interpolation table is slow and may not work

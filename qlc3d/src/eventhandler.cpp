@@ -13,10 +13,6 @@ void handleElectrodeSwitching(Event* currentEvent,
 
     // GET SWITCHING EVENT DATA
     SwitchingInstance* si = static_cast<SwitchingInstance*> ( currentEvent->getEventDataPtr() );
-
-    // SWITCHING EVENT NOLONGER OWNS SWITCHING DATA
-    currentEvent->setEventDataPtr( NULL );
-
     if(!si)
     {
         printf("error in %s, NULL pointer received\n", __func__);
@@ -34,9 +30,6 @@ void handleElectrodeSwitching(Event* currentEvent,
     // SET POTENTIAL BOUNDARY CONDITIONS FOR ALL ELECTRODES
     v.setFixedNodesPot(&electr );
     v.setToFixedValues();
-
-    // SWITCHING DATA IS NOT NEEDED ANYMORE, DELETE IT
-    delete si;
 }
 
 void handleResultOutput(Simu& simu,
@@ -106,8 +99,9 @@ void handleInitialEvents(EventList& evel,      // EVENT LIST
 //      OUTPUT result_initial FILE
 
 // IF NEEDS PRE-REFINEMENT. DO IT FIRST
+    bool refineMesh = false;
 
-
+    std::list<Event*> refEvents;    // REFINEMENT EVENTS EXECUTED TOGETHER
     while ( evel.eventOccursNow(simu) )
     {
         Event* currentEvent = evel.getCurrentEvent( simu ); // removes event from queue to be processed
@@ -122,15 +116,21 @@ void handleInitialEvents(EventList& evel,      // EVENT LIST
             break;
         case(EVENT_SWITCHING):  // SWITCH ELECTRODES
             handleElectrodeSwitching(currentEvent, electr, v, simu );
+            delete currentEvent; // NOT NEEDED ANYMORE
             break;
-        case(EVENT_REFIENEMENT): // REFINE MESH - DON'T
+        case(EVENT_REFINEMENT): // REFINE MESH
+            refEvents.push_back( currentEvent );
+            refineMesh = true;
             break;
         default:
             printf("error in %s, unknown event type - bye !\n", __func__);
             exit(1);
         }
     }
-
+    if (refineMesh)
+    {
+     //   handleMeshRefinement( refEvents );
+    }
 // ALWAYS CALCULATE INITIAL POTENTIAL
     calcpot3d( Kpot,
                &v,
@@ -171,16 +171,15 @@ void reduceTimeStep(Simu& simu, EventList& evel)
 
 }
 
-void handleEvents(EventList& evel,      // EVENT LIST
-                  Electrodes& electr,   // ELECTRODES WITH POTENTIALS AND TIMING
-                  Simu& simu,           // VARIOUS SIMU SETTINGS
-                  SolutionVector& v,    // POTENTIAL SOLUTION
-                  Geometry& geom,       // CURRENT MESH
-                  MeshRefinement& ref,  // MESH REFINEMENT INFO
-                  SparseMatrix* Kpot,   // POTENTIAL CALCULATION MATRIX
-                  SolutionVector& q,    // Q-TENSOR
-                  LC& lc,               // MATERIAL PARAMS.
-                  Settings& settings)   // SPARSE SOLVER SETTINGS
+void handleEvents(EventList& evel,          // EVENT LIST
+                  Electrodes& electrodes,   // ELECTRODES WITH POTENTIALS AND TIMING
+                  Alignment& alignment,     // ANCHORING CONDITIONS
+                  Simu& simu,               // VARIOUS SIMU SETTINGS
+                  Geometries& geometries,   // POINTERS TO CURRENT MESHES
+                  SolutionVectors& solutionvectors, // PTRS TO SOLUTIONS
+                  SparseMatrix* Kpot,       // POTENTIAL CALCULATION MATRIX
+                  LC& lc,                   // MATERIAL PARAMS.
+                  Settings& settings)       // SPARSE SOLVER SETTINGS
 {
 
 
@@ -194,7 +193,7 @@ void handleEvents(EventList& evel,      // EVENT LIST
 
 
 // EVENTS ARE ORDERED BY TIME/ITERATION NUMBER,
-// BUT NOT ACCIRDING TO TYPE. HOWEVER, DIFFERENT
+// BUT NOT ACCORDING TO TYPE. HOWEVER, DIFFERENT
 // EVENT TYPES SHOULD ALSO BE EXECUTED IN PARTICULAR ORDER
 // (e.g. UPDATE POTENTIAL VALUES BEFORE SAVING NEW RESULT FILE)
 // USE FOLLOWING FLAGS TO DETERMINE THIS
@@ -205,6 +204,9 @@ void handleEvents(EventList& evel,      // EVENT LIST
 
 // CHECK WHICH EVENTS ARE OCCURRING *NOW* AND SET CORRESPONFING
 // FLAGS + OTHER PRE-EVENT PROCESSING
+
+    std::list<Event*> refEvents; // STORES REF-EVENTS THAT NEED TO BE EXECUTED
+
     while ( evel.eventOccursNow(simu) )
     {
         // REMOVE EVENT FROM LIST AND GET ITS TYPE
@@ -215,53 +217,65 @@ void handleEvents(EventList& evel,      // EVENT LIST
         switch (et)
         {
         case(EVENT_SAVE): // SAVE RESULTS
-
             saveResult = true;
+            delete currentEvent; // NOT NEEDED ANYMORE
             break;
         case(EVENT_SWITCHING):  // SWITCH ELECTRODES
-            handleElectrodeSwitching(currentEvent, electr, v, simu );
+            handleElectrodeSwitching(currentEvent, electrodes, *solutionvectors.v, simu );
+            delete currentEvent; // NOT NEEDED ANYMORE
             recalculatePotential = true;
 
             if ( (evel.getSaveIter() > 1) || (evel.getSaveTime()>0) ) // OUTPUT RESULT ON SWITCHING ITERATION
                 saveResult = true;
 
             break;
-        case(EVENT_REFIENEMENT): // REFINE MESH
+        case(EVENT_REFINEMENT): // REFINE MESH
             refineMesh = true;
             recalculatePotential = true;
             saveResult = true;
+            refEvents.push_back( currentEvent );
             break;
         default:
             printf("error in %s, unknown event type - bye !\n", __func__);
             exit(1);
         }
-
-        delete currentEvent;
     }
 
 // ADDS REOCCURRING EVENTS TO QUEUE FOR NEXT ITERATION
     evel.manageReoccurringEvents(simu);
 
 // IF MESH REFINEMENT
-    if (refineMesh) {}
+    if (refineMesh)
+    {
+        handleMeshRefinement(refEvents,
+                             geometries,
+                             solutionvectors,
+                             simu,
+                             alignment,
+                             electrodes,
+                             lc); // defined in refinementhandler.cpp
+    }
 
 // IF ELECTRODE POTENTIALS HAVE CHANGED, POTENTIALS MUST BE RECALCULATED
     if ( recalculatePotential )
         calcpot3d( Kpot,
-                   &v,
-                   &q,
+                   solutionvectors.v,
+                   solutionvectors.q,
                    &lc,
-                   geom,
+                   *geometries.geom,
                    &settings,
-                   &electr);
+                   &electrodes);
 
 
 
 // IF RESULT OUTPUT IS NEEDED - THIS SHOUL BE DONE LAST
     if (saveResult)
     {
-        handleResultOutput(simu, lc, geom, v, q);
-
+        handleResultOutput(simu,
+                           lc,
+                           *geometries.geom,
+                           *solutionvectors.v,
+                           *solutionvectors.q);
     }
 
 

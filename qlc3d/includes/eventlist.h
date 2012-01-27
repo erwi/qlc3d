@@ -7,6 +7,7 @@
 #include <electrodes.h>
 #include <simu.h>
 #include <limits>
+#include <refinfo.h>
 using namespace std;
 
 
@@ -18,7 +19,7 @@ using namespace std;
 
 enum EventType {    EVENT_SWITCHING,    // SWITCH ELECTRODE
                     EVENT_SAVE,         // SAVE RESULT
-                    EVENT_REFIENEMENT,  // MESH REFINEMENT
+                    EVENT_REFINEMENT,  // MESH REFINEMENT
                     EVENT_INVALID};     // BAD/ERROR EVENT
 // BASE EVENT CLASS
 class Event
@@ -30,7 +31,7 @@ public:
         eventType_(et),
         eventData_(ed)
     { }
-    ~Event(){}
+    ~Event();
     EventType getEventType()const {return eventType_;}
     void* getEventDataPtr()
     {
@@ -41,6 +42,7 @@ public:
     {
         eventData_ = ed;
     }
+    static const char* getEventString( const EventType );
 };
 
 class TimeEvent:public Event
@@ -63,10 +65,11 @@ class IterEvent:public Event
     IterEvent():Event(EVENT_INVALID){} // PRIVATE CONSTRUCTOR FORCES USE OF OTHER CONSTRUCTORS
 public:
     IterEvent( const EventType& et, const size_t& iter);
-    ~IterEvent() {};
+    ~IterEvent() {}
     size_t getEventIteration()const {return iteration_;}
     bool operator <(const IterEvent& other) const;
     bool occursNow(const Simu& simu) const;
+
 };
 
 /*
@@ -87,7 +90,9 @@ public:
 
 
 
-
+//
+//  EVENTLIST MANAGES EVENTS.
+//
 class EventList
 {
     private:
@@ -101,15 +106,20 @@ class EventList
 
         list <TimeEvent*> timeEvents_;
         list <IterEvent*> iterationEvents_;
-	
-        // REOCCURRING EVENTS
-        size_t saveIter_;    // SAVE PERIOD IN ITERATIONS
+        list <Event*> repRefinements_;  // ALL OF THESE WILL BE EXECUTED SIMULTANEOUSLY
 
+        // REOCCURRING SAVE EVENTS
+        size_t saveIter_;    // SAVE PERIOD IN ITERATIONS
         double saveTime_;    // SAVE PERIOD IN SECONDS
         size_t saveTimeCount_; // KEEPS COUNT OF PROCESSED REOCCURRING SAVE ITERS SO FAR
-        //TimeEvent saveTime_;    // SAVE PERIOD IN SECONDS
 
-        void prependReoccurringIterEvent(IterEvent* iEvent);
+        // REPEATED REFINMENT EVENTS
+        size_t repRefIter_;        // REFINEMENT PERIOD IN ITERATIONS 0 -> NEVER
+        double repRefTime_;        // REFINEMENT PERIOD IN SECONDS    0 -> NEVER
+        size_t repRefTimeCount_;   // KEEPS COUNT OF PROCESSED ROCCURRING REFINEMENT EVENT SO FAR
+
+
+        void prependReoccurringIterEvent(IterEvent* iEvent); // ADDS REOCCURRING TIME EVENT TO FRONT OF QUEUE
 
     public:
         EventList();
@@ -117,8 +127,16 @@ class EventList
         bool eventOccursNow(const Simu& simu) const;
 
         void insertTimeEvent(TimeEvent* tEvent);
+        void insertIterEvent(IterEvent* iEvent);
         void setSaveIter(const size_t& si){saveIter_ = si;}
         void setSaveTime(const double& st);//{saveTime_ = st;}
+        size_t getSaveIter() const {return saveIter_;}
+        double getSaveTime() const {return saveTime_;}
+
+        void setRepRefIter( const size_t rri ) {repRefIter_ = rri;}
+        void setRepRefTime( const double rrt ) {repRefTime_ = rrt;}
+        void addRepRefInfo( Event* repRefEvent); // ADDS REPEATING EVENT TO repRefinements LIST
+
 
         Event* getCurrentEvent(const Simu& simu);    // removes current event from queue and returns a copy of it
         double timeUntilNextEvent(const Simu& simu) const;
@@ -127,8 +145,7 @@ class EventList
 
         void printEventList() const;
 
-        size_t getSaveIter() const {return saveIter_;}
-        double getSaveTime() const {return saveTime_;}
+
 };
 
 
