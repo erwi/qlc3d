@@ -209,21 +209,21 @@ int main(int argc, char* argv[]){
     // ================================================================
     Geometry geom1 = Geometry();	// working geometry
     Geometry geom_orig = Geometry();    // original, loaded from file
-    Geometry geom_prev = Geometry();    // geometry from previous ref. iteration
+    //Geometry geom_prev = Geometry();    // geometry from previous ref. iteration
     prepareGeometry(geom_orig, simu, alignment);   // mesh file is read and geometry is loaded in this function (in inits.cpp)
-    geom_prev.setTo( &geom_orig);	    // for first iteration, geom_prev = geom_orig
+    //geom_prev.setTo( &geom_orig);	    // for first iteration, geom_prev = geom_orig
     geom1.setTo( &geom_orig);
-    Refine(geom_orig, geom_prev, geom1 , &meshrefinement);
+    //Refine(geom_orig, geom_prev, geom1 , &meshrefinement);
 
-    geom_orig.setTo( &geom1);
-    geom_prev.setTo( &geom_orig);	    // for first iteration, geom_prev = geom_orig
-    geom1.setTo( &geom_orig);
+    //geom_orig.setTo( &geom1);
+    //geom_prev.setTo( &geom_orig);	    // for first iteration, geom_prev = geom_orig
+    //geom1.setTo( &geom_orig);
 
     // SET CONVENIENCE STRUCT OF POINTERS
     Geometries geometries;
     geometries.geom = &geom1;
     geometries.geom_orig = &geom_orig;
-    geometries.geom_prev = &geom_prev;
+    //geometries.geom_prev = &geom_prev;
 
 // ==============================================
 //
@@ -233,9 +233,7 @@ int main(int argc, char* argv[]){
 
     cout << "Creating V...";
     SolutionVector v( geom1.getnp() );
-
     v.allocateFixedNodesArrays( geom1 );
-
     v.setPeriodicEquNodes( &geom1 ); // periodic nodes
 
     cout << "OK"<<endl;
@@ -292,15 +290,17 @@ int main(int argc, char* argv[]){
     printf("\nSaving starting configuration (iteration -1)...\n");
     WriteResults::CreateSaveDir(simu);
     Energy_fid = createOutputEnergyFile(simu); // done in inits
-   // handleInitialEvents(eventlist,
-   //              electrodes,
-   //              alignment,
-   //              simu,
-   //              geometries,
-   //              solutionvectors,
-   //              Kpot,
-   //              lc,
-   //              settings);
+    handleInitialEvents(eventlist,
+                 electrodes,
+                 alignment,
+                 simu,
+                 geometries,
+                 solutionvectors,
+                 lc,
+                 settings,
+                 *Kpot,
+                 *Kq
+                 );
     printf("OK\n");
 
 
@@ -354,34 +354,14 @@ int main(int argc, char* argv[]){
                      simu,
                      geometries,
                      solutionvectors,
-                     Kpot,
                      lc,
-                     settings);
+                     settings,
+                     *Kpot,
+                     *Kq);
 
 
         /// INCREMENT ITERATION COUNTER
         simu.IncrementCurrentIteration();
-//* AUTOREFINEMENT ---- MOVE TO EVENTS
-        /*
-        if (( (meshrefinement.isRefinementIteration( simu.getCurrentIteration() ) ) ))  // if this is a refinement iteration
-             //|| (simu.getCurrentIteration() == 1) ) &&                               // or if first iteration this should be done before start of simulation
-            //(needsRefinement(geom1,q,meshrefinement) ) ) {
-            {
-            delete Kpot;
-            delete Kq;
-            autoref(geom_orig, geom_prev, geom1, q, qn, v,  meshrefinement, simu,alignment, electrodes, lc);
-            Kpot = createSparseMatrix(geom1, v );
-            Kq   = createSparseMatrix(geom1, q, MAT_DOMAIN1);
-            calcpot3d(Kpot,&v,&q,&lc,geom1, &settings, &electrodes);
-
-            if (simu.getdt() > 0 )// if not steady state
-            {
-                simu.setdt( simu.getMindt() );
-            }
-
-            WriteResults::WriteResult(&simu, &lc, &geom1, &v, &q, &meshrefinement);
-        }
-*/
 
 	// if need end-refinement
         /*

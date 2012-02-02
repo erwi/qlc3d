@@ -34,10 +34,12 @@
 
 
 struct Num_Ref_Tet{
+    // COUNTER STRUCT
     unsigned int red;
     unsigned int green3;
     unsigned int green2;
     unsigned int green1;
+    Num_Ref_Tet(): red(0), green3(0), green2(0), green1(0){}
 };
 
 struct peri_lines{
@@ -71,27 +73,25 @@ void Refine(Geometry& geom_orig, // original GiD(?) mesh
 	    Geometry& geom_new,  // new geometry created in here
 	    MeshRefinement* = NULL);
 
-void Refine(Geometry& srce,					// source geometry
-			Geometry& dest,					// destination geometry
-			vector <unsigned int>& i_tet);	// index to refinable tets
+void Refine(Geometry& geom,             // refined geometry
+        vector <unsigned int>& i_tet);  // index to refinable tets
 
-void create_new_elements(   Geometry& geom,		    // refinable geom
-				vector <unsigned int>& i_tet,		// tet refinement types, 0=none, 1=green1 ...
-				vector <unsigned int>& i_tri,		// tri refinement types, 0=none
-				vector <Line>& lines,				// bisectable lines
-				vector < set<unsigned int> > t_to_l,// index from tet to its bisectable lines
-				vector < set<unsigned int> > e_to_l,// index from tri to its bisectable lines
-				vector <double>& new_p,				// return value, new coordinates created here
-				vector <unsigned int>& new_t,       // return value, new tet elements created here
-				vector <int>& new_mat_t,			// return value, new material numbers created here
-				vector <unsigned int>& new_e,		// return value, new tria elements
-				vector <int>& new_mat_e             // return value, new tri materials
-			 );
+void create_new_elements(   Geometry& geom,    // refinable geom
+    vector <unsigned int>& i_tet,               // tet refinement types, 0=none, 1=green1 ...
+    vector <unsigned int>& i_tri,               // tri refinement types, 0=none
+    vector <Line>& lines,                       // bisectable lines
+    vector < set<unsigned int> > t_to_l,        // index from tet to its bisectable lines
+    vector < set<unsigned int> > e_to_l,        // index from tri to its bisectable lines
+    vector <double>& new_p,                     // return value, new coordinates created here
+    vector <unsigned int>& new_t,               // return value, new tet elements created here
+    vector <int>& new_mat_t,                    // return value, new material numbers created here
+    vector <unsigned int>& new_e,               // return value, new tria elements
+    vector <int>& new_mat_e                     // return value, new tri materials
+    );
 
-void autoref(Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new,
+bool autoref(Geometry& geom_orig, Geometry& geom_new,
              SolutionVector& q, SolutionVector& qn,
              SolutionVector& v,
-             //MeshRefinement& meshrefinement,
              const list<RefInfo>& refInfos,
              Simu& simu, Alignment& alignment,  Electrodes& electrodes, LC& lc);
 
@@ -103,6 +103,24 @@ bool needsRefinement(Geometry& geom, SolutionVector& q, MeshRefinement& meshrefi
 bool needsEndRefinement(Geometry& geom,
                        SolutionVector& q,
                        MeshRefinement& meshrefinement);
+
+
+// ELEMENT SEARCH FUNCTIONS - DEFINED IN findrefelems.cpp
+
+// SELECTS ELEMENTS WHERE Q-TENSOR CHANGE IS ABOVE ALLOWED THRESHOLD,
+// AS SPECIFIED IN REFINFO OBJECT
+void findTets_Change(const RefInfo& refinfo,    // DESCRIBES REFINEMENT TYPE
+                     vector <size_t>& i_tet,    // RETURN VALUE, INDEX TO SELECTED TETS
+                     const int refiter,         // USES THIS 'MANYETH' VALUE IN RFINFO AS THRESHOLD
+                     const Geometry& geom,      //
+                     const SolutionVector& q    //
+                     );
+// SELECTS ELEEMENTS THAT CONTAIN NODES WITHIN A SPHERICAL REGION
+// CENTRED AT X Y Z COORDINATES SPECIFIED IN refInfo
+void findTets_Sphere(const RefInfo& refInfo,
+                     vector <size_t>& i_tet,
+                     const int refIter,
+                     const Geometry& geom);
 
 
 #endif

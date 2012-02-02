@@ -129,7 +129,7 @@ public:
     double getAbsXDist(int i , double x);	// gets absolute distance between x-coord of node i and x
     double getAbsYDist(int i , double y);	//
     double getAbsZDist(int i , double z);	//
-    double getAbsDistSqr(const unsigned int& i , double* coord);
+    double getAbsDistSqr(const unsigned int i , const double *const coord) const;
     double* getPtrToNodeNormals();
 
     size_t getTotalSize(); // returns memory consumption

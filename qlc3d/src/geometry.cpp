@@ -524,7 +524,7 @@ void Geometry::makePeriEquNodes()
         periNodes_.clear();
         return;
     }
-
+    periNodes_.clear();
     periNodes_.reserve( getnp() );
     for ( size_t i = 0 ; i < getnp() ; i++ )
         periNodes_.push_back(i);
@@ -855,36 +855,36 @@ void Geometry::checkForPeriodicGeometry()
         {
             // check to see which side surface is on by looking at the surface normal
             double* snorm = e->getPtrToSurfaceNormal(i);
-			
+
             // IF SURFACE NORMAL X-COMPONENT = 1
             if (fabs( fabs(snorm[0]) - 1.0 ) < EPS)
-                        left_right_is_periodic = true;
-            else
-            // IF SURFACE NORMAL Y-COMPONENT = 1
+            {
+                left_right_is_periodic = true;
+            }
+            else// IF SURFACE NORMAL Y-COMPONENT = 1
             if (fabs( fabs(snorm[1]) - 1.0 ) < EPS)
+            {
                 front_back_is_periodic = true;
-            else
-            // IF SURFACE NORMAL Z-COMPONENT = 1
+            }
+            else // IF SURFACE NORMAL Z-COMPONENT = 1
             if (fabs( fabs(snorm[2]) - 1.0 ) < EPS)
+            {
                 top_bottom_is_periodic = true;
+            }
             else
             {
                 printf("error - checkForPeriodicGeometry() - periodic surface element %i has invalid normal:\n [%f, %f, %f] - bye!\n",i, snorm[0] , snorm[1], snorm[2]);
-
-                this->e->PrintNormals();
-
                 exit(1);
             }
-	
+
             // IF ALL SURFACES HAVE ALREADY BEEN IDENTIFIED AS PERIODIC
             // NO NEED TO CHECK FURTHER TRIANGLES
             if ((getleft_right_is_periodic()) &&
                     (getfront_back_is_periodic()) &&
                     (gettop_bottom_is_periodic() ))
                 break;
-	
-        }
-    }
+        }// end if periodic surface
+    }// end for i
     // IF ANY PERIODIC TRIANGLES WERE DETECTED
     if (    getleft_right_is_periodic()
         ||  getfront_back_is_periodic()
@@ -1272,7 +1272,8 @@ double Geometry::getAbsZDist(int i, double z)
 	return fabs( getpZ(i) - z );
 }
 
-double Geometry::getAbsDistSqr(const unsigned int &i, double *coord){
+double Geometry::getAbsDistSqr(const unsigned int i, const double *const coord) const
+{
     double* pp = p + (3*i); //shortcut to ith coordinate
 
     return  ( ( pp[0]-coord[0] )*( pp[0]-coord[0] )+

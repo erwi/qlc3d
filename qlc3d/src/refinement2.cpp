@@ -509,82 +509,63 @@ void create_new_elements(Geometry& geom,
 			vector <unsigned int>& new_e,
 			vector <int>& new_mat_e
 			 ){
+// CREATES NEW NODES, ELEMENTS (TETS + TRIS ) AND MATERIAL
+// VALUES ARRAYS.
 
+// MAKE NEW NODES FIRST. A SPARSE MATRIX IS USED TO MAP TWO
+// OLD NODES TO A NEW ONE
     SparseMatrix* nnumbers;
-
     create_node_number_matrix(nnumbers, geom, lines);
+
     create_new_coordinates( geom, lines, new_p);
+
     // CREATE NEW TETRAHEDRA ELEMENTS
-    //cout << "making new tets" << endl;
-//exit(1);
-#ifdef DEBUG
-    int nred, ngreen1, ngreen2, ngreen3;
-    count_refinement_types(nred, ngreen1, ngreen2, ngreen3, i_tet );
-    printf("num red : %i\n", nred);
-    printf("num green1: %i\n", ngreen1);
-    printf("num green2: %i\n", ngreen2);
-    printf("num green3: %i\n", ngreen3);
-#endif
+    for (unsigned int i = 0 ; i < i_tet.size() ; i++)
+    {
+        switch (i_tet[i])
+        {
+        case (0):   // NON-REFINABLE TET. DO NOTHING
+            break;
+        case (GREEN1_TET):
+            make_new_green1_tet(new_t, new_mat_t, geom, i , lines, t_to_l, nnumbers);
+            break;
+        case (GREEN2_TET):
+            make_new_green2_tet(new_t, new_mat_t, geom, i, lines,t_to_l, nnumbers);
+            break;
+        case(GREEN3_TET):
+            make_new_green3_tet(new_t, new_mat_t , geom, i , lines , t_to_l , nnumbers);
+            break;
+        case(RED_TET):
+            make_new_red_tet(new_t, new_mat_t, geom, i , lines, t_to_l, nnumbers);
+            break;
+        default:
+            printf("error in %s, i_tet[%u] = %u - bye\n",__func__, i , i_tet[i]);
+            exit(1);
+        }
+    }// end for i
 
-
-	for (unsigned int i = 0 ; i < i_tet.size() ; i++){
-		if (i_tet[i] == 0 ){} // do nothing, a non-refinable tet
-		else
-		if (i_tet[i] == 1 ){
-                    make_new_green1_tet(new_t, new_mat_t, geom, i , lines, t_to_l, nnumbers);
-		}
-		else
-		if (i_tet[i] == 2 ){
-                    //cout << "split green2" << endl;
-                    make_new_green2_tet(new_t, new_mat_t, geom, i, lines,t_to_l, nnumbers);
-		}
-		else
-		if (i_tet[i] == 3){
-			//cout << "split green3" << endl;
-                    make_new_green3_tet(new_t, new_mat_t , geom, i , lines , t_to_l , nnumbers);
-		}
-		else
-		if (i_tet[i] == 6){
-			//cout << "split red tet" << endl;
-                    make_new_red_tet(new_t, new_mat_t, geom, i , lines, t_to_l, nnumbers);
-		}
-		else{
-                    printf("error - i_tet[%u] = %u - bye\n", i , i_tet[i]);
-                    exit(1);
-		}
-    }
-    //cout <<  "new tets made" << endl;
-
-
-
-	// CREATE NEW TRIANGLE ELEMENTS
-    //cout << "making new tris" << endl;
-	for ( unsigned int i = 0 ; i < i_tri.size() ; i++){
+    // CREATE NEW TRIANGLE ELEMENTS
+    for ( unsigned int i = 0 ; i < i_tri.size() ; i++)
+    {
 	if (i_tri[i] == 0){}// do nothing
-	else
-	if ( i_tri[i] == 1){
-
-		make_new_tri1( new_e, new_mat_e , geom, i, lines, e_to_l, nnumbers );
+        else if ( i_tri[i] == 1)
+        {
+            make_new_tri1( new_e, new_mat_e , geom, i, lines, e_to_l, nnumbers );
 	}
-	else
-	if ( i_tri[i]== 2){
-		//cout << "tri2" << endl;
-		make_new_tri2( new_e, new_mat_e , geom, i, lines, e_to_l, nnumbers );
+        else if ( i_tri[i]== 2)
+        {
+            make_new_tri2( new_e, new_mat_e , geom, i, lines, e_to_l, nnumbers );
 	}
-	else
-	if ( i_tri[i] == 3){
-		//cout << "tri3" << endl;
-		make_new_tri3 ( new_e, new_mat_e, geom , i , lines, e_to_l , nnumbers );
+        else if ( i_tri[i] == 3)
+        {
+            make_new_tri3 ( new_e, new_mat_e, geom , i , lines, e_to_l , nnumbers );
 	}
 	else{
-		printf("error - i_tri[%u] = %u - bye!\n", i , i_tri[i] );
-		exit(1);
+            printf("error - i_tri[%u] = %u - bye!\n", i , i_tri[i] );
+            exit(1);
 	}
     }
-    //cout << "new tris made" << endl;
-
     delete nnumbers;
-
 }
 
 

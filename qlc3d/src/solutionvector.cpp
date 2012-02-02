@@ -1,6 +1,6 @@
 #include <solutionvector.h>
 #include <material_numbers.h>
-
+#include <stdlib.h>
 const double SolutionVector::BIGNUM = 1e99;
 
 SolutionVector::~SolutionVector(){
@@ -191,6 +191,7 @@ void SolutionVector::Resize(const unsigned int &n, const unsigned int &dim){
     nFreeNodes = n;     // all nodes are free until set fixed
     nDimensions = dim;
     Values = (double*) malloc(nDoF * nDimensions * sizeof(double) );
+    memset(Values,0, nDoF*nDimensions * sizeof(double) );
 }
 
 void SolutionVector::ClearAll()
@@ -301,7 +302,7 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
 	setBooleanFixedNodeList();
 }
 void SolutionVector::setFixedNodes(vector<int> *Material, vector<double> *val ,int *Elem,int *Mat,int nElem,int nNodes)
-{// sets fixed node lists wit node numbers and corresponding fixed values
+{// sets fixed node lists with node numbers and corresponding fixed values
 		// *Material = fixed material numbers defined in settings file
 		// *val = values corresponding to *Material
 		// *Elem = array of element node numbers
@@ -465,7 +466,7 @@ void SolutionVector::setFixedNodesPot(Electrodes* electrodes)
 
     for (int i = 0 ; i < nFixed ; i++)
     {
-        int mat = FixedNodeMaterial[i];
+        int mat = FixedNodeMaterial[i]; // GET MATERIAL NUMBER FOR ith FIXED NODE
         size_t indE = MATNUM_TO_ELECTRODE_NUMBER((size_t) mat );
 
         if (indE)
@@ -648,364 +649,11 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
     }
 
 
-    if (Elim != NULL) free(Elim);						// allocate memory for equivalent nodes
-    //if (EquNodes != NULL) free(EquNodes);
-    Elim        = (int*) malloc(nDoF*nDimensions*sizeof(int));
+    if (Elim != NULL) free(Elim);	// allocate memory for equivalent nodes
 
-    // PERIODIC EQUIVALENT NODE INDEXES HAVE BEEN MADE IN
-    // GEOMETRY INITIALISATION.
-
-    //for (int i = 0; i < nDoF*nDimensions ; i++ )
-    //{
-    //    Elim[i] = geom->getPeriodicEquNode(i);
-    //}
-        /*
-// CREATE LIST OF PERIODIC NODE INDEXES
-    vector <unsigned int> periNodes;
-    geom->e->listNodesOfMaterial( periNodes, MAT_PERIODIC );
+    Elim  = (int*) malloc(nDoF*nDimensions*sizeof(int));
 
 
-// NEED TO CONSIDER 3 DIFFERENT CASES, DEPENDING ON TYPE OF PERIODICITY OF MODELLING WINDOW
-    double eps = 1e-5; // accuracy for coordinate comparisons
-    double xmin = geom->getXmin(); // convenience shortcuts to geometry min and max dimensions
-    double xmax = geom->getXmax();
-    double ymin = geom->getYmin();
-    double ymax = geom->getYmax();
-    double zmin = geom->getZmin();
-    double zmax = geom->getZmax();
-    /// PROBABLY EVIL, BUT SO CONVENIENT...
-    #define LEFT    ( geom->getAbsXDist(n, xmin) <= eps )
-    #define RIGHT   ( geom->getAbsXDist(n, xmax) <= eps )
-    #define FRONT   ( geom->getAbsYDist(n, ymin) <= eps )
-    #define BACK    ( geom->getAbsYDist(n, ymax) <= eps )
-    #define BOTTOM  ( geom->getAbsZDist(n, zmin) <= eps )
-    #define TOP     ( geom->getAbsZDist(n, zmax) <= eps )
-
-
-//CASE 1 FRONT BACK IS PERIODIC ONLY
-    if (    geom->getfront_back_is_periodic() &&
-            !geom->getleft_right_is_periodic() &&
-            !geom->gettop_bottom_is_periodic() )
-    {
-			
-    //SEPARATE NODES INTO TWO LISTS FOR FRONT AND BACK SURFACES
-        list <int> front;
-        list <int> back;
-
-        for (size_t i = 0 ; i < periNodes.size() ; i ++ )
-        {
-            unsigned int n = periNodes[i];
-
-            if ( geom->getAbsYDist( n , geom->getYmin() ) <= eps ) // check if node i is on front surface
-                { front.push_back(n) ; }
-            else
-            if ( geom->getAbsYDist( n , geom->getYmax() ) <= eps ) // check if node i is on back surface
-                { back.push_back(n); }
-
-            else // ERROR
-            {
-                printf("error in %s, CASE 1 - bye \n", __func__ );
-                exit(1);
-            }
-        }//end for i
-
-
-        /// MAKE SURE EQUAL NUMBER OF NODES HAVE BEEN FOUND ON BOTH SURFACES
-        if (front.size() != back.size() ){
-            printf("error - SolutionVector::setPeriosdicEquNodes\n");
-            printf("front and back surfaces do not have same number of nodes\n");
-            printf("front = %i , back = %i - bye!\n " , (int) front.size() , (int) back.size() );
-            exit(1);
-        }
-	
-        // SEARCH FOR NODE EQUIVALENCIES BY COMPARING X AND Y COORDINATES
-        // BACK NODES MAP TO FRONT NODES
-        setFaceElim( front, back, Elim, 1, geom->getPtrTop() );
-    }
-	else
-// CASE 2 FRONT-BACK AND LEFT-RIGHT ARE PERIODIC
-        if (    geom->getfront_back_is_periodic() &&
-                geom->getleft_right_is_periodic() &&
-                !geom->gettop_bottom_is_periodic() )
-        {
-
-            // separate nodes into 8 lists, 4 x corners left/right and front/back planes
-            list <int> corn0; //x = 0, y = 0
-            list <int> corn1; //x = 0, y = max
-            list <int> corn2; //x = max, y = max
-            list <int> corn3; //x = max, y = 0
-            list <int> front; //x = 0
-            list <int> back;  //x = max
-            list <int> right; //y = max
-            list <int> left;  //y = 0
-
-        for (size_t i = 0 ; i < periNodes.size() ; i++) // loop over all nodes and insert to correct list
-        {
-            int n = periNodes[i];
-            if ( LEFT && FRONT ) // corn0
-                {corn0.push_back(n);}
-            else
-            if ( LEFT && BACK ) // corn1
-                {corn1.push_back(n);}
-            else
-            if ( RIGHT  &&  BACK ) // corn2
-                {corn2.push_back(n);}
-            else
-            if ( RIGHT && FRONT ) // corn3
-                {corn3.push_back(n);}
-            else
-            if ( FRONT ) // front surface
-                {front.push_back(n);}
-            else
-            if ( BACK ) // back surface
-                {back.push_back(n);}
-            else
-            if ( LEFT ) // left surface
-                {left.push_back(n);}
-            else
-            if (RIGHT ) // right surface
-                {right.push_back(n);}
-        }
-
-        if ( ( corn0.size() != corn1.size() ) ||
-            ( corn0.size() != corn2.size() )  ||
-            ( corn0.size() != corn3.size() )  ||
-            ( left.size() != right.size() ) ||
-            (front.size() != back.size() ) )
-        {
-            printf("error, different number of periodic boundary nodes\n");
-            printf("corners 0,1,2,3 = %i,%i,%i,%i\n", (int) corn0.size() , (int) corn1.size() , (int) corn2.size() , (int) corn3.size() );
-            printf("front/back , left/right = %i/%i , %i/%i \n", (int) front.size() , (int) back.size() , (int) left.size() , (int) right.size() );
-            exit(1);
-        }
-        setCornerElim( corn0, corn1, corn2, corn3, Elim, 2, geom->getPtrTop() ); // vertical corners
-        setFaceElim( left, right, Elim, 0, geom->getPtrTop() ); // left/right faces
-        setFaceElim( front, back, Elim, 1, geom->getPtrTop() ); // front/back faces
-
-    }// END CASE 2
-
-// CASE 3 FRONT-BACK, LEFT-RIGHT AND TOP-BOTTOM ARE PERIODIC
-
-	else
-    if (geom->getfront_back_is_periodic() && 
-        geom->getleft_right_is_periodic() &&
-        geom->gettop_bottom_is_periodic() )
-	{
-            // separate nodes into lists, 12 x edges left/right, front/back and top/bottom planes
-            // Vertical corners along Z
-
-            // Additionally, 7 corner nodes must point to bottom left (origin xmin,ymin,zmin) corner
-
-            list <int> corn0; //x = 0, y = 0
-            list <int> corn1; //x = 0, y = max
-            list <int> corn2; //x = max, y = max
-            list <int> corn3; //x = max, y = 0
-
-            // Horizontal edges along X
-            list <int> corna; // y = 0, z = 0
-            list <int> cornb; // y = max, z = 0
-            list <int> cornc; // y = max, z = max
-            list <int> cornd; // y = 0, z = max
-
-            // Horizontal edges along Y
-            list <int> cornA; // x = 0, z = 0
-            list <int> cornB; // x = max, z = 0
-            list <int> cornC; // x = max, z = max
-            list <int> cornD; // x = 0, z = max
-
-            list <int> front; //x = 0
-            list <int> back;  //x = max
-            list <int> right; //y = max
-            list <int> left;  //y = 0
-            list <int> top;   //z = max
-            list <int> bottom;//z = 0;
-
-
-
-            // LOOP OVER ALL NODES AND INSERT TO CORRECT LIST
-            int corner_nodes[8] = {-1,-1,-1,-1,-1,-1,-1,-1};
-            for (size_t i = 0 ; i < periNodes.size() ; i++)
-            {
-                int n = periNodes[i];
-
-                // CORNER NODES TAKE PRECEDENCE OVER OTHER NODES
-                // FRONT LEFT BOTTOM
-                if ( FRONT && LEFT && BOTTOM )
-                    corner_nodes[0] = n;
-                else
-                // FRONT RIGHT BOTTOM
-                if ( FRONT && RIGHT && BOTTOM )
-                    corner_nodes[1] = n;
-                else
-                // FRONT LEFT TOP
-                if ( FRONT && LEFT && TOP )
-                    corner_nodes[2] = n;
-                else
-                // FRONT RIGHT TOP
-                if (FRONT && RIGHT && TOP)
-                    corner_nodes[3] = n;
-                else
-                // BACK LEFT BOTTOM
-                if (BACK && LEFT && BOTTOM)
-                    corner_nodes[4] = n;
-                else
-                // BACK RIGHT BOTTOM
-                if (BACK && RIGHT && BOTTOM)
-                    corner_nodes[5] = n;
-                else
-                // BACK LEFT TOP
-                if (BACK && LEFT && TOP)
-                    corner_nodes[6] = n;
-                else
-                // BACK RIGHT TOP
-                if (BACK && RIGHT && TOP)
-                    corner_nodes[7] = n;
-
-
-
-                else
-                // EDGE NODES
-                // 4 x Vertical Corners
-                if ( LEFT && FRONT ) // corn0
-                {corn0.push_back(n);}
-                else
-                if ( LEFT  && BACK ) // corn1
-                {corn1.push_back(n);}
-                else
-                if (RIGHT  && BACK ) // corn2
-                {corn2.push_back(n);}
-                else
-                if ( RIGHT && FRONT ) // corn3
-                {corn3.push_back(n);}
-                else
-
-                // 4 x Horizontal along X
-                if ( FRONT && BOTTOM)	// ymin and zmin
-                    {corna.push_back(n);}
-                else
-                if (BACK && BOTTOM) // ymax and zmin
-                    {cornb.push_back(n);}
-                else
-                if (BACK && TOP) // ymax and zmax
-                    {cornc.push_back(n);}
-                else
-                if (FRONT && TOP)  // ymin and zmax
-                    {cornd.push_back(n);}
-
-                // 4 x Horizontal along Y
-
-                else
-                if( LEFT && BOTTOM)
-                    {cornA.push_back(n);} // xmin and zmin
-                else
-                if( RIGHT && BOTTOM)
-                    {cornB.push_back(n);} // xmax and zmin
-                else
-                if( RIGHT && TOP )
-                    {cornC.push_back(n);} // xmax and zmax
-                else
-                if( LEFT && TOP)
-                    {cornD.push_back(n);} // xmin and zmax
-
-                else
-                // FRONT/BACK, LEFT/RIGHT, TOP/BOTTOM FACES
-                if ( FRONT ) // front surface
-                    {front.push_back(n);}
-                else
-                if ( BACK ) // back surface
-                    {back.push_back(n);}
-                else
-                if ( LEFT ) // left surface
-                    {left.push_back(n);}
-                else
-                if ( RIGHT ) // right surface
-                    {right.push_back(n);}
-                else
-                if ( BOTTOM ) // bottom surface
-                    {bottom.push_back(n); }
-                else
-                if ( TOP ) // top surface
-                    {top.push_back(n); }
-		
-            }// end for i, loop over all nodes
-
-            // CHECK THAT OPPOSITE FACES HAVE EQUAL NUMBER OF NODES
-            {// start dummy scope
-
-                int mincorner = *min_element( corner_nodes, corner_nodes+8);
-                if (mincorner < 0)
-                {
-                    printf(" error - corner nodes not found - bye!\n");
-                    printf("indexes are = [%i,%i,%i,%i,%i,%i,%i,%i]\n", corner_nodes[0],corner_nodes[1],corner_nodes[2],corner_nodes[3],
-                           corner_nodes[4],corner_nodes[5],corner_nodes[6],corner_nodes[7]);
-                    exit(1);
-
-                }
-
-
-                if (top.size() != bottom.size() )
-		{
-                    printf("error - top and bottom surfaces do not match - bye!\n");
-                    printf("sizes are top,bottom = %i,%i\n", top.size(), bottom.size() );
-                    exit(1);
-		}
-		if (left.size() != right.size() )
-		{
-                    printf("error - left and right surfaces do not match - bye!\n");
-                    exit(1);
-		}
-		if (front.size() != back.size() )
-		{
-                    printf("error - front and back surfaces do not match - bye!\n");
-                    exit(1);
-		}
-		// CHECK ALL CORNERS HAVE CORRECT NUMBER OF NODES
-		size_t s0, s1, s2, s3;
-		s0 = corn0.size(); s1 = corn1.size(); s2 = corn2.size() ; s3 = corn3.size();
-		if ( (s1!=s0) || (s2 != s0) || (s3!=s0) )
-		{
-                    printf("error - vertical corner node counts do not match\n");
-                    exit(1);
-		}
-		s0 = corna.size(); s1 = cornb.size(); s2 = cornc.size(); s3 = cornd.size();
-		if ( (s1!=s0) || (s2 != s0) || (s3!=s0) )
-		{
-                    printf("error - horizontal corner (along x) node counts do not match\n");
-                    exit(1);
-		}
-		s0 = cornA.size(); s1 = cornB.size(); s2 = cornC.size(); s3 = cornD.size();
-		if ( (s1!=s0) || (s2 != s0) || (s3!=s0) )
-		{
-                    printf("error - horizontal corner (along y) node counts do not match\n");
-                    exit(1);
-		}		
-            }// end dummy scope
-
-
-            // set corner nodes
-            Elim[corner_nodes[1] ] = corner_nodes[0];
-            Elim[corner_nodes[2] ] = corner_nodes[0];
-            Elim[corner_nodes[3] ] = corner_nodes[0];
-            Elim[corner_nodes[4] ] = corner_nodes[0];
-            Elim[corner_nodes[5] ] = corner_nodes[0];
-            Elim[corner_nodes[6] ] = corner_nodes[0];
-            Elim[corner_nodes[7] ] = corner_nodes[0];
-
-
-
-            // match edge nodes
-            setCornerElim( corn0, corn1, corn2, corn3, Elim, 2, geom->getPtrTop() ); // vertical corners
-            setCornerElim( corna, cornb, cornc, cornd, Elim, 0, geom->getPtrTop() ); // horiz. along X
-            setCornerElim( cornA, cornB, cornC, cornD, Elim, 1, geom->getPtrTop() ); // horiz. along Y
-            // faces nodes
-            setFaceElim( left, right, Elim, 0, geom->getPtrTop() ); // left/right faces
-            setFaceElim( front, back, Elim, 1, geom->getPtrTop() ); // front/back faces
-            setFaceElim( bottom,top , Elim, 2, geom->getPtrTop() ); // top/bottom faces
-
-            //printf("front/back, left/right and top/bottom are periodic, but this has not been implemented yet - bye!");
-            //exit(1);
-	}// end if 3 different periodicity cases
-*/
 
     // NODAL EQUIVALENCIES HAVE BEEN SET.
     // REPLACE DEPENDENT NODES WITH THEIR
@@ -1028,9 +676,6 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
 
     nFreeNodes = 0;
 
-
-    //elim.insert(elim.begin(), Elim, Elim+nDoF);
-    //elim.resize( nDoF );
 
     std::vector <int> elima(nDoF,0);    // Elim altered
     for (int i = 0 ; i < nDoF ; i++)    // SET TO 1,2,3...

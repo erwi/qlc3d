@@ -112,100 +112,88 @@ void interpolate(SolutionVector& qnew,
 }
 
 
-
-double get_elem_maxdQ(const unsigned int& elem, Geometry& geom, SolutionVector& q){
-/*! returns absolute maximum change in any of the 5 Q-tensor components in element elem*/
-    double qe[4] = {0,0,0,0};
-    double maxdq = 0;
-    for (unsigned int dim = 0 ; dim < 5 ; dim ++){ // for q1 -> q5
-        for ( int j = 0 ; j < geom.t->getnNodes() ; j++){ // for each node in this tet
-            int nn = geom.t->getNode(elem, j); // node number
-            qe[j] = q.getValue( nn , dim ); // get g
-        } // end for each node
-
-        double mxq = *max_element(qe , qe+4);
-        double mnq = *min_element(qe , qe+4);
-
-        if ( (mxq-mnq) > maxdq ) {maxdq = mxq-mnq;}
-
-    }// end for each dimension
-
-    return maxdq;
-}
-
-void get_index_to_tred(Geometry& geom_orig,
-                       SolutionVector& q,
-                       vector <unsigned int>& i_tet,
-                       MeshRefinement& meshref,
+void get_index_to_tred(Geometry& geom_curr, // CURRENT CALCULATION GEOMETRY
+                       Geometry& geom_work, // REFINED WORKING GEOMETRY
+                       SolutionVector& q,   // Q_TENSOR CORRESPONDING TO geom_curr
+                       vector <size_t>& i_tet,
+                       const list<RefInfo>& refInfos,
                        const int& refiter,
                        bool isEndRefinement = false
-                       ){
-/*! determines which elements need to be refined. i_tet is set to RED_TET for those elements
-    that need refinement. If isEndRefinement is 'true', uses EndRefinement, other wise uses AutoRefinment */
+                       )
+{
+    // DETERMINES WHICH ELEMENTS NEED TO BE REFINED. VALUES IN i_tet
+    // ARE SET TO RED_TET FOR THOSE TETRAHEDRA THAT NEED TO BE SPLIT.
 
     i_tet.clear();
-    i_tet.assign( geom_orig.t->getnElements() , 0 );
+    i_tet.assign( geom_work.t->getnElements() , 0 );
 
-    if (! isEndRefinement)
+    list<RefInfo>::const_iterator ritr = refInfos.begin();
+
+    // DETERMINE IF INTERPOLATION OF Q-TENSOR IS NEEDED:
+    // SOME REFINEMENT TYPES NEED AN UP TO DATE Q-TENSOR
+    // TO DETERMINE REFINEMENT REGIONS. SOME DON'T.
+    bool needsInterpolatedQ = false;
+    SolutionVector q_temp;
+    for (;ritr!=refInfos.end() ; ritr ++)
     {
+        // IF THIS REFITER IS NOT DEFINED FOR THIS REFINFO OBJECT, SKIP IT
+        if ( refiter > (*ritr).getRefIter() )
+            continue;
 
-        // Loop over all elements
-        for (unsigned int i = 0 ; i < (unsigned int) geom_orig.t->getnElements() ; i++){
-            if (geom_orig.t->getMaterialNumber(i) <= MAT_DOMAIN7){ // if LC element
-                vector <AutoRef> :: iterator ar = meshref.AutoRefinement.begin();
-                vector <AutoRef> :: iterator end_itr = meshref.AutoRefinement.end();
+        switch ((*ritr).getType() )
+        {
+        case ( RefInfo::Change ):
+            needsInterpolatedQ = true;
+            break;
+        default:{}// DO NOTHING
 
-                for ( ; ar != end_itr ; ar++ ){ // for each AUTOREF obj
+        }// end switch/case
+        // INTERPOLATION NEEDED. QUIT LOOP
+        if ( needsInterpolatedQ )
+        {
+            interpolate(q_temp, geom_work, q, geom_curr );
+            break;
+        }
+    }// end for
 
-                    double elem_sze = geom_orig.t->getDeterminant( i ) * 1e18; // <- a guesstimate of element side length obtained from element volume
-                    elem_sze = pow( elem_sze , 1.0/3.0);
-                    double maxdq = get_elem_maxdQ(i, geom_orig, q );
-
-                    if (( ar->Type == Change ) &&
-                     ( ar->getMinSize()  < elem_sze) &&
-                     ( ar->getMaxValue(refiter) < maxdq  ))
-                        {
-                        i_tet[i] = RED_TET;
-                        }
-                }// end for every autorefinement object
-            }// end if LC element
-        }// end for all tets
-    }
-    else // it is End Refinement
+    ritr = refInfos.begin();
+    // LOOP OVER EACH REFINFO OBJECT AND PROCESS IT
+    for ( ritr = refInfos.begin() ; ritr!=refInfos.end() ; ritr++)
     {
-       // printf(" get_index_to_tred:EndRef\n");
+        // CHECK WHETHER THIS RefInfo OBJECT IS DEFINED FOR THIS REFINEMENT ITERATION
+        if ( refiter > (*ritr).getRefIter() )
+            continue;
 
+        // DIFERENT REFINFO TYPES REQUIRE DIFFERENT ELEMENT SEARCHES
+        // ELEMENT SEARCH FUCNTIONS DEFINED IN findrefelems.cpp
+        switch ( (*ritr).getType() )
+        {
+        case ( RefInfo::Change ):
+        {
+            printf("SEARCHING FOR TYPE = CHANGE TETS\n");
+            //findTets_Change( (*ritr) , i_tet, refiter, geom_orig , q  );
+            break;
+        }
+        case ( RefInfo::Sphere):
+        {
+            printf("SEARCHING FOR TYPE = SPHERE TETS\n");
+            findTets_Sphere((*ritr) , i_tet, refiter, geom_work );
 
-        for (unsigned int i = 0 ; i < (unsigned int) geom_orig.t->getnElements() ; i++){
+            break;
+        }
+        default:
+        {
+            printf("error in %s, unhandled refinement type - bye!\n",__func__);
+            exit(1);
+        }
+        } // end switch/case
 
-            if (geom_orig.t->getMaterialNumber(i) <= MAT_DOMAIN7){ // if LC element
-                vector <EndRef> :: iterator ar = meshref.EndRefinement.begin();
-                vector <EndRef> :: iterator end_itr = meshref.EndRefinement.end();
-
-                for ( ; ar != end_itr ; ar++ ){ // for each ENDREF obj
-
-                    double elem_sze = geom_orig.t->getDeterminant( i ) * 1e18; // <- a guesstimate of element side length obtained from element volume
-                    elem_sze = pow( elem_sze , 1.0/3.0);
-                    double maxdq = get_elem_maxdQ(i, geom_orig, q );
-
-                    if (( ar->Type == Change ) &&
-                     ( ar->getMinSize()  < elem_sze) &&
-                     ( ar->getMaxValue(refiter) < maxdq  ))
-                        {
-                        i_tet[i] = RED_TET;
-
-                        }
-                }// end for every autorefinement object
-            }// end if LC element
-        }// end for all tets
-    }
-
-
-
+    }// end for all refinfo objects
 }
 
 bool needsRefinement(Geometry &geom, SolutionVector &q, MeshRefinement &meshrefinement){
 /*! checks whether mesh refinement is needed. Returns true if needed, false otherwise*/
+    /*
     vector <AutoRef> :: iterator ar;
     // Loop over all elements
     for (unsigned int i = 0 ; i < (unsigned int) geom.t->getnElements() ; i++){
@@ -228,8 +216,9 @@ bool needsRefinement(Geometry &geom, SolutionVector &q, MeshRefinement &meshrefi
             }// end for every autorefinement object
         }// end if LC element
     }// end for all tets
-
+*/
     return false; // if no tets that need refinement are found, return false and exit
+
 }
 
 
@@ -237,7 +226,7 @@ bool needsEndRefinement(Geometry &geom, SolutionVector &q, MeshRefinement &meshr
 /*! checks whether mesh refinement is needed. Returns true if needed, false otherwise*/
     vector <EndRef> :: iterator er;
     // Loop over all elements
-
+/*
     for (unsigned int i = 0 ; i < (unsigned int) geom.t->getnElements() ; i++){
 
         if (geom.t->getMaterialNumber(i) <= MAT_DOMAIN7){ // if LC element
@@ -263,7 +252,7 @@ bool needsEndRefinement(Geometry &geom, SolutionVector &q, MeshRefinement &meshr
             }// end for every autorefinement object
         }// end if LC element
     }// end for all tets
-
+*/
     return false; // if no tets that need refinement are found, return false and exit
 }
 
@@ -272,16 +261,15 @@ bool needsEndRefinement(Geometry &geom, SolutionVector &q, MeshRefinement &meshr
 
 
 
-void autoref(   Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new,
+bool autoref(   Geometry& geom_orig, Geometry& geom,
                 SolutionVector& q, SolutionVector& qn,
                 SolutionVector& v,
-                //MeshRefinement& meshrefinement,
                 const list<RefInfo> &refInfos,
-                Simu& simu, Alignment& alignment,Electrodes& electrodes, LC& lc){
-    bool bRefined   = false; // indicates whether mesh is changed or not
-    int refiter     = 0;     // refinement iteration counter
+                Simu& simu, Alignment& alignment,Electrodes& electrodes, LC& lc)
+{
+    bool bRefined(false);   // indicates whether mesh is changed or not
+    int refiter(0);         // refinement iteration counter
     int maxrefiter(0);
-    //int maxrefiter  = meshrefinement.getMaxNumAutoRefIterations(); // maximum possible number of refinement iterations
 
     // DETERMINE MAXIMUM REFINEMENT ITERATIONS NUMBER
     list<RefInfo>::const_iterator ri_itr = refInfos.begin();
@@ -291,40 +279,13 @@ void autoref(   Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new,
     }
     if (maxrefiter == 0){   // IF NO REFINEMENT
         simu.setMeshModified(false);
-        return;             // LEAVE REFINEMENT FUNCTION NOW
+        return false;             // LEAVE REFINEMENT FUNCTION NOW
     }
 
-    bool IsEndRefinement = false; // switch between Auto-Refinement and End-Refinement
-    /*
-    if ( !simu.IsRunning() )
-    {
-         printf("\nEnd-Refinement\n");
-         IsEndRefinement = true;
-         maxrefiter = meshrefinement.getMaxNumEndRefIterations();
 
-         refiter    = meshrefinement.EndRefinement[0].getEndRefIteration();
-         int maxEndRef = meshrefinement.EndRefinement[0].getRefIter(); // maximum times end-refinement can be done
-         if (refiter >= maxEndRef) // if maximum number of end refinements reached
-         {
-             maxrefiter = 0;
-         }
-         //maxrefiter = maxrefiter > meshrefinement.EndRefinement[0].getEndRefIteration() ? 0:maxrefiter;
-
-         printf("\nEnd-Refinement, refiter = %i , maxrefiter = %i\n", refiter, maxrefiter );
-    }
-    */
-
-    // CREATE TEMPORARY WORKING COPIES OF VARIOUS DATA
+    // CREATE TEMPORARY WORKING COPY OF GEOMETRY
+    // THIS WILL BE MODIFIED (REFINED/"DEREFINED")
     Geometry geom_temp;     // temporary "working" geometry
-    SolutionVector q_prev = q;  // INPUT Q-TENSOR KEEP BACKUP
-
-    // PREVIOUS Q IS INTERPOLATED TO ORIGINAL MESH - downsampling, this loses information
-    // Q IS RESIZED TO MATCH THE ORIGIANL MESH
-    q.Resize( geom_orig.getnpLC(), 5 ); // presumably this resets q
-    interpolate(q, geom_orig, q_prev, geom_prev ); // overwrites with interplated values
-
-    // REFINEMENT START FROM ORIGINAL GEOMETRY
-    geom_new.setTo(  &geom_orig );
     geom_temp.setTo( &geom_orig );
 
 
@@ -334,81 +295,89 @@ void autoref(   Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new,
     printf("=========================================== \n");
     printf("Doing a maximum of %i refinement iterations \n", maxrefiter);
     printf("=========================================== \n");
-    exit(1);
 
-
-    /*
     for ( refiter = 0 ; refiter < maxrefiter ; refiter ++){ // for max refiter
-        printf("starting refiter = %i\n", refiter);
-        // GET INDEX TO RED TETS IN geom_new
-        vector <unsigned int> i_tet; // <- refinement type counter
-        get_index_to_tred( geom_new, q, i_tet, meshrefinement, refiter, IsEndRefinement);
-
-
+        printf("Refinement iteration %i of %i\n", refiter+1 , maxrefiter );
+        // GET INDEX TO RED TETS IN geom
+        vector <unsigned int> i_tet( geom_temp.t->getnElements(), 0); // REFINEMENT TYPE INDICATOR
+        // SELECT RED TETS
+        get_index_to_tred( geom ,
+                           geom_temp,
+                           q,
+                           i_tet,
+                           refInfos,
+                           refiter,
+                           false);//IsEndRefinement);
 
         // LEAVE REF LOOP IF NO REFINABLE TETS FOUND
-        if (*max_element(i_tet.begin() , i_tet.end() ) < RED_TET ){
-            printf("|------>  Refiter %i of %i <------| \n", refiter+1 , maxrefiter );
+        if (*max_element(i_tet.begin() , i_tet.end() ) < RED_TET )
+        {
             printf("   No refinement this iteration\n");
-            break;
+            continue;
         }
 
-        printf("|------>  Refiter %i of %i <------| \n", refiter+1 , maxrefiter );
-        Refine( geom_temp, geom_new , i_tet);
-        printf("New node count: %i\n", geom_new.getnp());
+        Refine( geom_temp  , i_tet);
 
-        // UPDATE Q-TENSOR VALUES BY INTERPOLATING TO NEW MESH
-        //SolutionVector qtemp( geom_new.getnpLC() , 5);	// TEMPORARY Q-TENSOR
-        q.Resize( geom_new.getnpLC() , 5 ); // resets q-tensor
-        interpolate(q, geom_new, q_prev, geom_prev); // interpolates from previous result
+        //geom_temp.ReorderDielectricNodes();
+        //geom_temp.setMaxNodeNumber( (unsigned int) geom_temp.getnp() );
+        //geom_temp.e->setConnectedVolume( geom_temp.t );
+        //geom_temp.t->CalculateDeterminants3D( geom_temp.getPtrTop() );
+        //geom_temp.t->ScaleDeterminants( 1e-18);// scale to microns cubed
+        //geom_temp.e->CalculateSurfaceNormals( geom_temp.getPtrTop(), geom_temp.t);
+        //geom_temp.e->ScaleDeterminants( 1e-12); // scale to microns squared
+        //geom_temp.checkForPeriodicGeometry();
+        //geom_temp.makePeriEquNodes();
 
-        // UPDATE geom_temp, TO USE IT IN NEXT REFINEMENT ITERATION
-        geom_temp.setTo( &geom_new);
-
-        bRefined = true; // YES, MESH HAS BEEN CHANGED
-        printf("done refiter = %i\n", refiter);
+        bRefined = true;                        // YES, MESH HAS BEEN CHANGED
+        printf("New node count: %i\n", geom_temp.getnp());
+        printf("Done refinement iteration = %i of %i \n", refiter, maxrefiter);
     }// end for max refiters
-    // REFIENEMENT IS DONE. DO STUFF (CALCULATE DETERMINANTS, TAKE CARE OF FIXED NODES ETC.) TO MAKE NEW GEOMETRY VALID.
 
-    geom_prev.setTo( &geom_new ); // SET PREV TO NEW FOR FUTURE REFIENEMENTS
+//=============================================================
+//  DONE WITH REFINEMENT.
+//  DO CLEANUP AND INTERPOLATE RESULT ON NEW MESH.
+//=============================================================
 
-    // REALLOCATE POTENTIAL
-    v.Allocate( geom_new.getnp() , 1);
-    v.setFixedNodesPot(electrodes, geom_new.e, 0.0 ); // <-- sets current time to zero!!! this may be a problem
-    v.setPeriodicEquNodes( &geom_new);
-    //cout << "v reallocated " << endl;
+    //geom_temp.t->CalculateDeterminants3D( geom_temp.getPtrTop() );
+    //geom_temp.t->ScaleDeterminants( 1e-18);// scale to microns cubed
+    geom_temp.setNodeNormals();
+    geom_temp.genIndWeakSurfaces( alignment );
+    geom_temp.makeRegularGrid(  simu.getRegularGridXCount(),
+                                simu.getRegularGridYCount(),
+                                simu.getRegularGridZCount());
+
+    // RECREATE POTENTIAL SOLUTIONVECTOR FROM SCRATCH FOR THE NEW GEOMETRY.
+    v.Resize( geom_temp.getnp() , 1);
+    v.allocateFixedNodesArrays( geom_temp );
+    v.setPeriodicEquNodes( & geom_temp );
+    v.setFixedNodesPot(&electrodes);
+    v.setToFixedValues();
+
+    // REALLOCATE Q-TENSOR
+    qn = q; // temp swap
+    q.Allocate( geom_temp.getnpLC(), 5 );     // ALLOCATE FOR NEW MESH SIZE
+    interpolate( q, geom_temp, qn, geom );  // INTERPOLATE FROM PREVIOUS MESH
 
     // SET BOUNDARY CONDITIONS
-    //setSurfacesQ(&q, &alignment, &lc, &geom_new);
-    setStrongSurfacesQ(&q, &alignment, &lc, &geom_new);
-    q.setFixedNodesQ(&alignment, geom_new.e );
-
-    q.setPeriodicEquNodes( & geom_new );
-
-
-    qn = q; // USE CURRENT Q FOR PREVIOUS TIME STEP Q-TENSOR
+    setStrongSurfacesQ(&q, &alignment, &lc, &geom_temp);
+    q.setFixedNodesQ(&alignment, geom_temp.e );
+    q.setPeriodicEquNodes( &geom_temp );
+    q.EnforceEquNodes( geom_temp );
+    qn = q;                                     // USE CURRENT Q FOR PREVIOUS TIME STEP Q-TENSOR
+    geom.setTo( &geom_temp );
 
 
     // NEW MESH FILE NEEDS TO BE WRITTEN WHEN RESULTS ARE OUTPUT
     // LET REST OF PROGRAM KNOW THAT GEOMETRY HAS BEEN MODIFIED
-    if (bRefined)
-    {
-        cout << "=============done refining mesh=============" << endl;
-        cout << "new nodecount = " << geom_new.getnp() << endl;
-        //if (simu.getdt() > 0)
-        //    simu.setdt( simu.getMindt() );
-        simu.IncrementMeshNumber();     // output mesh name will be appended with this number
-        simu.setMeshModified( true );   // this is a flag set to notify that a new output file needs to be written
-		
-		// if this was an end-refinement, need to make changes to simu, so that additional
-		// simulation steps are taken
-        if ( !simu.IsRunning() ) 
-        {
-            meshrefinement.EndRefinement[0].incrementEndRefIteration(); // increments end refinement counter
-            simu.resetEndCriterion(); // resets end citerion = forces additional simulation steps on new mesh
-        }
-    }
-*/
+    cout << "=============done refining mesh=============" << endl;
+    cout << "       new nodecount = " << geom.getnp()      << endl;
+    cout << "============================================" << endl;
+    if (simu.getdt() > 0)
+        simu.setdt( simu.getMindt() );
+    simu.IncrementMeshNumber();     // output mesh name will be appended with this number
+    simu.setMeshModified( true );   // this is a flag set to notify that a new output file needs to be written
+
+    return true; //bRefined; // WHETHER MESH WAS REFINED
 }
 
 

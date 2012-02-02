@@ -866,6 +866,18 @@ void readRefinement(Reader& reader,
             vector<double> values;
             ret = reader.readNumberArray(key, values);
             problem_format(key, ret);
+
+            vector<double> X , Y, Z;
+            key = setStructureKey("REFINEMENT", i , "X");
+            ret = reader.readNumberArray( key, X );
+            problem_format( key, ret );
+            key = setStructureKey("REFINEMENT", i , "Y");
+            ret = reader.readNumberArray( key, Y );
+            problem_format( key, ret );
+            key = setStructureKey("REFINEMENT", i , "Z");
+            ret = reader.readNumberArray( key, Z );
+            problem_format( key, ret );
+
         // DATA HAS BEEN COLLECTED. DEPENDING ON WHETHER EXPLICIT REFINEMENT
         // EVENTS HAVE BEEN DEFINED ADD EVENT(s) TO EVENT LIST
 
@@ -878,6 +890,8 @@ void readRefinement(Reader& reader,
                     RefInfo* refinfo = new RefInfo(type);
                     refinfo->setIteration( itr );
                     refinfo->setValues( values );
+                    refinfo->setCoords(X, Y, Z);
+                    RefInfo::validate( *refinfo );
                     IterEvent* e = new IterEvent(EVENT_REFINEMENT, itr);
                     e->setEventDataPtr( static_cast<void*> (refinfo) );
                     evli.insertIterEvent( e );
@@ -893,6 +907,8 @@ void readRefinement(Reader& reader,
                     RefInfo* refinfo = new RefInfo(type);
                     refinfo->setTime( tme );
                     refinfo->setValues( values );
+                    refinfo->setCoords(X, Y, Z);
+                    RefInfo::validate( *refinfo );
                     TimeEvent* e = new TimeEvent( EVENT_REFINEMENT, tme );
                     e->setEventDataPtr( static_cast<void*> (refinfo) );
                     evli.insertTimeEvent( e );
@@ -903,7 +919,8 @@ void readRefinement(Reader& reader,
             {
                 RefInfo* refinfo = new RefInfo(type);
                 refinfo->setValues( values );
-
+                refinfo->setCoords(X, Y, Z);
+                RefInfo::validate( *refinfo );
                 Event* e = new Event(EVENT_REFINEMENT);
                 e->setEventDataPtr( static_cast<void*> (refinfo) );
                 evli.addRepRefInfo( e );

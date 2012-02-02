@@ -33,8 +33,9 @@ void print_dangly_set( vector < set <unsigned int> > dl){
     }
 }
 
-
-void create_dangly_matrix(vector <Line>& lines, vector< list <unsigned int> >& dangly){
+// CREATES DANGLY FROM LINES
+void create_dangly_matrix(vector <Line>& lines,
+                          vector< list <unsigned int> >& dangly){
 /*! Creates a dangly sparse matrix of node pairs (i.e. lines)*/
 
 
@@ -74,6 +75,7 @@ void create_dangly_matrix(vector <Line>& lines, vector< list <unsigned int> >& d
 
 }
 
+// CREATES DANGLY FROM GEOMETRY
 void create_dangly_matrix(vector< list <unsigned int> > & dangly,
                             Geometry& geom,
                             SolutionVector& sol,
@@ -193,7 +195,9 @@ void convert_sets_to_arrays( vector<list <unsigned int> > &ds,
 
 
 
-SparseMatrix* createSparseMatrix(Geometry& geom, SolutionVector& sol, const int& MatNum){
+SparseMatrix* createSparseMatrix(Geometry& geom,
+                                 SolutionVector& sol,
+                                 const int& MatNum){
 /*! Creates a SparseMatrix object based on the input geometry and number of dimensions in sol (i.e. is
 sol is for Q, matrix size is [5*np X 5*np], and for V [npXnp].
  \param geom = input geometry
@@ -204,7 +208,10 @@ sol is for Q, matrix size is [5*np X 5*np], and for V [npXnp].
 */
 
     vector <list <unsigned int> > dangly_set;
-    create_dangly_matrix( dangly_set, geom, sol ,MatNum );
+    create_dangly_matrix( dangly_set,
+                          geom,
+                          sol ,
+                          MatNum );
 
     SparseMatrix* K = new SparseMatrix();
     convert_sets_to_arrays(dangly_set, sol.getnDimensions(),*K);

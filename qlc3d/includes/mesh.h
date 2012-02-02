@@ -22,10 +22,10 @@ private:
     int Dimension;	// number of dimensions of mesh - 2 for tris and 3 for tets
     int nElements;	//total number of elements
     int nNodes;		// number of nodes per element
-    int *Elem;				// for tets and tris
-    int *Mat;				// for tets and tris
-    double *Determinant;	// for tets and tris
-    double TotalSize;		// Total volume/area of the mesh
+    int *Elem;		// for tets and tris
+    int *Mat;		// for tets and tris
+    double *Determinant;// for tets and tris
+    double TotalSize;	// Total volume/area of the mesh
 
     int *ConnectedVolume; 	// for tris only - index to LC volume element
     double *SurfaceNormal;	// for tris only

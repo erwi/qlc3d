@@ -397,7 +397,7 @@ void Mesh::ContainsNodes(list <int>* elems, list <int>* points)
 {
 	
 	list <int>::iterator int_itr;
-	for (int i = 0 ; i < getnElements() ; i ++ ) // loop over all elements, this is going to be sloooow....
+        for (int i = 0 ; i < getnElements() ; i ++ ) // loop over all elements
 	{
 		for (int_itr = points->begin() ; int_itr != points->end() ; int_itr++) // loop over all points in list
 		{
@@ -608,7 +608,9 @@ void Mesh::CalculateDeterminants3D(double *p)
 
 
 }
-void Mesh::CalculateSurfaceNormals(double *p, Mesh* tets){
+void Mesh::CalculateSurfaceNormals(double *p, Mesh* tets)
+{
+// CALCULATES THE SURFACE NORMAL FOR A TRIANGULAR MESH
     if ((Dimension != 2) ||
         (getnElements() <1) ||
         (getnNodes() <1))
@@ -639,10 +641,8 @@ void Mesh::CalculateSurfaceNormals(double *p, Mesh* tets){
 
     for ( int i = 0 ; i < getnElements() ; i ++)
     {
-
         if (  i%fraction  == 0 ) // progress dots printing
             printf(".");
-
 
         Ax = p[getNode(i,1)*3+0] - p[getNode(i,0)*3 + 0];
         Ay = p[getNode(i,1)*3+1] - p[getNode(i,0)*3 + 1];
@@ -894,93 +894,110 @@ void Mesh::CopySurfaceNormal(int i, double* norm){
 	norm[2] = SurfaceNormal[i*3+2];
 }
 
-void Mesh::removeElements(std::set <unsigned int>& index){
-	// removes elements by creating new array for node numbers and copies elements NOT in index to it
-	if (index.size() > 0 ){ // if not empty
-	    int num_new_elements = getnElements() - index.size();
-	
-	    // make sure index does not contain elements that do not exist
-	    if (*(index.rbegin()) >= (unsigned int) getnElements()){
-		printf("error - Mesh::removeElements \ntrying to remove elements that do not exist\n");
-		printf("size of mesh is %i, trying to remove element %i - bye! ",getnElements() , *(index.rbegin()));
-		exit(0);
-	    }
-	
-	    int* tnew 		= (int*) malloc( num_new_elements * getnNodes() * sizeof(int)); 	// new elements
-	    int* mnew 		= (int*) malloc( num_new_elements *sizeof(int) );					// new materials
-	    double* dnew	= (double*) malloc( num_new_elements * sizeof(double) ); 			// new determinants
-		
-	    double* SurfaceNormal_new 		= NULL;  // only needed for triangle meshes
-	    int*	ConnectedVolume_new 	= NULL;
-		
-	    if (getDimension() == 2) // if a triangle mesh
-		{
-			SurfaceNormal_new		= (double*) malloc( num_new_elements * 3 * sizeof(double) );
-			ConnectedVolume_new 	= (int*) malloc( num_new_elements * sizeof(int) );
-		}
-	
-	
-	    if ( (tnew==NULL) || (mnew == NULL) || (dnew == NULL) )
-		{
-			printf("error - Mesh::removeElements - received null pointer - bye!\n");
-			exit(1);
-		}
-	
-	    std::set <unsigned int> :: iterator itr;
-	    itr = index.begin();
-	
-	    int c = 0; // counter to new elements
+void Mesh::removeElements(std::set <unsigned int>& index)
+{
+// REMOVES ELEMENTS IN INDEX.
+    if ( !index.size() )
+    {
+        printf("error in %s, zero index size - bye !\n",__func__);
+        exit(1);
+    }
 
-	    for (unsigned int i = 0 ; i < (unsigned int) this->getnElements() ; i ++){ // for all elements
-		if (*itr != i)	{
-		    mnew[c] = getMaterialNumber(i);
-		    dnew[c] = getDeterminant(i);
-				
-		    if( getDimension() == 2){ // if triangles
-			ConnectedVolume_new[c] = getConnectedVolume(i);
-			SurfaceNormal_new[c*3+0] = *(getPtrToSurfaceNormal(i) 	); // normal X
-			SurfaceNormal_new[c*3+1] = *(getPtrToSurfaceNormal(i)+1	); // normal Y
-			SurfaceNormal_new[c*3+2] = *(getPtrToSurfaceNormal(i)+2 ); // normal Z
-		    }
 
-		    for (int j = 0 ; j < getnNodes() ; j ++ ){
-			tnew[c*getnNodes() + j ] = getNode(i,j);
-		    }
-				c++;
-		}// end if
-		else if (*itr != *index.rbegin() ){ // if not end of list, increment (ugly comparison of values instead of pointers)
-		    itr++;
-		}
-	    }// end for all elements
-		
-	
-	if (Elem!=NULL)	{
-	    free(Elem);
-	    Elem = tnew;
-	}
-	if (Mat != NULL){
-	    free(Mat);
-	    Mat = mnew;
-	}
-	if (Determinant != NULL ){
-	    free(Determinant);
-	    Determinant = dnew;
-	}
-	
-	if (getDimension() == 2){ // if tris , set new surface normals and connected to volume links
-	    if (SurfaceNormal != NULL) {
-		free(SurfaceNormal);
-		SurfaceNormal = SurfaceNormal_new;
-	    }
-	    if (ConnectedVolume != NULL){
-		free(ConnectedVolume);
-		ConnectedVolume = ConnectedVolume_new;
-	    }
-	}// end if tris
-	
-	setnElements(num_new_elements);
-	//cout << " removeElements - removed" << index.size() << " ,left with " << getnElements() << endl;
-    } // end if not empty
+    size_t num_new_elements = getnElements() - index.size();
+
+    // make sure index does not contain elements that do not exist
+    size_t maxindex = * max_element( index.begin() , index.end() );
+
+    if ( maxindex >= ( size_t ) getnElements() )
+    {
+        printf("error - Mesh::removeElements \ntrying to remove elements that do not exist\n");
+        printf("size of mesh is %i, trying to remove element %i - bye! ",getnElements() , *(index.rbegin()));
+        exit(0);
+    }
+
+    int* tnew 		= (int*) malloc( num_new_elements * getnNodes() * sizeof(int)); // new elements
+    int* mnew 		= (int*) malloc( num_new_elements *sizeof(int) );		// new materials
+    double* dnew	= (double*) malloc( num_new_elements * sizeof(double) ); 	// new determinants
+
+    double* SurfaceNormal_new 	= NULL;  // only needed for triangle meshes
+    int*    ConnectedVolume_new	= NULL;
+
+    if (getDimension() == 2) // if a triangle mesh
+    {
+        SurfaceNormal_new   = (double*) malloc( num_new_elements * 3 * sizeof(double) );
+        ConnectedVolume_new = (int*) malloc( num_new_elements * sizeof(int) );
+    }
+
+    if ( (tnew==NULL) || (mnew == NULL) || (dnew == NULL) )
+    {
+        printf("error - Mesh::removeElements - received null pointer - bye!\n");
+        exit(1);
+    }
+
+    std::set <unsigned int> :: iterator itr;
+    itr = index.begin();
+
+    size_t c = 0; // counter to new elements
+
+    for (size_t i = 0 ; i < (size_t) this->getnElements() ; i ++) // for all elements
+    {
+
+        if (*itr != i) // KEEP ELEMENT I
+        {
+            mnew[c] = getMaterialNumber(i);
+            dnew[c] = getDeterminant(i);
+
+            if( getDimension() == 2) // if triangles
+            {
+                ConnectedVolume_new[c] = getConnectedVolume(i);
+                SurfaceNormal_new[c*3+0] = *(getPtrToSurfaceNormal(i) 	); // normal X
+                SurfaceNormal_new[c*3+1] = *(getPtrToSurfaceNormal(i)+1	); // normal Y
+                SurfaceNormal_new[c*3+2] = *(getPtrToSurfaceNormal(i)+2 ); // normal Z
+            }
+
+            // COPY NODES
+            for (int j = 0 ; j < getnNodes() ; j ++ )
+            {
+                tnew[c*getnNodes() + j ] = getNode(i,j);
+            }
+            c++;
+
+        }// end if
+        else if (*itr != *index.rbegin() ) // if not end of list, increment (ugly comparison of values instead of pointers)
+        {
+            itr++;
+        }
+    }// end for all elements
+
+
+    if (Elem!=NULL)	{
+        free(Elem);
+        Elem = tnew;
+    }
+    if (Mat != NULL){
+        free(Mat);
+        Mat = mnew;
+    }
+    if (Determinant != NULL ){
+        free(Determinant);
+        Determinant = dnew;
+    }
+
+    if (getDimension() == 2){ // if tris , set new surface normals and connected to volume links
+        if (SurfaceNormal != NULL) {
+            free(SurfaceNormal);
+            SurfaceNormal = SurfaceNormal_new;
+        }
+        if (ConnectedVolume != NULL){
+            free(ConnectedVolume);
+            ConnectedVolume = ConnectedVolume_new;
+        }
+    }// end if tris
+
+    setnElements(num_new_elements);
+
+
 }
 
 void Mesh::ClearMesh(){
@@ -1090,61 +1107,50 @@ void Mesh::addElements(vector<unsigned int> &m_new, vector<int> &mat_new){
 
 void Mesh::CopyMesh(Mesh* rhs)
 {
+    setDimension(rhs->getDimension() );
     setnElements(rhs->getnElements() );		// set number of elements
-    setnNodes(	rhs->getnNodes()	);      // number of nodes per element
-    setDimension(rhs->getDimension());
+    setnNodes(	rhs->getnNodes() );             // number of nodes per element
+    TotalSize = rhs->TotalSize;
+
     setMaxNodeNumber( rhs->getMaxNodeNumber() );
-	TotalSize = rhs->TotalSize;
 
-
-	AllocateMemory();				// allocate memory for arrays
+    AllocateMemory();				// allocate memory for arrays
     setAllNodes(rhs->getPtrToElement(0) );	// copy node numbers
-    setAllMaterials(rhs->getPtrToMaterialNumber(0) 	);		// copy material numbers
-	
-	
-	// copy determinants if they exist in rhs
-	if (rhs->getPtrToDeterminant(0) != 0)
-	{
-		if (Determinant!=NULL) free(Determinant);
-		Determinant = (double*) malloc( getnElements() * sizeof(double) );
-		
-		for(int i = 0 ; i < getnElements() ; i ++ )
-			Determinant[i] = *(rhs->getPtrToDeterminant(0) + i);
-	
-	}
-	
-	this->Dimension = rhs->Dimension;
+    setAllMaterials(rhs->getPtrToMaterialNumber(0) );// copy material numbers
 
-	if (Dimension==2) // if triangle mesh
-	{
-		// copy links between tris and tets if they exist in rhs
-		if(rhs->getPtrToConnectedVolume(0) != NULL)
-		{
-			if (ConnectedVolume != NULL) free(ConnectedVolume);
-			ConnectedVolume = (int*) malloc( getnElements() * sizeof(int) );
-			
-			for (int i = 0 ; i < getnElements() ; i ++ )
-				ConnectedVolume[i] = rhs->getConnectedVolume(i);
-		}
+    // COPY DETERMINANTS
+    if (rhs->getPtrToDeterminant(0) != 0)
+    {
+        if (Determinant!=NULL) free(Determinant);
+        Determinant = (double*) malloc( getnElements() * sizeof(double) );
+        memcpy( Determinant, rhs->Determinant, getnElements() * sizeof(double) );
+    }
+
+    this->Dimension = rhs->Dimension;
+
+    if (Dimension==2) // if triangle mesh
+    {
+        // COPY TRIANGLE/TET CONNECTIONS
+        if(rhs->getPtrToConnectedVolume(0) != NULL)
+        {
+            if (ConnectedVolume != NULL) free(ConnectedVolume);
+            ConnectedVolume = (int*) malloc( getnElements() * sizeof(int) );
+
+            memcpy(ConnectedVolume, rhs->ConnectedVolume , getnElements() * sizeof(int) );
+
+        }
 	
-		// copy surface normals if they exist in rhs
-		if (rhs->getPtrToSurfaceNormal(0) != NULL)
-		{
-			if (SurfaceNormal != NULL) free(SurfaceNormal);
-			SurfaceNormal = (double*) malloc(3 * getnElements() * sizeof(double));
-			
-			for (int i =0 ; i < 3*getnElements() ; i ++)
-				SurfaceNormal[i] = *(rhs->getPtrToSurfaceNormal(0) + i );
-		
-		}
-	} // end if triangle mesh
-	
-	
+        // COPY SURFACE NORMALS
+        if (rhs->getPtrToSurfaceNormal(0) != NULL)
+        {
+            if (SurfaceNormal != NULL) free(SurfaceNormal);
+            SurfaceNormal = (double*) malloc(3 * getnElements() * sizeof(double));
 
-
-
-
+            memcpy( SurfaceNormal, rhs->SurfaceNormal, 3*getnElements() * sizeof(double) );
+        }
+    } // end if triangle mesh
 }
+
 void Mesh::ScaleDeterminants( const double& s)
 {
 	if (Determinant!= NULL){

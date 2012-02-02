@@ -19,24 +19,24 @@ void tets_in_sphere( vector<unsigned int>& itet, Geometry& geom , RefReg& sphere
 
 
     printf("REFREG%i=Sphere\n", refiter);
-	for ( size_t i = 0 ; i < itet.size() ; i++){ // loop over tets
-            if (geom.t->getMaterialNumber( i ) <= MAT_DOMAIN7 ){
-                for (int j = 0 ; j < geom.t->getnNodes() ; j++){
-                    double d[3] ={ geom.getAbsXDist(geom.t->getNode(i,j) , sphere.X[0]),
-				   geom.getAbsYDist(geom.t->getNode(i,j) , sphere.Y[0]),
-				   geom.getAbsZDist(geom.t->getNode(i,j) , sphere.Z[0])};
-                    double dist = sqrt( d[0]*d[0] + d[1]*d[1] + d[2]*d[2] );
+    for ( size_t i = 0 ; i < itet.size() ; i++){ // loop over tets
+        if (geom.t->getMaterialNumber( i ) <= MAT_DOMAIN7 ){
+            for (int j = 0 ; j < geom.t->getnNodes() ; j++){
+                double d[3] ={ geom.getAbsXDist(geom.t->getNode(i,j) , sphere.X[0]),
+                               geom.getAbsYDist(geom.t->getNode(i,j) , sphere.Y[0]),
+                               geom.getAbsZDist(geom.t->getNode(i,j) , sphere.Z[0])};
+                double dist = sqrt( d[0]*d[0] + d[1]*d[1] + d[2]*d[2] );
 
-                    if ( dist<= sphere.Distance[refiter] )
-                        itet[i] = RED_TET;// 6 = red tet
-                    }// end for nodes
-	    }// end if LC element
+                if ( dist<= sphere.Distance[refiter] )
+                    itet[i] = RED_TET;// 6 = red tet
+            }// end for nodes
+        }// end if LC element
     }// end for tets
 
 }
 
 void tets_near_surface( vector<unsigned int>& itet, Geometry& geom, RefReg& region, const int& refiter){
-//    /*! finds all tets that are close to a surface*/
+    //    /*! finds all tets that are close to a surface*/
     // A brute-force approach
 
     // Form a list of all triangles with this material number
@@ -55,7 +55,7 @@ void tets_near_surface( vector<unsigned int>& itet, Geometry& geom, RefReg& regi
             surf_nodes.insert( (unsigned int) geom.e->getNode( surf_elems[i] , j ) );
         }// end for nodes per element
     }
-	printf("num surfnodes: %i\n", (int) surf_nodes.size());
+    printf("num surfnodes: %i\n", (int) surf_nodes.size());
 
     //std::set <unsigned int> ::iterator itr;
     //for (itr = surf_nodes.begin() ; itr != surf_nodes.end() ; itr++){
@@ -65,7 +65,7 @@ void tets_near_surface( vector<unsigned int>& itet, Geometry& geom, RefReg& regi
 
     // perform comparison between EVERY tetrahedron and EVERY surface node and calculate
     // distances. This is probably very slow
-//*
+    //*
     for (unsigned int elem = 0 ; elem < (unsigned int) geom.t->getnElements() ; elem++){
 
         double bary[3] = {0,0,0};
@@ -79,8 +79,8 @@ void tets_near_surface( vector<unsigned int>& itet, Geometry& geom, RefReg& regi
             pn[2] = geom.getpZ( *node );
             // squared distance between barycentre and surface node
             double dsqr =   (bary[0] - pn[0])*(bary[0] - pn[0]) +
-                            (bary[1] - pn[1])*(bary[1] - pn[1]) +
-                            (bary[2] - pn[2])*(bary[2] - pn[2]) ;
+                    (bary[1] - pn[1])*(bary[1] - pn[1]) +
+                    (bary[2] - pn[2])*(bary[2] - pn[2]) ;
 
             double mindist = region.getDistance(refiter);
 
@@ -92,7 +92,7 @@ void tets_near_surface( vector<unsigned int>& itet, Geometry& geom, RefReg& regi
 
         }
     }// end for elements
-//*/
+    //*/
 
 }
 
@@ -132,9 +132,9 @@ void get_index_to_tred(vector <unsigned int>& i_tet,
 
 // REPOULATES LIST i_tred WITH IDEXES TO TETS IN m THAT CONTAIN AT LEAST num NODES FROM LIST i_p
 void contains_nodes( Mesh* m,				// mesh whose elements are checked
-			 set <unsigned int>& i_p,		// index to all internal nodes
-			 const int& num,				// minimum number of nodes needed to be included in
-			 set< unsigned int>& i_tred){	// index to elements that contain at least 'num' nodes from 'i_p'
+                     set <unsigned int>& i_p,		// index to all internal nodes
+                     const int& num,				// minimum number of nodes needed to be included in
+                     set< unsigned int>& i_tred){	// index to elements that contain at least 'num' nodes from 'i_p'
     //
     // THIS COULD BE MADE MUCH FASTER IF AN INDEX FROM NODES->ELEMENTS WAS MADE FIRST
     //
@@ -167,8 +167,8 @@ void find_unique_nodes( Mesh* m , set <unsigned int>& ind_m , set <unsigned int>
 }
 
 void find_all_core_lines( vector<Line>& lines, const vector <unsigned int>& i_tet, Mesh* m){
-// creates unique set of lines from all bisectable lines of red tets
-// only works for tets!
+    // creates unique set of lines from all bisectable lines of red tets
+    // only works for tets!
     vector <unsigned int>::const_iterator itr; // iterator to red tet indexes
 
     for (unsigned int i = 0 ; i < i_tet.size() ; i++){ // loop over all tets
@@ -197,18 +197,18 @@ void find_all_core_lines( vector<Line>& lines, const vector <unsigned int>& i_te
 }
 
 void count_lines(   Mesh* m,						// mesh elements
-			vector< set <unsigned int> >& p_to_m ,	// point to elements indices
-			const vector<Line>& lines ,				// list of lines
-			vector <unsigned int>& i_elem,			// counter array
-			vector < set < unsigned int> >& m_to_l	// elements to lines indices
-		 ){
+                    vector< set <unsigned int> >& p_to_m ,	// point to elements indices
+                    const vector<Line>& lines ,				// list of lines
+                    vector <unsigned int>& i_elem,			// counter array
+                    vector < set < unsigned int> >& m_to_l	// elements to lines indices
+                    ){
     // COUNT NUMBER OF OCCURRENCIES OF LINES IN ELEMENTS.
     // LOOP OVER EACH LINE. USE p_to_m INDICES TO FIND ELEMENTS
     // THAT CONTAIN *BOTH* NODES OF THE LINE.
 
-	i_elem.clear();
-	i_elem.reserve( m->getnElements() );
-	i_elem.assign( m->getnElements() , 0 );
+    i_elem.clear();
+    i_elem.reserve( m->getnElements() );
+    i_elem.assign( m->getnElements() , 0 );
 
     // ALLOCATE MEMORY FOR m_to_l
     m_to_l.clear();
@@ -220,8 +220,8 @@ void count_lines(   Mesh* m,						// mesh elements
     // pragma omp loopable?
     int num_points = (int) p_to_m.size();
     for ( unsigned int l = 0 ; l< (unsigned int) lines.size() ; l++){// for each line
-       //if ( (l == 15 ) && (lines.size() == 3653) )
-       //    int b = 0;
+        //if ( (l == 15 ) && (lines.size() == 3653) )
+        //    int b = 0;
 
         int n1 = lines[l].L[0];
         int n2 = lines[l].L[1];
@@ -253,444 +253,443 @@ void count_lines(   Mesh* m,						// mesh elements
 
 
 
-	}// end for all lines
+    }// end for all lines
 }// end count lines
 void find_tet_refinement_types(vector <unsigned int>& i_tet, // tet line counts
-							   Num_Ref_Tet& nrt ){ // tet to lines index
+                               Num_Ref_Tet& nrt )
+{ // tet to lines index
     nrt.green1 = 0; // RESET
     nrt.green2 = 0;
     nrt.green3 = 0;
     nrt.red    = 0;
 
-	for (int i = 0 ; i < (int) i_tet.size() ; i++){ // loop over tet bisection line count
-		//cout << " i = " << i << endl;
-		if ( i_tet[i]==0 ){} // do nothing
-		else
-		if ( i_tet[i] ==GREEN1_TET ){
-			//i_tet[i] = 0;
-			nrt.green1++;
-		}
-		else
-		if ( i_tet[i] == 2 ){
-			//i_tet[i] = 0;
-			nrt.green2++;
-		}
-		else
-		if ( i_tet[i] == 3 ){
-			//i_tet[i] = 0;
-			nrt.green3++;
-		}
-		else
-		if ( i_tet[i] > GREEN3_TET){
-			nrt.red ++;
-			i_tet[i] = 6 ; // enforces anything above and including 4 is actually 6
-	}
+    for (int i = 0 ; i < (int) i_tet.size() ; i++) // loop over tet bisection line count
+    {
 
-	}// end for
+        if ( i_tet[i]==0 ){} // do nothing
+        else if ( i_tet[i] ==GREEN1_TET )
+        {
+            nrt.green1++;
+        }
+        else if ( i_tet[i] == GREEN2_TET )
+        {
+            nrt.green2++;
+        }
+        else if ( i_tet[i] == GREEN3_TET )
+        {
+            nrt.green3++;
+        }
+        else if ( i_tet[i] > GREEN3_TET)
+        {
+            nrt.red ++;
+            i_tet[i] = RED_TET ; // enforces anything above and including 4 is actually 6
+        }
+
+    }// end for
 
 }
 
 
 void fix_green3_red_confusions( vector <unsigned int>& i_tet,		// tets line counter
-							   vector<Line>& lines,					// bisected lines
-							   vector< set<unsigned int> > t_to_l){ // index from tets to  lines
-// SOME ELEMENTS MARKED AS GREEN 3 ARE IN FACT RED TETS
-// GREEN 3 CONTAIN 3 BISECTABLE LINES FORMING A CLOSED LOOP -> 3 UNIQUE NODES
-// IN RED TETS, SOME OTHER CONFIGURATION OF 3 LINES EXIST -> 4 UNIQUE NODES
+                                vector<Line>& lines,					// bisected lines
+                                vector< set<unsigned int> > t_to_l){ // index from tets to  lines
+    // SOME ELEMENTS MARKED AS GREEN 3 ARE IN FACT RED TETS
+    // GREEN 3 CONTAIN 3 BISECTABLE LINES FORMING A CLOSED LOOP -> 3 UNIQUE NODES
+    // IN RED TETS, SOME OTHER CONFIGURATION OF 3 LINES EXIST -> 4 UNIQUE NODES
 
 
-	// LOOP OVER EACH TET-LINE COUNTER PRAGMA OMP'ABLE
-	//#pragma omp parallel for
-	for (unsigned int i = 0 ; i < i_tet.size() ; i++){ // for all tets
-		// IF PREVIOUSLY MARKED AS A GREEN 3 TET
-		if ( i_tet[i] == 3){
-			// LOOP OVER ALL ITS BISECABLE LINES AND CHECK
-			// NUMBER OF UNIQUE NODES
-			set <unsigned int> ::iterator itr;
-			set < int > nodes; // nodes set, size of this determines type
-			for (itr = t_to_l[i].begin() ; itr != t_to_l[i].end() ; itr++){ // for index to lines
-				nodes.insert( lines[*itr].L[0]); // insert both nodes of line
-				nodes.insert( lines[*itr].L[1]);
-			}// end for index to lines
-			//cout << "total number of nodes " << nodes.size() << endl;
-			if (nodes.size() == 4 ){
-				// THIS ELEMENT IS ACTUALLY RED. MAKE IT SO!
-				i_tet[i] = 6; // 6 is magic for red
-			}
-			#ifdef DEBUG
-			else if ( nodes.size() != 3){ // debig
-				cout << " error in fix_green_red_confusions - this should not happen "<< endl;
-				cout << " something has gone badly wrong - bye!" << endl;
-				exit(1);
-			}
-			# endif
-		}
-	}// end for all tets
+    // LOOP OVER EACH TET-LINE COUNTER PRAGMA OMP'ABLE
+    //#pragma omp parallel for
+    for (unsigned int i = 0 ; i < i_tet.size() ; i++){ // for all tets
+        // IF PREVIOUSLY MARKED AS A GREEN 3 TET
+        if ( i_tet[i] == 3){
+            // LOOP OVER ALL ITS BISECABLE LINES AND CHECK
+            // NUMBER OF UNIQUE NODES
+            set <unsigned int> ::iterator itr;
+            set < int > nodes; // nodes set, size of this determines type
+            for (itr = t_to_l[i].begin() ; itr != t_to_l[i].end() ; itr++){ // for index to lines
+                nodes.insert( lines[*itr].L[0]); // insert both nodes of line
+                nodes.insert( lines[*itr].L[1]);
+            }// end for index to lines
+            //cout << "total number of nodes " << nodes.size() << endl;
+            if (nodes.size() == 4 ){
+                // THIS ELEMENT IS ACTUALLY RED. MAKE IT SO!
+                i_tet[i] = 6; // 6 is magic for red
+            }
+#ifdef DEBUG
+            else if ( nodes.size() != 3){ // debig
+                cout << " error in fix_green_red_confusions - this should not happen "<< endl;
+                cout << " something has gone badly wrong - bye!" << endl;
+                exit(1);
+            }
+# endif
+        }
+    }// end for all tets
 }// end fix_green3_red_confusions
 
 
 
 void gen_peri_lines_vec(peri_lines& plines,
-						Geometry& geom)
+                        Geometry& geom)
 {/*! creates vector of lines that are on periodic surfaces of geometry geom.
-	The lines are unique, i.e. no repetitions. */
-	
-	plines.lfront.clear(); plines.lback.clear();
-	plines.lleft.clear();  plines.lright.clear();	
-	plines.lc0.clear(); plines.lc1.clear(); plines.lc2.clear(); plines.lc3.clear();
-	plines.lca.clear(); plines.lcb.clear(); plines.lcc.clear(); plines.lcd.clear();
-	plines.lcA.clear(); plines.lcB.clear(); plines.lcC.clear(); plines.lcD.clear();
-	
-	// this is a silly shortcut to save typing on detrmining which
-	// surfaces are periodic
-	bool peritype[3] = {geom.getfront_back_is_periodic() ,
-						geom.getleft_right_is_periodic() ,
-						geom.gettop_bottom_is_periodic() };
-	
-	
-	// loop over each surface triangle
-	for (int i = 0 ; i < geom.e->getnElements() ; i++ ) 
-	{
-		// if triangle is periodic
-		if ( geom.e->getMaterialNumber(i) == MAT_PERIODIC )
-		{
-			int* n = geom.e->getPtrToElement( i ); // pointer to element node numbers
-						
-						
-			Line lines[3] = {Line(n[0], n[1]), Line(n[0], n[2]) , Line(n[1], n[2]) };
+ The lines are unique, i.e. no repetitions. */
+
+    plines.lfront.clear(); plines.lback.clear();
+    plines.lleft.clear();  plines.lright.clear();
+    plines.lc0.clear(); plines.lc1.clear(); plines.lc2.clear(); plines.lc3.clear();
+    plines.lca.clear(); plines.lcb.clear(); plines.lcc.clear(); plines.lcd.clear();
+    plines.lcA.clear(); plines.lcB.clear(); plines.lcC.clear(); plines.lcD.clear();
+
+    // this is a silly shortcut to save typing on detrmining which
+    // surfaces are periodic
+    bool peritype[3] = {geom.getfront_back_is_periodic() ,
+                        geom.getleft_right_is_periodic() ,
+                        geom.gettop_bottom_is_periodic() };
+
+
+    // loop over each surface triangle
+    for (int i = 0 ; i < geom.e->getnElements() ; i++ )
+    {
+        // if triangle is periodic
+        if ( geom.e->getMaterialNumber(i) == MAT_PERIODIC )
+        {
+            int* n = geom.e->getPtrToElement( i ); // pointer to element node numbers
+
+
+            Line lines[3] = {Line(n[0], n[1]), Line(n[0], n[2]) , Line(n[1], n[2]) };
+
+            for ( int l = 0 ; l < 3 ; l++)
+            { // loop over each line and determine its location
+                // Consider 3 cases of periodicity:
+                // 1. FRONT/BACK ONLY
+                // 2. FRONT/BACK and LEFT/RIGHT
+                // 3. FRONY/BACK, LEFT/RIGHT and TOP/BOTTOM
+
+                //CASE 1, front back only
+                if ( peritype[0] && (!peritype[1]) && (!peritype[2]) )
+                {
+                    if ( lines[l].isOnFrontSurface( &geom ) )
+                        plines.lfront.push_back( lines[l] );
+                    else
+                        if ( lines[l].isOnBackSurface( &geom ) )
+                            plines.lback.push_back( lines[l] );
+                }
+                else
+                    // CASE 2, front/back, left/right
+                    if ( (peritype[0] ) && (peritype[1]) && (!peritype[2] ) )
+                    {
+                        // each line may be in multiple lists when along a corner
+                        if ( lines[l].isOnFrontSurface( &geom ) )
+                            plines.lfront.push_back( lines[l] );
+                        else
+                            if ( lines[l].isOnBackSurface( &geom) )
+                                plines.lback.push_back( lines[l] );
 			
-			for ( int l = 0 ; l < 3 ; l++)
-			{ // loop over each line and determine its location
-				// Consider 3 cases of periodicity:
-				// 1. FRONT/BACK ONLY
-				// 2. FRONT/BACK and LEFT/RIGHT
-				// 3. FRONY/BACK, LEFT/RIGHT and TOP/BOTTOM
+                        if ( lines[l].isOnLeftSurface( &geom ) )
+                            plines.lleft.push_back( lines[l] );
+                        else
+                            if (lines[l].isOnRightSurface(&geom) )
+                                plines.lright.push_back( lines[l] );
+
+                        // corner lines
+                        if ( lines[l].isCorn0( &geom ) )
+                            plines.lc0.push_back( lines[l] );
+                        else
+                            if ( lines[l].isCorn1(&geom) )
+                                plines.lc1.push_back( lines[l] );
+                            else
+                                if ( lines[l].isCorn2(&geom ) )
+                                {
+                                    plines.lc2.push_back( lines[l] );
+                                    //lines[l].PrintLine();
+                                }
+                                else
+                                    if ( lines[l].isCorn3(&geom) )
+                                        plines.lc3.push_back( lines[l] );
+
+
 			
-				//CASE 1, front back only
-				if ( peritype[0] && (!peritype[1]) && (!peritype[2]) )
-				{
-					if ( lines[l].isOnFrontSurface( &geom ) )
-						plines.lfront.push_back( lines[l] );
-					else
-					if ( lines[l].isOnBackSurface( &geom ) )
-						plines.lback.push_back( lines[l] );
-				}
-				else
-				// CASE 2, front/back, left/right
-				if ( (peritype[0] ) && (peritype[1]) && (!peritype[2] ) )
-				{
-					// each line may be in multiple lists when along a corner
-					if ( lines[l].isOnFrontSurface( &geom ) )
-						plines.lfront.push_back( lines[l] );
-					else							
-					if ( lines[l].isOnBackSurface( &geom) )
-						plines.lback.push_back( lines[l] );
-			
-					if ( lines[l].isOnLeftSurface( &geom ) )
-						plines.lleft.push_back( lines[l] );
-					else
-					if (lines[l].isOnRightSurface(&geom) )
-						plines.lright.push_back( lines[l] );
-						
-					// corner lines
-					if ( lines[l].isCorn0( &geom ) )
-						plines.lc0.push_back( lines[l] );
-					else
-					if ( lines[l].isCorn1(&geom) )
-						plines.lc1.push_back( lines[l] );
-					else
-					if ( lines[l].isCorn2(&geom ) )
-					{
-						plines.lc2.push_back( lines[l] );
-						//lines[l].PrintLine();	
-					}
-					else
-					if ( lines[l].isCorn3(&geom) )
-						plines.lc3.push_back( lines[l] );
-					
-					
-			
-				} // end if peritype
-			}// end for l
-		}// end if periodic triangle
-	}// end of each triangle i
-	
-	// remove repeated lines. function defined as inline in line.h
-	uniquefy_line_vector( plines.lleft );
-	uniquefy_line_vector( plines.lright );
-	uniquefy_line_vector( plines.lfront );
-	uniquefy_line_vector( plines.lback );
-	
-	uniquefy_line_vector( plines.lc0 );
-	uniquefy_line_vector( plines.lc1 );
-	uniquefy_line_vector( plines.lc2 );
-	uniquefy_line_vector( plines.lc3 );
-		
+                    } // end if peritype
+            }// end for l
+        }// end if periodic triangle
+    }// end of each triangle i
+
+    // remove repeated lines. function defined as inline in line.h
+    uniquefy_line_vector( plines.lleft );
+    uniquefy_line_vector( plines.lright );
+    uniquefy_line_vector( plines.lfront );
+    uniquefy_line_vector( plines.lback );
+
+    uniquefy_line_vector( plines.lc0 );
+    uniquefy_line_vector( plines.lc1 );
+    uniquefy_line_vector( plines.lc2 );
+    uniquefy_line_vector( plines.lc3 );
+
 }
 
 
 bool find_transl_line( Line& l1,
-					vector<Line>& lines,
-					Geometry& geom,
-					double* dir,
-					vector<Line>:: iterator& other
-					)
+                       vector<Line>& lines,
+                       Geometry& geom,
+                       double* dir,
+                       vector<Line>:: iterator& other
+                       )
 {
-/*! compares line l1 with lines in vector lines and checks whether it is 
+    /*! compares line l1 with lines in vector lines and checks whether it is
  * a tranlation described by dir. sets other to found line and returns true
  * if successfull
 */
-	// loop over all possible lines and compare
-	for (other = lines.begin() ; other!= lines.end() ; other++)
-	{
-		if ( l1.isTranslationOf(*other, &geom, dir ) )
-			return true;
-	}
+    // loop over all possible lines and compare
+    for (other = lines.begin() ; other!= lines.end() ; other++)
+    {
+        if ( l1.isTranslationOf(*other, &geom, dir ) )
+            return true;
+    }
 
-	return false;
+    return false;
 }
 
 void expand_periodic_boundaries( 	vector <Line>& lines, // lines to split
-									peri_lines& plines,  // lines on periodic boundary
-									Geometry& geom )
+                                        peri_lines& plines,  // lines on periodic boundary
+                                        Geometry& geom )
 {
-	/*! This function checks each line in vector lines for its periodic 
-	 *  equivalencies and adds them to the list of bisectable lines. 
-	 *  This is necessary to maintain periodicity of a mesh when it is 
-	 *  refined near a periodic boundary.
-	 * 
-	 *  plines is a convenience structure of vectors of lines along periodic surfaces
-	 *  and corners.
-	 */
-	
-	// minimum requirement for periodicity is that at least front/back 
-	// surfaces are periodic. if not, can return
-	if ( !geom.getfront_back_is_periodic() )
-	{
-		return;
-	}
-	vector <Line> newlines; 
-	vector <Line> :: iterator litr;
-	vector <Line> :: iterator lotr;
-	//vector <Line> :: iterator loend; // end iterator
-	for (litr = lines.begin() ; litr != lines.end() ; litr++ ) // loop over each line
-	{
-		
-		if ( geom.getfront_back_is_periodic() )
-		{
-			
-	
-			bool found = true;	
-			double dir[3] = {1,0,1};// compare X and Z coorinates (shift in Y is allowed)
-			
-			if ( litr->isOnFrontSurface(&geom) )
-			{
-				found = false;
-				if ( find_transl_line( *litr, plines.lback, geom, dir, lotr) )
-				{
-					newlines.push_back(*lotr);
-					found = true;
-				}
-			}
-			else
-			if ( litr->isOnBackSurface(&geom ) )
-			{
-				found = false;
-				if ( find_transl_line( *litr, plines.lfront, geom, dir, lotr) )
-				{
-					newlines.push_back(*lotr);
-					found = true;
-				}
-			}
-			
-			if (!found)
-			{
-				printf("error - could not find periodic front/back face line - bye!\n");
-				litr->PrintLine(&geom);
-				exit(1);
-			}
-			
-		}// end if front/back
-		
-		if (geom.getleft_right_is_periodic() )
-		{
-		    double dir[3] = {0,1,1}; // compare Y,Z. Allow X-shift
-			bool found = true;
-			if ( litr->isOnLeftSurface(&geom) )
-			{
-				found = false;
-				if ( find_transl_line(*litr, plines.lright, geom, dir, lotr ) )
-				{
-					newlines.push_back(*lotr);
-					found = true;
-				}
-			}
-			else
-			if (litr->isOnRightSurface(&geom) )
-			{
-				found = false;
-				if ( find_transl_line(*litr, plines.lleft, geom, dir, lotr) )
-				{
-					newlines.push_back(*lotr);
-					found = true;
-				}
-			}
-			if (!found)
-			{
-				printf("error - could not find periodic left/right face line - bye!\n");
-				litr->PrintLine(&geom);
-				exit(1);
-			}
-			
-		
-			// in case of l/r periodicity, also vertical corners must be 
-			// taken into account. For each corner line, must find 3 other
-			// corner lines
-			if ( litr->isTopBottomCornerLine(&geom) )
-			{
-				// Search all 4 possible corners and make sure exactly
-				// 3 corresponding lines are found
-				int cc = 0; //corner count
-				double dir[3] = {0,0,1}; // make sure Z matches, allow X and Y shifts
-				if ( find_transl_line(*litr, plines.lc0, geom, dir, lotr ) )
-				{
-					newlines.push_back(*lotr);
-					cc++;
-				}
-				if ( find_transl_line(*litr, plines.lc1, geom, dir, lotr ) )
-				{
-					newlines.push_back(*lotr);
-					cc++;
-				}
-				if ( find_transl_line(*litr, plines.lc2, geom, dir, lotr ) )
-				{
-					newlines.push_back(*lotr);
-					cc++;
-				}
-				if ( find_transl_line(*litr, plines.lc3, geom, dir, lotr ) )
-				{
-					newlines.push_back(*lotr);
-					cc++;
-				}	
-			
-				if ( cc != 3)
-				{
-					printf("error - problem finding periodic top-bottom corner lines - bye!\n");
-					exit(1);
-				}
-			}// end if vertical corner		
-		}// end if left/right
-		
-		if (geom.gettop_bottom_is_periodic() )
-		{
-			
-			bool found = true;
-			double dir[3] = {1,1,0};// compare X and Y, shift in Z
-			
-			if ( litr->isOnTopSurface(&geom) )
-			{
-				found = false;
-				if ( find_transl_line(*litr, plines.lbottom, geom, dir, lotr) )
-				{
-					newlines.push_back(*lotr);
-					found = true;
-				}
-			}
-			else
-			if ( litr->isOnBottomSurface( &geom ) )
-			{
-				found = false;
-				if ( find_transl_line(*litr, plines.ltop, geom , dir, lotr) )
-				{
-					newlines.push_back(*lotr);
-					found = true;
-				}
-			}
-			if (!found)
-			{
-				printf("error - could not find periodic top/bottom line - bye\n");
-				litr->PrintLine(&geom);
-				exit(1);
-			}
-			
-			// in case of top/bottom periodicity (=fully periodic), 
-			// horizontal corners must be taken into account. Two cases exist:
-			// horizontal along X and horizontal along Y
-			
-			// corners A,B,C,D
-			if (litr->isFrontBackCornerLine( &geom ) )
-			{
-				// same strategy as for vertical corners c0,c1,c2,c3 above
-				int cc = 0; //corner count
-				double dir[3] = {0,1,0}; // make sure Y matches, allow X and Z shifts
-				if ( find_transl_line(*litr, plines.lcA, geom, dir, lotr ) )
-				{
-					newlines.push_back(*lotr);
-					cc++;
-				}
-				if ( find_transl_line(*litr, plines.lcB, geom, dir, lotr ) )
-				{
-					newlines.push_back(*lotr);
-					cc++;
-				}
-				if ( find_transl_line(*litr, plines.lcC, geom, dir, lotr ) )
-				{
-					newlines.push_back(*lotr);
-					cc++;
-				}
-				if ( find_transl_line(*litr, plines.lcD, geom, dir, lotr ) )
-				{
-					newlines.push_back(*lotr);
-					cc++;
-				}	
-				if ( cc != 3)
-				{
-					printf("error - problem finding periodic front-back corner lines - bye!\n");
-					exit(1);
-				}
-						
-			}// end horizontal corner along y
-			else
-			if ( litr->isLeftRightCornerLine( &geom ) )
-			{
-				int cc = 0; //corner count
-				double dir[3] = {1,0,0}; // make sure X matches, allow Y and Z shifts
-				if ( find_transl_line(*litr, plines.lca, geom, dir, lotr ) )
-				{
-					newlines.push_back(*lotr);
-					cc++;
-				}
-				if ( find_transl_line(*litr, plines.lcb, geom, dir, lotr ) )
-				{
-					newlines.push_back(*lotr);
-					cc++;
-				}
-				if ( find_transl_line(*litr, plines.lcc, geom, dir, lotr ) )
-				{
-					newlines.push_back(*lotr);
-					cc++;
-				}
-				if ( find_transl_line(*litr, plines.lcd, geom, dir, lotr ) )
-				{
-					newlines.push_back(*lotr);
-					cc++;
-				}	
-				if ( cc != 3)
-				{
-					printf("error - problem finding periodic left-right corner lines - bye!\n");
-					exit(1);
-				}
-			}// end horizontal corner along X
-			
-			printf(" top/bottom periodicity not implemented in mesh refinement yet - bye!\n");
-			printf(" do it in refinement.cpp, expand_periodic_boundaries!\n");
-			exit(1);
-		}// end if top/bottom surface is periodic
-	}//end for i loop over each line
+    /*! This function checks each line in vector lines for its periodic
+  *  equivalencies and adds them to the list of bisectable lines.
+  *  This is necessary to maintain periodicity of a mesh when it is
+  *  refined near a periodic boundary.
+  *
+  *  plines is a convenience structure of vectors of lines along periodic surfaces
+  *  and corners.
+  */
 
-	// Add newly found periodic lines to bisectable lines and remove repetitions
-	lines.insert(lines.end() , newlines.begin() , newlines.end() );
-	uniquefy_line_vector( lines );
+    // minimum requirement for periodicity is that at least front/back
+    // surfaces are periodic. if not, can return
+    if ( !geom.getfront_back_is_periodic() )
+    {
+        return;
+    }
+    vector <Line> newlines;
+    vector <Line> :: iterator litr;
+    vector <Line> :: iterator lotr;
+    //vector <Line> :: iterator loend; // end iterator
+    for (litr = lines.begin() ; litr != lines.end() ; litr++ ) // loop over each line
+    {
+
+        if ( geom.getfront_back_is_periodic() )
+        {
+
+
+            bool found = true;
+            double dir[3] = {1,0,1};// compare X and Z coorinates (shift in Y is allowed)
+
+            if ( litr->isOnFrontSurface(&geom) )
+            {
+                found = false;
+                if ( find_transl_line( *litr, plines.lback, geom, dir, lotr) )
+                {
+                    newlines.push_back(*lotr);
+                    found = true;
+                }
+            }
+            else
+                if ( litr->isOnBackSurface(&geom ) )
+                {
+                    found = false;
+                    if ( find_transl_line( *litr, plines.lfront, geom, dir, lotr) )
+                    {
+                        newlines.push_back(*lotr);
+                        found = true;
+                    }
+                }
+
+            if (!found)
+            {
+                printf("error - could not find periodic front/back face line - bye!\n");
+                litr->PrintLine(&geom);
+                exit(1);
+            }
+
+        }// end if front/back
+
+        if (geom.getleft_right_is_periodic() )
+        {
+            double dir[3] = {0,1,1}; // compare Y,Z. Allow X-shift
+            bool found = true;
+            if ( litr->isOnLeftSurface(&geom) )
+            {
+                found = false;
+                if ( find_transl_line(*litr, plines.lright, geom, dir, lotr ) )
+                {
+                    newlines.push_back(*lotr);
+                    found = true;
+                }
+            }
+            else
+                if (litr->isOnRightSurface(&geom) )
+                {
+                    found = false;
+                    if ( find_transl_line(*litr, plines.lleft, geom, dir, lotr) )
+                    {
+                        newlines.push_back(*lotr);
+                        found = true;
+                    }
+                }
+            if (!found)
+            {
+                printf("error - could not find periodic left/right face line - bye!\n");
+                litr->PrintLine(&geom);
+                exit(1);
+            }
+
+
+            // in case of l/r periodicity, also vertical corners must be
+            // taken into account. For each corner line, must find 3 other
+            // corner lines
+            if ( litr->isTopBottomCornerLine(&geom) )
+            {
+                // Search all 4 possible corners and make sure exactly
+                // 3 corresponding lines are found
+                int cc = 0; //corner count
+                double dir[3] = {0,0,1}; // make sure Z matches, allow X and Y shifts
+                if ( find_transl_line(*litr, plines.lc0, geom, dir, lotr ) )
+                {
+                    newlines.push_back(*lotr);
+                    cc++;
+                }
+                if ( find_transl_line(*litr, plines.lc1, geom, dir, lotr ) )
+                {
+                    newlines.push_back(*lotr);
+                    cc++;
+                }
+                if ( find_transl_line(*litr, plines.lc2, geom, dir, lotr ) )
+                {
+                    newlines.push_back(*lotr);
+                    cc++;
+                }
+                if ( find_transl_line(*litr, plines.lc3, geom, dir, lotr ) )
+                {
+                    newlines.push_back(*lotr);
+                    cc++;
+                }
+
+                if ( cc != 3)
+                {
+                    printf("error - problem finding periodic top-bottom corner lines - bye!\n");
+                    exit(1);
+                }
+            }// end if vertical corner
+        }// end if left/right
+
+        if (geom.gettop_bottom_is_periodic() )
+        {
+
+            bool found = true;
+            double dir[3] = {1,1,0};// compare X and Y, shift in Z
+
+            if ( litr->isOnTopSurface(&geom) )
+            {
+                found = false;
+                if ( find_transl_line(*litr, plines.lbottom, geom, dir, lotr) )
+                {
+                    newlines.push_back(*lotr);
+                    found = true;
+                }
+            }
+            else
+                if ( litr->isOnBottomSurface( &geom ) )
+                {
+                    found = false;
+                    if ( find_transl_line(*litr, plines.ltop, geom , dir, lotr) )
+                    {
+                        newlines.push_back(*lotr);
+                        found = true;
+                    }
+                }
+            if (!found)
+            {
+                printf("error - could not find periodic top/bottom line - bye\n");
+                litr->PrintLine(&geom);
+                exit(1);
+            }
+
+            // in case of top/bottom periodicity (=fully periodic),
+            // horizontal corners must be taken into account. Two cases exist:
+            // horizontal along X and horizontal along Y
+
+            // corners A,B,C,D
+            if (litr->isFrontBackCornerLine( &geom ) )
+            {
+                // same strategy as for vertical corners c0,c1,c2,c3 above
+                int cc = 0; //corner count
+                double dir[3] = {0,1,0}; // make sure Y matches, allow X and Z shifts
+                if ( find_transl_line(*litr, plines.lcA, geom, dir, lotr ) )
+                {
+                    newlines.push_back(*lotr);
+                    cc++;
+                }
+                if ( find_transl_line(*litr, plines.lcB, geom, dir, lotr ) )
+                {
+                    newlines.push_back(*lotr);
+                    cc++;
+                }
+                if ( find_transl_line(*litr, plines.lcC, geom, dir, lotr ) )
+                {
+                    newlines.push_back(*lotr);
+                    cc++;
+                }
+                if ( find_transl_line(*litr, plines.lcD, geom, dir, lotr ) )
+                {
+                    newlines.push_back(*lotr);
+                    cc++;
+                }
+                if ( cc != 3)
+                {
+                    printf("error - problem finding periodic front-back corner lines - bye!\n");
+                    exit(1);
+                }
+
+            }// end horizontal corner along y
+            else
+                if ( litr->isLeftRightCornerLine( &geom ) )
+                {
+                    int cc = 0; //corner count
+                    double dir[3] = {1,0,0}; // make sure X matches, allow Y and Z shifts
+                    if ( find_transl_line(*litr, plines.lca, geom, dir, lotr ) )
+                    {
+                        newlines.push_back(*lotr);
+                        cc++;
+                    }
+                    if ( find_transl_line(*litr, plines.lcb, geom, dir, lotr ) )
+                    {
+                        newlines.push_back(*lotr);
+                        cc++;
+                    }
+                    if ( find_transl_line(*litr, plines.lcc, geom, dir, lotr ) )
+                    {
+                        newlines.push_back(*lotr);
+                        cc++;
+                    }
+                    if ( find_transl_line(*litr, plines.lcd, geom, dir, lotr ) )
+                    {
+                        newlines.push_back(*lotr);
+                        cc++;
+                    }
+                    if ( cc != 3)
+                    {
+                        printf("error - problem finding periodic left-right corner lines - bye!\n");
+                        exit(1);
+                    }
+                }// end horizontal corner along X
+
+            printf(" top/bottom periodicity not implemented in mesh refinement yet - bye!\n");
+            printf(" do it in refinement.cpp, expand_periodic_boundaries!\n");
+            exit(1);
+        }// end if top/bottom surface is periodic
+    }//end for i loop over each line
+
+    // Add newly found periodic lines to bisectable lines and remove repetitions
+    lines.insert(lines.end() , newlines.begin() , newlines.end() );
+    uniquefy_line_vector( lines );
 
 }
 
@@ -700,52 +699,45 @@ void expand_refinement_region(vector <unsigned int>& i_tet,	// index to tet bise
 			      Geometry& geom_prev,		// geometry
 			      vector < set <unsigned int> >& t_to_l        // tets to lines index
 			      ){	// index to core nodes
+// REFINEMENT REGION MAY NEED TO BE EXPANDED IN ORDER TO MAINTAIN
+// PERIODIC BOUNDARY CONDITIONS OR IN SOME CASES TO
+// AVOID SPECIALLY AWKWARD CONCAVE REFINEMENT REGIONS
     if ( nrt.red == 0 )
 	return; // exit if nothing to do
 
-	unsigned int n_tred_old = 0;//nrt.red ;					// old number of red tets
-	unsigned int d_n_tred   = nrt.red;				// change in number of tred tets
+    unsigned int n_tred_old = 0;        // NUMBER OF RED TETS FROM PREVIOUS EXPANSION LOOP
+    unsigned int d_n_tred   = nrt.red;	// CHANGE IN NUMBER OF RED TETS PER EXPANSION LOOP
 
-    vector < set <unsigned int> > p_to_t;			// p to tets index
+    vector < set <unsigned int> > p_to_t;   // POINTS TO TETS INDEX
     geom_prev.t->gen_p_to_elem( p_to_t );
     
     peri_lines plines;
     // Construct list of periodic line elements iff structure has periodic boundaries
     if (  geom_prev.getleft_right_is_periodic()  ||
-		  geom_prev.getfront_back_is_periodic()  ||
-		  geom_prev.gettop_bottom_is_periodic()  )
-	{
-		gen_peri_lines_vec( plines,	geom_prev);
-		//printf(" f,b,l,r = %i,%i,%i,%i\n", plines.lfront.size(), plines.lback.size() , plines.lleft.size() , plines.lright.size() );
-		//printf(" c 0 1 2 3 = %i, %i, %i,%i\n", plines.lc0.size() , plines.lc1.size(), plines.lc2.size() , plines.lc3.size() );
-		
-	}
+          geom_prev.getfront_back_is_periodic()  ||
+          geom_prev.gettop_bottom_is_periodic()  )
+    {
+        gen_peri_lines_vec( plines,	geom_prev);
+    }
     
-    while( d_n_tred > 0){// loop while refinement region grows
+    while( d_n_tred > 0) // loop while refinement region grows
+    {
 
-		find_all_core_lines(lines, i_tet, geom_prev.t); // creates all bisectable lines
-		//printf(" ls = %i\n", lines.size() );
-		// periodic lines added here
-		expand_periodic_boundaries( lines , plines, geom_prev );
-		//printf(" ls = %i\n", lines.size() );
-		
-		
-		
-		count_lines(geom_prev.t, p_to_t, lines, i_tet , t_to_l);
+        find_all_core_lines(lines, i_tet, geom_prev.t); // creates all bisectable lines
+        expand_periodic_boundaries( lines , plines, geom_prev );
 
-		fix_green3_red_confusions(i_tet, lines, t_to_l);
-		n_tred_old = nrt.red;
+        count_lines(geom_prev.t, p_to_t, lines, i_tet , t_to_l);
 
-		find_tet_refinement_types( i_tet, nrt);
+        fix_green3_red_confusions(i_tet, lines, t_to_l);
+        n_tred_old = nrt.red;
+
+        find_tet_refinement_types( i_tet, nrt);
 
 
-		// CHECK WHETHER NEW ELEMENTS HAVE BEEN ADDED
-		d_n_tred = nrt.red - n_tred_old;
-		//cout << "n_old " << n_tred_old << " n_now " << nrt.red << "change = " << d_n_tred<< endl;
+        // CHECK WHETHER NEW ELEMENTS HAVE BEEN ADDED
+        d_n_tred = nrt.red - n_tred_old;
 
-		//break;
     }// end while refinement region grows
-//exit(1);
 }// end expand_refinement_region
 
 
@@ -753,144 +745,130 @@ void expand_refinement_region(vector <unsigned int>& i_tet,	// index to tet bise
 
 
 void find_triangle_reftypes(Geometry& geom,
-							vector <unsigned int>& i_tri,
-							vector <Line>& lines,
-							vector < set <unsigned int> >& e_to_l
-							){
+                            vector <unsigned int>& i_tri,
+                            vector <Line>& lines,
+                            vector < set <unsigned int> >& e_to_l
+                            ){
 
-	// MAKE LINKS FROM NODES TO TRIS
-	vector < set <unsigned int> > p_to_e;
+    // MAKE LINKS FROM NODES TO TRIS
+    vector < set <unsigned int> > p_to_e;
 
-	geom.e->gen_p_to_elem( p_to_e );
-	// MAKE INDEXES FROM TRIS TO LINES
+    geom.e->gen_p_to_elem( p_to_e );
+    // MAKE INDEXES FROM TRIS TO LINES
 
-	count_lines( geom.e , p_to_e, lines, i_tri, e_to_l);
+    count_lines( geom.e , p_to_e, lines, i_tri, e_to_l);
 
 }
 
-void make_new_geometry(Geometry& geom_new, Geometry& geom_orig,
-		       vector <unsigned int>& i_tet, vector <unsigned int>& i_tri,
-		       vector <double>& new_p,
-		       vector <unsigned int>& new_t, vector <unsigned int>& new_e,
-		       vector <int> new_mat_t , vector <int> new_mat_e
-		       ){
-    geom_new.ClearGeometry();
-    geom_new.setTo( &geom_orig );
+void modify_geometry(Geometry& geom,
+                     vector <unsigned int>& i_tet, vector <unsigned int>& i_tri,
+                     vector <double>& new_p,
+                     vector <unsigned int>& new_t, vector <unsigned int>& new_e,
+                     vector <int> new_mat_t , vector <int> new_mat_e
+                     ){
 
     if (i_tet.size() == 0) return;
 
-    geom_new.addCoordinates( new_p );
+    geom.addCoordinates( new_p ); // APPENDS NEW COORDINATE DATA
     // MAKE LIST OF TETS AND TRIS TO BE REMOVED. THESE ARE REPLACED BY THE NEWLY
     // CREATED ONES
     set <unsigned int> ind_remove_tets;
-    for (unsigned int i = 0 ; i < (unsigned int) i_tet.size() ; i++){
-	    if ( i_tet[i] ) {
-		    ind_remove_tets.insert(i);
-	    }
+    for (unsigned int i = 0 ; i < (unsigned int) i_tet.size() ; i++)
+    {
+        if ( i_tet[i] ) {
+            ind_remove_tets.insert(i);
+        }
     }
     set <unsigned int> ind_remove_tris;
     for( unsigned int i = 0 ; i < (unsigned int) i_tri.size(); i++ ){
-	    if ( i_tri[i] ){
-		    ind_remove_tris.insert(i);
-	    }
+        if ( i_tri[i] ){
+            ind_remove_tris.insert(i);
+        }
     }
-    geom_new.t->removeElements( ind_remove_tets );
-    geom_new.t->addElements(new_t , new_mat_t );
-    geom_new.t->setMaxNodeNumber( (unsigned int) geom_new.getnp() );
 
-    geom_new.t->CalculateDeterminants3D( geom_new.getPtrTop() );
-    geom_new.t->CalculateDeterminants3D( geom_new.getPtrTop() );
-    geom_new.t->ScaleDeterminants( 1e-18);// scale to microns cubed
+    geom.t->removeElements( ind_remove_tets );
+    geom.t->addElements(new_t , new_mat_t );
+    geom.e->removeElements( ind_remove_tris );
+    geom.e->addElements( new_e, new_mat_e );
 
-    // IF TOTAL VOLUME HAS CHANGED, SOMETHING HAS GONE WRONG
-    // 1e-20 IS ARBITRARY ACCURACY, SOME NUMERICAL NOISE IS EXPECTED, BUT NOT MUCH
-    if ( fabs(geom_orig.t->getTotalSize() - geom_new.t->getTotalSize()) >= 1e-20 ){
-	cout << "error - total volume changed in refinement" << endl;
-	cout << "volume before ="<< geom_orig.t->getTotalSize() << endl;
-	cout << "volume after = "<< geom_new.t->getTotalSize() << endl;
-	exit(1);
-    }
-    geom_new.e->removeElements( ind_remove_tris );
-    geom_new.e->addElements( new_e, new_mat_e );
-	geom_new.ReorderDielectricNodes(); // Dielectric nodes are moved last
-	geom_new.e->setConnectedVolume( geom_new.t );
-    geom_new.e->CalculateSurfaceNormals( geom_new.getPtrTop(), geom_new.t);
-    geom_new.e->ScaleDeterminants( 1e-12); // scale to microns squared
-
-
-   geom_new.setNodeNormals();
-
-    geom_new.checkForPeriodicGeometry();
-
-
+    geom.ReorderDielectricNodes(); // Dielectric nodes are moved last
+    geom.t->setMaxNodeNumber( (unsigned int) geom.getnp() );
+    geom.e->setConnectedVolume( geom.t );
+    geom.t->CalculateDeterminants3D( geom.getPtrTop() );
+    geom.t->ScaleDeterminants( 1e-18);// scale to microns cubed
+    geom.e->CalculateSurfaceNormals( geom.getPtrTop(), geom.t);
+    geom.e->ScaleDeterminants( 1e-12); // scale to microns squared
+    geom.checkForPeriodicGeometry();
+    geom.makePeriEquNodes();
 }
 
-void Refine(Geometry& srce, Geometry& dest, vector <unsigned int>& i_tet){
+void Refine(Geometry& geom,                 // SOURCE (OLD) GEOMETRY
+            vector <size_t> & i_tet)        // REFINEMENT TYPES VECTOR
+{
+
+    Num_Ref_Tet nrt;    // TYPE COUNTERS
+    find_tet_refinement_types( i_tet, nrt); // COUNTS HOW MANY OF EACH EXIST
+
+    if (nrt.red ==  0) // EXIT IF NO RED TETS
+    {
+        printf("error int %s, no red tetrahedra selected - bye!\n", __func__);
+        exit(1);
+    }
+
+    //=================================
+    //	2.  EXPAND REFINEMENT REGION TO SATISFY
+    //      PERIODICITY OF STRUCTURE
+    //=================================
+    vector <Line> lines;
+    lines.clear();
+    vector < set <unsigned int> > t_to_l; // index from tets to lines
+    t_to_l.clear();
+    expand_refinement_region(i_tet, nrt, lines, geom, t_to_l );
+
+    //======================================
+    //  3.  FIND TRIANGLE REFINEMENT TYPES
+    //      THESE DO NOT AFFECT TET TYPES AND
+    //      CAN BE DONE LAST
+    //======================================
+    vector <unsigned int> i_tris;
+    vector < set <unsigned int> > e_to_l;
+    find_triangle_reftypes( geom, i_tris, lines , e_to_l);
+
+    //====================================================
+    //  5.  CREATE NEW ELEMENTS. BOTH TETS AND TRIANGLES
+    //====================================================
+    vector <double> new_p;
+    vector <unsigned int>  new_t;
+    vector <unsigned int>  new_e;
+    vector <int> new_mat_t;
+    vector <int> new_mat_e;
+
+    create_new_elements( geom,
+                         i_tet, i_tris,
+                         lines,
+                         t_to_l, e_to_l,
+                         new_p,
+                         new_t, new_mat_t,
+                         new_e, new_mat_e);
+
+    //=================================================
+    //  6.  MODIFY GEOMETRY BY REPLACING RED ELEMENTS
+    //      WITH NEW ONES CREATED IN STEP 5
+    //=================================================
+    modify_geometry(geom,
+                    i_tet, i_tris,
+                    new_p, new_t, new_e,
+                    new_mat_t, new_mat_e );
+}// end void Refine
 
 
-	Num_Ref_Tet nrt;
-	find_tet_refinement_types( i_tet, nrt);
-
-
-
-	if (nrt.red ==  0){ // EXIT NOW IF NO REFIENEMENT
-		dest.ClearGeometry();
-		dest.setTo( &srce );
-//		cout << "refinement iteration: " << refiter << " no refinable tets. Done" << endl;
-//		return;
-	}
-
-	//=================================
-	//	2. EXPAND REFINEMENT REGION
-	//=================================
-	vector <Line> lines;
-	lines.clear();
-	vector < set <unsigned int> > t_to_l; // index from tets to lines
-	t_to_l.clear();
-
-	expand_refinement_region(i_tet, nrt, lines, srce, t_to_l );
-
-	//======================================
-	//  3.	FIND TRIANGLE REFINEMENT TYPES
-	//	THESE DO NOT AFFECT TET TYPES AND
-	//	CAN BE DONE LAST
-	//======================================
-	vector <unsigned int> i_tris;
-	vector < set <unsigned int> > e_to_l;
-
-	find_triangle_reftypes( srce, i_tris, lines , e_to_l);
-
-	//======================================
-	//  5. CREATE NEW ELEMENTS
-	//======================================
-	vector <double> new_p;
-	vector <unsigned int>  new_t;
-	vector <unsigned int>  new_e;
-	vector <int> new_mat_t;
-	vector <int> new_mat_e;
-
-	create_new_elements( srce,
-				i_tet, i_tris,
-				lines,
-				t_to_l, e_to_l,
-				new_p,
-				new_t, new_mat_t,
-				new_e, new_mat_e);
-
-	//======================================
-	//  6. CREATE NEW GEOMETRY
-	//======================================
-	make_new_geometry(dest , srce, i_tet, i_tris, new_p, new_t, new_e, new_mat_t, new_mat_e );
-
-
-}
-
-
-void Refine(Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new ,
-            MeshRefinement* meshrefinement){
-/*! Pre - Refinement */
-
-	geom_orig.getnp(); // NO WARNINGS
+void Refine(Geometry& geom_orig,
+            Geometry& geom_prev,
+            Geometry& geom_new ,
+            MeshRefinement* meshrefinement)
+{
+    /*! Pre - Refinement */
+    geom_orig.getnp(); // NO WARNINGS
 
     int MaxRefIter = 0;
     if (meshrefinement){
@@ -903,7 +881,7 @@ void Refine(Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new ,
 
     cout << "---------doing " << MaxRefIter << " refinement iterations-------" << endl;
     for (int refiter = 0 ; refiter < MaxRefIter ; refiter++){ // DO REFINEMENT ITERATIONS
-//	cout << "\tIteration " << refiter << endl;
+        //	cout << "\tIteration " << refiter << endl;
 
 	//=================================
 	//	1. SELECT RED TETRAHEDRA
@@ -915,8 +893,8 @@ void Refine(Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new ,
 	    get_index_to_tred(i_tet, geom_prev, meshrefinement, refiter);
 	}
 	else{
-		cout <<"No refinement regions => nothing to refine" << endl;
-		return;
+            cout <<"No refinement regions => nothing to refine" << endl;
+            return;
 	}
 
 
@@ -959,17 +937,17 @@ void Refine(Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new ,
 
 
 	create_new_elements( geom_prev,
-				i_tet, i_tris,
-				lines,
-				t_to_l, e_to_l,
-				new_p,
-				new_t, new_mat_t,
-				new_e, new_mat_e);
+                             i_tet, i_tris,
+                             lines,
+                             t_to_l, e_to_l,
+                             new_p,
+                             new_t, new_mat_t,
+                             new_e, new_mat_e);
 
 	//======================================
 	//  6. CREATE NEW GEOMETRY
 	//======================================
-	make_new_geometry(geom_new , geom_prev, i_tet, i_tris, new_p, new_t, new_e, new_mat_t, new_mat_e );
+        //	make_new_geometry(geom_new , geom_prev, i_tet, i_tris, new_p, new_t, new_e, new_mat_t, new_mat_e );
 
 	geom_prev.setTo( &geom_new ); // sets previous to new for next refinement iteration
 	cout << "\tNumber of nodes: "<<geom_prev.getnp() << endl;
@@ -983,7 +961,7 @@ void Refine(Geometry& geom_orig, Geometry& geom_prev, Geometry& geom_new ,
     printf(":     tets %i, tris %i, nodes %i             :\n", geom_new.t->getnElements(), geom_new.e->getnElements(), geom_new.getnp() );
     printf("::::::::::::::::::::::::::::::::::::::::::::::\n");
 
- //   geom_new.t->PrintElements();
+    //   geom_new.t->PrintElements();
     /*
     geom_new.checkForOverlapingNodes();
 vector <int> refc;

@@ -80,16 +80,17 @@ void handleResultOutput(Simu& simu,
 
 
 
-void handleInitialEvents(EventList& evel,      // EVENT LIST
-                  Electrodes& electr,   // ELECTRODES WITH POTENTIALS AND TIMING
-                  Simu& simu,           // VARIOUS SIMU SETTINGS
-                  SolutionVector& v,    // POTENTIAL SOLUTION
-                  Geometry& geom,       // CURRENT MESH
-                  MeshRefinement& ref,  // MESH REFINEMENT INFO
-                  SparseMatrix* Kpot,   // POTENTIAL CALCULATION MATRIX
-                  SolutionVector& q,    // Q-TENSOR
-                  LC& lc,               // MATERIAL PARAMS.
-                  Settings& settings)   // SPARSE SOLVER SETTINGS
+void handleInitialEvents(EventList& evel,          // EVENT LIST
+                         Electrodes& electrodes,   // ELECTRODES WITH POTENTIALS AND TIMING
+                         Alignment& alignment,     // ANCHORING CONDITIONS
+                         Simu& simu,               // VARIOUS SIMU SETTINGS
+                         Geometries& geometries,   // POINTERS TO CURRENT MESHES
+                         SolutionVectors& solutionvectors, // PTRS TO SOLUTIONS
+                         LC& lc,                   // MATERIAL PARAMS.
+                         Settings& settings,       // SPARSE SOLVER SETTINGS
+                         SparseMatrix& Kpot,
+                         SparseMatrix& Kq
+                         )
 {
 // THIS IS ONLY CALLED BEFORE SIMULATION STARTS, DOES NOT
 // NEED TO BE AS GENERAL AS handleEvents.
@@ -112,10 +113,13 @@ void handleInitialEvents(EventList& evel,      // EVENT LIST
         // DEPENDING ON EVENT TYPE, DO STUFF
         switch (et)
         {
-        case(EVENT_SAVE): // SAVE RESULTS
+        case(EVENT_SAVE): // INITIAL RESULT IS ALWAYS WRITTEN. SEE BELOW
             break;
         case(EVENT_SWITCHING):  // SWITCH ELECTRODES
-            handleElectrodeSwitching(currentEvent, electr, v, simu );
+            handleElectrodeSwitching(currentEvent,
+                                     electrodes,
+                                     *solutionvectors.v,
+                                     simu );
             delete currentEvent; // NOT NEEDED ANYMORE
             break;
         case(EVENT_REFINEMENT): // REFINE MESH
@@ -129,20 +133,28 @@ void handleInitialEvents(EventList& evel,      // EVENT LIST
     }
     if (refineMesh)
     {
-     //   handleMeshRefinement( refEvents );
+        handlePreRefinement(refEvents,
+                            geometries,
+                            solutionvectors,
+                            simu,
+                            alignment,
+                            electrodes,
+                            lc,
+                            Kpot,
+                            Kq); // defined in refinementhandler.cpp
     }
 // ALWAYS CALCULATE INITIAL POTENTIAL
-    calcpot3d( Kpot,
-               &v,
-               &q,
+    calcpot3d( &Kpot,
+               solutionvectors.v,
+               solutionvectors.q,
                &lc,
-               geom,
+               *geometries.geom,
                &settings,
-               &electr);
+               &electrodes);
 
-// WRITE INITIAL RESULT FILE
+// WRITE INITIAL RESULT FILE. ALWAYS!
     FilesysFun::setCurrentDirectory( simu.getSaveDir() );
-    WriteResults::WriteResult(&simu, &lc, &geom, &v, &q );
+    WriteResults::WriteResult(&simu, &lc, geometries.geom, solutionvectors.v, solutionvectors.q );
     FilesysFun::setCurrentDirectory( simu.getCurrentDir() );
 
 // ADD REOCCURRING EVENTS
@@ -177,9 +189,11 @@ void handleEvents(EventList& evel,          // EVENT LIST
                   Simu& simu,               // VARIOUS SIMU SETTINGS
                   Geometries& geometries,   // POINTERS TO CURRENT MESHES
                   SolutionVectors& solutionvectors, // PTRS TO SOLUTIONS
-                  SparseMatrix* Kpot,       // POTENTIAL CALCULATION MATRIX
                   LC& lc,                   // MATERIAL PARAMS.
-                  Settings& settings)       // SPARSE SOLVER SETTINGS
+                  Settings& settings,       // SPARSE SOLVER SETTINGS
+                  SparseMatrix& Kpot,
+                  SparseMatrix& Kq
+                  )
 {
 
 
@@ -253,12 +267,14 @@ void handleEvents(EventList& evel,          // EVENT LIST
                              simu,
                              alignment,
                              electrodes,
-                             lc); // defined in refinementhandler.cpp
+                             lc,
+                             Kpot,
+                             Kq); // defined in refinementhandler.cpp
     }
 
 // IF ELECTRODE POTENTIALS HAVE CHANGED, POTENTIALS MUST BE RECALCULATED
     if ( recalculatePotential )
-        calcpot3d( Kpot,
+        calcpot3d( &Kpot,
                    solutionvectors.v,
                    solutionvectors.q,
                    &lc,

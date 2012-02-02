@@ -40,15 +40,16 @@ void setElectrodePotentials(EventList& evel,
 // TAKSES CARE OF EVENTS OCCRRING BEFORE SIMULATION STARTS
 // AND PREPARING EVENTLIST FOR SIMULATION
 void handleInitialEvents(EventList& evel,      // EVENT LIST
-                        Electrodes& electr,   // ELECTRODES WITH POTENTIALS AND TIMING
-                        Simu& simu,
-                        SolutionVector& v,    // POTENTIAL SOLUTION
-                        Geometry& geom,       // CURRENT MESH
-                        MeshRefinement& ref,  // MESH REFINEMENT INFO
-                        SparseMatrix* Kpot,   // POTENTIAL CALCULATION MATRIX
-                        SolutionVector& q,    // Q-TENSOR
-                        LC& lc,               // MATERIAL PARAMS.
-                        Settings& settings);  // SPARSE SOLVER SETTINGS
+                         Electrodes& electr,   // ELECTRODES WITH POTENTIALS AND TIMING
+                         Alignment& alignment, // ANCHORING DATA
+                         Simu& simu,
+                         Geometries& geometries,   // POINTERS TO CURRENT GEOMETRIES
+                         SolutionVectors& solutionvectors, // POINTERS TO SOLUTIONS
+                         LC& lc,               // MATERIAL PARAMS.
+                         Settings& settings,   // SPARSE SOLVER SETTINGS
+                         SparseMatrix& Kpot,   // MATRIX FOR POTENTIAL CALCULATION
+                         SparseMatrix& Kq      // MATRIX FOR Q-TENSOR CALCULATION
+                         );
 
 
 void handleEvents(EventList& evel,      // EVENT LIST
@@ -57,10 +58,11 @@ void handleEvents(EventList& evel,      // EVENT LIST
                   Simu& simu,
                   Geometries& geometries,   // POINTERS TO CURRENT GEOMETRIES
                   SolutionVectors& solutionvectors, // POINTERS TO SOLUTIONS
-                  SparseMatrix* Kpot,   // POTENTIAL CALCULATION MATRIX
                   LC& lc,               // MATERIAL PARAMS.
-                  Settings& settings);  // SPARSE SOLVER SETTINGS
-
+                  Settings& settings,   // SPARSE SOLVER SETTINGS
+                  SparseMatrix& Kpot,   // MATRIX FOR POTENTIAL CALCULATION
+                  SparseMatrix& Kq      // MATRIX FOR Q-TENSOR CALCULATION
+                  );
 
 void handleMeshRefinement(std::list<Event*>& refEvents,
                           Geometries& geometries,    // PTRS TO MESHES
@@ -68,6 +70,18 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
                           Simu& simu,
                           Alignment& alignment,
                           Electrodes& electrodes,
-                          LC& lc
+                          LC& lc,
+                          SparseMatrix& Kpot,
+                          SparseMatrix& Kq
+                          );
+void handlePreRefinement(std::list<Event*>& refEvents,
+                          Geometries& geometries,    // PTRS TO MESHES
+                          SolutionVectors& solutionvectors,
+                          Simu& simu,
+                          Alignment& alignment,
+                          Electrodes& electrodes,
+                          LC& lc,
+                          SparseMatrix& Kpot,
+                          SparseMatrix& Kq
                           );
 #endif // EVENTHANDLER_H

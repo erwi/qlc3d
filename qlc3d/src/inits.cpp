@@ -76,7 +76,6 @@ void prepareGeometry(Geometry& geom,
     geom.checkForPeriodicGeometry(); // also makes periodic node indexes
 
     geom.genIndWeakSurfaces(alignment);
-
     geom.makeRegularGrid(simu.getRegularGridXCount(),
                          simu.getRegularGridYCount(),
                          simu.getRegularGridZCount());

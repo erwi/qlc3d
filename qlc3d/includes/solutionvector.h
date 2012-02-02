@@ -79,11 +79,11 @@ public:
 	
     SolutionVector& operator=(const SolutionVector&);
 	
-    inline int getnDoF()const {return nDoF;} // npLC
-    inline int getnFreeNodes()const {return nFreeNodes;} // nDof - periodic nodes
-    inline int getnFixed()const{return nFixed;}
-    inline int getnDimensions()const{return nDimensions;}
-    inline int getEquNode(const int &n) const// returns equivalent node to n (for periodic surfaces etc.)
+    inline size_t getnDoF()const {return nDoF;} // npLC
+    inline size_t getnFreeNodes()const {return nFreeNodes;} // nDof - periodic nodes
+    inline size_t getnFixed()const{return nFixed;}
+    inline size_t getnDimensions()const{return nDimensions;}
+    inline size_t getEquNode(const int &n) const// returns equivalent node to n (for periodic surfaces etc.)
     {
         #ifdef DEBUG
                 if (n>=nDoF*nDimensions)
@@ -95,7 +95,7 @@ public:
             return n;
     }
 
-    inline double getValue(const int &n) const // gets the nth value
+    inline double getValue(const size_t n) const // gets the nth value
     {
         #ifdef DEBUG
                 if ((n < 0 )  && (n >= getnDoF()) )
@@ -105,7 +105,7 @@ public:
     }
 	
 	
-    inline double getValue(const int &n , const int &dim) // gets the nth value of dimension dim;
+    inline double getValue(size_t n , size_t dim) const // gets the nth value of dimension dim;
     {
         #ifdef DEBUG
                 if ((n < 0 )  && (n >= getnDoF()) && (dim < 0 ) && ( dim >= getnDimensions() ) )
@@ -134,10 +134,10 @@ public:
     void Resize(const unsigned int& n, const unsigned int& dim = 1); // resizes Values data, clears all data
     void ClearAll();
 
-	void setPeriodicEquNodes(Geometry* geom); // use this for generating nodal periodic equivalency lists
+    void setPeriodicEquNodes(Geometry* geom); // use this for generating nodal periodic equivalency lists
 	
-	void ClearFixed(); // clears all fixed nodes and values
-	void AddFixed(int mat, double val, Mesh* mesh); // adds fixed when all values are same in region mat . e.g. same potential on electrode
+    void ClearFixed(); // clears all fixed nodes and values
+    void AddFixed(int mat, double val, Mesh* mesh); // adds fixed when all values are same in region mat . e.g. same potential on electrode
 	//void changeFixedValue( int mat, double val,
 	
 	
@@ -149,7 +149,7 @@ public:
 	void PrintElim();
 	void PrintEquNodes();
         void PrintIsFixed();
-        inline bool getIsFixed(const int &i)
+        inline bool getIsFixed(const size_t i)
 	{
             #ifdef DEBUG
             if (i > this->getnDoF()*this->getnDimensions() )
