@@ -272,12 +272,13 @@ void Geometry::setNodeNormals()
 }
 void Geometry::PrintNodeNormals()
 {
-	printf("going to print %i node normals\n",np);
-	fflush(stdout);
-for (size_t i = 0 ; i < np ; i ++)	{
-		printf("NodeNormals[%i] = [%f,%f,%f]\n", i, NodeNormals[i*3], NodeNormals[i*3+1], NodeNormals[i*3+2]);
-		fflush(stdout);
-	}
+    printf("going to print %i node normals\n",np);
+    fflush(stdout);
+    for (size_t i = 0 ; i < np ; i ++)
+    {
+        printf("NodeNormals[%i] = [%f,%f,%f]\n", i, NodeNormals[i*3], NodeNormals[i*3+1], NodeNormals[i*3+2]);
+        fflush(stdout);
+    }
 
 }
 
@@ -403,10 +404,12 @@ void Geometry::setFacePeriNodes(list<size_t> &face0,
                                 const int &norm)
 {
 // SETS INDEX VALUES IN periNodes_ FOR FACES
-
-    // norm is face normal, need coordinates to vectors parallel to it
+// norm is face normal, need coordinates to vectors parallel to it
+// norm = 0 -> COMPARE Y,Z
+// norm = 1 -> COMPARE X,Z
+// notm = 2 -> COMPARE X,Y
     int ind1 = ( norm + 1 ) % 3; // ind is a pre-calculated offeset to coordinate comparison in p.
-    int ind2 = ( norm + 2 ) % 3; // e.g. norm = 0 -> ind1 = 1, ind2 = 2
+    int ind2 = ( norm + 2 ) % 3; // Selects comparison of x,y or z coordinate. e.g. norm = 0 -> ind1 = 1, ind2 = 2
     double eps = 1e-5; // accuracy of coordinate comparison
     // SEARCH FOR NODE EQUIVALENCIES BY COMPARING COORDINATES
     // THAT ARE PERPENDICULAR TO FACE NORMAL
@@ -446,10 +449,21 @@ void Geometry::setFacePeriNodes(list<size_t> &face0,
         }// end for B
         if (!found)
         {
-            printf("error - no matching periodic faces with normal %i - bye!\n", norm);
-            //printf("front = p[%i] = %f, %f, %f\n", *F, geom->getpX(*F) , geom->getpY(*F) , geom->getpZ(*F) );
-            //printf("nearest back = p[%i] = %f, %f, %f\n", ind_n , geom->getpX(ind_n) , geom->getpY(ind_n) , geom->getpZ(ind_n) );
-            //printf("distance = %f, fc = %i, bc = %i\n", dist, fc, bc);
+        printf("error, periodic boundaries do not seem to match - bye!\n");
+#ifdef DEBUG
+
+        double* c0 = getPtrTop() + *F0;  // coordinates of face 0 coords
+        double* c1 = getPtrTop() + ind_n;  // face 1 coords
+
+       printf("error - in file %s, function %s.\n", __FILE__, __func__);
+       printf("normal = %i\n", norm);
+       printf("coordinate %i FACE0: %f, %f, %f\n", *F0, *c0 , *(c0+1), *(c0+2) );
+       printf("nearest match in FACE1: index %i, dist = %f\n",ind_n, dist);
+       printf("coordinate: %f, %f, %f\n", *c1, *(c1+1), *(c1+2) );
+#endif
+
+
+
             exit(1);
         }
     }//end for F
@@ -582,7 +596,7 @@ void Geometry::makePeriEquNodes()
             exit(1);
         }
 
-        // SEARCH FOR NODE EQUIVALENCIES BY COMPARING X AND Y COORDINATES
+        // SEARCH FOR NODE EQUIVALENCIES BY COMPARING X AND Z COORDINATES
         // BACK NODES MAP TO FRONT NODES
         this->setFacePeriNodes( front, back, 1 );
         // setFaceElim( front, back, Elim, 1, geom->getPtrTop() );
@@ -639,8 +653,8 @@ void Geometry::makePeriEquNodes()
         setEdgePeriNodes(edge0, edge1, 2 );
         setEdgePeriNodes(edge0, edge2, 2 );
         setEdgePeriNodes(edge0, edge3, 2 );
-        setFacePeriNodes(left  , right, 0);
-        setFacePeriNodes(front , back , 1 );
+        setFacePeriNodes(left  , right, 0); // COMPARE Y, Z
+        setFacePeriNodes(front , back , 1 ); // COMPARE X, Z
 
 
     }// END CASE 2
@@ -679,8 +693,6 @@ void Geometry::makePeriEquNodes()
             list <size_t> left;  //y = 0
             list <size_t> top;   //z = max
             list <size_t> bottom;//z = 0;
-
-
 
             // LOOP OVER ALL NODES AND INSERT TO CORRECT LIST
             int corner_nodes[8] = {-1,-1,-1,-1,-1,-1,-1,-1};
@@ -832,9 +844,9 @@ void Geometry::makePeriEquNodes()
             setEdgePeriNodes(edgeA, edgeC, 1);
             setEdgePeriNodes(edgeA, edgeD, 1);
 
-            setFacePeriNodes(left, right, 0);
-            setFacePeriNodes(front, back, 1);
-            setFacePeriNodes(bottom, top, 3);
+            setFacePeriNodes(left, right, 0);   // COMPARE Y,Z
+            setFacePeriNodes(front, back, 1);   // COMPARE X,Z
+            setFacePeriNodes(bottom, top, 2);   // COMPARE X,Y
 
         }// end if 3 different periodicity cases
 
