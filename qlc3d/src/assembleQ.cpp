@@ -747,8 +747,10 @@ void assemble_volumes(
 
     int npLC = q->getnDoF();
     init_shape();
+#ifndef DEBUG
     omp_set_num_threads( settings->getnThreads() ); // number of threads used
     #pragma omp parallel for
+#endif
     // LOOP OVER EACH ELEMENT  it
     for (int it= 0 ; it < t->getnElements () ;it++)
     {

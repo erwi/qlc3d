@@ -115,7 +115,7 @@ void interpolate(SolutionVector& qnew,
 void get_index_to_tred(Geometry& geom_curr, // CURRENT CALCULATION GEOMETRY
                        Geometry& geom_work, // REFINED WORKING GEOMETRY
                        SolutionVector& q,   // Q_TENSOR CORRESPONDING TO geom_curr
-                       vector <size_t>& i_tet,
+                       vector <idx>& i_tet,
                        const list<RefInfo>& refInfos,
                        const int& refiter,
                        bool isEndRefinement = false
@@ -191,75 +191,6 @@ void get_index_to_tred(Geometry& geom_curr, // CURRENT CALCULATION GEOMETRY
     }// end for all refinfo objects
 }
 
-bool needsRefinement(Geometry &geom, SolutionVector &q, MeshRefinement &meshrefinement){
-/*! checks whether mesh refinement is needed. Returns true if needed, false otherwise*/
-    /*
-    vector <AutoRef> :: iterator ar;
-    // Loop over all elements
-    for (unsigned int i = 0 ; i < (unsigned int) geom.t->getnElements() ; i++){
-        if (geom.t->getMaterialNumber(i) <= MAT_DOMAIN7){ // if LC element
-            for (ar = meshrefinement.AutoRefinement.begin(); ar != meshrefinement.AutoRefinement.end() ; ar++ ){ // for each AUTOREF obj
-
-                for(int refiter = 0; refiter < (int) ar->getNumIterations(); refiter++){ // for each refiter in this autoref object
-
-                     double elem_sze = geom.t->getDeterminant( i ) * 1e18; // <- a guesstimate of element side length obtained from element volume
-                     elem_sze = pow( elem_sze , 1.0/3.0);
-                     double maxdq = get_elem_maxdQ(i, geom, q );
-
-                     // Check if all conditions for refinement are satisfied. return true and exit if yes
-                     if (( ar->Type == Change ) &&
-                         ( ar->getMinSize()  < elem_sze) &&
-                         ( ar->getMaxValue(refiter) < maxdq  )){
-                         return true;
-                     }// end if
-                }// end for refiter
-            }// end for every autorefinement object
-        }// end if LC element
-    }// end for all tets
-*/
-    return false; // if no tets that need refinement are found, return false and exit
-
-}
-
-
-bool needsEndRefinement(Geometry &geom, SolutionVector &q, MeshRefinement &meshrefinement){
-/*! checks whether mesh refinement is needed. Returns true if needed, false otherwise*/
-    vector <EndRef> :: iterator er;
-    // Loop over all elements
-/*
-    for (unsigned int i = 0 ; i < (unsigned int) geom.t->getnElements() ; i++){
-
-        if (geom.t->getMaterialNumber(i) <= MAT_DOMAIN7){ // if LC element
-            for (er = meshrefinement.EndRefinement.begin(); er != meshrefinement.EndRefinement.end() ; er++ ){ // for each AUTOREF obj
-
-                //er->printAutoref();
-
-                for(int refiter = 0; refiter < (int) er->getNumIterations(); refiter++){ // for each refiter in this autoref object
-
-                     double elem_sze = geom.t->getDeterminant( i ) * 1e18; // <- a guesstimate of element side length obtained from element volume
-                     elem_sze = pow( elem_sze , 1.0/3.0);
-                     double maxdq = get_elem_maxdQ(i, geom, q );
-
-                     // Check if all conditions for refinement are satisfied. return true and exit if yes
-                     if (( er->Type == Change ) &&
-                         ( er->getMinSize()  < elem_sze) &&
-                         ( er->getMaxValue(refiter) < maxdq  )  //&&
-                         //( meshrefinement.EndRefinement[0].getEndRefIteration() ) // check for max number of End-Refinements
-                         ){
-                         return true;
-                     }// end if
-                }// end for refiter
-            }// end for every autorefinement object
-        }// end if LC element
-    }// end for all tets
-*/
-    return false; // if no tets that need refinement are found, return false and exit
-}
-
-
-
-
-
 
 bool autoref(   Geometry& geom_orig, Geometry& geom,
                 SolutionVector& q, SolutionVector& qn,
@@ -299,7 +230,7 @@ bool autoref(   Geometry& geom_orig, Geometry& geom,
     for ( refiter = 0 ; refiter < maxrefiter ; refiter ++){ // for max refiter
         printf("Refinement iteration %i of %i\n", refiter+1 , maxrefiter );
         // GET INDEX TO RED TETS IN geom
-        vector <unsigned int> i_tet( geom_temp.t->getnElements(), 0); // REFINEMENT TYPE INDICATOR
+        vector <idx> i_tet( geom_temp.t->getnElements(), 0); // REFINEMENT TYPE INDICATOR
         // SELECT RED TETS
         get_index_to_tred( geom ,
                            geom_temp,

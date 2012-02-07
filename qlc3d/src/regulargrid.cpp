@@ -1,8 +1,9 @@
 
 #include <regulargrid.h>
 
-const unsigned int RegularGrid::NOT_AN_INDEX = std::numeric_limits<unsigned int>::max();
-const size_t RegularGrid::MAX_SIZE_T = std::numeric_limits<size_t>::max();
+const idx RegularGrid::NOT_AN_INDEX = std::numeric_limits<idx>::max();
+const idx RegularGrid::MAX_SIZE_T = std::numeric_limits<idx>::max();
+
 RegularGrid::RegularGrid():
     nx_(0), ny_(0), nz_(0),
     npr_(0),
@@ -192,7 +193,7 @@ double RegularGrid::interpolateNode(const double* valuesIn,
 
 void RegularGrid::interpolateToRegular(const double *valIn,
                                        double *&valOut,
-                                       const size_t &np)
+                                       const idx np)
 
 {
     // INTERPOLATES A VARIABLE TO REGULAR GRID
@@ -203,7 +204,7 @@ void RegularGrid::interpolateToRegular(const double *valIn,
         exit(1);
     }
 
-    for ( size_t i = 0 ; i < lookupList.size() ; i++ )
+    for ( idx i = 0 ; i < lookupList.size() ; i++ )
     {
         lookup L = lookupList[i];
 
@@ -211,7 +212,7 @@ void RegularGrid::interpolateToRegular(const double *valIn,
         if ( (L.type == RegularGrid::NOT_LC ) &&
                   (np < MAX_SIZE_T ) )
         {
-            valOut[i] = std::numeric_limits<double>::quiet_NaN();
+            valOut[i] = std::numeric_limits<double>::quiet_NaN(); // OUTPUTS NaN
         }
         else
         {
@@ -225,7 +226,7 @@ void RegularGrid::interpolateToRegular(const double *valIn,
 bool RegularGrid::writeVTKGrid(const char *filename,
                                const double *pot,
                                const double *n,
-                               const size_t& npLC)
+                               const idx npLC)
 {
 // WRITES POTENTIAL, ORDER PARAMETER AND DIRECTOR ONTO VTK REGULAR GRID FILE
 

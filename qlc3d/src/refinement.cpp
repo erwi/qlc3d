@@ -4,6 +4,7 @@
 #include <meshrefinement.h>
 #include <line.h>
 #include <set>
+#include <globals.h>
 using std::set;
 
 struct Sphere{
@@ -11,128 +12,9 @@ struct Sphere{
     double radius;
 };
 
-
-void tets_in_sphere( vector<unsigned int>& itet, Geometry& geom , RefReg& sphere, const int& refiter){
-
-    if ( refiter >= sphere.getNumIterations() ) // EXIT IF THIS REFITERATION IS NOT DEFINED FOR THIS SPHERE
-	return;
-
-
-    printf("REFREG%i=Sphere\n", refiter);
-    for ( size_t i = 0 ; i < itet.size() ; i++){ // loop over tets
-        if (geom.t->getMaterialNumber( i ) <= MAT_DOMAIN7 ){
-            for (int j = 0 ; j < geom.t->getnNodes() ; j++){
-                double d[3] ={ geom.getAbsXDist(geom.t->getNode(i,j) , sphere.X[0]),
-                               geom.getAbsYDist(geom.t->getNode(i,j) , sphere.Y[0]),
-                               geom.getAbsZDist(geom.t->getNode(i,j) , sphere.Z[0])};
-                double dist = sqrt( d[0]*d[0] + d[1]*d[1] + d[2]*d[2] );
-
-                if ( dist<= sphere.Distance[refiter] )
-                    itet[i] = RED_TET;// 6 = red tet
-            }// end for nodes
-        }// end if LC element
-    }// end for tets
-
-}
-
-void tets_near_surface( vector<unsigned int>& itet, Geometry& geom, RefReg& region, const int& refiter){
-    //    /*! finds all tets that are close to a surface*/
-    // A brute-force approach
-
-    // Form a list of all triangles with this material number
-    std::vector <unsigned int> surf_elems;
-    geom.e->listElementsOfMaterial( surf_elems , 2048 );
-
-    printf("num sur_elems: %i\n", (int) surf_elems.size() );
-
-
-
-
-    // convert surface triangle list to unique surface nodes list
-    std::set< unsigned int > surf_nodes;
-    for ( unsigned int i = 0; i < surf_elems.size() ; i++ ){
-        for (int j = 0 ; j < geom.e->getnNodes() ; j++){
-            surf_nodes.insert( (unsigned int) geom.e->getNode( surf_elems[i] , j ) );
-        }// end for nodes per element
-    }
-    printf("num surfnodes: %i\n", (int) surf_nodes.size());
-
-    //std::set <unsigned int> ::iterator itr;
-    //for (itr = surf_nodes.begin() ; itr != surf_nodes.end() ; itr++){
-    //    printf("node %u = [%f,%f,%f]\n", *itr, geom.getpX(*itr), geom.getpY(*itr), geom.getpZ(*itr) );
-    //}
-
-
-    // perform comparison between EVERY tetrahedron and EVERY surface node and calculate
-    // distances. This is probably very slow
-    //*
-    for (unsigned int elem = 0 ; elem < (unsigned int) geom.t->getnElements() ; elem++){
-
-        double bary[3] = {0,0,0};
-        geom.t->CalcElemBary( elem , geom.getPtrTop() , bary); // gets barycenre of element elem
-
-        std::set< unsigned int > :: iterator node;
-        for ( node = surf_nodes.begin() ; node != surf_nodes.end() ; node++ ){
-            double pn[3] = {0,0,0};// = geom.getPtrTop() + 3 * (*node); // pointer to coordinates of node
-            pn[0] = geom.getpX( *node );
-            pn[1] = geom.getpY( *node );
-            pn[2] = geom.getpZ( *node );
-            // squared distance between barycentre and surface node
-            double dsqr =   (bary[0] - pn[0])*(bary[0] - pn[0]) +
-                    (bary[1] - pn[1])*(bary[1] - pn[1]) +
-                    (bary[2] - pn[2])*(bary[2] - pn[2]) ;
-
-            double mindist = region.getDistance(refiter);
-
-            if (dsqr < ( mindist*mindist) ){ // close enough, mark this element as RED
-
-                itet[elem] = RED_TET;
-                break;
-            }
-
-        }
-    }// end for elements
-    //*/
-
-}
-
-
-// GENERATES LIST (vector) OF INDEXES TO TETS THAT ARE CHOSEN FOR REFINEMENT
-
-void get_index_to_tred(vector <unsigned int>& i_tet,
-		       Geometry& g_prev,
-		       MeshRefinement* meshrefinement,
-		       const int& refiter ){
-
-    i_tet.clear();
-    i_tet.reserve( g_prev.t->getnElements() );
-    i_tet.assign( g_prev.t->getnElements() , 0); // number of elements * 0
-
-    vector<RefReg> :: iterator ritr;
-    cout << "num refregs : " <<meshrefinement->RefinementRegion.size() << endl;
-
-    for (ritr = meshrefinement->RefinementRegion.begin(); ritr != meshrefinement->RefinementRegion.end(); ritr++){
-	switch (ritr->Type){
-	case (RefReg_Sphere):
-	    tets_in_sphere( i_tet, g_prev, *ritr, refiter);
-	    break;
-        case (RefReg_Surface):
-            printf("Surface REFREG\n");
-            tets_near_surface(i_tet, g_prev, *ritr, refiter);
-            break;
-        default:
-	    cout << "Unknown REFREG - bye!" <<endl;
-	    exit(1);
-	}// end switch-case
-
-    }// end for refregs
-}// end get_index_to_tred
-
-
-
 // REPOULATES LIST i_tred WITH IDEXES TO TETS IN m THAT CONTAIN AT LEAST num NODES FROM LIST i_p
 void contains_nodes( Mesh* m,				// mesh whose elements are checked
-                     set <unsigned int>& i_p,		// index to all internal nodes
+                     set <idx>& i_p,		// index to all internal nodes
                      const int& num,				// minimum number of nodes needed to be included in
                      set< unsigned int>& i_tred){	// index to elements that contain at least 'num' nodes from 'i_p'
     //
@@ -803,7 +685,7 @@ void modify_geometry(Geometry& geom,
 }
 
 void Refine(Geometry& geom,                 // SOURCE (OLD) GEOMETRY
-            vector <size_t> & i_tet)        // REFINEMENT TYPES VECTOR
+            vector <idx> & i_tet)        // REFINEMENT TYPES VECTOR
 {
 
     Num_Ref_Tet nrt;    // TYPE COUNTERS
@@ -860,123 +742,3 @@ void Refine(Geometry& geom,                 // SOURCE (OLD) GEOMETRY
                     new_p, new_t, new_e,
                     new_mat_t, new_mat_e );
 }// end void Refine
-
-
-void Refine(Geometry& geom_orig,
-            Geometry& geom_prev,
-            Geometry& geom_new ,
-            MeshRefinement* meshrefinement)
-{
-    /*! Pre - Refinement */
-    geom_orig.getnp(); // NO WARNINGS
-
-    int MaxRefIter = 0;
-    if (meshrefinement){
-        MaxRefIter = meshrefinement->getMaxNumRefIterations();
-        if (MaxRefIter == 0){
-            geom_new.setTo( &geom_prev );
-            return;
-        }
-    }
-
-    cout << "---------doing " << MaxRefIter << " refinement iterations-------" << endl;
-    for (int refiter = 0 ; refiter < MaxRefIter ; refiter++){ // DO REFINEMENT ITERATIONS
-        //	cout << "\tIteration " << refiter << endl;
-
-	//=================================
-	//	1. SELECT RED TETRAHEDRA
-	//=================================
-	vector <unsigned int> i_tet; // each value correponds to number of bisected edges per element. size of this equals number of elements
-	i_tet.clear();
-	Num_Ref_Tet nrt;
-	if (meshrefinement){
-	    get_index_to_tred(i_tet, geom_prev, meshrefinement, refiter);
-	}
-	else{
-            cout <<"No refinement regions => nothing to refine" << endl;
-            return;
-	}
-
-
-	find_tet_refinement_types( i_tet, nrt);
-
-	if (nrt.red ==  0){ // EXIT NOW IF NO REFIENEMENT
-	    geom_new.ClearGeometry();
-	    geom_new.setTo( &geom_prev );
-	    cout << "refinement iteration: " << refiter << " no refinable tets. Done" << endl;
-	    return;
-	}
-
-	//=================================
-	//	2. EXPAND REFINEMENT REGION
-	//=================================
-	vector <Line> lines;
-	lines.clear();
-	vector < set <unsigned int> > t_to_l; // index from tets to lines
-	t_to_l.clear();
-	expand_refinement_region(i_tet, nrt, lines, geom_prev, t_to_l );
-
-	//======================================
-	//  3.	FIND TRIANGLE REFINEMENT TYPES
-	//	THESE DO NOT AFFECT TET TYPES AND
-	//	CAN BE DONE LAST
-	//======================================
-	vector <unsigned int> i_tris;
-	vector < set <unsigned int> > e_to_l;
-	find_triangle_reftypes( geom_prev, i_tris, lines , e_to_l);
-
-	//======================================
-	//  5. CREATE NEW ELEMENTS
-	//======================================
-	vector <double> new_p;
-	vector <unsigned int>  new_t;
-	vector <unsigned int>  new_e;
-	vector <int> new_mat_t;
-        vector <int> new_mat_e;
-
-
-
-	create_new_elements( geom_prev,
-                             i_tet, i_tris,
-                             lines,
-                             t_to_l, e_to_l,
-                             new_p,
-                             new_t, new_mat_t,
-                             new_e, new_mat_e);
-
-	//======================================
-	//  6. CREATE NEW GEOMETRY
-	//======================================
-        //	make_new_geometry(geom_new , geom_prev, i_tet, i_tris, new_p, new_t, new_e, new_mat_t, new_mat_e );
-
-	geom_prev.setTo( &geom_new ); // sets previous to new for next refinement iteration
-	cout << "\tNumber of nodes: "<<geom_prev.getnp() << endl;
-	cout << "\tNumber of Tets : "<<geom_prev.t->getnElements() << endl;
-	cout << "\tNumber of Tris : "<<geom_prev.e->getnElements() << endl;
-    }// end for refinement iterations
-
-
-    printf("::::::::::::::::::::::::::::::::::::::::::::::\n");
-    printf(":              Done refining                 :\n");
-    printf(":     tets %i, tris %i, nodes %i             :\n", geom_new.t->getnElements(), geom_new.e->getnElements(), geom_new.getnp() );
-    printf("::::::::::::::::::::::::::::::::::::::::::::::\n");
-
-    //   geom_new.t->PrintElements();
-    /*
-    geom_new.checkForOverlapingNodes();
-vector <int> refc;
-int minc[2] = {100000,0};
-int maxc[2] = {0,0};
-    geom_new.countNodeReferences(refc, *geom_new.t);
-    for (int i = 0 ; i < geom_new.getnp(); i++ ){
-        if (refc[i] < minc[0] ) { minc[0] = refc[i]; minc[1] = i;}
-        if (refc[i] > maxc[0] ) { maxc[0] = refc[i]; maxc[1] = i;}
-        printf("node [%i] = %i\n ", i, refc[i]);
-    }
-
-    printf(" minc = %i, %i\n", minc[0], minc[1] );
-    printf(" maxc = %i, %i\n", maxc[0], maxc[1] );
-    geom_new.PrintNode( minc[1]);
-    geom_new.PrintNode( maxc[1]);
-*/
-}

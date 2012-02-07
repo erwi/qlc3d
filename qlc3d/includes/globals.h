@@ -1,0 +1,9 @@
+#ifndef GLOBALS_H
+#define GLOBALS_H
+
+// GLOBAL DEFINITIONS ARE MADE HERE
+
+typedef unsigned int idx; // ALL INDEX VARIABLES ARE 32 BIT UNSIGNED INTS
+
+
+#endif // GLOBALS_H

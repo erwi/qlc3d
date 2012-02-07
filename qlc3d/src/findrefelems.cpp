@@ -1,7 +1,7 @@
 #include <refinfo.h>
 #include <refinement.h>
 #include <algorithm>
-
+#include <globals.h>
 
 double get_elem_maxdQ(const size_t elem,
                       const Geometry& geom,
@@ -35,7 +35,7 @@ double get_elem_maxdQ(const size_t elem,
 
 
 void findTets_Change( const RefInfo& refinfo,
-                      vector <size_t>& i_tet,
+                      vector <idx>& i_tet,
                       const int refiter,
                       const Geometry& geom,
                       const SolutionVector& q
@@ -46,7 +46,7 @@ void findTets_Change( const RefInfo& refinfo,
 
     double thq = refinfo.getValue( refiter ); // GET THRESHOLD
 
-    for ( size_t i = 0 ; i < geom.t->getnElements() ; i++)
+    for ( idx i = 0 ; i < (idx) geom.t->getnElements() ; i++)
     {
         double maxdq = get_elem_maxdQ( i , geom, q);
 
@@ -54,12 +54,11 @@ void findTets_Change( const RefInfo& refinfo,
         {
             i_tet[i] = RED_TET;
         }
-
     }
 } // END findTets_Change
 
 void findTets_Sphere(const RefInfo& refinfo,
-                     vector <size_t>& i_tet,
+                     vector <idx>& i_tet,
                      const int refiter,
                      const Geometry& geom
                      )

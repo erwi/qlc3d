@@ -5,13 +5,13 @@
 #	DEFAULT OS IS WINDOWS 
 #
 D_OF = -DWindows
-SPARSELIB_DIR			= c:/SparseLib++/1.7
-SPARSELIB_INCLUDE_DIR		= c:/SparseLib++/1.7/include
-SPARSELIB_MV_INCLUDE_DIR	= c:/SparseLib++/1.7/mv/include
+SPARSELIB_DIR			= c:/users/eero/programming/SparseLib++/1.7
+SPARSELIB_INCLUDE_DIR		= $(SPARSELIB_DIR)/include
+SPARSELIB_MV_INCLUDE_DIR	= $(SPARSELIB_DIR)/mv/include
 SPARSELIBINCS = -I$(SPARSELIB_INCLUDE_DIR) -I$(SPARSELIB_MV_INCLUDE_DIR)
 
-#QLC3D_PATH      = C:/eero/qlc3d_freeze/qlc3d_git/qlc3d
-QLC3D_PATH      = C:/eero/qlc3d_git/qlc3d_git/qlc3d
+# not needed anymore. inlcudes are defined in ./src/makefile
+#QLC3D_PATH      = c:/users/eero/programming/qlc3d_git/qlc3d
 
 
 
@@ -41,7 +41,8 @@ CCCFLAGS =    '-DCOMPLEX=std::complex<double>'
 #CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -fopenmp -funroll-loops
 
 # BELOW FLAGS IS EQUIVALENT TO -O3, BUT TREE VECTORIZE IS DISABLED
-CFLAGS+= -Wall -Wextra -fopenmp -march=native -mtune=native -O3 -fno-tree-vectorize 
+CFLAGS+= -Wall -Wextra -fopenmp -march=native -mtune=native -O3 -fno-tree-vectorize \
+		
 
 
 LDFLAGS	 = $(SPARSELIB_DIR)/lib/libsparse.a \

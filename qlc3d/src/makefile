@@ -1,6 +1,7 @@
 
 include ../makefile.def
 
+QLCINCS = ../includes/
 
 OBJS = qlc3d.o mesh.o simu.o electrodes.o lc.o box.o alignment.o readsettings.o ReadGiDMesh3D.o reordernodes.o\
 		solutionvector.o setvolumeq.o setsurfacesq.o sparsematrix.o createsparsematrix.o calcpot3d.o writeLCD.o\
@@ -11,10 +12,10 @@ OBJS = qlc3d.o mesh.o simu.o electrodes.o lc.o box.o alignment.o readsettings.o 
 
 
 qlc3d.exe:$(OBJS)
-	g++  -fopenmp -o qlc3d.exe  $(OBJS) $(LDFLAGS) -lgomp -lpthread
+	g++  -fopenmp -fpthread -o qlc3d.exe  $(OBJS) $(LDFLAGS) -lgomp -lpthread
 
 %.o:%.cpp
-	$(CXX) -c $(CFLAGS) $(CCCFLAGS) $(D_OF) $< $(INCLUDES)
+	$(CXX) -c $(CFLAGS) $(CCCFLAGS) $(D_OF) $< $(INCLUDES) -I$(QLCINCS)
 
 clean:
 	rm -f qlc3d.exe *.o

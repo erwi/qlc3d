@@ -498,17 +498,17 @@ void count_refinement_types(int& nred, int& ngreen1, int& ngreen2, int& ngreen3,
 }
 
 void create_new_elements(Geometry& geom,
-			vector <unsigned int>& i_tet,
-			vector <unsigned int>& i_tri,
+            vector<idx> &i_tet,
+            vector<idx> &i_tri,
 			vector <Line>& lines,
-			vector < set<unsigned int> > t_to_l,
-			vector < set<unsigned int> > e_to_l,
+            vector<set<idx> > t_to_l,
+            vector<set<idx> > e_to_l,
 			vector <double>& new_p,
-			vector <unsigned int>& new_t,
+            vector<idx> &new_t,
 			vector <int>& new_mat_t,
-			vector <unsigned int>& new_e,
+            vector<idx> &new_e,
 			vector <int>& new_mat_e
-			 ){
+             ){
 // CREATES NEW NODES, ELEMENTS (TETS + TRIS ) AND MATERIAL
 // VALUES ARRAYS.
 
