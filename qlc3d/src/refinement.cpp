@@ -230,17 +230,17 @@ void gen_peri_lines_vec(peri_lines& plines,
 
 
     // loop over each surface triangle
-    for (int i = 0 ; i < geom.e->getnElements() ; i++ )
+    for (idx i = 0 ; i < geom.e->getnElements() ; i++ )
     {
         // if triangle is periodic
         if ( geom.e->getMaterialNumber(i) == MAT_PERIODIC )
         {
-            int* n = geom.e->getPtrToElement( i ); // pointer to element node numbers
+            idx* n = geom.e->getPtrToElement( i ); // pointer to element node numbers
 
 
             Line lines[3] = {Line(n[0], n[1]), Line(n[0], n[2]) , Line(n[1], n[2]) };
 
-            for ( int l = 0 ; l < 3 ; l++)
+            for ( idx l = 0 ; l < 3 ; l++)
             { // loop over each line and determine its location
                 // Consider 3 cases of periodicity:
                 // 1. FRONT/BACK ONLY
@@ -643,10 +643,11 @@ void find_triangle_reftypes(Geometry& geom,
 }
 
 void modify_geometry(Geometry& geom,
-                     vector <unsigned int>& i_tet, vector <unsigned int>& i_tri,
+                     vector <idx>& i_tet, vector <idx>& i_tri,
                      vector <double>& new_p,
-                     vector <unsigned int>& new_t, vector <unsigned int>& new_e,
-                     vector <int> new_mat_t , vector <int> new_mat_e
+                     vector <idx>& new_t, vector <idx>& new_e,
+                     vector <idx> new_mat_t ,
+                     vector <idx> new_mat_e
                      ){
 
     if (i_tet.size() == 0) return;
@@ -654,16 +655,19 @@ void modify_geometry(Geometry& geom,
     geom.addCoordinates( new_p ); // APPENDS NEW COORDINATE DATA
     // MAKE LIST OF TETS AND TRIS TO BE REMOVED. THESE ARE REPLACED BY THE NEWLY
     // CREATED ONES
-    set <unsigned int> ind_remove_tets;
-    for (unsigned int i = 0 ; i < (unsigned int) i_tet.size() ; i++)
+    set <idx> ind_remove_tets;
+    for (idx i = 0 ; i < (idx) i_tet.size() ; i++)
     {
-        if ( i_tet[i] ) {
+        if ( i_tet[i] )
+        {
             ind_remove_tets.insert(i);
         }
     }
-    set <unsigned int> ind_remove_tris;
-    for( unsigned int i = 0 ; i < (unsigned int) i_tri.size(); i++ ){
-        if ( i_tri[i] ){
+    set <idx> ind_remove_tris;
+    for( idx i = 0 ; i < (idx) i_tri.size(); i++ )
+    {
+        if ( i_tri[i] )
+        {
             ind_remove_tris.insert(i);
         }
     }
@@ -703,7 +707,7 @@ void Refine(Geometry& geom,                 // SOURCE (OLD) GEOMETRY
     //=================================
     vector <Line> lines;
     lines.clear();
-    vector < set <unsigned int> > t_to_l; // index from tets to lines
+    vector < set <idx> > t_to_l; // index from tets to lines
     t_to_l.clear();
     expand_refinement_region(i_tet, nrt, lines, geom, t_to_l );
 
@@ -712,19 +716,20 @@ void Refine(Geometry& geom,                 // SOURCE (OLD) GEOMETRY
     //      THESE DO NOT AFFECT TET TYPES AND
     //      CAN BE DONE LAST
     //======================================
-    vector <unsigned int> i_tris;
-    vector < set <unsigned int> > e_to_l;
+    vector <idx> i_tris;
+    vector < set <idx> > e_to_l;
     find_triangle_reftypes( geom, i_tris, lines , e_to_l);
 
     //====================================================
     //  5.  CREATE NEW ELEMENTS. BOTH TETS AND TRIANGLES
     //====================================================
     vector <double> new_p;
-    vector <unsigned int>  new_t;
-    vector <unsigned int>  new_e;
-    vector <int> new_mat_t;
-    vector <int> new_mat_e;
+    vector <idx>  new_t;
+    vector <idx>  new_e;
+    vector <idx> new_mat_t;
+    vector <idx> new_mat_e;
 
+    // in refinement2.cpp
     create_new_elements( geom,
                          i_tet, i_tris,
                          lines,

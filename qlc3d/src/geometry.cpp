@@ -10,178 +10,178 @@ Geometry::Geometry():
     indWeakSurf(NULL),
     regularGrid(NULL)
 {
-        np 			= 0;
-        npLC			= 0;
-        p 			= NULL;
-        NodeNormals		= NULL;
-        t 			= new Mesh();
-        e			= new Mesh();
-        Xmin			= 0;
-        Xmax    		= 0;
-        Ymin			= 0;
-        Ymax			= 0;
-        Zmin			= 0;
-        Zmax			= 0;
-	t->setDimension(3);
-	e->setDimension(2);
-	
-	left_right_is_periodic = false;
-	front_back_is_periodic = false;
-	top_bottom_is_periodic = false;
-	
+    np 			= 0;
+    npLC			= 0;
+    p 			= NULL;
+    NodeNormals		= NULL;
+    t 			= new Mesh();
+    e			= new Mesh();
+    Xmin			= 0;
+    Xmax    		= 0;
+    Ymin			= 0;
+    Ymax			= 0;
+    Zmin			= 0;
+    Zmax			= 0;
+    t->setDimension(3u);
+    e->setDimension(2);
+
+    left_right_is_periodic = false;
+    front_back_is_periodic = false;
+    top_bottom_is_periodic = false;
+
 }
 Geometry::~Geometry()
 {
-        if (p != NULL){
-            free(p);
-        }
-        if (NodeNormals != NULL){
-            free (NodeNormals);
-        }
-        delete t;
-        delete e;
+    if (p != NULL){
+        free(p);
+    }
+    if (NodeNormals != NULL){
+        free (NodeNormals);
+    }
+    delete t;
+    delete e;
 
-        if ( indWeakSurf != NULL )
-            free(indWeakSurf);
+    if ( indWeakSurf != NULL )
+        free(indWeakSurf);
 
-        delete regularGrid;
+    delete regularGrid;
 
 }
 void Geometry::setTo(Geometry* geom)
 {
-	
-	this->ClearGeometry();
-	//printf("is equal %i\n" , geom->getnp());
-	np 		= geom->getnp();						// number of nodes
-	npLC 	= geom->getnpLC();					// number of LC nodes
-	Xmin 	= geom->getXmin();
-	Xmax	= geom->getXmax();
-	Ymin	= geom->getYmin();
-	Ymax	= geom->getYmax();
-	Zmin	= geom->getZmin();
-	Zmax	= geom->getZmax();
-	
-	t->CopyMesh(geom->t);
-	e->CopyMesh(geom->e);
-		
-	
-	if (p!=NULL) free(p);
-	p = (double*) malloc(3*getnp()*sizeof(double));
-	
-	if (NodeNormals!=NULL) free(NodeNormals);
-	NodeNormals = (double*) malloc(3*getnp()*sizeof(double));
-	
-	// copy coordinates
-	double* temp = geom->getPtrTop();
-        for (size_t i = 0 ; i < 3*getnp(); i++)
-		p[i] = temp[i];
-		
-	// copy node normals
-	temp = geom->getPtrToNodeNormals();
-        for (size_t i = 0 ; i < 3*getnp(); i ++)
-		NodeNormals[i] = temp[i];
-	
-	left_right_is_periodic = geom->getleft_right_is_periodic();
-	front_back_is_periodic = geom->getfront_back_is_periodic();
-	top_bottom_is_periodic = geom->gettop_bottom_is_periodic();
-		
-        numWeakSurf = geom->numWeakSurf;
-        if (numWeakSurf)
-        {
-            if (indWeakSurf==NULL) free(indWeakSurf);
-            indWeakSurf = (size_t*) malloc( numWeakSurf*sizeof(size_t) );
-            memcpy(indWeakSurf , geom->indWeakSurf, numWeakSurf*sizeof(size_t) );
 
-        }
-	
-        this->periNodes_.clear();
-        periNodes_.insert(periNodes_.end(), geom->periNodes_.begin(), geom->periNodes_.end() );
+    this->ClearGeometry();
+    //printf("is equal %i\n" , geom->getnp());
+    np 		= geom->getnp();						// number of nodes
+    npLC 	= geom->getnpLC();					// number of LC nodes
+    Xmin 	= geom->getXmin();
+    Xmax	= geom->getXmax();
+    Ymin	= geom->getYmin();
+    Ymax	= geom->getYmax();
+    Zmin	= geom->getZmin();
+    Zmax	= geom->getZmax();
+
+    t->CopyMesh(geom->t);
+    e->CopyMesh(geom->e);
 
 
+    if (p!=NULL) free(p);
+    p = (double*) malloc(3*getnp()*sizeof(double));
 
-        if (this->regularGrid) delete regularGrid;
-        if ( geom->regularGrid )
-            regularGrid = new RegularGrid( *geom->regularGrid );
+    if (NodeNormals!=NULL) free(NodeNormals);
+    NodeNormals = (double*) malloc(3*getnp()*sizeof(double));
+
+    // copy coordinates
+    double* temp = geom->getPtrTop();
+    for (size_t i = 0 ; i < 3*getnp(); i++)
+        p[i] = temp[i];
+
+    // copy node normals
+    temp = geom->getPtrToNodeNormals();
+    for (size_t i = 0 ; i < 3*getnp(); i ++)
+        NodeNormals[i] = temp[i];
+
+    left_right_is_periodic = geom->getleft_right_is_periodic();
+    front_back_is_periodic = geom->getfront_back_is_periodic();
+    top_bottom_is_periodic = geom->gettop_bottom_is_periodic();
+
+    numWeakSurf = geom->numWeakSurf;
+    if (numWeakSurf)
+    {
+        if (indWeakSurf==NULL) free(indWeakSurf);
+        indWeakSurf = (size_t*) malloc( numWeakSurf*sizeof(size_t) );
+        memcpy(indWeakSurf , geom->indWeakSurf, numWeakSurf*sizeof(size_t) );
+
+    }
+
+    this->periNodes_.clear();
+    periNodes_.insert(periNodes_.end(), geom->periNodes_.begin(), geom->periNodes_.end() );
+
+
+
+    if (this->regularGrid) delete regularGrid;
+    if ( geom->regularGrid )
+        regularGrid = new RegularGrid( *geom->regularGrid );
 
 }
 void Geometry::ClearGeometry()
 {
-	np = 0;
-	npLC = 0;
-	if (p!=NULL) free(p);
-		p = NULL;
-		
-	if (NodeNormals != NULL ) free( NodeNormals );
-			NodeNormals = NULL;
-		
-	Xmin = 0;
-	Xmax = 0;
-	Ymin = 0;
-	Ymax = 0;
-	Zmin = 0;
-	Zmax = 0;
-		
-	left_right_is_periodic = false;
-	front_back_is_periodic = false;
-	top_bottom_is_periodic = false;
-	
-	peri_equ_nodes.clear();	// this is never used anyways ?? 
-	
-	t->ClearMesh();
-	e->ClearMesh();
-	
+    np = 0;
+    npLC = 0;
+    if (p!=NULL) free(p);
+    p = NULL;
+
+    if (NodeNormals != NULL ) free( NodeNormals );
+    NodeNormals = NULL;
+
+    Xmin = 0;
+    Xmax = 0;
+    Ymin = 0;
+    Ymax = 0;
+    Zmin = 0;
+    Zmax = 0;
+
+    left_right_is_periodic = false;
+    front_back_is_periodic = false;
+    top_bottom_is_periodic = false;
+
+    peri_equ_nodes.clear();	// this is never used anyways ??
+
+    t->ClearMesh();
+    e->ClearMesh();
+
 
 }
 
 void Geometry::setCoordinates(double* coords, const size_t& np)
 {
-	if (p!=NULL) free(p);
-	if (NodeNormals!=NULL) free(NodeNormals);
-	
-	p = (double*)malloc(3*np*sizeof(double));
-	NodeNormals = (double*)malloc(3*np*sizeof(double));
-	
-		if ( (p == NULL) || (NodeNormals == NULL))
-		{
-			printf("error - Geometry::setCoordintes - could not allocate memtory - bye!\n");
-			exit(1);
-		}
-	memset(NodeNormals, 0, 3 * np * sizeof(double)); //reset node normals to all zero
-	
-	Xmin = 1e9; Xmax = -1e9;
-	Ymin = 1e9; Ymax = -1e9;
-	Zmin = 1e9; Zmax = -1e9;
-	
-        for (size_t i = 0 ; i < np ; i ++) // copy coordinates
-	{
-		p[i*3+0] = coords[i*3+0];
-		p[i*3+1] = coords[i*3+1];
-		p[i*3+2] = coords[i*3+2];
-		
-		if (p[i*3+0] < Xmin) Xmin = p[i*3+0]; 	// find xmin
-		if (p[i*3+0] > Xmax) Xmax = p[i*3+0];
-		if (p[i*3+1] < Ymin) Ymin = p[i*3+1];	// find ymin
-		if (p[i*3+1] > Ymax) Ymax = p[i*3+1];
-		if (p[i*3+2] < Zmin) Zmin = p[i*3+2];	// find zmin
-		if (p[i*3+2] > Zmax) Zmax = p[i*3+2];
-		
-	}
-	
-	setnp(np);	
-	setnpLC(np);
+    if (p!=NULL) free(p);
+    if (NodeNormals!=NULL) free(NodeNormals);
+
+    p = (double*)malloc(3*np*sizeof(double));
+    NodeNormals = (double*)malloc(3*np*sizeof(double));
+
+    if ( (p == NULL) || (NodeNormals == NULL))
+    {
+        printf("error - Geometry::setCoordintes - could not allocate memtory - bye!\n");
+        exit(1);
+    }
+    memset(NodeNormals, 0, 3 * np * sizeof(double)); //reset node normals to all zero
+
+    Xmin = 1e9; Xmax = -1e9;
+    Ymin = 1e9; Ymax = -1e9;
+    Zmin = 1e9; Zmax = -1e9;
+
+    for (size_t i = 0 ; i < np ; i ++) // copy coordinates
+    {
+        p[i*3+0] = coords[i*3+0];
+        p[i*3+1] = coords[i*3+1];
+        p[i*3+2] = coords[i*3+2];
+
+        if (p[i*3+0] < Xmin) Xmin = p[i*3+0]; 	// find xmin
+        if (p[i*3+0] > Xmax) Xmax = p[i*3+0];
+        if (p[i*3+1] < Ymin) Ymin = p[i*3+1];	// find ymin
+        if (p[i*3+1] > Ymax) Ymax = p[i*3+1];
+        if (p[i*3+2] < Zmin) Zmin = p[i*3+2];	// find zmin
+        if (p[i*3+2] > Zmax) Zmax = p[i*3+2];
+
+    }
+
+    setnp(np);
+    setnpLC(np);
 }
 void Geometry::addCoordinates(double* coords, const size_t& npn){
-// APPENDS npn NEW COORDIANTES IN coords TO this->p
+    // APPENDS npn NEW COORDIANTES IN coords TO this->p
     if ( ( npn > 0 ) && (coords) ){ // don't do anything if no new coordinates
         size_t np_new = np + npn;
 	double* pnew = (double*) malloc( 3*np_new*sizeof(double));
 	
 	// first copy old coordinates
         for(size_t i = 0 ; i < 3*np ; i++)
-		pnew[i] = p[i];
+            pnew[i] = p[i];
 	// then add new ones
         for(size_t i = 0 ; i < 3* npn ; i ++)
-		pnew[3*np+i] = coords[i];
+            pnew[3*np+i] = coords[i];
 	
 	// set p to point to new extended cordinates
 	if (p!=NULL) free(p); 
@@ -192,26 +192,26 @@ void Geometry::addCoordinates(double* coords, const size_t& npn){
     }// end if no new coords
 }
 void Geometry::addCoordinates(vector<double> &coords){
-	if (coords.size()>0){
-		int np_new = np + coords.size() / 3 ;
-		double* pnew = (double*) malloc(3*np_new*sizeof(double) ); // allocate space for new coodinates
+    if (coords.size()>0){
+        int np_new = np + coords.size() / 3 ;
+        double* pnew = (double*) malloc(3*np_new*sizeof(double) ); // allocate space for new coodinates
 
-		// first copy odl coordinates
-		memcpy(pnew , p , 3*np*sizeof(double) );
+        // first copy odl coordinates
+        memcpy(pnew , p , 3*np*sizeof(double) );
 
-		// then add new ones. would memcpy work here?
-		for (size_t i = 0; i < coords.size() ; i++)
-			pnew[3*np+i] = coords[i];
+        // then add new ones. would memcpy work here?
+        for (size_t i = 0; i < coords.size() ; i++)
+            pnew[3*np+i] = coords[i];
 
-		// update pointers
-		if (p) free(p);
-		p = pnew;
+        // update pointers
+        if (p) free(p);
+        p = pnew;
 
-		np = np_new;
+        np = np_new;
 
-		setnpLC( np_new ); // needs reordering after this.
+        setnpLC( np_new ); // needs reordering after this.
 
-	}
+    }
 }
 
 
@@ -221,7 +221,7 @@ void Geometry::setnp(int n)		{np = n;}
 void Geometry::setnpLC(int n)	{npLC = n;}
 void Geometry::setNodeNormals()
 {
-// CALCULATES NODE NORMALS BASED ON CONNECTED TRIANGLE NORMALS
+    // CALCULATES NODE NORMALS BASED ON CONNECTED TRIANGLE NORMALS
     if (e->getnElements() == 0)
     {
         printf("error - Geometry::setNodeNormals() - surface mesh not defined, bye!\n");
@@ -235,7 +235,7 @@ void Geometry::setNodeNormals()
 
     double tempn[3] ={0,0,0};
 
-    for (int i = 0 ; i < e->getnElements() ; i ++) // add neighbouring surface normals
+    for (idx i = 0 ; i < e->getnElements() ; i ++) // add neighbouring surface normals
     {
         int m = e->getMaterialNumber(i);
         //if ((m != MAT_PERIODIC) && (m!= MAT_NEUMANN))//if element is not periodic or neuman surface <---SHOULD THIS BE FIXLC ONLY?? ARE NODE NORMALS USED BESIDES IN ANCHORING?
@@ -243,7 +243,7 @@ void Geometry::setNodeNormals()
         {
             e->CopySurfaceNormal(i,&tempn[0]);	// copy surface triangle normal to temp normal
 
-            for (int j = 0; j < e->getnNodes() ; j++)
+            for (idx j = 0; j < e->getnNodes() ; j++)
             {
                 NodeNormals[e->getNode(i,j)*3 + 0] += tempn[0]; // add x, y, z components for each node in triangle i
                 NodeNormals[e->getNode(i,j)*3 + 1] += tempn[1];
@@ -284,116 +284,111 @@ void Geometry::PrintNodeNormals()
 
 void Geometry::ReorderDielectricNodes()
 {
-	if ((t->getnElements() <= 0 ) || ( getnp() <=0) || (t->getPtrToMaterialNumber(0) == NULL))
-	{
-		printf("error - Geometry::ReorderDielectricNodes - geometry not fully defined yet - bye!\n");
-		exit(1);
-	}
-	
-	
-	// check if dielectric elements exist	
-	bool DE_exist = false;
-	//int npLC = np;
-	
-	int* tmat = t->getPtrToMaterialNumber(0);
-	for (int i = 0 ; i < t->getnElements() ; i++)
-		if (tmat[i]>= MAT_DIELECTRIC1)	// if material nuber > LC number
-		{
-			DE_exist = true;
-			break;
-		}
-		
-	setnpLC( getnp() );	
-	if (!DE_exist) // if no dielectric materials -> no need to reorder = exit
-		return;
-		
+    if ((t->getnElements() <= 0 ) || ( getnp() <=0) || (t->getPtrToMaterialNumber(0) == NULL))
+    {
+        printf("error - Geometry::ReorderDielectricNodes - geometry not fully defined yet - bye!\n");
+        exit(1);
+    }
 
-	//
-	//GENERATE LIST OF MATERIAL NUMBERS FOR NODES. IN CASE OF DUAL VALUE LC PRECEDES	
-	//
 
-	// mark all LC nodes as 1 and others as 0
-	int* lcde = (int*) malloc(getnp() * sizeof(int) );
-	memset(lcde , 0 , getnp() * sizeof(int) ); // start with everything 0
-	
-	for (int i = 0 ; i < t->getnElements() ; i ++ )
-	{
-		if (t->getMaterialNumber(i) == MAT_DOMAIN1)
-		{
-			for (int j = 0 ; j < t->getnNodes() ; j ++ ) // loop over all nodes
-				lcde[t->getNode(i , j)] = 1; // LC --> 1
-		}
-	}
-	
-	//for (int i = 0 ; i < getnp() ; i ++ )
-	//printf("lcde[%i] = %i\n", i, lcde[i]);
-		
-	
-	//list <int> l_mat;	 // nodes
-	npLC = 0;
-	vector <int> v_mat_index;
-	
-	
-        for (size_t i=0; i< getnp() ;i++)// first add all nodes marked as LC
-            if (lcde[i] == 1)
-            {
-                v_mat_index.push_back(i);
-                npLC++;
-            }
-	
-        for (size_t i=0; i< getnp() ;i++) // then add all non-LC nodes
-		if (lcde[i] == 0 )
-			v_mat_index.push_back(i);
-	
-	//printf("np = %i, npLC = %i\n",np, npLC);
-	free(lcde);
-	
-	//make inverse map
-	vector <int> v_invmap;
-	v_invmap.resize( v_mat_index.size() , -1);
-        for (size_t i = 0 ; i < getnp() ; i ++)
-		v_invmap[v_mat_index[i]]= i;//v_mat_index[i];//= i;
-	
-	
-	//for( int i  = 0 ; i < getnp() ; i ++ )
-	//printf("%i <->  %i\n", v_invmap[i] , v_mat_index[i] );
-	
+    // check if dielectric elements exist
+    bool DE_exist = false;
+    //int npLC = np;
 
-//REORDER NODES 
-	double* newp = (double*)malloc( 3*getnp() *sizeof(double)); // memory for reordered node coordinates
-        for (size_t i = 0 ; i < getnp() ; i++)
-	{
-            newp[i*3+0]=getpX( v_mat_index[i] ); //x-coord
-            newp[i*3+1]=getpY( v_mat_index[i] ); //y-coord
-            newp[i*3+2]=getpZ( v_mat_index[i] ); //z-coord
-	}
-	
-	free(p); // make p = new reordered p
-	p=newp;
-	
-//REORDER TETRAHEDRA
-	int* newt = (int*)malloc(t->getnElements() * t->getnNodes() * sizeof(int));
-	for (int i = 0 ; i < t->getnElements() ; i++ )
-	{
-		for (int j = 0 ; j < t->getnNodes() ; j ++ ) // loop over all nodes of element i
-			newt[i*t->getnNodes() + j ] = v_invmap[ t->getNode(i , j) ];
-	}
-	t->setAllNodes(newt ); // copy node numbers
-	free(newt);
-	//exit(1);
-	
-//REORDER TRIANGLES
-	int* newe = (int*)malloc(e->getnElements() * e->getnNodes() * sizeof(int));
+    idx* tmat = t->getPtrToMaterialNumber(0);
+    for (idx i = 0 ; i < t->getnElements() ; i++)
+        if (tmat[i]>= MAT_DIELECTRIC1)	// if material nuber > LC number
+        {
+            DE_exist = true;
+            break;
+        }
 
-	for(int i = 0 ; i < e->getnElements() ; i++)
-	{
-		for (int j = 0 ; j < e->getnNodes() ; j++ )
-			newe[i * e->getnNodes() + j ] = v_invmap[ e->getNode(i,j) ];
-	}
-	e->setAllNodes(newe ); // copy node numbers
-	free(newe);
-	
-	
+    setnpLC( getnp() );
+    if (!DE_exist) // if no dielectric materials -> no need to reorder = exit
+        return;
+
+
+    //
+    //GENERATE LIST OF MATERIAL NUMBERS FOR NODES. IN CASE OF DUAL VALUE LC PRECEDES
+    //
+
+    // mark all LC nodes as 1 and others as 0
+    idx* lcde = (idx*) malloc(getnp() * sizeof(idx) );
+    memset(lcde , 0 , getnp() * sizeof(int) ); // start with everything 0
+
+    for (idx i = 0 ; i < t->getnElements() ; i ++ )
+    {
+        if (t->getMaterialNumber(i) == MAT_DOMAIN1)
+        {
+            for (idx j = 0 ; j < t->getnNodes() ; j ++ ) // loop over all nodes
+                lcde[t->getNode(i , j)] = 1; // LC --> 1
+        }
+    }
+
+    npLC = 0;
+    vector <int> v_mat_index;
+
+
+    for (size_t i=0; i< getnp() ;i++)// first add all nodes marked as LC
+        if (lcde[i] == 1)
+        {
+            v_mat_index.push_back(i);
+            npLC++;
+        }
+
+    for (size_t i=0; i< getnp() ;i++) // then add all non-LC nodes
+        if (lcde[i] == 0 )
+            v_mat_index.push_back(i);
+
+    //printf("np = %i, npLC = %i\n",np, npLC);
+    free(lcde);
+
+    //make inverse map
+    vector <int> v_invmap;
+    v_invmap.resize( v_mat_index.size() , -1);
+    for (size_t i = 0 ; i < getnp() ; i ++)
+        v_invmap[v_mat_index[i]]= i;//v_mat_index[i];//= i;
+
+
+    //for( int i  = 0 ; i < getnp() ; i ++ )
+    //printf("%i <->  %i\n", v_invmap[i] , v_mat_index[i] );
+
+
+    //REORDER NODES
+    double* newp = (double*)malloc( 3*getnp() *sizeof(double)); // memory for reordered node coordinates
+    for (size_t i = 0 ; i < getnp() ; i++)
+    {
+        newp[i*3+0]=getpX( v_mat_index[i] ); //x-coord
+        newp[i*3+1]=getpY( v_mat_index[i] ); //y-coord
+        newp[i*3+2]=getpZ( v_mat_index[i] ); //z-coord
+    }
+
+    free(p); // make p = new reordered p
+    p=newp;
+
+    //REORDER TETRAHEDRA
+    idx* newt = (idx*)malloc(t->getnElements() * t->getnNodes() * sizeof(idx));
+    for (idx i = 0 ; i < t->getnElements() ; i++ )
+    {
+        for (idx j = 0 ; j < t->getnNodes() ; j ++ ) // loop over all nodes of element i
+            newt[i*t->getnNodes() + j ] = v_invmap[ t->getNode(i , j) ];
+    }
+    t->setAllNodes(newt ); // copy node numbers
+    free(newt);
+    //exit(1);
+
+    //REORDER TRIANGLES
+    idx* newe = (idx*)malloc(e->getnElements() * e->getnNodes() * sizeof(idx));
+
+    for(idx i = 0 ; i < e->getnElements() ; i++)
+    {
+        for (idx j = 0 ; j < e->getnNodes() ; j++ )
+            newe[i * e->getnNodes() + j ] = v_invmap[ e->getNode(i,j) ];
+    }
+    e->setAllNodes(newe ); // copy node numbers
+    free(newe);
+
+
 }
 
 
@@ -403,11 +398,11 @@ void Geometry::setFacePeriNodes(list<size_t> &face0,
                                 list<size_t> &face1,
                                 const int &norm)
 {
-// SETS INDEX VALUES IN periNodes_ FOR FACES
-// norm is face normal, need coordinates to vectors parallel to it
-// norm = 0 -> COMPARE Y,Z
-// norm = 1 -> COMPARE X,Z
-// notm = 2 -> COMPARE X,Y
+    // SETS INDEX VALUES IN periNodes_ FOR FACES
+    // norm is face normal, need coordinates to vectors parallel to it
+    // norm = 0 -> COMPARE Y,Z
+    // norm = 1 -> COMPARE X,Z
+    // notm = 2 -> COMPARE X,Y
     int ind1 = ( norm + 1 ) % 3; // ind is a pre-calculated offeset to coordinate comparison in p.
     int ind2 = ( norm + 2 ) % 3; // Selects comparison of x,y or z coordinate. e.g. norm = 0 -> ind1 = 1, ind2 = 2
     double eps = 1e-5; // accuracy of coordinate comparison
@@ -449,17 +444,17 @@ void Geometry::setFacePeriNodes(list<size_t> &face0,
         }// end for B
         if (!found)
         {
-        printf("error, periodic boundaries do not seem to match - bye!\n");
+            printf("error, periodic boundaries do not seem to match - bye!\n");
 #ifdef DEBUG
 
-        double* c0 = getPtrTop() + *F0;  // coordinates of face 0 coords
-        double* c1 = getPtrTop() + ind_n;  // face 1 coords
+            double* c0 = getPtrTop() + *F0;  // coordinates of face 0 coords
+            double* c1 = getPtrTop() + ind_n;  // face 1 coords
 
-       printf("error - in file %s, function %s.\n", __FILE__, __func__);
-       printf("normal = %i\n", norm);
-       printf("coordinate %i FACE0: %f, %f, %f\n", *F0, *c0 , *(c0+1), *(c0+2) );
-       printf("nearest match in FACE1: index %i, dist = %f\n",ind_n, dist);
-       printf("coordinate: %f, %f, %f\n", *c1, *(c1+1), *(c1+2) );
+            printf("error - in file %s, function %s.\n", __FILE__, __func__);
+            printf("normal = %i\n", norm);
+            printf("coordinate %i FACE0: %f, %f, %f\n", *F0, *c0 , *(c0+1), *(c0+2) );
+            printf("nearest match in FACE1: index %i, dist = %f\n",ind_n, dist);
+            printf("coordinate: %f, %f, %f\n", *c1, *(c1+1), *(c1+2) );
 #endif
 
 
@@ -526,9 +521,9 @@ void Geometry::setEdgePeriNodes(list<size_t> &edge0,
 
 void Geometry::makePeriEquNodes()
 {
-// GENERATES INDEX OF PERIODIC NODE EQUIVALENCIES
+    // GENERATES INDEX OF PERIODIC NODE EQUIVALENCIES
 
-// LIST OF INDEXES TO ALL PERIODIC NODES
+    // LIST OF INDEXES TO ALL PERIODIC NODES
     vector <unsigned int> nodes;
     e->listNodesOfMaterial( nodes , MAT_PERIODIC );
 
@@ -562,7 +557,7 @@ void Geometry::makePeriEquNodes()
 
     //CASE 1 FRONT BACK IS PERIODIC ONLY
     if (getfront_back_is_periodic() &&
-        !getleft_right_is_periodic() &&
+            !getleft_right_is_periodic() &&
             !gettop_bottom_is_periodic() )
     {
 
@@ -659,209 +654,209 @@ void Geometry::makePeriEquNodes()
 
     }// END CASE 2
 
-// CASE 3 FRONT-BACK, LEFT-RIGHT AND TOP-BOTTOM ARE PERIODIC
-        else if ( getfront_back_is_periodic() &&
-                  getleft_right_is_periodic() &&
-                  gettop_bottom_is_periodic() )
+    // CASE 3 FRONT-BACK, LEFT-RIGHT AND TOP-BOTTOM ARE PERIODIC
+    else if ( getfront_back_is_periodic() &&
+              getleft_right_is_periodic() &&
+              gettop_bottom_is_periodic() )
 
+    {
+        // separate nodes into lists, 12 x edges left/right, front/back and top/bottom planes
+        // Vertical corners along Z
+
+        // Additionally, 7 corner nodes must point to bottom left (origin xmin,ymin,zmin) corner
+
+        list <size_t> edge0; //x = 0, y = 0
+        list <size_t> edge1; //x = 0, y = max
+        list <size_t> edge2; //x = max, y = max
+        list <size_t> edge3; //x = max, y = 0
+
+        // Horizontal edges along X
+        list <size_t> edgea; // y = 0, z = 0
+        list <size_t> edgeb; // y = max, z = 0
+        list <size_t> edgec; // y = max, z = max
+        list <size_t> edged; // y = 0, z = max
+
+        // Horizontal edges along Y
+        list <size_t> edgeA; // x = 0, z = 0
+        list <size_t> edgeB; // x = max, z = 0
+        list <size_t> edgeC; // x = max, z = max
+        list <size_t> edgeD; // x = 0, z = max
+
+        list <size_t> front; //x = 0
+        list <size_t> back;  //x = max
+        list <size_t> right; //y = max
+        list <size_t> left;  //y = 0
+        list <size_t> top;   //z = max
+        list <size_t> bottom;//z = 0;
+
+        // LOOP OVER ALL NODES AND INSERT TO CORRECT LIST
+        int corner_nodes[8] = {-1,-1,-1,-1,-1,-1,-1,-1};
+        for (size_t i = 0 ; i < nodes.size() ; i++)
         {
-            // separate nodes into lists, 12 x edges left/right, front/back and top/bottom planes
-            // Vertical corners along Z
+            int n = nodes[i];
 
-            // Additionally, 7 corner nodes must point to bottom left (origin xmin,ymin,zmin) corner
+            // CORNER NODES TAKE PRECEDENCE OVER OTHER NODES
+            // FRONT LEFT BOTTOM
+            if ( FRONT && LEFT && BOTTOM )
+                corner_nodes[0] = n;
+            // FRONT RIGHT BOTTOM
+            else if ( FRONT && RIGHT && BOTTOM )
+                corner_nodes[1] = n;
+            else if ( FRONT && LEFT && TOP )  /// FRONT LEFT TOP
+                corner_nodes[2] = n;
+            else if (FRONT && RIGHT && TOP)   /// FRONT RIGHT TOP
+                corner_nodes[3] = n;
+            else  if (BACK && LEFT && BOTTOM)
+                corner_nodes[4] = n;
+            else  if (BACK && RIGHT && BOTTOM)
+                corner_nodes[5] = n;
+            else  if (BACK && LEFT && TOP)
+                corner_nodes[6] = n;
+            else  if (BACK && RIGHT && TOP)
+                corner_nodes[7] = n;
 
-            list <size_t> edge0; //x = 0, y = 0
-            list <size_t> edge1; //x = 0, y = max
-            list <size_t> edge2; //x = max, y = max
-            list <size_t> edge3; //x = max, y = 0
+            // EDGE NODES
+            // 4 x Vertical Corners
+            else if ( LEFT && FRONT ) // edge0
+            {edge0.push_back(n);}
+            else if ( LEFT  && BACK ) // edge1
+            {edge1.push_back(n);}
+            else if (RIGHT  && BACK ) // edge2
+            {edge2.push_back(n);}
+            else if ( RIGHT && FRONT ) // edge3
+            {edge3.push_back(n);}
+            // 4 x Horizontal along X
+            else if ( FRONT && BOTTOM)	// ymin and zmin
+            {edgea.push_back(n);}
+            else if (BACK && BOTTOM) // ymax and zmin
+            {edgeb.push_back(n);}
+            else if (BACK && TOP) // ymax and zmax
+            {edgec.push_back(n);}
+            else if (FRONT && TOP)  // ymin and zmax
+            {edged.push_back(n);}
+            // 4 x Horizontal along Y
+            else if( LEFT && BOTTOM)
+            {edgeA.push_back(n);} // xmin and zmin
+            else if( RIGHT && BOTTOM)
+            {edgeB.push_back(n);} // xmax and zmin
+            else if( RIGHT && TOP )
+            {edgeC.push_back(n);} // xmax and zmax
+            else if( LEFT && TOP)
+            {edgeD.push_back(n);} // xmin and zmax
+            // FRONT/BACK, LEFT/RIGHT, TOP/BOTTOM FACES
+            else if ( FRONT ) // front surface
+            {front.push_back(n);}
+            else if ( BACK ) // back surface
+            {back.push_back(n);}
+            else if ( LEFT ) // left surface
+            {left.push_back(n);}
+            else if ( RIGHT ) // right surface
+            {right.push_back(n);}
+            else if ( BOTTOM ) // bottom surface
+            {bottom.push_back(n); }
+            else if ( TOP ) // top surface
+            {top.push_back(n); }
 
-            // Horizontal edges along X
-            list <size_t> edgea; // y = 0, z = 0
-            list <size_t> edgeb; // y = max, z = 0
-            list <size_t> edgec; // y = max, z = max
-            list <size_t> edged; // y = 0, z = max
-
-            // Horizontal edges along Y
-            list <size_t> edgeA; // x = 0, z = 0
-            list <size_t> edgeB; // x = max, z = 0
-            list <size_t> edgeC; // x = max, z = max
-            list <size_t> edgeD; // x = 0, z = max
-
-            list <size_t> front; //x = 0
-            list <size_t> back;  //x = max
-            list <size_t> right; //y = max
-            list <size_t> left;  //y = 0
-            list <size_t> top;   //z = max
-            list <size_t> bottom;//z = 0;
-
-            // LOOP OVER ALL NODES AND INSERT TO CORRECT LIST
-            int corner_nodes[8] = {-1,-1,-1,-1,-1,-1,-1,-1};
-            for (size_t i = 0 ; i < nodes.size() ; i++)
+            else
             {
-                int n = nodes[i];
+                printf("error in %s, periodic node not on external surface - bye!\n",__func__);
+                exit(1);
+            }
 
-                // CORNER NODES TAKE PRECEDENCE OVER OTHER NODES
-                // FRONT LEFT BOTTOM
-                if ( FRONT && LEFT && BOTTOM )
-                    corner_nodes[0] = n;
-                // FRONT RIGHT BOTTOM
-                else if ( FRONT && RIGHT && BOTTOM )
-                    corner_nodes[1] = n;
-                else if ( FRONT && LEFT && TOP )  /// FRONT LEFT TOP
-                    corner_nodes[2] = n;
-                else if (FRONT && RIGHT && TOP)   /// FRONT RIGHT TOP
-                    corner_nodes[3] = n;
-                else  if (BACK && LEFT && BOTTOM)
-                    corner_nodes[4] = n;
-                else  if (BACK && RIGHT && BOTTOM)
-                    corner_nodes[5] = n;
-                else  if (BACK && LEFT && TOP)
-                    corner_nodes[6] = n;
-                else  if (BACK && RIGHT && TOP)
-                    corner_nodes[7] = n;
+        }// end for i, loop over all nodes
 
-                // EDGE NODES
-                // 4 x Vertical Corners
-                else if ( LEFT && FRONT ) // edge0
-                {edge0.push_back(n);}
-                else if ( LEFT  && BACK ) // edge1
-                {edge1.push_back(n);}
-                else if (RIGHT  && BACK ) // edge2
-                {edge2.push_back(n);}
-                else if ( RIGHT && FRONT ) // edge3
-                {edge3.push_back(n);}
-                // 4 x Horizontal along X
-                else if ( FRONT && BOTTOM)	// ymin and zmin
-                {edgea.push_back(n);}
-                else if (BACK && BOTTOM) // ymax and zmin
-                {edgeb.push_back(n);}
-                else if (BACK && TOP) // ymax and zmax
-                {edgec.push_back(n);}
-                else if (FRONT && TOP)  // ymin and zmax
-                {edged.push_back(n);}
-                // 4 x Horizontal along Y
-                else if( LEFT && BOTTOM)
-                {edgeA.push_back(n);} // xmin and zmin
-                else if( RIGHT && BOTTOM)
-                {edgeB.push_back(n);} // xmax and zmin
-                else if( RIGHT && TOP )
-                {edgeC.push_back(n);} // xmax and zmax
-                else if( LEFT && TOP)
-                {edgeD.push_back(n);} // xmin and zmax
-                // FRONT/BACK, LEFT/RIGHT, TOP/BOTTOM FACES
-                else if ( FRONT ) // front surface
-                {front.push_back(n);}
-                else if ( BACK ) // back surface
-                {back.push_back(n);}
-                else if ( LEFT ) // left surface
-                {left.push_back(n);}
-                else if ( RIGHT ) // right surface
-                {right.push_back(n);}
-                else if ( BOTTOM ) // bottom surface
-                {bottom.push_back(n); }
-                else if ( TOP ) // top surface
-                {top.push_back(n); }
+        // CHECK THAT OPPOSITE FACES HAVE EQUAL NUMBER OF NODES
+        {// start dummy scope
 
-                else
-                {
-                    printf("error in %s, periodic node not on external surface - bye!\n",__func__);
-                    exit(1);
-                }
+            int mincorner = *min_element( corner_nodes, corner_nodes+8);
+            if (mincorner < 0)
+            {
+                printf(" error - corner nodes not found - bye!\n");
+                printf("indexes are = [%i,%i,%i,%i,%i,%i,%i,%i]\n", corner_nodes[0],corner_nodes[1],corner_nodes[2],corner_nodes[3],
+                       corner_nodes[4],corner_nodes[5],corner_nodes[6],corner_nodes[7]);
+                exit(1);
 
-            }// end for i, loop over all nodes
-
-            // CHECK THAT OPPOSITE FACES HAVE EQUAL NUMBER OF NODES
-            {// start dummy scope
-
-                int mincorner = *min_element( corner_nodes, corner_nodes+8);
-                if (mincorner < 0)
-                {
-                    printf(" error - corner nodes not found - bye!\n");
-                    printf("indexes are = [%i,%i,%i,%i,%i,%i,%i,%i]\n", corner_nodes[0],corner_nodes[1],corner_nodes[2],corner_nodes[3],
-                           corner_nodes[4],corner_nodes[5],corner_nodes[6],corner_nodes[7]);
-                    exit(1);
-
-                }
+            }
 
 
-                if (top.size() != bottom.size() )
-                {
-                    printf("error - top and bottom surfaces do not match - bye!\n");
-                    printf("sizes are top,bottom = %i,%i\n", top.size(), bottom.size() );
-                    exit(1);
-                }
-                if (left.size() != right.size() )
-                {
-                    printf("error - left and right surfaces do not match - bye!\n");
-                    exit(1);
-                }
-                if (front.size() != back.size() )
-                {
-                    printf("error - front and back surfaces do not match - bye!\n");
-                    exit(1);
-                }
-                // CHECK ALL CORNERS HAVE CORRECT NUMBER OF NODES
-                size_t s0, s1, s2, s3;
-                s0 = edge0.size(); s1 = edge1.size(); s2 = edge2.size() ; s3 = edge3.size();
-                if ( (s1!=s0) || (s2 != s0) || (s3!=s0) )
-                {
-                    printf("error - vertical corner node counts do not match\n");
-                    exit(1);
-                }
-                s0 = edgea.size(); s1 = edgeb.size(); s2 = edgec.size(); s3 = edged.size();
-                if ( (s1!=s0) || (s2 != s0) || (s3!=s0) )
-                {
-                    printf("error - horizontal corner (along x) node counts do not match\n");
-                    exit(1);
-                }
-                s0 = edgeA.size(); s1 = edgeB.size(); s2 = edgeC.size(); s3 = edgeD.size();
-                if ( (s1!=s0) || (s2 != s0) || (s3!=s0) )
-                {
-                    printf("error - horizontal corner (along y) node counts do not match\n");
-                    exit(1);
-                }
-            }// end dummy scope
+            if (top.size() != bottom.size() )
+            {
+                printf("error - top and bottom surfaces do not match - bye!\n");
+                printf("sizes are top,bottom = %i,%i\n", top.size(), bottom.size() );
+                exit(1);
+            }
+            if (left.size() != right.size() )
+            {
+                printf("error - left and right surfaces do not match - bye!\n");
+                exit(1);
+            }
+            if (front.size() != back.size() )
+            {
+                printf("error - front and back surfaces do not match - bye!\n");
+                exit(1);
+            }
+            // CHECK ALL CORNERS HAVE CORRECT NUMBER OF NODES
+            size_t s0, s1, s2, s3;
+            s0 = edge0.size(); s1 = edge1.size(); s2 = edge2.size() ; s3 = edge3.size();
+            if ( (s1!=s0) || (s2 != s0) || (s3!=s0) )
+            {
+                printf("error - vertical corner node counts do not match\n");
+                exit(1);
+            }
+            s0 = edgea.size(); s1 = edgeb.size(); s2 = edgec.size(); s3 = edged.size();
+            if ( (s1!=s0) || (s2 != s0) || (s3!=s0) )
+            {
+                printf("error - horizontal corner (along x) node counts do not match\n");
+                exit(1);
+            }
+            s0 = edgeA.size(); s1 = edgeB.size(); s2 = edgeC.size(); s3 = edgeD.size();
+            if ( (s1!=s0) || (s2 != s0) || (s3!=s0) )
+            {
+                printf("error - horizontal corner (along y) node counts do not match\n");
+                exit(1);
+            }
+        }// end dummy scope
 
-            // set corner nodes
-            periNodes_[corner_nodes[1] ] = corner_nodes[0];
-            periNodes_[corner_nodes[2] ] = corner_nodes[0];
-            periNodes_[corner_nodes[3] ] = corner_nodes[0];
-            periNodes_[corner_nodes[4] ] = corner_nodes[0];
-            periNodes_[corner_nodes[5] ] = corner_nodes[0];
-            periNodes_[corner_nodes[6] ] = corner_nodes[0];
-            periNodes_[corner_nodes[7] ] = corner_nodes[0];
+        // set corner nodes
+        periNodes_[corner_nodes[1] ] = corner_nodes[0];
+        periNodes_[corner_nodes[2] ] = corner_nodes[0];
+        periNodes_[corner_nodes[3] ] = corner_nodes[0];
+        periNodes_[corner_nodes[4] ] = corner_nodes[0];
+        periNodes_[corner_nodes[5] ] = corner_nodes[0];
+        periNodes_[corner_nodes[6] ] = corner_nodes[0];
+        periNodes_[corner_nodes[7] ] = corner_nodes[0];
 
-            // match edge nodes
-            setEdgePeriNodes(edge0, edge1 , 2 );  // VERTICAL EDGES
-            setEdgePeriNodes(edge0, edge2 , 2 );
-            setEdgePeriNodes(edge0, edge3 , 2 );
+        // match edge nodes
+        setEdgePeriNodes(edge0, edge1 , 2 );  // VERTICAL EDGES
+        setEdgePeriNodes(edge0, edge2 , 2 );
+        setEdgePeriNodes(edge0, edge3 , 2 );
 
-            setEdgePeriNodes(edgea, edgeb, 0); // HORIZONTAL ALONG X
-            setEdgePeriNodes(edgea, edgec, 0);
-            setEdgePeriNodes(edgea, edged, 0);
+        setEdgePeriNodes(edgea, edgeb, 0); // HORIZONTAL ALONG X
+        setEdgePeriNodes(edgea, edgec, 0);
+        setEdgePeriNodes(edgea, edged, 0);
 
-            setEdgePeriNodes(edgeA, edgeB, 1);  // HORIZONTAL ALONG Y
-            setEdgePeriNodes(edgeA, edgeC, 1);
-            setEdgePeriNodes(edgeA, edgeD, 1);
+        setEdgePeriNodes(edgeA, edgeB, 1);  // HORIZONTAL ALONG Y
+        setEdgePeriNodes(edgeA, edgeC, 1);
+        setEdgePeriNodes(edgeA, edgeD, 1);
 
-            setFacePeriNodes(left, right, 0);   // COMPARE Y,Z
-            setFacePeriNodes(front, back, 1);   // COMPARE X,Z
-            setFacePeriNodes(bottom, top, 2);   // COMPARE X,Y
+        setFacePeriNodes(left, right, 0);   // COMPARE Y,Z
+        setFacePeriNodes(front, back, 1);   // COMPARE X,Z
+        setFacePeriNodes(bottom, top, 2);   // COMPARE X,Y
 
-        }// end if 3 different periodicity cases
+    }// end if 3 different periodicity cases
 
 
 }// end void MakePEriEquNodes()
 
 void Geometry::checkForPeriodicGeometry()
 {
-// CHECKS FOR TYPES OF PERIODICITY PRESENT IN CURRENT STRUCTURE.
-// POSSIBLE PERIODIC SURFACES ARE:
-//      LEFT/RIGHT
-//      FRONT/BACK
-//      TOP/BOTTOM
+    // CHECKS FOR TYPES OF PERIODICITY PRESENT IN CURRENT STRUCTURE.
+    // POSSIBLE PERIODIC SURFACES ARE:
+    //      LEFT/RIGHT
+    //      FRONT/BACK
+    //      TOP/BOTTOM
 
-    for (int i = 0 ; i < e->getnElements() ; i++)
+    for (idx i = 0 ; i < e->getnElements() ; i++)
     {
         if (e->getMaterialNumber(i) == MAT_PERIODIC) // if surface is periodic
         {
@@ -874,20 +869,20 @@ void Geometry::checkForPeriodicGeometry()
                 left_right_is_periodic = true;
             }
             else// IF SURFACE NORMAL Y-COMPONENT = 1
-            if (fabs( fabs(snorm[1]) - 1.0 ) < EPS)
-            {
-                front_back_is_periodic = true;
-            }
-            else // IF SURFACE NORMAL Z-COMPONENT = 1
-            if (fabs( fabs(snorm[2]) - 1.0 ) < EPS)
-            {
-                top_bottom_is_periodic = true;
-            }
-            else
-            {
-                printf("error - checkForPeriodicGeometry() - periodic surface element %i has invalid normal:\n [%f, %f, %f] - bye!\n",i, snorm[0] , snorm[1], snorm[2]);
-                exit(1);
-            }
+                if (fabs( fabs(snorm[1]) - 1.0 ) < EPS)
+                {
+                    front_back_is_periodic = true;
+                }
+                else // IF SURFACE NORMAL Z-COMPONENT = 1
+                    if (fabs( fabs(snorm[2]) - 1.0 ) < EPS)
+                    {
+                        top_bottom_is_periodic = true;
+                    }
+                    else
+                    {
+                        printf("error - checkForPeriodicGeometry() - periodic surface element %i has invalid normal:\n [%f, %f, %f] - bye!\n",i, snorm[0] , snorm[1], snorm[2]);
+                        exit(1);
+                    }
 
             // IF ALL SURFACES HAVE ALREADY BEEN IDENTIFIED AS PERIODIC
             // NO NEED TO CHECK FURTHER TRIANGLES
@@ -899,12 +894,12 @@ void Geometry::checkForPeriodicGeometry()
     }// end for i
     // IF ANY PERIODIC TRIANGLES WERE DETECTED
     if (    getleft_right_is_periodic()
-        ||  getfront_back_is_periodic()
-        ||  gettop_bottom_is_periodic() )
+            ||  getfront_back_is_periodic()
+            ||  gettop_bottom_is_periodic() )
     {
         makePeriEquNodes();
     }
-	
+
 }
 
 
@@ -912,8 +907,8 @@ void Geometry::makeRegularGrid(const size_t &nx,
                                const size_t &ny,
                                const size_t &nz)
 {
-// CREATES REUGLAR GRID OBJECT USED FOR INTERPOLATING VALUES FROM
-// TETRAHEDRAL MESH ONTO REGULARLY SPACED GRID
+    // CREATES REUGLAR GRID OBJECT USED FOR INTERPOLATING VALUES FROM
+    // TETRAHEDRAL MESH ONTO REGULARLY SPACED GRID
 
     printf("generating regular grid lookup..."); fflush(stdout);
     if ( regularGrid ) delete regularGrid;
@@ -932,8 +927,8 @@ bool Geometry::brute_force_search( unsigned int &ind,            // return index
                                    const bool& requireLCEelement // only LC element index may be returned
                                    )
 {
-// BRUTE FORCE DEBUG SEARCH FOR TETRAHEFRON THAN CONTAINS POINT WITH COORDINATES IN coord
-// coord IS ASSUMED TO BE OF LENGTH 3, FOR x, y, z
+    // BRUTE FORCE DEBUG SEARCH FOR TETRAHEFRON THAN CONTAINS POINT WITH COORDINATES IN coord
+    // coord IS ASSUMED TO BE OF LENGTH 3, FOR x, y, z
     // loop over each element
     for (unsigned int i = 0 ; i < (unsigned int) t->getnElements() ; i++)
     {
@@ -969,11 +964,11 @@ bool Geometry::getContainingTet(vector< set < unsigned int> >& p_to_t,
                                 double crd[3],  // coords to search
                                 unsigned int& t0) // start tet
 {
-// TRIENS TO FIND INDEX TO TETRAHEDRON THAT CONTAINS THE POINT
-// WITH CORRDINATES DEFINED IN crd. USING A NEIGHBOUR SEARCH.
-// STARTS FROM INITIAL TET t0, AND ADVANCES TO ITS NEIGHBOUR WHOSE
-// BARYCENTRE IS CLOSEST TO crd.
-// SOMETIMES THIS FAILS AND A BRUTE FORCE SEARCH MAY BE NEEDED
+    // TRIENS TO FIND INDEX TO TETRAHEDRON THAT CONTAINS THE POINT
+    // WITH CORRDINATES DEFINED IN crd. USING A NEIGHBOUR SEARCH.
+    // STARTS FROM INITIAL TET t0, AND ADVANCES TO ITS NEIGHBOUR WHOSE
+    // BARYCENTRE IS CLOSEST TO crd.
+    // SOMETIMES THIS FAILS AND A BRUTE FORCE SEARCH MAY BE NEEDED
 
 
 
@@ -1037,7 +1032,7 @@ bool Geometry::getContainingTet(vector< set < unsigned int> >& p_to_t,
         } // end if stuck
 
     }// end for all tets
-	return found;
+    return found;
 }
 
 
@@ -1074,7 +1069,7 @@ size_t Geometry::recursive_neighbour_search(double crd[3],
 
     // CREATE LIST OF NEIGHBOURING ELEMENTS
     std::vector <unsigned int> neighs;
-    for (int i = 0 ; i < t->getnNodes() ; i++)
+    for (idx i = 0 ; i < t->getnNodes() ; i++)
     {
         int n = t->getNode(currentTet, i);
         neighs.insert(neighs.end(), p_to_t[n].begin(), p_to_t[n].end() );
@@ -1106,10 +1101,10 @@ size_t Geometry::recursive_neighbour_search(double crd[3],
         if ( tetHistory.find(indt) == tetHistory.end() )
         {
             ifound =  recursive_neighbour_search( crd,
-                                           p_to_t,
-                                           indt,
-                                           tetHistory,
-                                            requireLCElement // WHETHER ONLY LC ELEMENTS ARE ACCEPTABLE
+                                                  p_to_t,
+                                                  indt,
+                                                  tetHistory,
+                                                  requireLCElement // WHETHER ONLY LC ELEMENTS ARE ACCEPTABLE
                                                   );
 
             if (ifound != NOT_AN_INDEX)
@@ -1141,7 +1136,7 @@ void Geometry::genIndToTetsByCoords(vector<unsigned int> &ind,   // return index
                                     const bool& terminateOnError,// whther to terminate app. if coordinate not found. default = true;
                                     const bool& requireLCElement)// only LC element can be re returned
 {
-/*!
+    /*!
     Generates index to tetrahedron that contain coordinate coord.
 
 The 'terminateOnError' flag is used to spcify whether to terminate app. if a coord
@@ -1186,8 +1181,9 @@ is only properly defined in the LC element.
     //---------------------------
 
     unsigned int n;
-
-    #pragma omp parallel for
+#ifndef DEBUG
+#pragma omp parallel for
+#endif
     for ( n = 0 ; n < nc ; n++) // for each coord
     {
 
@@ -1206,10 +1202,6 @@ is only properly defined in the LC element.
                                                 requireLCElement    // WHETHER TO ONLY ACCEPT LC ELEMENTS ARE RETURN VALUE
                                                 );
 
-        if (t->getMaterialNumber( t0 ) == 36)
-        {
-            int a = 0;
-        }
 
         if (t0 != NOT_AN_INDEX )
         {
@@ -1226,11 +1218,6 @@ is only properly defined in the LC element.
                                      requireLCElement   // WHETHER ONLY LC ELEMENTS ARE ACCEPTED
                                      ) )
             {
-
-                if (t->getMaterialNumber( bfind ) == 36)
-                {
-                    int a = 0;
-                }
 
                 ind[n] = bfind;
             }
@@ -1251,37 +1238,37 @@ is only properly defined in the LC element.
 double* Geometry::getPtrTop() 	{ return p;}
 double Geometry::getpX(int i)	
 { 
-	#ifdef DEBUG
-	isValidNodeIndex(i);
-	#endif
-	return p[i*3 + 0];
+#ifdef DEBUG
+    isValidNodeIndex(i);
+#endif
+    return p[i*3 + 0];
 }
 double Geometry::getpY(int i)   
 { 
-	#ifdef DEBUG
-	isValidNodeIndex(i);
-	#endif
-	return p[i*3 + 1];
+#ifdef DEBUG
+    isValidNodeIndex(i);
+#endif
+    return p[i*3 + 1];
 }
 double Geometry::getpZ(int i)	
 { 
-	#ifdef DEBUG
-	isValidNodeIndex(i);
-	#endif
-	return p[i*3 + 2];
+#ifdef DEBUG
+    isValidNodeIndex(i);
+#endif
+    return p[i*3 + 2];
 }
 
 double Geometry::getAbsXDist(int i , double x)
 {
-	return fabs( getpX(i) - x );
+    return fabs( getpX(i) - x );
 }
 double Geometry::getAbsYDist(int i , double y)
 {
-	return fabs( getpY(i) - y );
+    return fabs( getpY(i) - y );
 }
 double Geometry::getAbsZDist(int i, double z)
 {
-	return fabs( getpZ(i) - z );
+    return fabs( getpZ(i) - z );
 }
 
 double Geometry::getAbsDistSqr(const unsigned int i, const double *const coord) const
@@ -1318,8 +1305,8 @@ size_t Geometry::getTotalSize(){
            (int) sze_e_Mat/MB, (int) sze_e_Det/MB, (int)sze_e_Con/MB, (int)sze_e_Norm/MB );
 
     size_t sze_total =  size_p + size_NodeNormals +
-                        sze_t_Elem + sze_t_Mat + sze_t_Det +
-                        sze_e_Elem + sze_e_Mat + sze_e_Det + sze_e_Con + sze_e_Norm;
+            sze_t_Elem + sze_t_Mat + sze_t_Det +
+            sze_e_Elem + sze_e_Mat + sze_e_Det + sze_e_Con + sze_e_Norm;
     printf("Total Size = %i\n", (int) sze_total / MB);
     return sze_total;
 
@@ -1353,7 +1340,7 @@ void Geometry::PrintNodes()
 }
 void Geometry::PrintNode(int i )
 {
-	printf("node %i = [%f,%f,%f]\n",i , getpX(i) , getpY(i) , getpZ(i));
+    printf("node %i = [%f,%f,%f]\n",i , getpX(i) , getpY(i) , getpZ(i));
 
 }
 void Geometry::PrintPeriodicNodes()
@@ -1365,31 +1352,31 @@ void Geometry::PrintPeriodicNodes()
 }
 
 void Geometry::getTetBaryCentre(double* x, const unsigned int &it){
-	x[0] = 0; x[1] = 0; x[2] = 0;
-	unsigned int nn = this->t->getnNodes();
+    x[0] = 0; x[1] = 0; x[2] = 0;
+    unsigned int nn = this->t->getnNodes();
 
-	for (unsigned int i = 0 ; i < nn ; i++){   // sums all coords or element it
-		unsigned int n = this->t->getNode(it, i);
-		x[0] += this->getpX( n );
-		x[1] += this->getpY( n );
-		x[2] += this->getpZ( n );
+    for (unsigned int i = 0 ; i < nn ; i++){   // sums all coords or element it
+        unsigned int n = this->t->getNode(it, i);
+        x[0] += this->getpX( n );
+        x[1] += this->getpY( n );
+        x[2] += this->getpZ( n );
 
 
 
-	}
-	x[0]/= (double)nn; // = average x,y,z-coords
-	x[1]/= (double)nn;
-	x[2]/= (double)nn;
+    }
+    x[0]/= (double)nn; // = average x,y,z-coords
+    x[1]/= (double)nn;
+    x[2]/= (double)nn;
 }
 void Geometry::isValidNodeIndex(const unsigned int &i) const{
-	if (i>(unsigned int) np){
-		std::cout << "error, requesting node "<<i<<" , when np is: " << np << " - bye!" << std::endl;
-		exit(1);
-	}
+    if (i>(unsigned int) np){
+        std::cout << "error, requesting node "<<i<<" , when np is: " << np << " - bye!" << std::endl;
+        exit(1);
+    }
 }
 void Geometry::genIndWeakSurfaces(Alignment& alignment)
 {
-// GENERATES INDEX TO WEAK SURFACE ELEMENTS
+    // GENERATES INDEX TO WEAK SURFACE ELEMENTS
 
     // FIRST MAKE TEMPORARY VECTOR OF WEAK SURFACES
     std::vector<size_t> ws;
@@ -1428,12 +1415,12 @@ bool Geometry::checkForOverlapingNodes(){
             double *pi = getPtrTop() + j*3;
             if (i != j){
                 double dist = getAbsDistSqr(i, pi);
-                        if ( dist < mindist ) {
-                            mindist = dist;
-                            mini = i;
-                            minj = j;
-                        }
-                        //printf("dist %i - %i = %e\n", i,j,dist);
+                if ( dist < mindist ) {
+                    mindist = dist;
+                    mini = i;
+                    minj = j;
+                }
+                //printf("dist %i - %i = %e\n", i,j,dist);
             }
         }
     }
@@ -1448,10 +1435,11 @@ void Geometry::countNodeReferences(vector <int>& refc, Mesh& mesh){
     refc.reserve( (size_t) this->getnp() );
     refc.assign( (size_t) this->getnp() , 0 ); // set all counts to zero
 
-    for (unsigned int i = 0 ; i < (unsigned int) mesh.getnElements() ; i++){ // for each element
-        for (int n = 0 ; n < mesh.getnNodes() ; n++)
+    for (idx i = 0 ; i < mesh.getnElements() ; i++)
+    { // for each element
+        for (idx n = 0 ; n < mesh.getnNodes() ; n++)
         { // for each node in element i
-           refc[mesh.getNode(i,n)] ++ ;
+            refc[mesh.getNode(i,n)] ++ ;
         }
     }
 

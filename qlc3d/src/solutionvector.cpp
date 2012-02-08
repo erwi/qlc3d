@@ -1,6 +1,7 @@
 #include <solutionvector.h>
 #include <material_numbers.h>
 #include <stdlib.h>
+
 const double SolutionVector::BIGNUM = 1e99;
 
 SolutionVector::~SolutionVector(){
@@ -108,7 +109,7 @@ SolutionVector::SolutionVector():
 {
 
 }
-SolutionVector::SolutionVector(int np):
+SolutionVector::SolutionVector(idx np):
     nDoF(np),
     nFixed(0),
     nDimensions(1),
@@ -125,7 +126,7 @@ SolutionVector::SolutionVector(int np):
 {
     Allocate( (unsigned int) np , (unsigned int) nDimensions );
 }
-SolutionVector::SolutionVector(int np, int dim):
+SolutionVector::SolutionVector(idx np, idx dim):
     nDoF(np),
     nFixed(0),
     nDimensions(dim),
@@ -142,33 +143,31 @@ SolutionVector::SolutionVector(int np, int dim):
 	Allocate( (unsigned int) np, (unsigned int) dim );
 }
 
-void SolutionVector::Allocate(const unsigned int &np, const unsigned int &ndim){
-        /*
-    if(Values != NULL) free( Values );
+void SolutionVector::Allocate(const idx np, const idx ndim)
+{
 
-	Values = NULL;
-
-	Values = (double*) malloc ( ndim*np*sizeof(double) );
-	setValuesTo( 0.0 );
-	setnDoF( np );
-	setnDimensions( ndim );
-	nFreeNodes = np;
-	if ( Values == NULL){
-		printf("error - SolutionVector::Aloocate - could not do it - bye!\n");
-		exit(1);
-	}
-        */
     Resize(np , ndim); // OOPS. TWO NAMES, ONE FUNCTION, SOUNDS FAMILIAR...
 }
 
-void SolutionVector::setnDoF(int n)		{	nDoF = n;}
-void SolutionVector::setnFixed(int n)		{	nFixed = n;}
-void SolutionVector::setnDimensions(int n)	{	nDimensions = n;}
+void SolutionVector::setnDoF(idx n)
+{
+    nDoF = n;
+}
+void SolutionVector::setnFixed(idx n)
+{
+    nFixed = n;
+}
+void SolutionVector::setnDimensions(idx n)
+{
+    nDimensions = n;
+}
 
 void SolutionVector::setValuesTo(const double& value)
 {
 // ALL VALUES ARE SET TO THAT OF THE INPUT VALUE
-    #pragma omp parallel for
+#ifndef DEBUG
+#pragma omp parallel for
+#endif
     for (size_t i = 0 ; i < (size_t) nDoF ; i ++)
         Values[i] = value;
 }// end void setValuesTo
@@ -177,10 +176,11 @@ void SolutionVector::setValuesTo(const double *values)
 {
 // ALL VALUES ARE SET TO THOSE OF THE INPUT VECTOR
 // VECTOR LENGHTS MUCH MATCH, NO CHECKING IS PERFORMED HERE!!
-    size_t n = nDoF * nDimensions;
-    #pragma omp parallel for
-    for (size_t i = 0 ; i < n ; i++)
-        this->Values[i] = values[i];
+    idx n = nDoF * nDimensions;
+
+    memcpy(Values, values, n*sizeof(double) );
+    //for (idx i = 0 ; i < n ; i++)
+    //    this->Values[i] = values[i];
 }
 void SolutionVector::setValuesTo(const SolutionVector &other){
     this->setValuesTo( other.Values );
@@ -219,16 +219,15 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
  
 // 1. First get index to all strong anchoring nodes 
 
-
-
-    vector <int> ind_to_nodes;
+    vector <idx> ind_to_nodes;
     for (int i = 0 ; i < alignment->getnSurfaces() ; i ++)
     {
         if (alignment->IsStrong(i))
         {
             printf("FIXLC%i is strong\n", i+1 );
-            vector <int> temp_index;
-            e->FindIndexToMaterialNodes( (i+1) * MAT_FIXLC1 , &temp_index );
+            vector <idx> temp_index;
+            // 08/02/12 e->FindIndexToMaterialNodes( (i+1) * MAT_FIXLC1 , &temp_index );
+            e->listNodesOfMaterial( temp_index , (i+1)* MAT_FIXLC1 );
             //for ( itr = temp_index.begin() ; itr != temp_index.end(); itr ++)
             //{
             //    ind_to_nodes.push_back(*itr);
@@ -248,7 +247,7 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
     // LC SURFACES ARE NEX TO EACHOTHER. REMOVE THESE
 
     sort(ind_to_nodes.begin() , ind_to_nodes.end() );
-    vector <int>::iterator itr;
+    vector <idx>::iterator itr;
     itr = unique(ind_to_nodes.begin() , ind_to_nodes.end() );
     ind_to_nodes.erase(itr, ind_to_nodes.end() );
 
@@ -411,14 +410,14 @@ void SolutionVector::allocateFixedNodesArrays(Geometry &geom)
     // (SOME WILL BE REPEATED)
     Mesh &e = *geom.e;   // PTR TO SURFACE MESH
     std::vector<SolutionVectorNameSpace::node> fixed_nodes;
-    for (int i = 0 ; i < e.getnElements() ; i++)
+    for (idx i = 0 ; i < e.getnElements() ; i++)
     {
         int mat = e.getMaterialNumber(i);
         size_t indE = MATNUM_TO_ELECTRODE_NUMBER((size_t) mat);
 
         if ( indE ) // IF ELECTRODE ELEMENT
         {
-            for (int j = 0 ; j < e.getnNodes() ; j++)
+            for (idx j = 0 ; j < e.getnNodes() ; j++)
                 fixed_nodes.push_back(
                             SolutionVectorNameSpace::
                             node( e.getNode(i,j), mat ) );
@@ -444,7 +443,7 @@ void SolutionVector::allocateFixedNodesArrays(Geometry &geom)
     }
 
     // SET FIXED NODES INDEX ARRAY VALUES
-    for (int i = 0 ; i < nFixed ; i++)
+    for (idx i = 0 ; i < nFixed ; i++)
     {
         for (int j = 0 ; j <nDimensions ; j++)
         {
@@ -464,7 +463,7 @@ void SolutionVector::setFixedNodesPot(Electrodes* electrodes)
 {
     // SETS VALUES IN FixedValues
 
-    for (int i = 0 ; i < nFixed ; i++)
+    for (idx i = 0 ; i < nFixed ; i++)
     {
         int mat = FixedNodeMaterial[i]; // GET MATERIAL NUMBER FOR ith FIXED NODE
         size_t indE = MATNUM_TO_ELECTRODE_NUMBER((size_t) mat );
@@ -540,7 +539,7 @@ void SolutionVector::setBooleanFixedNodeList(){
     memset(IsFixed , false , size ); // set all to false
 
 // SET VALUE TO TRUE/FALSE FOR EACH NODE
-    for (int i = 0 ; i < getnFixed() *nDimensions ; i ++) // then set only fixed nodes to true
+    for (idx i = 0 ; i < getnFixed() *nDimensions ; i ++) // then set only fixed nodes to true
         IsFixed[FixedNodes[i]]=true;
 
 }
@@ -551,7 +550,7 @@ void SolutionVector::PrintFixedNodes()
     //debugging
     printf("number of fixed nodes is : %i\n",nFixed);
 
-    for ( int i = 0 ; i < nFixed ; i++ )
+    for ( idx i = 0 ; i < nFixed ; i++ )
     {
         for (int j = 0 ; j < nDimensions ; j++)
         {
@@ -564,7 +563,7 @@ void SolutionVector::PrintFixedNodes()
 }
 void SolutionVector::PrintValues()
 {
-	for (int i = 0 ; i < nDoF *nDimensions; i++)
+        for (idx i = 0 ; i < nDoF *nDimensions; i++)
 	{
                 printf("Value[%i] = %e\n", i, Values[i]);
 	}
@@ -579,7 +578,7 @@ void SolutionVector::PrintElim(){
     }
 
     printf("\nPrinting for dimension 0 only!:\n");
-    for (int i = 0 ; i < nDoF ; i++)
+    for (idx i = 0 ; i < nDoF ; i++)
         printf("Elim[%i] = %i\n",i,Elim[i]);
 }
 void SolutionVector::PrintEquNodes(){
@@ -590,14 +589,14 @@ void SolutionVector::PrintEquNodes(){
     }
 
     printf("\nEquNodes:\n");
-    for (int i = 0 ; i < nDoF ; i ++) {
+    for (idx i = 0 ; i < nDoF ; i ++) {
         printf("EquNodes[%i] = %i \n",i, EquNodes[i]);
     }
 }
 void SolutionVector::PrintIsFixed()
 {
     printf("%i fixed, %i free nodes:\n", this->getnFixed(), this->getnFreeNodes() );
-    for (int i = 0 ; i < this->getnDoF()*this->getnDimensions() ; i++)
+    for (idx i = 0 ; i < this->getnDoF()*this->getnDimensions() ; i++)
     {
         printf("node[%i] = ", i);
         if (getIsFixed(i))
@@ -620,7 +619,7 @@ void SolutionVector::setToFixedValues()
         exit(1);
     }
 
-    for (int i = 0 ; i < nFixed * getnDimensions(); i ++)
+    for (idx i = 0 ; i < nFixed * getnDimensions(); i ++)
     {
         int ind = FixedNodes[i];
         double val = FixedValues[i];
@@ -668,7 +667,7 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
 
     // MARK FIXED NODES. THSE WILL BE REMOVED FROM
     // FREE DEGREES OF FREEDOM
-    for (int i = 0 ; i < nDoF ; i++ )
+    for (idx i = 0 ; i < nDoF ; i++ )
     {
         if ( this->getIsFixed(i) )
             elim[i] = FIXED_NODE;
@@ -678,14 +677,14 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
 
 
     std::vector <int> elima(nDoF,0);    // Elim altered
-    for (int i = 0 ; i < nDoF ; i++)    // SET TO 1,2,3...
+    for (idx i = 0 ; i < nDoF ; i++)    // SET TO 1,2,3...
         elima[i] = i;
     elima.resize(nDoF);
 
     // LOOP OVER EACH NODE. DECREASE INDEX TO ALL INDEPENDENT DOFs
     // THAT COME AFTER A DEPENDENT NODE (EQUIVALENT TO SHIFTING LEFT
     // ROWS/COLUMNS OF A MATRIX AFTER A COLUMN IS REMOVED)
-    for (int i = 0 ; i < nDoF ; i++)
+    for (idx i = 0 ; i < nDoF ; i++)
     {
         if (elim[i] != i)   // IF i'th NODE IS DEPENDENT
         {
@@ -698,7 +697,7 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
 
     // SET DEPENDENT VARAIBLE INDEXES TO POINT TO CORRECT
     // INDEPENDENT DOF
-    for (int i = 0 ; i < nDoF ; i++) // SET CORRECT VALUES
+    for (idx i = 0 ; i < nDoF ; i++) // SET CORRECT VALUES
     {
         if ( (elim[i]!=i) && (elim[i]!= FIXED_NODE) ) // IF i'th NODE IS DEPENDENT ( AND NOT FIXED)
         {
@@ -716,13 +715,13 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
     nFreeNodes = *max_element(elima.begin(), elima.end() ) + 1;
 
     // COPY BACK VALUES TO Elim ARRAY
-    for (int i = 0 ; i < nDoF ; i++)
+    for (idx i = 0 ; i < nDoF ; i++)
         Elim[i] = elima[i];
 
     // EXPAND Elim IF MORE THAN ONE DIMENSIONS PER NODE
     if (nDimensions > 1)
     {
-        for (int j = 1; j < nDimensions ; j ++)
+        for (idx j = 1; j < nDimensions ; j ++)
         {
             for (int i = 0 ; i < nDoF ; i ++ )
             {
@@ -926,11 +925,13 @@ void SolutionVector::setFaceElim( list <int>& face0, // face1[i] = face0[i]
 //*/
 }				
 
-void SolutionVector::setValue(const unsigned int& n, const unsigned int& dim, const double& val)
+void SolutionVector::setValue(const idx n,
+                              const idx dim,
+                              const double val)
 {
 	//#define DEBUG
 	#ifdef DEBUG
-	if (( (int) n >= getnDoF() ) || ( (int) dim >= getnDimensions() ) )
+        if ( ( n >= (idx) getnDoF() ) || ( dim >= (idx) getnDimensions() ) )
 	{
 		printf("error - SolutionVector::setValue(n, dim, val) - n = %i and dim = %i, bye!\n",n,dim);
 		printf(", when\n");
@@ -939,16 +940,17 @@ void SolutionVector::setValue(const unsigned int& n, const unsigned int& dim, co
 		exit(1);
 	}
 	#endif
-	Values[n + dim*getnDoF()] = val;
+
+        Values[n + dim*nDoF ] = val;
 	
 }
 
 void SolutionVector::AddFixed(int mat, double val, Mesh *mesh)
 {
-    vector <int> ind_p; // index to all nodes of material mat
+    vector <idx> ind_p; // index to all nodes of material mat
 
-    mesh->FindIndexToMaterialNodes(mat,&ind_p);
-
+    // 08/02/12 mesh->FindIndexToMaterialNodes(mat,&ind_p);
+    mesh->listNodesOfMaterial( ind_p, (idx) mat );
 
 // Allocate memory for old + new fixed nodes and values	
     int NewFixedSize = ind_p.size() + nFixed; // number of old + new fixed nodes
@@ -968,9 +970,9 @@ void SolutionVector::AddFixed(int mat, double val, Mesh *mesh)
     }
 
 // Copy old fixed nodes and values and add new ones 	
-    vector <int>::iterator itr;
+    vector <idx>::iterator itr;
     itr = ind_p.begin();
-    for (int i = 0 ; i < NewFixedSize ; i++)
+    for (idx i = 0 ; i < NewFixedSize ; i++)
     {
         if (i<nFixed) // copy old ones
         {

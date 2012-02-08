@@ -33,15 +33,23 @@ using std::string;
 #define eps0 8.8541878176e-12
 #define COMPLEX std::complex<double>
 
-void ReadGiDMesh3D(Simu *simu,double **p, int *np, int **t, int *nt,int **e, int *ne, int **matt, int **mate);
+void ReadGiDMesh3D(Simu *simu,
+                   double **p,
+                   idx *np,
+                   idx **t,
+                   idx *nt,
+                   idx **e,
+                   idx *ne,
+                   idx **matt,
+                   idx **mate);
 
 
 //void writeBinaryMesh(Simu& simu, Geometry& geom); // writes mesh in binary format. in definition in "ReadGiDMesh3D.cpp"
 void readBinaryMesh(std::string filename ,  // same as above
                     double *&p,
-                    int *&t, int *&tmat,
-                    int *&e, int *&emat,
-                    int *np, int *nt, int *ne);
+                    idx *&t, idx *&tmat,
+                    idx *&e, idx *&emat,
+                    idx *np, idx *nt, idx *ne);
 
 void solve_pcg(SparseMatrix *K, double *b, double *x ,Settings* settings);
 void solve_gmres(SparseMatrix *K, double *b, double *x ,Settings* settings);

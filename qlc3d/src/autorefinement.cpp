@@ -11,41 +11,42 @@
 
 double getMaxS(SolutionVector& q){
 
-int npLC = q.getnDoF();
-double * dir = tensortovector(q.Values, npLC );
+    int npLC = q.getnDoF();
+    double * dir = tensortovector(q.Values, npLC );
 
-double max = *max_element( dir+3*npLC, dir+4*npLC );
+    double max = *max_element( dir+3*npLC, dir+4*npLC );
 
-if (dir) delete [] dir;
+    if (dir) delete [] dir;
 
-return max;
+    return max;
 
 }
 
 
 double intepolate_scalar(double* loc , double* S){
-/*! Interpolates scalar value S[4] to a single value using four local coordinates in loc[4]*/
-	double val = 0;
-	for (size_t i = 0 ; i < 4 ; i++){
-		val+= loc[i]*S[i];
-	}
+    /*! Interpolates scalar value S[4] to a single value using four local coordinates in loc[4]*/
+    double val = 0;
+    for (size_t i = 0 ; i < 4 ; i++){
+        val+= loc[i]*S[i];
+    }
     return val;
 }
 
 void interpolate(SolutionVector& qnew,
-				 Geometry& geom_new,
-				 SolutionVector& qold,
-				 Geometry& geom_old){
-/*! Interpolates Q-tensor qold from olde geometry geom_old to new geometry geom_new*/
+                 Geometry& geom_new,
+                 SolutionVector& qold,
+                 Geometry& geom_old)
+{
+    // Interpolates Q-tensor qold from olde geometry geom_old to new geometry geom_new
 
-	// MAKE COORDINATE TO CONTAINING ELEMENT IDEX pint
-    vector < unsigned int> pint; // index from point to containing tet
-        geom_old.genIndToTetsByCoords( pint,
-                                       geom_new.getPtrTop(),
-                                       geom_new.getnpLC(),
-                                       true,    // ERROR IF COORDINATE IS NOT FOUND
-                                       true     // ONLY CONSIDER LC ELEMENTS
-                                       );
+    // MAKE COORDINATE TO CONTAINING ELEMENT IDEX pint
+    vector < idx > pint; // index from point to containing tet
+    geom_old.genIndToTetsByCoords( pint,
+                                   geom_new.getPtrTop(),
+                                   geom_new.getnpLC(),
+                                   true,    // ERROR IF COORDINATE IS NOT FOUND
+                                   true     // ONLY CONSIDER LC ELEMENTS
+                                   );
 
     unsigned int npLC_old = (unsigned int) geom_old.getnpLC();
     double* dir = tensortovector( qold.Values , npLC_old ); // director on old mesh
@@ -55,27 +56,27 @@ void interpolate(SolutionVector& qnew,
     for (size_t ind = 0 ; ind < (size_t) geom_new.getnpLC() ; ind++)// for all new nodes
     {
 
-//#ifdef DEBUG
+        //#ifdef DEBUG
         if (geom_old.t->getMaterialNumber(pint[ind]) != MAT_DOMAIN1 ){
             printf("error in intepolate (autorefinement.cpp)  \n");
             printf("new node %i, at coordinate %e,%e,%e in old structure\n", (int) ind, geom_new.getpX(ind) , geom_new.getpY(ind) , geom_new.getpZ(ind) );
             printf("the material of found tet is %i, which is not DOMAIN1 \n", geom_old.t->getMaterialNumber(pint[ind]) );
             exit(1);
         }
-//#endif
+        //#endif
 
 
         double loc[4]; // LOCAL ELEMENT COORDS
-		double* coord = geom_new.getPtrTop() + (3*ind); // pointer to this nodes coordinates
+        double* coord = geom_new.getPtrTop() + (3*ind); // pointer to this nodes coordinates
 
         // calculate local element coordinates loc of global coordinate coord.
-		geom_old.t->CalcLocCoords( pint[ind], geom_old.getPtrTop(), coord, loc);
+        geom_old.t->CalcLocCoords( pint[ind], geom_old.getPtrTop(), coord, loc);
 
-		int n[4];
-		n[0] = geom_old.t->getNode( pint[ind], 0);
-		n[1] = geom_old.t->getNode( pint[ind], 1);
-		n[2] = geom_old.t->getNode( pint[ind], 2);
-		n[3] = geom_old.t->getNode( pint[ind], 3);
+        int n[4];
+        n[0] = geom_old.t->getNode( pint[ind], 0);
+        n[1] = geom_old.t->getNode( pint[ind], 1);
+        n[2] = geom_old.t->getNode( pint[ind], 2);
+        n[3] = geom_old.t->getNode( pint[ind], 3);
         int max_node = *max_element(n, n+3);
 #ifdef DEBUG
         if (max_node >= (int)   npLC_old){
@@ -89,11 +90,11 @@ void interpolate(SolutionVector& qnew,
         size_t ind_max = max_element(loc, loc+4) - loc ;
         if ( loc[ ind_max ] >= 0.99999){// EXISTING CORNER NODE, STRAIGHT COPY OF OLD VALUES
             qnew.setValue(ind, 0 , qold.getValue ( n[ind_max] , 0 ) );
-		    qnew.setValue(ind, 1 , qold.getValue ( n[ind_max] , 1 ) );
-		    qnew.setValue(ind, 2 , qold.getValue ( n[ind_max] , 2 ) );
-		    qnew.setValue(ind, 3 , qold.getValue ( n[ind_max] , 3 ) );
-		    qnew.setValue(ind, 4 , qold.getValue ( n[ind_max] , 4 ) );
-		}
+            qnew.setValue(ind, 1 , qold.getValue ( n[ind_max] , 1 ) );
+            qnew.setValue(ind, 2 , qold.getValue ( n[ind_max] , 2 ) );
+            qnew.setValue(ind, 3 , qold.getValue ( n[ind_max] , 3 ) );
+            qnew.setValue(ind, 4 , qold.getValue ( n[ind_max] , 4 ) );
+        }
         else{
 
             // INTERPOLATE USING Q-TENSOR COMPONENTS AS SCALARS
@@ -105,8 +106,8 @@ void interpolate(SolutionVector& qnew,
                 double qn = intepolate_scalar( loc , qo );
                 qnew.setValue( ind , i , qn ); // set i'th dimension of value at node ind to qn
             }// end for i
-		}
-	}// end for all new coords
+        }
+    }// end for all new coords
 
     if (dir) delete [] dir;
 }
@@ -264,10 +265,10 @@ bool autoref(   Geometry& geom_orig, Geometry& geom,
         printf("Done refinement iteration = %i of %i \n", refiter, maxrefiter);
     }// end for max refiters
 
-//=============================================================
-//  DONE WITH REFINEMENT.
-//  DO CLEANUP AND INTERPOLATE RESULT ON NEW MESH.
-//=============================================================
+    //=============================================================
+    //  DONE WITH REFINEMENT.
+    //  DO CLEANUP AND INTERPOLATE RESULT ON NEW MESH.
+    //=============================================================
 
     //geom_temp.t->CalculateDeterminants3D( geom_temp.getPtrTop() );
     //geom_temp.t->ScaleDeterminants( 1e-18);// scale to microns cubed
@@ -286,7 +287,7 @@ bool autoref(   Geometry& geom_orig, Geometry& geom,
 
     // REALLOCATE Q-TENSOR
     qn = q; // temp swap
-    q.Allocate( geom_temp.getnpLC(), 5 );     // ALLOCATE FOR NEW MESH SIZE
+    q.Allocate( (idx) geom_temp.getnpLC(), 5 );     // ALLOCATE FOR NEW MESH SIZE
     interpolate( q, geom_temp, qn, geom );  // INTERPOLATE FROM PREVIOUS MESH
 
     // SET BOUNDARY CONDITIONS

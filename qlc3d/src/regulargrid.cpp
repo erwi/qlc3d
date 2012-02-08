@@ -135,7 +135,7 @@ bool RegularGrid::generateLookupList(Geometry *geom)
     lookupList.reserve( npr_ );
     Mesh* t = geom->t;   // TETRAHEDRAL MESH. OBVIOUSLY THIS IS EVIL...
     double* p = geom->getPtrTop();
-    for (unsigned int i = 0; i < npr_ ; i++)
+    for (idx i = 0; i < npr_ ; i++)
     {
 
         lookup lu;                  // NEW LOOKUP TABLE ENTRY

@@ -9,36 +9,36 @@
 #include <simu.h>
 #include <mesh.h>
 #include <geometry.h>
-//#include "material_numbers.h"
+#include <globals.h>
 using std::vector;
 using std::list;
 
 
 namespace SolutionVectorNameSpace
 {
-    class node{
-    public:
-        int nodenum;
-        int mat;
-        node(const int& num, const int& mat):nodenum(num),mat(mat){}
-        bool operator<(const node& other)const
-        {
-            return ( other.nodenum < nodenum );
-        }
-        bool operator==(const node& other)const
-        {
-            return (other.nodenum == nodenum);
-        }
-    };
+class node{
+public:
+    int nodenum;
+    int mat;
+    node(const int& num, const int& mat):nodenum(num),mat(mat){}
+    bool operator<(const node& other)const
+    {
+        return ( other.nodenum < nodenum );
+    }
+    bool operator==(const node& other)const
+    {
+        return (other.nodenum == nodenum);
+    }
+};
 }
 
 class SolutionVector
 {
-static const double BIGNUM;
+    static const double BIGNUM;
 
 private:
-    int nDoF;		// number number of degrees of freedom per dimension
-    int nFixed;
+    idx nDoF;		// number number of degrees of freedom per dimension
+    idx nFixed;
     int nDimensions;// number of dofs per node. e.g potential = 1, Q = 5
     int* FixedNodeMaterial;  // material number of fixed nodes
     bool* IsFixed;
@@ -56,72 +56,72 @@ private:
                         double* coords // node coordinates
                         );
     void setFaceElim( list <int>& face0, // face1[i] = face0[i]
-                        list <int>& face1,
-                        int* Elim,
-                        const int& norm, // face normal, 0,1,2 -> x,y,z
-                        double* coords); // pointer to node coordinates
+                      list <int>& face1,
+                      int* Elim,
+                      const int& norm, // face normal, 0,1,2 -> x,y,z
+                      double* coords); // pointer to node coordinates
 public:
 
     static const int FIXED_NODE = -1;  // INDEX VALUE OF A FIXED NODE
 
-// DATA
+    // DATA
     bool IsVector;
     int *FixedNodes;        // INDEX TO EACH FIXED NODE
     double *FixedValues;    // HOLDS NODE VALUE FOR EACH FIXED NODE
     double *Values;
-// END DATA
+    // END DATA
 
 
     ~SolutionVector();
     SolutionVector();
-    SolutionVector(int np);
-    SolutionVector(int np, int dim);
-	
+    SolutionVector(idx np);
+    SolutionVector(idx np, idx dim);
+
     SolutionVector& operator=(const SolutionVector&);
-	
-    inline size_t getnDoF()const {return nDoF;} // npLC
-    inline size_t getnFreeNodes()const {return nFreeNodes;} // nDof - periodic nodes
-    inline size_t getnFixed()const{return nFixed;}
-    inline size_t getnDimensions()const{return nDimensions;}
-    inline size_t getEquNode(const int &n) const// returns equivalent node to n (for periodic surfaces etc.)
+
+    inline idx getnDoF()const {return nDoF;} // npLC
+    inline idx getnFreeNodes()const {return nFreeNodes;} // nDof - periodic nodes
+    inline idx getnFixed()const{return nFixed;}
+    inline idx getnDimensions()const{return nDimensions;}
+    inline idx getEquNode(const idx n) const// returns equivalent node to n (for periodic surfaces etc.)
     {
-        #ifdef DEBUG
-                if (n>=nDoF*nDimensions)
-                {printf("error - SolutionVector::getEquNode(int n) - j = %i is too big!! - bye\n",n);exit(1);}
-        #endif
+#ifdef DEBUG
+        if (n>=nDoF*nDimensions)
+        {printf("error - SolutionVector::getEquNode(idx n) - j = %u is too big!! - bye\n",n);exit(1);}
+#endif
         if (Elim)
             return Elim[n];
         else
             return n;
     }
 
-    inline double getValue(const size_t n) const // gets the nth value
+    inline double getValue(const idx n) const // gets the nth value
     {
-        #ifdef DEBUG
-                if ((n < 0 )  && (n >= getnDoF()) )
-                {	printf("error - SolutionVector::getValue(int n) - when trying to access n = %i, bye!",n);	exit(1);}
-        #endif
-		return Values[n];
+#ifdef DEBUG
+        if ((n < 0 )  && (n >= getnDoF()) )
+        {	printf("error - SolutionVector::getValue(int n) - when trying to access n = %i, bye!",n);	exit(1);}
+#endif
+        return Values[n];
     }
-	
-	
+
+
     inline double getValue(size_t n , size_t dim) const // gets the nth value of dimension dim;
     {
-        #ifdef DEBUG
-                if ((n < 0 )  && (n >= getnDoF()) && (dim < 0 ) && ( dim >= getnDimensions() ) )
-                {printf("error - SolutionVector::getValue(int n, int dim) - when trying to access n = %i, dim = %i, bye!",n,dim);exit(1);}
-        #endif
+#ifdef DEBUG
+        if ((n < 0 )  && (n >= getnDoF()) && (dim < 0 ) && ( dim >= getnDimensions() ) )
+        {printf("error - SolutionVector::getValue(int n, int dim) - when trying to access n = %i, dim = %i, bye!",n,dim);exit(1);}
+#endif
         return Values[n + dim*nDoF];
     }
-	
-    void setnDoF(int n);
-    void setnFixed(int n);
-    void Allocate(const unsigned int& np, const unsigned int& ndim = 1);
-    void setnDimensions(int n);
+
+    void setnDoF(idx n);
+    void setnFixed(idx n);
+    void Allocate(const idx np, const idx ndim = 1);
+    void setnDimensions(idx n);
     void setValuesTo(const double& value); // sets all values to value
     void setValuesTo(const double* values); // sets all values to those in array 'values'. length of 'values' must be correct
     void setValuesTo(const SolutionVector& other); // copies values from other SolutionVector
-    void setValue(const unsigned int& n,const unsigned int& dim, const double& val);// sets nth value of dimension dim to val
+    void setValue(const idx n,const idx dim, const double val);// sets nth value of dimension dim to val
     void setToFixedValues();
     void setFixedNodes(vector<int> *Material, vector<double> *val ,int *Elem,int *Mat,int nElem,int nNodes);
     void setFixedNodes(Alignment *alignment, int* e);
@@ -135,33 +135,33 @@ public:
     void ClearAll();
 
     void setPeriodicEquNodes(Geometry* geom); // use this for generating nodal periodic equivalency lists
-	
+
     void ClearFixed(); // clears all fixed nodes and values
     void AddFixed(int mat, double val, Mesh* mesh); // adds fixed when all values are same in region mat . e.g. same potential on electrode
-	//void changeFixedValue( int mat, double val,
-	
-	
-	
-	
-        void EnforceEquNodes(const Geometry& geom); // enforces periodicity
-	void PrintFixedNodes();
-	void PrintValues();
-	void PrintElim();
-	void PrintEquNodes();
-        void PrintIsFixed();
-        inline bool getIsFixed(const size_t i)
-	{
-            #ifdef DEBUG
-            if (i > this->getnDoF()*this->getnDimensions() )
-            {
-                printf("error in %s, %i is too large, total nDoF = %i bye!\n",__func__, i, this->getnDoF()*this->getnDimensions());
-                exit(1);
-            }
-            #endif
+    //void changeFixedValue( int mat, double val,
 
-            return IsFixed[i];
-	}
-	bool test();
+
+
+
+    void EnforceEquNodes(const Geometry& geom); // enforces periodicity
+    void PrintFixedNodes();
+    void PrintValues();
+    void PrintElim();
+    void PrintEquNodes();
+    void PrintIsFixed();
+    inline bool getIsFixed(const size_t i)
+    {
+#ifdef DEBUG
+        if (i > this->getnDoF()*this->getnDimensions() )
+        {
+            printf("error in %s, %i is too large, total nDoF = %i bye!\n",__func__, i, this->getnDoF()*this->getnDimensions());
+            exit(1);
+        }
+#endif
+
+        return IsFixed[i];
+    }
+    bool test();
 
 
 };

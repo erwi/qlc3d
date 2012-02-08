@@ -13,7 +13,7 @@ double getMaxChange(Geometry& geom, SolutionVector& v){
     //double* vals = new double[ npt ];
     double vals[4] = {0,0,0,0};
     for (unsigned int elem = 0 ; elem < (unsigned int) geom.t->getnElements() ; elem++){
-        for (int dim = 0 ; dim <  v.getnDimensions() ; dim++){
+        for (idx dim = 0 ; dim <  v.getnDimensions() ; dim++){
             for (int node = 0 ; node < npt ; node++){
                 int nn = geom.t->getNode(elem, node);
                 vals[node] = v.getValue(nn,dim);

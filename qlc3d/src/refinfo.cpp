@@ -172,7 +172,7 @@ void RefInfo::validate(const RefInfo &refinfo)
 
         break;
     default:
-        printf("error in %s, unknonwn refinement type - bye!\n");
+        printf("error in %s, unknonwn refinement type - bye!\n",__func__);
         exit(1);
     }
 

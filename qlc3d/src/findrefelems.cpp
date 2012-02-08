@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <globals.h>
 
-double get_elem_maxdQ(const size_t elem,
-                      const Geometry& geom,
-                      const SolutionVector& q)
+double get_elem_maxdQ(const idx elem,        // index to element
+                      const Geometry& geom,     // currrent geometry
+                      const SolutionVector& q)  // Q-tensor for gurrent geometry
 {
 // RETURNS ABSOLUTE MAXIMUM CHANGE IN ANY OF THE 5 Q-TENSOR COMPONENTS
 // WITHIN ELEMENT elem
@@ -13,11 +13,11 @@ double get_elem_maxdQ(const size_t elem,
 
     double qe[4] = {0,0,0,0};
     double maxdq = 0;
-    for (unsigned int dim = 0 ; dim < 5 ; dim ++) // for q1 -> q5
+    for (idx dim = 0 ; dim < 5 ; dim ++) // for q1 -> q5
     {
-        for ( int j = 0 ; j < geom.t->getnNodes() ; j++) // for each node in this tet
+        for ( idx j = 0 ; j < geom.t->getnNodes() ; j++) // for each node in this tet
         {
-            int nn = geom.t->getNode(elem, j); // node number
+            idx nn = geom.t->getNode(elem, j); // node number
             qe[j] = q.getValue( nn , dim ); // get g
         } // end for each node
 
@@ -70,8 +70,8 @@ void findTets_Sphere(const RefInfo& refinfo,
     refinfo.getCoord( centre[0], centre[1], centre[2] );
 
     // MAKE INDEX OF ALL POINTS THAT ARE SUFFICIENTLY CLOSE
-    std::vector<size_t> p_close;
-    for (size_t i = 0 ; i < geom.getnp() ; i++)
+    std::vector<idx> p_close;
+    for (idx i = 0 ; i < geom.getnp() ; i++)
     {
         double distsqr = geom.getAbsDistSqr( i , centre );
 
@@ -81,15 +81,15 @@ void findTets_Sphere(const RefInfo& refinfo,
 
     // MAKE p_close INDEX UNIQUE
     std::sort( p_close.begin() , p_close.end() );
-    std::vector<size_t>::iterator uitr = unique( p_close.begin(), p_close.end() );
+    std::vector< idx >::iterator uitr = unique( p_close.begin(), p_close.end() );
     p_close.erase( uitr , p_close.end() );
 
     // LOOP OVER EACH ELEMENT
-    for (size_t i = 0 ; i < geom.t->getnElements() ; i++)
+    for (idx i = 0 ; i < geom.t->getnElements() ; i++)
     {
-        int* tt = geom.t->getPtrToElement( i );         // GET SHORTCUT TO ELEMENT NODE INDEX
+        idx* tt = geom.t->getPtrToElement( i );         // GET SHORTCUT TO ELEMENT NODE INDEX
 
-        for ( size_t j = 0 ; j < p_close.size() ; j++)    // LOOP OVER ALL SELECTED NODES
+        for ( idx j = 0 ; j < p_close.size() ; j++)    // LOOP OVER ALL SELECTED NODES
         {
             if ( ( tt[0] == p_close[j] ) || // IF ELEMENT CONTAINS NODE j
                  ( tt[1] == p_close[j] ) ||

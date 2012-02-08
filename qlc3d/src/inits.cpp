@@ -1,17 +1,18 @@
 
 #include <qlc3d.h>
 #include <simu.h>
+#include <globals.h>
 void prepareGeometry(Geometry& geom,
                      Simu& simu,
                      Alignment& alignment)
 {
 
-    int np,nt,ne;
+    idx np,nt,ne;
     double *p;
-    int *t;
-    int *e;
-    int *emat;
-    int *tmat;
+    idx *t;
+    idx *e;
+    idx *emat;
+    idx *tmat;
 
     // Check whether to read mesh from text file or binary 'geo'-file
     // determine by file extension
@@ -29,10 +30,10 @@ void prepareGeometry(Geometry& geom,
         printf(" reading .%s file\n", extension.c_str() );
         ReadGiDMesh3D(&simu,&p,&np,&t,&nt,&e,&ne,&tmat,&emat);
     }
-    for (int i = 0; i < 4*nt; i++)  t[i]--;	// change GiD mesh to zero indexing
-    for (int i = 0; i < 3*ne; i++)  e[i]--;
+    for (idx i = 0; i < 4*nt; i++)  t[i]--;	// change GiD mesh to zero indexing
+    for (idx i = 0; i < 3*ne; i++)  e[i]--;
 
-    for (int i = 0; i < np;   i++){	// scale mesh
+    for (idx i = 0; i < np;   i++){	// scale mesh
         p[3*i + 0] = p[3*i + 0]* simu.getStretchVectorX();
         p[3*i + 1] = p[3*i + 1]* simu.getStretchVectorY();
         p[3*i + 2] = p[3*i + 2]* simu.getStretchVectorZ();
@@ -49,7 +50,7 @@ void prepareGeometry(Geometry& geom,
     geom.t->AllocateMemory();		// allocate memory for arrays
     geom.t->setAllNodes(t);		// copy node numbers
     geom.t->setAllMaterials(tmat);	// copy material numbers
-    geom.t->setMaxNodeNumber( (unsigned int) np ); // total number of nodes in tet mesh
+    geom.t->setMaxNodeNumber( np ); // total number of nodes in tet mesh
     free(t);
     free(tmat);
 

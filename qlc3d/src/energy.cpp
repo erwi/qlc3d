@@ -119,7 +119,7 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
 	double Fth	= 0;	// thermotropic energy
 
 	//loop over each element and calculate elastic energy contribution
-	for (int x = 0 ; x < geom->t->getnElements() ; x++ ){
+        for (idx x = 0 ; x < geom->t->getnElements() ; x++ ){
 		if (geom->t->getMaterialNumber(x)==MAT_DOMAIN1){//if domain1 element, change test to bitand to include more domains
 
 		// CALCULATE ELEMENT BARYCENTRE TO CHECK WHETHER IT IS INSIDE A VALID ENERGY CALCULATION REGION

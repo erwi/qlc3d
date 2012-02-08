@@ -5,14 +5,18 @@
 #include <iostream>
 #include <simu.h>
 #include <filesysfun.h>
-
+#include <globals.h>
 namespace WriteResults{
 
 
 
-void WriteMesh(Simu* simu, double* p, Mesh* t, Mesh* e, int np)
+void WriteMesh(Simu* simu,
+               double* p,
+               Mesh* t,
+               Mesh* e,
+               idx np)
 {
-    int i;
+    idx i;
     string fname = simu->getMeshFileNameOnly();
     FILE *fid = fopen(fname.c_str(),"w");
 
@@ -199,7 +203,7 @@ void ReadLCD_B(Simu* simu, SolutionVector *q)
     if (fid)
     {
         float S0;
-        int	np, nsol;
+        idx np, nsol;
         char* tempch;
 
         tempch = fgets (str , 100 , fid); // READS LINE x 5
@@ -221,7 +225,7 @@ void ReadLCD_B(Simu* simu, SolutionVector *q)
 		
         float q1,q2,q3,q4,q5,temp;
 		
-        for (int i = 0 ; i < q->getnDoF() ; i ++)
+        for (idx i = 0 ; i < q->getnDoF() ; i ++)
         {
             fread ( &q1, sizeof(float), 1 , fid );
             fread ( &q2, sizeof(float), 1 , fid );
@@ -233,7 +237,7 @@ void ReadLCD_B(Simu* simu, SolutionVector *q)
             q->setValue(i,2,q3);
             q->setValue(i,3,q4);
             q->setValue(i,4,q5);
-            for (int j = 0 ; j < nsol-5 ; j ++)	// READ&DISCARD POTENTIAL AND FLOW
+            for (idx j = 0 ; j < nsol-5 ; j ++)	// READ&DISCARD POTENTIAL AND FLOW
                 fread ( (void *) &temp, sizeof(float), 1 , fid );
         }
         printf("OK\n");

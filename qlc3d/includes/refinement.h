@@ -80,14 +80,14 @@ void Refine(Geometry& geom,             // refined geometry
 void create_new_elements(   Geometry& geom,    // refinable geom
     vector <idx>& i_tet,               // tet refinement types, 0=none, 1=green1 ...
     vector <idx>& i_tri,               // tri refinement types, 0=none
-    vector <Line>& lines,                       // bisectable lines
+    vector <Line>& lines,              // bisectable lines
     vector < set<idx> > t_to_l,        // index from tet to its bisectable lines
     vector < set<idx> > e_to_l,        // index from tri to its bisectable lines
-    vector <double>& new_p,                     // return value, new coordinates created here
+    vector <double>& new_p,            // return value, new coordinates created here
     vector <idx>& new_t,               // return value, new tet elements created here
-    vector <int>& new_mat_t,                    // return value, new material numbers created here
+    vector <idx>& new_mat_t,           // return value, new material numbers created here
     vector <idx>& new_e,               // return value, new tria elements
-    vector <int>& new_mat_e                     // return value, new tri materials
+    vector <idx>& new_mat_e            // return value, new tri materials
     );
 
 bool autoref(Geometry& geom_orig, Geometry& geom_new,

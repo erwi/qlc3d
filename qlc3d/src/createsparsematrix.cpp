@@ -65,7 +65,9 @@ void create_dangly_matrix(vector <Line>& lines,
         // Remove repeated node indexes from columns. This step could be avoided if
         // sets was used instead of lists. However, sets (a tree data structure) tend
         // to (maybe) consume more memory...
-#       pragma omp parallel for
+#ifndef DEBUG
+#pragma omp parallel for
+#endif
         for( size_t ind = 0 ; ind < dangly.size() ; ind++){
             dangly[ind].sort();
             dangly[ind].unique();
@@ -79,7 +81,7 @@ void create_dangly_matrix(vector <Line>& lines,
 void create_dangly_matrix(vector< list <unsigned int> > & dangly,
                             Geometry& geom,
                             SolutionVector& sol,
-                            const int& MatNum)
+                            const idx& MatNum)
 {
     /* Creates a dangly sparse matrix of a Geometry, SolutionVector and material number */
 
@@ -93,13 +95,13 @@ void create_dangly_matrix(vector< list <unsigned int> > & dangly,
     //int* eqn = new int[ npt ]; // LOCAL EQU NODES
     vector<int> eqn(npt, 0);
     eqn.resize(npt);
-    for (size_t it = 0 ; it < (size_t) geom.t->getnElements() ; it++) // LOOP OVER EACH ELEMENT
+    for (idx it = 0 ; it < (size_t) geom.t->getnElements() ; it++) // LOOP OVER EACH ELEMENT
     {
-        if ((!MatNum) ||    // if ignore material numebr OR
+        if ( (!MatNum) ||    // if ignore material numebr OR
            ( MatNum == geom.t->getMaterialNumber(it))  ){// if correct material
 
 
-            int* nn = geom.t->getPtrToElement( it );    // shrotcut to element node indexes
+            idx* nn = geom.t->getPtrToElement( it );    // shrotcut to element node indexes
 
             for (unsigned int i = 0 ; i < npt ; i++ )   // GET EQU NODES FOR THIS ELEMENT
                 eqn[i] = sol.getEquNode( nn[i] );
@@ -134,7 +136,9 @@ void create_dangly_matrix(vector< list <unsigned int> > & dangly,
     // Remove repeated node indexes from columns. This step could be avoided if
     // sets was used instead of lists. However, sets (a tree data structure) tend
     // to (maybe) consume more memory...
+#ifndef DEBUG
 #   pragma omp parallel for
+#endif
     for (unsigned int i = 0 ; i < dangly.size() ; i ++){
         dangly[i].sort(); // SORT
         dangly[i].unique(); // remove repetitions

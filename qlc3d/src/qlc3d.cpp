@@ -100,10 +100,12 @@ void adjustTimeStepSize(Simu& simu, const double& maxdq){
 
 // THESE SHOULD NOT BE HERE!!
 void copyTo(double* arr, const SolutionVector& sv){ // copies all values from solution vector to array
-	unsigned int n = sv.getnDoF() * sv.getnDimensions();
-	#pragma omp parallel for
-	for (unsigned int i = 0 ; i < n ; i++)
-		arr[i] = sv.getValue(i);
+    unsigned int n = sv.getnDoF() * sv.getnDimensions();
+#ifndef DEBUG
+#pragma omp parallel for
+#endif
+    for (unsigned int i = 0 ; i < n ; i++)
+        arr[i] = sv.getValue(i);
 }
 
 // THESE SHOULD NOT BE HERE!!
@@ -232,7 +234,7 @@ int main(int argc, char* argv[]){
 //================================================
 
     cout << "Creating V...";
-    SolutionVector v( geom1.getnp() );
+    SolutionVector v( (idx) geom1.getnp() );
     v.allocateFixedNodesArrays( geom1 );
     v.setPeriodicEquNodes( &geom1 ); // periodic nodes
 
@@ -268,8 +270,6 @@ int main(int argc, char* argv[]){
     solutionvectors.q = &q;
     solutionvectors.qn = &qn;
     solutionvectors.v = &v;
-
-// autoref( geom_orig, geom_prev, geom1, q,qn, v, meshrefinement, simu, alignment , electrodes, lc);
 
 // Make matrices for potential and Q-tensor..
     cout << "Creating sparse matrix for potential...";

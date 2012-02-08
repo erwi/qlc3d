@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <eventlist.h>
-
+#include <limits>
 
 // SWITCHING INSTANCE CONTAINS INFORMATION FOR EACH SWITCHING EVENT
 class SwitchingInstance
@@ -16,7 +16,7 @@ public:
     SwitchingInstance(const double t, const double pot, const size_t en):
         time(t), potential(pot), electrodeNumber(en)
     {}
-
+    static const size_t UNIFORM_E_FIELD;
     double time;
     double potential;
     size_t electrodeNumber;
@@ -41,7 +41,7 @@ class Electrodes
         void printElectrodes()const;
         void AddElectrode();
         //void AddElectrode(Electrode* El);
-        double getDielectricPermittivity(int i) const; 	// gets realtive dielectric permittivity of dielectric#i
+        double getDielectricPermittivity(int i) const; 	// gets relative dielectric permittivity of dielectric#i
         void setCalcPot(bool yn);
         bool getCalcPot()const ;
         bool isEField()const ;    // returns true if uniform E-field has been defined

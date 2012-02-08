@@ -585,7 +585,6 @@ void readElectrodes(Electrodes* electrodes,
     int i = 1;
     for ( ; i < 100 ; i++)
     {
-
         std::vector <double> dummy;
 
         name.clear();
@@ -600,8 +599,6 @@ void readElectrodes(Electrodes* electrodes,
     }
     size_t numElectrodes = i - 1 ;
     electrodes->setnElectrodes( numElectrodes );
-
-
 
     for (size_t i = 1 ; i < numElectrodes + 1 ; i++)
     {
@@ -640,6 +637,28 @@ void readElectrodes(Electrodes* electrodes,
         }
     }
 
+    // READ UNIFORM ELECTRIC FIELD
+    std::vector<double> Efield;
+    name = "EField";
+    int ret = reader.readNumberArray(name, Efield);
+    problem_format( name , ret);
+    if ( ( ret == READER_SUCCESS ) &&
+         ( Efield.size() == 3 ) )
+    {
+        electrodes->EField[0] = Efield[0];
+        electrodes->EField[1] = Efield[1];
+        electrodes->EField[2] = Efield[2];
+
+        // ADD SWITCHING INSTANCE WITH SPECIAL ELECTRODE NUMBER
+        // INDICATING THAT A UNIFORM ELECTRC FIELD WILL BE CONSIDERED
+        TimeEvent* swEvent = new TimeEvent( EVENT_SWITCHING , 0 );
+        SwitchingInstance* si = new SwitchingInstance( 0 ,
+                                                       0 ,
+                                                       SwitchingInstance::UNIFORM_E_FIELD
+                                                       );
+        swEvent->setEventDataPtr( static_cast <void*> (si) );
+        evli.insertTimeEvent( swEvent );
+    }
 
 
 }

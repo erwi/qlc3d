@@ -3,10 +3,9 @@
 
 
 #include <geometry.h>
-
 #include <vector>
 #include <algorithm>
-
+#include <globals.h>
 
 
 // Line is a simple line-element class joining two nodes (coordinates).
@@ -14,7 +13,7 @@
 // array of coordinates, p. 
 class Line{
     public:
-	int L[2];
+        idx L[2];
 	Line(); // dont use this, declared here only to keep STL happy
 	Line(const int& a, const int& b);
 	void PrintLine(); // prints node numbers only

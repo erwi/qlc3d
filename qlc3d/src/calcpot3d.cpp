@@ -9,7 +9,7 @@
 #include <settings.h>
 #include <geometry.h>
 #ifndef COMPLEX
-    #define COMPLEX std::complex<double>
+#define COMPLEX std::complex<double>
 #endif
 #include <compcol_double.h>	// compressed column matrix
 #include <cg.h>
@@ -23,7 +23,7 @@
 
 
 
-const int	npt = 4; //Number of Points per Tetrahedra
+const idx npt = 4; //Number of Points per Tetrahedra
 
 double rt2 = sqrt(2.0);
 double rt6 = sqrt(6.0);
@@ -44,12 +44,12 @@ void Pot_SuperLU(SparseMatrix *K, double *b, SolutionVector* sv, Settings* setti
 
 // DEBUG FUNCTION FOR PRINTING VALUES OF LOCAL MATRIX
 void printlK(double* lK , int size){
-   for (int r = 0 ; r < size ; r++){
-       for (int c = 0 ; c < size ; c++){
-	   cout << lK[r + size*c] << " ";
-       }
+    for (int r = 0 ; r < size ; r++){
+        for (int c = 0 ; c < size ; c++){
+            cout << lK[r + size*c] << " ";
+        }
 	cout << endl;
-   } //end for r
+    } //end for r
 }
 
 // Gauss integration
@@ -62,17 +62,17 @@ const double a=(1+sqrt(5.0/14.0))/4.0;
 const double b=(1-sqrt(5.0/14.0))/4.0;
 
 const double gp[ngp][4]={
-	{0.25	  , 0.25	,	0.25	,0.25},
-	{11.0/14.0     ,	1.0/14.0	,	1.0/14.0	,1.0/14.0},
-	{1.0/14.0      ,	11.0/14.0	,	1.0/14.0	,1.0/14.0},
-	{1.0/14.0	  ,	1.0/14.0	,	11.0/14.0   ,1.0/14.0},
-	{1.0/14.0	  , 1.0/14.0	,	1.0/14.0	,11.0/14.0},
-	{a		  ,	a		,	b       ,b},
-	{a		  , b		,   a       ,b},
-	{a        , b       ,   b	    ,a},
-	{b		  , a       ,   a       ,b},
-	{b		  , a      	,   b		,a},
-	{b		  , b		,   a		,a}};
+    {0.25	  , 0.25	,	0.25	,0.25},
+    {11.0/14.0     ,	1.0/14.0	,	1.0/14.0	,1.0/14.0},
+    {1.0/14.0      ,	11.0/14.0	,	1.0/14.0	,1.0/14.0},
+    {1.0/14.0	  ,	1.0/14.0	,	11.0/14.0   ,1.0/14.0},
+    {1.0/14.0	  , 1.0/14.0	,	1.0/14.0	,11.0/14.0},
+    {a		  ,	a		,	b       ,b},
+    {a		  , b		,   a       ,b},
+    {a        , b       ,   b	    ,a},
+    {b		  , a       ,   a       ,b},
+    {b		  , a      	,   b		,a},
+    {b		  , b		,   a		,a}};
 const double w11 = -74.0/5625.0;
 const double w12 = 343.0/45000.0;
 const double w13 = 56.0/2250.0;
@@ -109,7 +109,7 @@ void init_shapes()
         sh1t[i][1]=0.0;
         sh1t[i][2]=0.0;
         sh1t[i][3]=1.0;
-	 //   cout << i << endl;
+        //   cout << i << endl;
     }
 }
 
@@ -119,57 +119,58 @@ void init_shapes()
 // ---------------------------------------------------------
 const int ngps=6;
 const double gps[ngps][2] ={
-		{0.8168476, 0.09157621},
-		{0.09157621,0.8168476},
-		{0.09157621,0.09157621},
-		{0.1081030, 0.4459485},
-		{0.4459485, 0.1081030},
-		{0.4459485, 0.4459485}};
+    {0.8168476, 0.09157621},
+    {0.09157621,0.8168476},
+    {0.09157621,0.09157621},
+    {0.1081030, 0.4459485},
+    {0.4459485, 0.1081030},
+    {0.4459485, 0.4459485}};
 static double wsurf[ngps]={ 0.05497587, 0.05497587, 0.05497587, 0.1116908, 0.1116908, 0.1116908};
 
 void init_shapes_surf() // surface integral shape functions
 {
-	memset(sh1,0,ngps*4*sizeof(double));
-	memset(sh1r,0,ngps*4*sizeof(double));
-	memset(sh1s,0,ngps*4*sizeof(double));
-	memset(sh1t,0,ngps*4*sizeof(double));
-	for (int i=0; i<ngps; i++) {
-                //cout << "shapes_surf" << i << endl;
-            // P1 Shape functions
-		sh1[i][0]=1-gps[i][0]-gps[i][1];
-		sh1[i][1]=gps[i][0];
-		sh1[i][2]=gps[i][1];
-		sh1[i][3]=0;//gps[i][2];
-		// P1 Shape functions r-derivatives
-		sh1r[i][0]=-1;
-		sh1r[i][1]=1;
-		sh1r[i][2]=0;
-		sh1r[i][3]=0;
-		// P1 Shape functions s-derivatives
-		sh1s[i][0]=-1;
-		sh1s[i][1]=0;
-		sh1s[i][2]=1;
-		sh1s[i][3]=0;
-		//P1 Shape functions t-derivatives
-		sh1t[i][0]=-1;
-		sh1t[i][1]=0;
-		sh1t[i][2]=0;
-		sh1t[i][3]=1;
-	}
+    memset(sh1,0,ngps*4*sizeof(double));
+    memset(sh1r,0,ngps*4*sizeof(double));
+    memset(sh1s,0,ngps*4*sizeof(double));
+    memset(sh1t,0,ngps*4*sizeof(double));
+    for (int i=0; i<ngps; i++) {
+        //cout << "shapes_surf" << i << endl;
+        // P1 Shape functions
+        sh1[i][0]=1-gps[i][0]-gps[i][1];
+        sh1[i][1]=gps[i][0];
+        sh1[i][2]=gps[i][1];
+        sh1[i][3]=0;//gps[i][2];
+        // P1 Shape functions r-derivatives
+        sh1r[i][0]=-1;
+        sh1r[i][1]=1;
+        sh1r[i][2]=0;
+        sh1r[i][3]=0;
+        // P1 Shape functions s-derivatives
+        sh1s[i][0]=-1;
+        sh1s[i][1]=0;
+        sh1s[i][2]=1;
+        sh1s[i][3]=0;
+        //P1 Shape functions t-derivatives
+        sh1t[i][0]=-1;
+        sh1t[i][1]=0;
+        sh1t[i][2]=0;
+        sh1t[i][3]=1;
+    }
 }
+// DECLARATION ONLY
 void setUniformEField( Electrodes& electrodes, SolutionVector& v, double* p);
 
 void calcpot3d(
-        SparseMatrix* K,
-        SolutionVector *v,
-        SolutionVector* q,
-        LC* lc,
-        //Mesh *mesh,
-        //Mesh* surf_mesh,
-        //double *p,
-        Geometry& geom,
-        Settings* settings,
-        Electrodes* electrodes)
+    SparseMatrix* K,
+    SolutionVector *v,
+    SolutionVector* q,
+    LC* lc,
+    //Mesh *mesh,
+    //Mesh* surf_mesh,
+    //double *p,
+    Geometry& geom,
+    Settings* settings,
+    Electrodes* electrodes)
 {
     // First check whether potential calculation is actually needed...
 
@@ -222,12 +223,12 @@ void calcpot3d(
     }
     free(L);
 
-    for (int i = 0 ; i < v->getnDoF() ; i++)
+    for (idx i = 0 ; i < v->getnDoF() ; i++)
     {
         int ind = v->getEquNode(i);
         if (ind != SolutionVector::FIXED_NODE)
         {
-           v->setValue(i,0, V[ind] );
+            v->setValue(i,0, V[ind] );
         }
     }
 
@@ -241,16 +242,16 @@ void calcpot3d(
 //end calcpot3d
 
 void localKL(
-	double *p,
-	int *tt,
-	double lK[npt][npt],
-	double lL[npt],
-	int it,
-	Mesh* mesh,
-	SolutionVector* q,
-	LC* lc,
-	Electrodes* electrodes){
-    int i,j;
+    double *p,
+    int *tt,
+    double lK[npt][npt],
+    double lL[npt],
+    int it,
+    Mesh* mesh,
+    SolutionVector* q,
+    LC* lc,
+    Electrodes* electrodes){
+    idx i,j;
     double eper, deleps;
     double S0 = lc->getS0();
 
@@ -261,8 +262,8 @@ void localKL(
         deleps = (lc->eps_par - lc->eps_per) /S0;
     }
     else{ // otherwise dielectric
-       int ind_de = mesh->getDielectricNumber(it) - 1; // -1 for 0 indexing
-       eper = electrodes->getDielectricPermittivity(ind_de);
+        idx ind_de = mesh->getDielectricNumber(it) - 1; // -1 for 0 indexing
+        eper = electrodes->getDielectricPermittivity(ind_de);
     }
 
     //printf("deleps = %e\n", deleps);
@@ -273,102 +274,102 @@ void localKL(
     //printlK( &lK[0][0] , 4);
     //printf("gettin")
     double Jdet= mesh->getDeterminant(it);
-	// Jacobian
-		double xr,xs,xt,yr,ys,yt,zr,zs,zt;
-		xr=xs=xt=yr=ys=yt=zr=zs=zt=0.0;
+    // Jacobian
+    double xr,xs,xt,yr,ys,yt,zr,zs,zt;
+    xr=xs=xt=yr=ys=yt=zr=zs=zt=0.0;
 
-		for (i=0; i<npt; i++) {
-			xr+=sh1r[0][i]*p[ tt[i]*3 + 0 ]*1e-6;
-			xs+=sh1s[0][i]*p[ tt[i]*3 + 0 ]*1e-6;
-			xt+=sh1t[0][i]*p[ tt[i]*3 + 0 ]*1e-6;
+    for (i=0; i<npt; i++) {
+        xr+=sh1r[0][i]*p[ tt[i]*3 + 0 ]*1e-6;
+        xs+=sh1s[0][i]*p[ tt[i]*3 + 0 ]*1e-6;
+        xt+=sh1t[0][i]*p[ tt[i]*3 + 0 ]*1e-6;
 
-			yr+=sh1r[0][i]*p[ tt[i]*3 + 1 ]*1e-6;
-			ys+=sh1s[0][i]*p[ tt[i]*3 + 1 ]*1e-6;
-			yt+=sh1t[0][i]*p[ tt[i]*3 + 1 ]*1e-6;
+        yr+=sh1r[0][i]*p[ tt[i]*3 + 1 ]*1e-6;
+        ys+=sh1s[0][i]*p[ tt[i]*3 + 1 ]*1e-6;
+        yt+=sh1t[0][i]*p[ tt[i]*3 + 1 ]*1e-6;
 
-			zr+=sh1r[0][i]*p[ tt[i]*3 + 2 ]*1e-6;
-			zs+=sh1s[0][i]*p[ tt[i]*3 + 2 ]*1e-6;
-			zt+=sh1t[0][i]*p[ tt[i]*3 + 2 ]*1e-6;
-		}//end for i
-		//(xr*ys*zt-xr*zs*yt+xs*yt*zr-xs*yr*zt+xt*yr*zs-xt*ys*zr);
-		if (Jdet<0) Jdet = -Jdet;// printf("negative jacobian!\n");
-		//cout << "Jdet = " << Jdet << endl;
-		double Jinv[3][3]={{(zt*ys-yt*zs)/Jdet,(xt*zs-zt*xs)/Jdet,(xs*yt-ys*xt)/Jdet}
-						  ,{(yt*zr-zt*yr)/Jdet,(zt*xr-xt*zr)/Jdet,(xt*yr-yt*xr)/Jdet}
-						  ,{(yr*zs-ys*zr)/Jdet,(xs*zr-xr*zs)/Jdet,(ys*xr-xs*yr)/Jdet}};
+        zr+=sh1r[0][i]*p[ tt[i]*3 + 2 ]*1e-6;
+        zs+=sh1s[0][i]*p[ tt[i]*3 + 2 ]*1e-6;
+        zt+=sh1t[0][i]*p[ tt[i]*3 + 2 ]*1e-6;
+    }//end for i
+    //(xr*ys*zt-xr*zs*yt+xs*yt*zr-xs*yr*zt+xt*yr*zs-xt*ys*zr);
+    if (Jdet<0) Jdet = -Jdet;// printf("negative jacobian!\n");
+    //cout << "Jdet = " << Jdet << endl;
+    double Jinv[3][3]={{(zt*ys-yt*zs)/Jdet,(xt*zs-zt*xs)/Jdet,(xs*yt-ys*xt)/Jdet}
+                       ,{(yt*zr-zt*yr)/Jdet,(zt*xr-xt*zr)/Jdet,(xt*yr-yt*xr)/Jdet}
+                       ,{(yr*zs-ys*zr)/Jdet,(xs*zr-xr*zs)/Jdet,(ys*xr-xs*yr)/Jdet}};
 
-       double Sh[4],dSh[4][3];
-	   // x,y,z derivatives of shape functions
-	for(i=0;i<4;i++){
-	    dSh[i][0]=sh1r[0][i]*Jinv[0][0]+sh1s[0][i]*Jinv[1][0]+sh1t[0][i]*Jinv[2][0];
-            dSh[i][1]=sh1r[0][i]*Jinv[0][1]+sh1s[0][i]*Jinv[1][1]+sh1t[0][i]*Jinv[2][1];
-	    dSh[i][2]=sh1r[0][i]*Jinv[0][2]+sh1s[0][i]*Jinv[1][2]+sh1t[0][i]*Jinv[2][2];
-	}//end for i
+    double Sh[4],dSh[4][3];
+    // x,y,z derivatives of shape functions
+    for(i=0;i<4;i++){
+        dSh[i][0]=sh1r[0][i]*Jinv[0][0]+sh1s[0][i]*Jinv[1][0]+sh1t[0][i]*Jinv[2][0];
+        dSh[i][1]=sh1r[0][i]*Jinv[0][1]+sh1s[0][i]*Jinv[1][1]+sh1t[0][i]*Jinv[2][1];
+        dSh[i][2]=sh1r[0][i]*Jinv[0][2]+sh1s[0][i]*Jinv[1][2]+sh1t[0][i]*Jinv[2][2];
+    }//end for i
 
-	for (int igp=0; igp<ngp; igp++){
-	   Sh[0] = sh1[igp][0];
-	   Sh[1] = sh1[igp][1];
-	   Sh[2] = sh1[igp][2];
-	   Sh[3] = sh1[igp][3];
+    for (int igp=0; igp<ngp; igp++){
+        Sh[0] = sh1[igp][0];
+        Sh[1] = sh1[igp][1];
+        Sh[2] = sh1[igp][2];
+        Sh[3] = sh1[igp][3];
 
-	   double e11,e22,e33,e12,e13,e23;
-	   e11=0;e22=0;e33=0;e12=0;e13=0;e23=0;
-          //if (1){//
-           if ( mesh->getMaterialNumber(it) != MAT_DOMAIN1){ // if this element is not LC
-               // only set diagonal permittivities to non-zero
-               for ( i = 0 ; i<npt ;++i){
-                   e11+= sh1[igp][i]*eper;
-                   e22+= sh1[igp][i]*eper;
-                   e33+= sh1[igp][i]*eper;
-               }
+        double e11,e22,e33,e12,e13,e23;
+        e11=0;e22=0;e33=0;e12=0;e13=0;e23=0;
+        //if (1){//
+        if ( mesh->getMaterialNumber(it) != MAT_DOMAIN1){ // if this element is not LC
+            // only set diagonal permittivities to non-zero
+            for ( i = 0 ; i<npt ;++i){
+                e11+= sh1[igp][i]*eper;
+                e22+= sh1[igp][i]*eper;
+                e33+= sh1[igp][i]*eper;
+            }
 
-           }
-           else{// otherwise LC ->
-               for(i=0;i<npt;i++){
-                   e11+= sh1[igp][i]*(((2.0/3.0/S0)*(-q->getValue(tt[i],0) /rt6 + q->getValue(tt[i],1)/rt2)+(1.0/3.0))*deleps + eper);	//~nx*nx
-                   e22+= sh1[igp][i]*(((2.0/3.0/S0)*(-q->getValue(tt[i],0)/rt6 - q->getValue(tt[i],1)/rt2)+(1.0/3.0))*deleps + eper);	//~ny*ny
-                   e33+= sh1[igp][i]*(((2.0/3.0/S0)*(2.0*q->getValue(tt[i],0)/rt6)	     +(1.0/3.0))*deleps + eper);			//~nz*nz
-                   e12+= sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],2)/rt2)			*deleps;						//~nx*ny
-                   e13+= sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],4)/rt2)			*deleps;						//~nx*nz
-                   e23+= sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],3)/rt2)			*deleps;
-	       }
-	       //cout << "e =" << e11<<","<< e22<<","<< e33 <<","<< e12 <<","<< e13 <<","<< e23 << endl;
-	   }
-       // Local K and L
-       double mul=w[igp]*Jdet;
+        }
+        else{// otherwise LC ->
+            for(i=0;i<npt;i++){
+                e11+= sh1[igp][i]*(((2.0/3.0/S0)*(-q->getValue(tt[i],0) /rt6 + q->getValue(tt[i],1)/rt2)+(1.0/3.0))*deleps + eper);	//~nx*nx
+                e22+= sh1[igp][i]*(((2.0/3.0/S0)*(-q->getValue(tt[i],0)/rt6 - q->getValue(tt[i],1)/rt2)+(1.0/3.0))*deleps + eper);	//~ny*ny
+                e33+= sh1[igp][i]*(((2.0/3.0/S0)*(2.0*q->getValue(tt[i],0)/rt6)	     +(1.0/3.0))*deleps + eper);			//~nz*nz
+                e12+= sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],2)/rt2)			*deleps;						//~nx*ny
+                e13+= sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],4)/rt2)			*deleps;						//~nx*nz
+                e23+= sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],3)/rt2)			*deleps;
+            }
+            //cout << "e =" << e11<<","<< e22<<","<< e33 <<","<< e12 <<","<< e13 <<","<< e23 << endl;
+        }
+        // Local K and L
+        double mul=w[igp]*Jdet;
 
-       for (i=0; i<4; i++) {
-	   for (j=0; j<4; j++) {
+        for (i=0; i<4; i++) {
+            for (j=0; j<4; j++) {
 
-	       lK[i][j]+=mul*(
-		   dSh[i][0]*dSh[j][0]*e11+
-		   dSh[i][1]*dSh[j][1]*e22+
-		   dSh[i][2]*dSh[j][2]*e33+
+                lK[i][j]+=mul*(
+                            dSh[i][0]*dSh[j][0]*e11+
+                            dSh[i][1]*dSh[j][1]*e22+
+                            dSh[i][2]*dSh[j][2]*e33+
 
-		   dSh[i][0]*dSh[j][1]*(e12)+
-		   dSh[i][1]*dSh[j][0]*(e12)+
-		   dSh[i][1]*dSh[j][2]*(e23)+
-		   dSh[i][2]*dSh[j][1]*(e23)+
-		   dSh[i][0]*dSh[j][2]*(e13)+
-		   dSh[i][2]*dSh[j][0]*(e13)
-			   );
-	   }//end for j
-       }//end for i
-   }//end for igp
-  // printlK( &lK[0][0] , 4);
+                            dSh[i][0]*dSh[j][1]*(e12)+
+                            dSh[i][1]*dSh[j][0]*(e12)+
+                            dSh[i][1]*dSh[j][2]*(e23)+
+                            dSh[i][2]*dSh[j][1]*(e23)+
+                            dSh[i][0]*dSh[j][2]*(e13)+
+                            dSh[i][2]*dSh[j][0]*(e13)
+                            );
+            }//end for j
+        }//end for i
+    }//end for igp
+    // printlK( &lK[0][0] , 4);
 
 }// end void localKL
 void localKL_N(
-	double* p,
-	int* tt,
-	double lK[npt][npt],
-	double lL[npt],
-	int it,
-	int index_to_Neumann,
-	Mesh*  mesh,
-	Mesh* surf_mesh,
-	SolutionVector* q,
-	LC* lc){
+    double* p,
+    int* tt,
+    double lK[npt][npt],
+    double lL[npt],
+    int it,
+    int index_to_Neumann,
+    Mesh*  mesh,
+    Mesh* surf_mesh,
+    SolutionVector* q,
+    LC* lc){
     int i,j;
     double S0=lc->getS0();
 
@@ -391,14 +392,14 @@ void localKL_N(
     }
 
 
-   // if ( ( p[ tt[0]*3 + 2 ] <= 0.01)&&
-	// ( p[ tt[1]*3 + 2 ] <= 0.01)&&
-	 //( p[ tt[2]*3 + 2 ] <= 0.01) ){
+    // if ( ( p[ tt[0]*3 + 2 ] <= 0.01)&&
+    // ( p[ tt[1]*3 + 2 ] <= 0.01)&&
+    //( p[ tt[2]*3 + 2 ] <= 0.01) ){
 
-//	printf("normal[%i] = %f,%f,%f\n",it, n[0], n[1] , n[2]);
+    //	printf("normal[%i] = %f,%f,%f\n",it, n[0], n[1] , n[2]);
 
-  //  }
-//*/
+    //  }
+    //*/
 
 
     double eDet = surf_mesh->getDeterminant(it);
@@ -425,8 +426,8 @@ void localKL_N(
     }//end for i
 
     double Jinv[3][3]={{ (zt*ys-yt*zs)/Jdet , (xt*zs-zt*xs)/Jdet , (xs*yt-ys*xt)/Jdet}
-			 ,{ (yt*zr-zt*yr)/Jdet , (zt*xr-xt*zr)/Jdet , (xt*yr-yt*xr)/Jdet}
-			 ,{ (yr*zs-ys*zr)/Jdet , (xs*zr-xr*zs)/Jdet , (ys*xr-xs*yr)/Jdet}};
+                       ,{ (yt*zr-zt*yr)/Jdet , (zt*xr-xt*zr)/Jdet , (xt*yr-yt*xr)/Jdet}
+                       ,{ (yr*zs-ys*zr)/Jdet , (xs*zr-xr*zs)/Jdet , (ys*xr-xs*yr)/Jdet}};
 
     double Sh[4],dSh[4][3];
     for(i=0;i<4;i++){
@@ -452,7 +453,7 @@ void localKL_N(
 	    e12+= sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],2)/rt2)			*deleps;						//~nx*ny
 	    e13+= sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],4)/rt2)			*deleps;						//~nx*nz
 	    e23+= sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],3)/rt2)			*deleps;					//~ny*nz
-	 }//end for i
+        }//end for i
 	double mul=wsurf[igp]*eDet;
 	for (i=0; i<4; i++){
 	    for (j=0; j<4; j++){
@@ -461,7 +462,7 @@ void localKL_N(
 				     +(e13*dSh[j][0] + e23*dSh[j][1] + (e33-1)*dSh[j][2])*n[2] );
 	    }//end for j
 	}//end for i
-   }//end for igp
+    }//end for igp
 }
 // end void localKL
 
@@ -469,15 +470,15 @@ void localKL_N(
 
 
 void assemble_volume(
-	double *p,
-	SolutionVector *v,
-	SolutionVector* q,
-	LC* lc,
-	Mesh *mesh,
-	SparseMatrix *K,
-	double* L,
-	Electrodes* electrodes){
-    int it;
+    double *p,
+    SolutionVector *v,
+    SolutionVector* q,
+    LC* lc,
+    Mesh *mesh,
+    SparseMatrix *K,
+    double* L,
+    Electrodes* electrodes){
+    idx it;
     //#pragma omp parallel for
 
 
@@ -495,7 +496,7 @@ void assemble_volume(
 
 	localKL(p,t,lK,lL,it, mesh,q,lc,electrodes);
 	//printlK( &lK[0][0] , npt);
-        for (int i=0; i<npt; i++) // FOR ROWS
+        for (idx i=0; i<npt; i++) // FOR ROWS
         {
 	    int ri=v->getEquNode(t[i]);
 
@@ -507,7 +508,10 @@ void assemble_volume(
                     int nc = v->getEquNode( t[j] ); // INDEX TO CONNECTED NODE DEGREE OF FREEDOM POSITION
                     if (nc != SolutionVector::FIXED_NODE )
                     {
-                        #pragma omp atomic
+#ifndef DEBUG
+#pragma omp atomic
+#endif
+
                         L[ nc ] -= lK[i][j]*v->getValue(t[i]); // L = -K*v
                     }
 		}
@@ -515,7 +519,7 @@ void assemble_volume(
             }// END IF ROW NODE IS FIXED
 
             if ( ri!=SolutionVector::FIXED_NODE )
-                for (int j=0; j<npt  ; j++) // FOR COLUMNS
+                for (idx j=0; j<npt  ; j++) // FOR COLUMNS
                 {
                     int rj=v->getEquNode(t[j]);
                     if (rj != SolutionVector::FIXED_NODE )
@@ -523,84 +527,88 @@ void assemble_volume(
                         K->sparse_add(rj,ri,lK[j][i]);
                     }
                 }//end for j
-          }//end for i
-       }//end for it
-  }// end void assemble_volume
+        }//end for i
+    }//end for it
+}// end void assemble_volume
 
 ////////////////////////////////////////////////////////////////////////////////
 // assemble Neumann boundaries
 void assemble_Neumann(
-       double *p,
-       SolutionVector *v,
-       SolutionVector* q,
-       LC* lc,
-       Mesh *mesh,
-       Mesh* surf_mesh,
-       SparseMatrix *K,
-       double* L){
-   int it = 0;
+    double *p,
+    SolutionVector *v,
+    SolutionVector* q,
+    LC* lc,
+    Mesh *mesh,
+    Mesh* surf_mesh,
+    SparseMatrix *K,
+    double* L){
+    idx it = 0;
+#ifndef DEBUG
 #pragma omp parallel for
-   for (it=0; it < surf_mesh->getnElements(); it++)
-   {
-       int index_to_Neumann = surf_mesh->getConnectedVolume(it);
+#endif
+    for (it=0; it < surf_mesh->getnElements(); it++)
+    {
+        int index_to_Neumann = surf_mesh->getConnectedVolume(it);
 
-       if ( (index_to_Neumann > -1) && (surf_mesh->getMaterialNumber(it) == MAT_NEUMANN))// if connected to LC tet
-       {
+        if ( (index_to_Neumann > -1) && (surf_mesh->getMaterialNumber(it) == MAT_NEUMANN))// if connected to LC tet
+        {
 
-           double lK[4][4];
-           double lL[4];
-           int ee[3] = {   surf_mesh->getNode(it,0) ,
-                           surf_mesh->getNode(it,1) ,
-                           surf_mesh->getNode(it,2) } ;
+            double lK[4][4];
+            double lL[4];
+            int ee[3] = {   surf_mesh->getNode(it,0) ,
+                            surf_mesh->getNode(it,1) ,
+                            surf_mesh->getNode(it,2) } ;
 
-           int tt[4] = { tt[0] =   mesh->getNode(index_to_Neumann,0),
-                         mesh->getNode(index_to_Neumann,1),
-                         mesh->getNode(index_to_Neumann,2),
-                         mesh->getNode(index_to_Neumann,3)};
+            int tt[4] = { tt[0] =   mesh->getNode(index_to_Neumann,0),
+                          mesh->getNode(index_to_Neumann,1),
+                          mesh->getNode(index_to_Neumann,2),
+                          mesh->getNode(index_to_Neumann,3)};
 
-           int intr = 0;//find  index to internal node
+            int intr = 0;//find  index to internal node
 
-           for (int i=0;i<4;i++){
-               if ( (tt[i]!= ee[0]) && (tt[i]!= ee[1]) && (tt[i]!= ee[2]) ){
-                   intr = i;
-                   break;
-               }
-           }
+            for (int i=0;i<4;i++){
+                if ( (tt[i]!= ee[0]) && (tt[i]!= ee[1]) && (tt[i]!= ee[2]) ){
+                    intr = i;
+                    break;
+                }
+            }
 
-           int ti[4] = { ee[0], ee[1], ee[2], tt[intr] }; // reordered local element, internal node is always last
+            int ti[4] = { ee[0], ee[1], ee[2], tt[intr] }; // reordered local element, internal node is always last
 
-	   localKL_N(p,&ti[0], lK , lL, it,index_to_Neumann, mesh, surf_mesh, q, lc);
+            localKL_N(p,&ti[0], lK , lL, it,index_to_Neumann, mesh, surf_mesh, q, lc);
 
-	   for (int i=0; i<4; i++){
-	       int ri=v->getEquNode(ti[i]);
+            for (int i=0; i<4; i++){
+                int ri=v->getEquNode(ti[i]);
 
-               if (ri == SolutionVector::FIXED_NODE ) // HANDLE FIXED NODE
-               {
-		   for (int j = 0; j<4 ; j++)
-                   {
-                       int cr = v->getEquNode( ti[j] ); // CONNECTED NODE DOF ORDER
-                       if (cr != SolutionVector::FIXED_NODE )
-                       {
-                            #pragma omp atomic
+                if (ri == SolutionVector::FIXED_NODE ) // HANDLE FIXED NODE
+                {
+                    for (int j = 0; j<4 ; j++)
+                    {
+                        int cr = v->getEquNode( ti[j] ); // CONNECTED NODE DOF ORDER
+                        if (cr != SolutionVector::FIXED_NODE )
+                        {
+#ifndef DEBUG
+#pragma omp atomic
+#endif
                             L[cr ] -= lK[j][i]*v->getValue(ti[i]);
-                       }
-                   }
-               }// END HANDLE FIXED NODE
-               else // HANDLE FREE NODE
-               {
-                   for (int j=0; j<4; j++) // FOR COLUMNS
-                   {
-                       int rj=v->getEquNode(ti[j]);
+                        }
+                    }
+                }// END HANDLE FIXED NODE
+                else // HANDLE FREE NODE
+                {
+                    for (int j=0; j<4; j++) // FOR COLUMNS
+                    {
+                        int rj=v->getEquNode(ti[j]);
 
-                       if (rj != SolutionVector::FIXED_NODE )
-                       {
-                           K->sparse_add( rj,ri,lK[j][i] );
-                       }
-                   }//end for j
-               }// END HANDLE FREE NODES
-           }//end for i
-       }//end if LC
-   }//end for it
+                        if (rj != SolutionVector::FIXED_NODE )
+                        {
+                            K->sparse_add( rj,ri,lK[j][i] );
+                        }
+                    }//end for j
+                }// END HANDLE FREE NODES
+            }//end for i
+        }//end if LC
+    }//end for it
 }//end void assemble_Neumann
 
 
@@ -659,10 +667,10 @@ void Pot_PCG(SparseMatrix *K, double *b, double *V, Settings* settings )
     int nnz = K->nnz;
     int size = K->rows;
 
-       //for (int ee = 0 ; ee < size; ee++)
-       //	printf("b[%i] =%f\n", ee, b[ee]*1e18);
+    //for (int ee = 0 ; ee < size; ee++)
+    //	printf("b[%i] =%f\n", ee, b[ee]*1e18);
 
-       // Create SparseLib++ data structures
+    // Create SparseLib++ data structures
     CompCol_Mat_double A;
     A.point_to(size, nnz, K->P, K->I, K->J);
 
@@ -672,7 +680,7 @@ void Pot_PCG(SparseMatrix *K, double *b, double *V, Settings* settings )
     X.point_to(V, size);
     VECTOR_double B;// = VECTOR_double(b,A.dim(0));
     B.point_to(b , size );
-       // PCG settings...
+    // PCG settings...
     int return_flag =10;
     int maxiter =settings->getV_PCG_Maxiter();
 
@@ -682,7 +690,7 @@ void Pot_PCG(SparseMatrix *K, double *b, double *V, Settings* settings )
     if (settings->getV_PCG_Preconditioner() == DIAG_PRECONDITIONER )
     {
         DiagPreconditioner_double D(A); // diagonal preconditioning, ~+3 times faster than cholesky
-       return_flag = CG(A,X,B,D,maxiter,toler);
+        return_flag = CG(A,X,B,D,maxiter,toler);
     }
     else if (settings->getV_PCG_Preconditioner() == IC_PRECONDITIONER )
     {
@@ -691,21 +699,21 @@ void Pot_PCG(SparseMatrix *K, double *b, double *V, Settings* settings )
     }
     else if (settings->getV_PCG_Preconditioner() == ILU_PRECONDITIONER )
     {
-       CompCol_ILUPreconditioner_double D(A); // compressed column format ILU
-       return_flag = CG(A,X,B,D,maxiter,toler);
+        CompCol_ILUPreconditioner_double D(A); // compressed column format ILU
+        return_flag = CG(A,X,B,D,maxiter,toler);
     }
 
     if (return_flag == 1) // if no convergence, print warni
         printf("PCG did not converge in %i iterations \nTolerance achieved is %f\n",maxiter,toler);
 
 
-       //copy solution back to solution vector
-       //for (int i = 0; i < sv->getnDoF() ; i++)
-//	       sv->setValue(i , 0 , -X(sv->getEquNode(i)));
+    //copy solution back to solution vector
+    //for (int i = 0; i < sv->getnDoF() ; i++)
+    //	       sv->setValue(i , 0 , -X(sv->getEquNode(i)));
 
 }
 void Pot_GMRES(SparseMatrix *K, double *b, double* V, Settings* settings ){
-/*! Solves the Linear simulatenous equation Ax=b using the GMRES method*/
+    /*! Solves the Linear simulatenous equation Ax=b using the GMRES method*/
 
     int nnz = K->nnz;
     int size = K->rows;
@@ -713,7 +721,7 @@ void Pot_GMRES(SparseMatrix *K, double *b, double* V, Settings* settings ){
     CompCol_Mat_double A;
     A.point_to(size , nnz, K->P, K->I, K->J);
 
-   //Convert solution vector and RHS vector to SparseLib++
+    //Convert solution vector and RHS vector to SparseLib++
     VECTOR_double X; //=  VECTOR_double(sv->Values,A.dim(0)); // cannot use "point_to" with potential values because reoredring is done after calculation
     VECTOR_double B;
     X.point_to( V , size );
@@ -749,9 +757,9 @@ void Pot_GMRES(SparseMatrix *K, double *b, double* V, Settings* settings ){
 
 
     //copy solution back to solution vector
-//#pragma omp parallel for
-//    for (int i = 0; i < sv->getnDoF() ; i++)
-//        sv->setValue(i , 0 , -X(sv->getEquNode(i)) );
+    //#pragma omp parallel for
+    //    for (int i = 0; i < sv->getnDoF() ; i++)
+    //        sv->setValue(i , 0 , -X(sv->getEquNode(i)) );
 
 }
 

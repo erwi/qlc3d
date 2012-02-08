@@ -23,8 +23,11 @@ void handleElectrodeSwitching(Event* currentEvent,
     if ( simu.getdt()!= 0.0 )
         simu.setdt( simu.getMindt() );
 
+    // IF SWITCHING INSTANCE IS A FLAG FOR UNIFORM ELECTRIC FIELD, CAN EXIT
+    if (  si->electrodeNumber == SwitchingInstance::UNIFORM_E_FIELD )
+        return;
 
-    // SET THE NEW ELECTRODE VALUE
+    // SET THE NEW ELECTRODE VALUE. FIRST CHECK THAT
     electr.setElectrodePotential( si->electrodeNumber, si->potential);
 
     // SET POTENTIAL BOUNDARY CONDITIONS FOR ALL ELECTRODES

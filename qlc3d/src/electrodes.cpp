@@ -34,6 +34,8 @@ void Electrode::printElectrode(const int& num) const
 
 }
 */
+// SET MAGIC CONSTANT FOR INDICATING UNIFORM ELECTRIC FIELD
+const size_t SwitchingInstance::UNIFORM_E_FIELD = numeric_limits<size_t>::max();
 
 //===========================================================
 //

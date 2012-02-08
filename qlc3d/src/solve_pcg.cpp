@@ -73,9 +73,10 @@ void solve_pcg(SparseMatrix *K, double *b, double* x, Settings* settings )
 	if (return_flag == 1) // if no convergence, print warning msg.
 			printf("PCG did not converge in %i iterations \nTolerance achieved is %f\n",maxiter,toler);
 
-    //cout << "Edone" << endl;
-	//copy solution back to solution vector
-    #pragma omp parallel for
+    //copy solution back to solution vector
+#ifndef DEBUG
+#pragma omp parallel for
+#endif
     for (int i = 0; i < size ; i++)
         x[i]*= -1;//-X(i);
 
@@ -125,7 +126,9 @@ void solve_gmres(SparseMatrix *K, double *b, double* x, Settings* settings ){
 
 
 	//copy solution back to solution vector
+#ifndef DEBUG
     #pragma omp parallel for
+#endif
     for (int i = 0; i < size ; i++)
         x[i] *= -1;//X(i);
 
