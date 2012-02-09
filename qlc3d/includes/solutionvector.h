@@ -39,12 +39,12 @@ class SolutionVector
 private:
     idx nDoF;		// number number of degrees of freedom per dimension
     idx nFixed;
-    int nDimensions;// number of dofs per node. e.g potential = 1, Q = 5
-    int* FixedNodeMaterial;  // material number of fixed nodes
+    idx nDimensions;// number of dofs per node. e.g potential = 1, Q = 5
+    idx* FixedNodeMaterial;  // material number of fixed nodes
     bool* IsFixed;
-    int* Elim; 		// effective node ordering after taking into account periodic nodes that need not solving NOT SAME AS PERIODIC EQUIVALENT NODE
-    int* EquNodes;	// nodal equivalencies - i.e. periodic nodes
-    int nFreeNodes; // number of independent degrees of freedom = nDoF - # number of nodes eliminated as periodic
+    idx* Elim; 		// effective node ordering after taking into account periodic nodes that need not solving NOT SAME AS PERIODIC EQUIVALENT NODE
+    idx* EquNodes;	// nodal equivalencies - i.e. periodic nodes
+    idx nFreeNodes; // number of independent degrees of freedom = nDoF - # number of nodes eliminated as periodic
 
     void setBooleanFixedNodeList(); // creates list of booleans (bool* IsFixed) for each node true=fixed node, false = free node
     void setCornerElim(	list <int>& corn0, // sets periodic equivalent nodes for 4 corners
@@ -62,11 +62,11 @@ private:
                       double* coords); // pointer to node coordinates
 public:
 
-    static const int FIXED_NODE = -1;  // INDEX VALUE OF A FIXED NODE
+    //static const int FIXED_NODE = -1;  // INDEX VALUE OF A FIXED NODE
 
     // DATA
     bool IsVector;
-    int *FixedNodes;        // INDEX TO EACH FIXED NODE
+    idx *FixedNodes;        // INDEX TO EACH FIXED NODE
     double *FixedValues;    // HOLDS NODE VALUE FOR EACH FIXED NODE
     double *Values;
     // END DATA
@@ -123,7 +123,12 @@ public:
     void setValuesTo(const SolutionVector& other); // copies values from other SolutionVector
     void setValue(const idx n,const idx dim, const double val);// sets nth value of dimension dim to val
     void setToFixedValues();
-    void setFixedNodes(vector<int> *Material, vector<double> *val ,int *Elem,int *Mat,int nElem,int nNodes);
+    void setFixedNodes(vector<int> *Material,
+                       vector<double> *val ,
+                       idx *Elem,
+                       idx *Mat,
+                       idx nElem,
+                       idx nNodes);
     void setFixedNodes(Alignment *alignment, int* e);
     void setFixedNodesQ(Alignment* alignment, Mesh* e);
     void setFixedNodesPot(Electrodes* electrodes);

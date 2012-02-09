@@ -7,47 +7,19 @@
 #include <globals.h>
 using std::set;
 
-struct Sphere{
-    double centre[3];
-    double radius;
-};
-
-// REPOULATES LIST i_tred WITH IDEXES TO TETS IN m THAT CONTAIN AT LEAST num NODES FROM LIST i_p
-void contains_nodes( Mesh* m,				// mesh whose elements are checked
-                     set <idx>& i_p,		// index to all internal nodes
-                     const int& num,				// minimum number of nodes needed to be included in
-                     set< unsigned int>& i_tred){	// index to elements that contain at least 'num' nodes from 'i_p'
-    //
-    // THIS COULD BE MADE MUCH FASTER IF AN INDEX FROM NODES->ELEMENTS WAS MADE FIRST
-    //
-    i_tred.clear();
-    set <unsigned int> :: iterator p_itr;
-    for (unsigned int t = 0 ; t < (unsigned int) m->getnElements() ; t++){ // for all elements
-	int count = 0;
-	for (unsigned int i = 0 ; i < (unsigned int) m->getnNodes() ; i ++){ // for all nodes in this element
-	    for ( p_itr = i_p.begin() ; p_itr != i_p.end() ; p_itr ++ ){
-		if ( *p_itr == (unsigned int) m->getNode((int) t , (int) i) ) // if this element contains node *p_itr
-		    count ++;
-
-	    }// end for
-	}// end for nodes
-	if (count >= num )
-	    i_tred.insert( t );
-    }// end for elements
-}// end contains_nodes
-
-//
+/*
 void find_unique_nodes( Mesh* m , set <unsigned int>& ind_m , set <unsigned int>& i_p){
     i_p.clear();
     set <unsigned int> :: iterator m_itr; // iterator to index of chosen tets
     int nnodes = m->getnNodes();
     for ( m_itr = ind_m.begin() ; m_itr != ind_m.end() ; m_itr++ ) { // loop over each element in mesh
-	for ( int n = 0 ; n < nnodes ; n++){ // loop over each node in this element. assumes same number of nodes per element
-	    i_p.insert( m->getNode(*m_itr , n) );
-	}// end for loop over nodes
+ for ( int n = 0 ; n < nnodes ; n++){ // loop over each node in this element. assumes same number of nodes per element
+     i_p.insert( m->getNode(*m_itr , n) );
+ }// end for loop over nodes
     }// end for loop over elements
 }
-
+*/
+//*
 void find_all_core_lines( vector<Line>& lines, const vector <unsigned int>& i_tet, Mesh* m){
     // creates unique set of lines from all bisectable lines of red tets
     // only works for tets!
@@ -77,12 +49,12 @@ void find_all_core_lines( vector<Line>& lines, const vector <unsigned int>& i_te
     u = unique( lines.begin() , lines.end() );                // REORDER
     lines.resize( u - lines.begin() );  // RESIZE
 }
-
-void count_lines(   Mesh* m,						// mesh elements
-                    vector< set <unsigned int> >& p_to_m ,	// point to elements indices
-                    const vector<Line>& lines ,				// list of lines
-                    vector <unsigned int>& i_elem,			// counter array
-                    vector < set < unsigned int> >& m_to_l	// elements to lines indices
+//*/
+void count_lines(   Mesh* m,                                // mesh elements
+                    vector< set < idx > >& p_to_m ,         // point to elements indices
+                    const vector<Line>& lines ,             // list of lines
+                    vector < idx >& i_elem,                 // counter array
+                    vector < set < idx> >& m_to_l           // elements to lines indices
                     ){
     // COUNT NUMBER OF OCCURRENCIES OF LINES IN ELEMENTS.
     // LOOP OVER EACH LINE. USE p_to_m INDICES TO FIND ELEMENTS
@@ -98,21 +70,18 @@ void count_lines(   Mesh* m,						// mesh elements
     set <unsigned int> empty;
     m_to_l.assign( m->getnElements() , empty );
 
-
     // pragma omp loopable?
     int num_points = (int) p_to_m.size();
-    for ( unsigned int l = 0 ; l< (unsigned int) lines.size() ; l++){// for each line
-        //if ( (l == 15 ) && (lines.size() == 3653) )
-        //    int b = 0;
-
-        int n1 = lines[l].L[0];
+    for ( idx l = 0 ; l< (idx) lines.size() ; l++)// for each line
+    {
+        int n1 = lines[l].L[0]; // FIRST AND SECOND NODE NOBERS OF LINE l
         int n2 = lines[l].L[1];
 
         // IF ELEMENT TYPE IS TRIANGLE, NOT ALL NODES HAVE CONNECTIONS TO A TRIANGLE
         // CHECK THAT NODENUMBERS ARE VALID, THESE
         // SHOULD ALWAYS BE FOR TETS, BUT NOT NOT ALWAYS FOR TRIS
-
-        if ( (n1 < num_points ) && ( n2 < num_points ) ){
+        if ( (n1 < num_points ) && ( n2 < num_points ) )
+        {
             // INDEXES TO ALL TETS CONNECTED TO FIRST  AND SECOND NODES OF THIS LINE
             set <unsigned int> elems1;
             set <unsigned int> elems2;
@@ -125,19 +94,17 @@ void count_lines(   Mesh* m,						// mesh elements
             set_intersection( elems1.begin() , elems1.end() , elems2.begin() , elems2.end() ,back_inserter(elems_res) );
             // elems_res now contains list of all elements that share this line
             // increase counter for those elements that contain lines in 'line;
-            for (int i = 0; i < (int) elems_res.size() ; i++){ // loop over all elements sharing the line
+            for (int i = 0; i < (int) elems_res.size() ; i++) // loop over all elements sharing the line
+            {
                 // increment element line count
                 i_elem[ elems_res[i] ]++;
                 // adds index from element to this line
                 m_to_l[ elems_res[i] ].insert( l ); // can be made faster by inserting last using iterators
             }// end for
         } // end check for valid nodenumber
-
-
-
     }// end for all lines
 }// end count lines
-void find_tet_refinement_types(vector <unsigned int>& i_tet, // tet line counts
+void find_tet_refinement_types(vector < idx >& i_tet, // tet line counts
                                Num_Ref_Tet& nrt )
 { // tet to lines index
     nrt.green1 = 0; // RESET
@@ -145,9 +112,8 @@ void find_tet_refinement_types(vector <unsigned int>& i_tet, // tet line counts
     nrt.green3 = 0;
     nrt.red    = 0;
 
-    for (int i = 0 ; i < (int) i_tet.size() ; i++) // loop over tet bisection line count
+    for (idx i = 0 ; i < (idx) i_tet.size() ; i++) // loop over tet bisection line count
     {
-
         if ( i_tet[i]==0 ){} // do nothing
         else if ( i_tet[i] ==GREEN1_TET )
         {
@@ -166,40 +132,43 @@ void find_tet_refinement_types(vector <unsigned int>& i_tet, // tet line counts
             nrt.red ++;
             i_tet[i] = RED_TET ; // enforces anything above and including 4 is actually 6
         }
-
     }// end for
-
 }
 
 
-void fix_green3_red_confusions( vector <unsigned int>& i_tet,		// tets line counter
-                                vector<Line>& lines,					// bisected lines
-                                vector< set<unsigned int> > t_to_l){ // index from tets to  lines
+void fix_green3_red_confusions( vector <idx>& i_tet,        // tets line counter
+                                vector<Line>& lines,        // bisected lines
+                                vector< set<idx> > t_to_l)  // index from tets to  lines
+{
     // SOME ELEMENTS MARKED AS GREEN 3 ARE IN FACT RED TETS
     // GREEN 3 CONTAIN 3 BISECTABLE LINES FORMING A CLOSED LOOP -> 3 UNIQUE NODES
     // IN RED TETS, SOME OTHER CONFIGURATION OF 3 LINES EXIST -> 4 UNIQUE NODES
 
-
     // LOOP OVER EACH TET-LINE COUNTER PRAGMA OMP'ABLE
     //#pragma omp parallel for
-    for (unsigned int i = 0 ; i < i_tet.size() ; i++){ // for all tets
+    for (idx i = 0 ; i < i_tet.size() ; i++) // for all tets
+    {
         // IF PREVIOUSLY MARKED AS A GREEN 3 TET
-        if ( i_tet[i] == 3){
+        if ( i_tet[i] == 3)
+        {
             // LOOP OVER ALL ITS BISECABLE LINES AND CHECK
             // NUMBER OF UNIQUE NODES
-            set <unsigned int> ::iterator itr;
-            set < int > nodes; // nodes set, size of this determines type
-            for (itr = t_to_l[i].begin() ; itr != t_to_l[i].end() ; itr++){ // for index to lines
+            set < idx > ::iterator itr;
+            set < idx > nodes; // nodes set, size of this determines type
+            for (itr = t_to_l[i].begin() ; itr != t_to_l[i].end() ; itr++) // for index to lines
+            {
                 nodes.insert( lines[*itr].L[0]); // insert both nodes of line
                 nodes.insert( lines[*itr].L[1]);
             }// end for index to lines
-            //cout << "total number of nodes " << nodes.size() << endl;
-            if (nodes.size() == 4 ){
+
+            if (nodes.size() == 4 )
+            {
                 // THIS ELEMENT IS ACTUALLY RED. MAKE IT SO!
                 i_tet[i] = 6; // 6 is magic for red
             }
 #ifdef DEBUG
-            else if ( nodes.size() != 3){ // debig
+            else if ( nodes.size() != 3) // debug
+            {
                 cout << " error in fix_green_red_confusions - this should not happen "<< endl;
                 cout << " something has gone badly wrong - bye!" << endl;
                 exit(1);
@@ -236,8 +205,6 @@ void gen_peri_lines_vec(peri_lines& plines,
         if ( geom.e->getMaterialNumber(i) == MAT_PERIODIC )
         {
             idx* n = geom.e->getPtrToElement( i ); // pointer to element node numbers
-
-
             Line lines[3] = {Line(n[0], n[1]), Line(n[0], n[2]) , Line(n[1], n[2]) };
 
             for ( idx l = 0 ; l < 3 ; l++)
@@ -309,7 +276,6 @@ void gen_peri_lines_vec(peri_lines& plines,
 
 }
 
-
 bool find_transl_line( Line& l1,
                        vector<Line>& lines,
                        Geometry& geom,
@@ -317,23 +283,22 @@ bool find_transl_line( Line& l1,
                        vector<Line>:: iterator& other
                        )
 {
-    /*! compares line l1 with lines in vector lines and checks whether it is
- * a tranlation described by dir. sets other to found line and returns true
- * if successfull
-*/
+// compares line l1 with lines in vector lines and checks whether it is
+// a tranlation described by dir. sets other to found line and returns true
+// if successfull
+
     // loop over all possible lines and compare
     for (other = lines.begin() ; other!= lines.end() ; other++)
     {
         if ( l1.isTranslationOf(*other, &geom, dir ) )
             return true;
     }
-
     return false;
 }
 
-void expand_periodic_boundaries( 	vector <Line>& lines, // lines to split
-                                        peri_lines& plines,  // lines on periodic boundary
-                                        Geometry& geom )
+void expand_periodic_boundaries(vector <Line>& lines, // lines to split
+                                peri_lines& plines,  // lines on periodic boundary
+                                Geometry& geom )
 {
     /*! This function checks each line in vector lines for its periodic
   *  equivalencies and adds them to the list of bisectable lines.
@@ -581,9 +546,9 @@ void expand_refinement_region(vector <unsigned int>& i_tet,	// index to tet bise
 			      Geometry& geom_prev,		// geometry
 			      vector < set <unsigned int> >& t_to_l        // tets to lines index
 			      ){	// index to core nodes
-// REFINEMENT REGION MAY NEED TO BE EXPANDED IN ORDER TO MAINTAIN
-// PERIODIC BOUNDARY CONDITIONS OR IN SOME CASES TO
-// AVOID SPECIALLY AWKWARD CONCAVE REFINEMENT REGIONS
+    // REFINEMENT REGION MAY NEED TO BE EXPANDED IN ORDER TO MAINTAIN
+    // PERIODIC BOUNDARY CONDITIONS OR IN SOME CASES TO
+    // AVOID SPECIALLY AWKWARD CONCAVE REFINEMENT REGIONS
     if ( nrt.red == 0 )
 	return; // exit if nothing to do
 

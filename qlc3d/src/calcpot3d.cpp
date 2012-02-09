@@ -225,8 +225,10 @@ void calcpot3d(
 
     for (idx i = 0 ; i < v->getnDoF() ; i++)
     {
-        int ind = v->getEquNode(i);
-        if (ind != SolutionVector::FIXED_NODE)
+        idx ind = v->getEquNode(i);
+
+        // EQU NODES OF FIXED DOFS ARE ALL "NOT_AN_INDEX"
+        if (ind != NOT_AN_INDEX)
         {
             v->setValue(i,0, V[ind] );
         }
@@ -498,31 +500,30 @@ void assemble_volume(
 	//printlK( &lK[0][0] , npt);
         for (idx i=0; i<npt; i++) // FOR ROWS
         {
-	    int ri=v->getEquNode(t[i]);
+            idx ri=v->getEquNode(t[i]);
 
             // RHS FIXED NODE HANDLING
-            if ( ri == SolutionVector::FIXED_NODE ) // IF THIS NODE IS FIXED
+            if ( ri == NOT_AN_INDEX ) // IF THIS NODE IS FIXED
             {
                 for (int j = 0; j<4 ; j++)// SET CONTRIBUTION TO CONNECTED *FREE* NODES
                 {
-                    int nc = v->getEquNode( t[j] ); // INDEX TO CONNECTED NODE DEGREE OF FREEDOM POSITION
-                    if (nc != SolutionVector::FIXED_NODE )
+                    idx nc = v->getEquNode( t[j] ); // INDEX TO CONNECTED NODE DEGREE OF FREEDOM POSITION
+                    if (nc != NOT_AN_INDEX )
                     {
-#ifndef DEBUG
-#pragma omp atomic
-#endif
-
+                    #ifndef DEBUG
+                    #pragma omp atomic
+                    #endif
                         L[ nc ] -= lK[i][j]*v->getValue(t[i]); // L = -K*v
                     }
 		}
-                //L[ri] = 0; // if not dirichlet, RHS = 0: L = 0
+
             }// END IF ROW NODE IS FIXED
 
-            if ( ri!=SolutionVector::FIXED_NODE )
+            if ( ri != NOT_AN_INDEX )
                 for (idx j=0; j<npt  ; j++) // FOR COLUMNS
                 {
-                    int rj=v->getEquNode(t[j]);
-                    if (rj != SolutionVector::FIXED_NODE )
+                    idx rj=v->getEquNode(t[j]);
+                    if (rj != NOT_AN_INDEX )
                     {
                         K->sparse_add(rj,ri,lK[j][i]);
                     }
@@ -577,15 +578,15 @@ void assemble_Neumann(
 
             localKL_N(p,&ti[0], lK , lL, it,index_to_Neumann, mesh, surf_mesh, q, lc);
 
-            for (int i=0; i<4; i++){
-                int ri=v->getEquNode(ti[i]);
-
-                if (ri == SolutionVector::FIXED_NODE ) // HANDLE FIXED NODE
+            for (int i=0; i<4; i++)
+            {
+                idx ri=v->getEquNode(ti[i]);
+                if (ri == NOT_AN_INDEX ) // HANDLE FIXED NODE
                 {
                     for (int j = 0; j<4 ; j++)
                     {
-                        int cr = v->getEquNode( ti[j] ); // CONNECTED NODE DOF ORDER
-                        if (cr != SolutionVector::FIXED_NODE )
+                        idx cr = v->getEquNode( ti[j] ); // CONNECTED NODE DOF ORDER
+                        if (cr != NOT_AN_INDEX )
                         {
 #ifndef DEBUG
 #pragma omp atomic
@@ -598,9 +599,8 @@ void assemble_Neumann(
                 {
                     for (int j=0; j<4; j++) // FOR COLUMNS
                     {
-                        int rj=v->getEquNode(ti[j]);
-
-                        if (rj != SolutionVector::FIXED_NODE )
+                        idx rj=v->getEquNode(ti[j]);
+                        if (rj != NOT_AN_INDEX )// NON-FIXED NODE
                         {
                             K->sparse_add( rj,ri,lK[j][i] );
                         }

@@ -78,7 +78,7 @@ void create_dangly_matrix(vector <Line>& lines,
 }
 
 // CREATES DANGLY FROM GEOMETRY
-void create_dangly_matrix(vector< list <unsigned int> > & dangly,
+void create_dangly_matrix(vector< list <idx> > & dangly,
                             Geometry& geom,
                             SolutionVector& sol,
                             const idx& MatNum)
@@ -86,21 +86,20 @@ void create_dangly_matrix(vector< list <unsigned int> > & dangly,
     /* Creates a dangly sparse matrix of a Geometry, SolutionVector and material number */
 
     dangly.clear();
-    list <unsigned int> empty;
+    list <idx> empty;
 
 
     dangly.assign( sol.getnFreeNodes() , empty ); // pre-allocate columns
 
-    const unsigned int npt = (unsigned int ) geom.t->getnNodes();
-    //int* eqn = new int[ npt ]; // LOCAL EQU NODES
-    vector<int> eqn(npt, 0);
+    const idx npt = geom.t->getnNodes();
+    vector <idx> eqn(npt, 0);
+
     eqn.resize(npt);
-    for (idx it = 0 ; it < (size_t) geom.t->getnElements() ; it++) // LOOP OVER EACH ELEMENT
+    for (idx it = 0 ; it < geom.t->getnElements() ; it++) // LOOP OVER EACH ELEMENT
     {
         if ( (!MatNum) ||    // if ignore material numebr OR
-           ( MatNum == geom.t->getMaterialNumber(it))  ){// if correct material
-
-
+           ( MatNum == geom.t->getMaterialNumber(it))  )// if correct material
+        {
             idx* nn = geom.t->getPtrToElement( it );    // shrotcut to element node indexes
 
             for (unsigned int i = 0 ; i < npt ; i++ )   // GET EQU NODES FOR THIS ELEMENT
@@ -108,19 +107,17 @@ void create_dangly_matrix(vector< list <unsigned int> > & dangly,
 
 
             // LOOP OVER LOCAL NODES
-            for (unsigned int i = 0 ; i < npt ; i++){
-                // ALWAYS INSERT DIAGONAL
-                if (eqn[i] != SolutionVector::FIXED_NODE )
+            for (idx i = 0 ; i < npt ; i++)
+            {
+                // DONT INSERT FIXED NODES
+                if (eqn[i] != NOT_AN_INDEX )
                 {
                     dangly[eqn[i]].push_back( eqn[i] ); // DIAGONAL ENTRY
 
                 for (unsigned int j = i+1 ; j < npt ; j++)
                 {
                     // IF NODE IS NOT FIXED, CAN INSERT OFF DIAGONAL TOO
-                    //if (    (!sol.getIsFixed( nn[i] ) ) ||
-                    //        ( ! sol.getIsFixed( nn[j] ) ) )
-
-                    if (eqn[j] != SolutionVector::FIXED_NODE)
+                    if (eqn[j] != NOT_AN_INDEX)
                     {
                         dangly[eqn[i]].push_back( eqn[j] );
                         dangly[eqn[j]].push_back( eqn[i] );
@@ -211,7 +208,7 @@ sol is for Q, matrix size is [5*np X 5*np], and for V [npXnp].
  \return Returns pointer to created sparse matrix.
 */
 
-    vector <list <unsigned int> > dangly_set;
+    vector <list <idx> > dangly_set;
     create_dangly_matrix( dangly_set,
                           geom,
                           sol ,
@@ -227,7 +224,7 @@ sol is for Q, matrix size is [5*np X 5*np], and for V [npXnp].
 SparseMatrix* createSparseMatrix(vector <Line>& lines){
 /*! Crates a SparseMatrix object where non-zeros are determined by the node indexes in the input parameter lines*/
 
-    vector <list <unsigned int> > dangly;
+    vector <list <idx> > dangly;
     create_dangly_matrix( lines , dangly); // CREATE DANGLY SET MATRIX OF NODE PAIRS
 
     SparseMatrix* K = new SparseMatrix();

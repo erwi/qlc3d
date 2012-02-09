@@ -23,10 +23,10 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
     double maxdq_previous = 10;
     double maxdq_initial = 0;
 
-    int npLC = q->getnDoF();
+    idx npLC = q->getnDoF();
     double* RHS(NULL);		// right hand side vector for Crank-Nicholson.
 
-    size_t numCols = (size_t) K->cols;
+    idx numCols = (idx) K->cols;
     double* dq = (double*) malloc( numCols * sizeof(double) );
     double*  L = (double*) malloc( numCols * sizeof(double) );
     if ( simu->getdt() > 0 )
@@ -107,19 +107,18 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         // UPDATE SOLUTION VECTOR - USES getEquNode REDIRECTION FOR PERIODIC NODES
         maxdq_previous = maxdq;
         //int indMax = 0;
-        for (int i = 0 ; i < 5 ; i++)   // LOOP OVER DIMENSIONS
+        for (unsigned int i = 0 ; i < 5 ; i++)   // LOOP OVER DIMENSIONS
         {
-            for (int j = 0; j < npLC ; j++) // LOOP OVER EACH NODE IN DIMENSION i
+            for (idx j = 0; j < npLC ; j++) // LOOP OVER EACH NODE IN DIMENSION i
             {
-                int n = j + i*npLC;
-                int effDoF = q->getEquNode(n);
+                idx n = j + i*npLC;
+                idx effDoF = q->getEquNode(n);
 
-                if (effDoF != SolutionVector::FIXED_NODE )
+                // EQUIVALENT DOF OF FIXED NODES ARE LABELLED AS "NOT_AN_INDEX"
+                if (effDoF < NOT_AN_INDEX )
                 {
                     double dqj = dq[ effDoF ];
-
                     q->Values[n] += dqj ;
-
                     if (fabs( dqj ) > fabs(maxdq) ) // KEEP TRACK OF LARGEST CHANGE IN Q-TENSOR
                         maxdq = dqj;
                 }
@@ -139,7 +138,8 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         fflush( stdout );
 
         // PANIC!! if looks like no convergence
-        if (newton_iter > settings->getQ_Newton_Panic_Iter() ){
+        if (newton_iter > settings->getQ_Newton_Panic_Iter() )
+        {
             printf("Newton in distress!! - reducing time step by a factor of %f\n", settings->getQ_Newton_Panic_Coeff() );
             simu->setdt(settings->getQ_Newton_Panic_Coeff() * simu->getdt() );
             printf("new time step is : %f ms.\n",simu->getdt() * 1e3);
@@ -152,17 +152,13 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         if (simu->getdt() == 0) // IF dt == 0, GOING FOR STEADY STATE AND ONLY DOING ONE ITERATION -> NO LOOPS
             LOOP = false;
         else
-            if ( fabs(maxdq) < simu->getMaxError() ){ // EXIT IF ACCURATE ENOUGH
+            if ( fabs(maxdq) < simu->getMaxError() ) // EXIT IF ACCURATE ENOUGH
+            {
                 //printf("maxdq = %f, maxError = %f\n", fabs(maxdq), simu->getMaxError() );
                 LOOP = false;
             }// end if
     }//end while dq > MaxError  ---- ENDS NEWTON LOOP
 
-    //	if ( simu->getdt() > 0 ){
-    //	    simu->IncrementCurrentTime();
-    //        }// end if dt>0
-
-    //	simu->IncrementCurrentIteration();
 
     free(dq);
     free(L);

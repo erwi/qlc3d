@@ -537,10 +537,10 @@ void localKL(double* p,Mesh* t,
 
 void localKL_NQ(
     double* p,
-    int* tt,
+    idx* tt,
     double lL[20],
-    int it,
-    int index_to_Neumann,
+    idx it,
+    idx index_to_Neumann,
     Mesh*  mesh,
     Mesh* surf_mesh,
     SolutionVector* v){
@@ -615,11 +615,11 @@ void localKL_NQ(
 // ASSEMBLE LOCAL WEAK ANCHORING SURFACES
 void wk_localKL(
     Mesh* e,
-    int element_num ,
+    idx element_num ,
     SolutionVector* q,
     double lL[15],
     double lK[15][15],
-    int FixLCNumber,
+    idx FixLCNumber,
     Alignment* alignment,
     LC* lc ,
     double* NodeNormals)
@@ -760,7 +760,7 @@ void assemble_volumes(
     {
 	double lK[20][20]; 	// local element matrix
 	double lL[20];		// local RHS vector
-	int eqr,eqc;
+        idx eqr,eqc;
         // IF THIS ELEMENT IS LC ELEMENT, ASSEMBLE LOCAL MATRIX
 
         if( t->getMaterialNumber(it) == MAT_DOMAIN1 ) // if LC element
@@ -775,7 +775,8 @@ void assemble_volumes(
 
                 eqr = q->getEquNode(ri);    // eqr IS MAPPED INDEX TO GLOBAL MATRIX ROW
 
-                if ( eqr != SolutionVector::FIXED_NODE ) // ONLY FOR NON-FIXED NODES
+
+                if ( eqr != NOT_AN_INDEX ) // ONLY FOR NON-FIXED NODES
                 {
 #ifndef DEBUG
 #pragma omp atomic
@@ -787,7 +788,7 @@ void assemble_volumes(
                         int rj = t->getNode(it,j%4) + npLC*(j/4);
                         eqc = q->getEquNode( rj );
 
-                        if ( eqc != SolutionVector::FIXED_NODE )
+                        if ( eqc != NOT_AN_INDEX ) // IF NOT FIXED
                         {
                             K->sparse_add(eqr,eqc,lK[i][j]*BIGNUM);
                         }
@@ -825,17 +826,17 @@ void assemble_Neumann_surfaces(
             double lL[20];
 
             // ELEMENT NODE NUMBERS ARE RE-ORDERED SO THAT t[4] IS NOT PART OF TRI ELEMENT
-	    int ee[3] = {   surf_mesh->getNode(it,0) ,
+            idx ee[3] = {   surf_mesh->getNode(it,0) ,
 			    surf_mesh->getNode(it,1) ,
 			    surf_mesh->getNode(it,2) } ;
 
-	    int tt[4] = {   mesh->getNode(index_to_Neumann,0),
+            idx tt[4] = {   mesh->getNode(index_to_Neumann,0),
 			    mesh->getNode(index_to_Neumann,1),
 			    mesh->getNode(index_to_Neumann,2),
 			    mesh->getNode(index_to_Neumann,3)};
 
-	    int intr=-1;//find  index to internal node
-            for (int i=0;i<4;i++)
+            idx intr=-1;//find  index to internal node
+            for (idx i=0;i<4;i++)
             {
                 if ( (tt[i]!= ee[0]) && (tt[i]!= ee[1]) && (tt[i]!= ee[2]) )
                 {
@@ -843,18 +844,19 @@ void assemble_Neumann_surfaces(
 		    break;
                 }
 	    }
-            int ti[4] = { ee[0], ee[1], ee[2], tt[intr] }; // REORDER LOCAL TET ELEMENT
+            idx ti[4] = { ee[0], ee[1], ee[2], tt[intr] }; // REORDER LOCAL TET ELEMENT
             // NODE-NUMBERING SO THAT
             // INTERNAL NODE IS ALWAYS LAST
 
 	    localKL_NQ(p, tt, lL , it , index_to_Neumann,mesh, surf_mesh, v);
 
-            for (int i=0; i<20; i++) // LOOP OVER ROWS
+            for (unsigned int i=0; i<20; i++) // LOOP OVER ROWS
             {
-                int ri = ti[i%4] + npLC*(i/4);
-                int eqr = q->getEquNode(ri);
+                idx ri = ti[i%4] + npLC*(i/4);
+                idx eqr = q->getEquNode(ri);
 
-                if (eqr != SolutionVector::FIXED_NODE )
+
+                if (eqr != NOT_AN_INDEX ) // IF NOT FIXED
                 {
 #ifndef DEBUG
 #pragma omp atomic
@@ -892,23 +894,25 @@ void assemble_surfaces(
             double lL[15];
             wk_localKL( e , ie , q , lL , lK , FixLCNum , alignment, lc , NodeNormals);
 
-            for (int i=0;i<15;i++)// LOOP OVER ROWS
+            for (unsigned int i=0;i<15;i++)// LOOP OVER ROWS
             {
-                int ri 	= e->getNode(ie,i%3) + npLC*(i/3);
-                int eqr = q->getEquNode(ri);
-                if (eqr != SolutionVector::FIXED_NODE )
+
+                idx ri 	= e->getNode(ie,i%3) + npLC*(i/3);
+                idx eqr = q->getEquNode(ri);
+                if (eqr != NOT_AN_INDEX ) // IF NOT FIXED
                 {
 #ifndef DEBUG
 #pragma omp atomic
 #endif
                     L[eqr]+=lL[i]*2e16;
 
-                    for (int j=0;j<15;j++) // LOOP OVER COLUMNS
+                    for (unsigned int j=0;j<15;j++) // LOOP OVER COLUMNS
                     {
-                        int rj  = e->getNode(ie,j%3) + npLC*(j/3);
-                        int eqc = q->getEquNode(rj);
 
-                        if ( eqc != SolutionVector::FIXED_NODE )
+                        idx rj  = e->getNode(ie,j%3) + npLC*(j/3);
+                        idx eqc = q->getEquNode(rj);
+
+                        if ( eqc != NOT_AN_INDEX )// IF NOT FIXED
                         {
                             int ii = i; // SURFACE CONTRIBUTION MATRIX IS
                             int jj = j; // SYMMETRIC -> ONLY UPPER DIAGONAL
@@ -973,7 +977,7 @@ void assembleQ(
 
 void assemble_local_prev_volumes(double lL[20],
 				 SolutionVector& q,  SolutionVector& v,
-				 Mesh& t, double* p,  unsigned int& element_num,
+                                 Mesh& t, double* p,  idx element_num,
 				 LC& mat_par, Simu& simu, int th  ){
 
     // th = current thread number for debugging
@@ -1225,27 +1229,25 @@ void assemble_prev_rhs(double* Ln,
     int th = 0; // debug thread number
     Mesh& t = *geom.t;
     double* p = geom.getPtrTop();
-    for ( unsigned int it = 0 ; it < elem_cnt ; it++)
+    for ( idx it = 0 ; it < elem_cnt ; it++)
     {
-
-        int eqr;
-        double lL[20];		// local RHS vector
-
         // IF THIS ELEMENT IS LC ELEMENT, ASSEMBLE LOCAL MATRIX
         if( t.getMaterialNumber(it) == MAT_DOMAIN1 )// if LC element
         {
+            idx eqr;
+            double lL[20];		// local RHS vector
+
             assemble_local_prev_volumes(lL,
                                         qn, v ,
                                         t , p , it,
                                         mat_par , simu, th );
 
 	    // ADD LOCAL MATRIX TO GLOBAL MATRIX
-
-            for (int i=0;i<20;i++)
+            for (unsigned int i=0;i<20;i++)
             {
                 int ri = t.getNode(it,i%4) + npLC*(i/4);
                 eqr = qn.getEquNode(ri);
-                if (eqr != SolutionVector::FIXED_NODE )
+                if (eqr != NOT_AN_INDEX ) // IF NOT FIXED
                 {
 #ifndef DEBUG
 #pragma omp atomic

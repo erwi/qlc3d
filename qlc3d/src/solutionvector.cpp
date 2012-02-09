@@ -24,7 +24,7 @@ void SolutionVector::ClearFixed(){
         FixedValues = NULL;
         setnFixed(0);
     }
-		
+
     if (IsFixed)
     {
         free(IsFixed);
@@ -45,18 +45,18 @@ SolutionVector& SolutionVector::operator=(const SolutionVector& r)
     // CLEAR ALL DATA
     ClearAll();
 
-// REALLOCATE AND COPY
+    // REALLOCATE AND COPY
     nDoF	= r.nDoF;
     nFixed	= r.nFixed;
     nDimensions = r.nDimensions;
     nFreeNodes  = r.nFreeNodes;
-// VALUES
+    // VALUES
     if (r.Values){
         Values = (double*) malloc( nDoF * nDimensions * sizeof(double) );
         memcpy ( Values, r.Values , nDoF * nDimensions * sizeof(double) );
     }
 
-// FIXED NODED
+    // FIXED NODED
     //ClearFixed();
     if (r.FixedValues)
     {
@@ -66,26 +66,29 @@ SolutionVector& SolutionVector::operator=(const SolutionVector& r)
 
     if (r.FixedNodes)
     {
-        FixedNodes  = (int*)    malloc( nFixed * nDimensions * sizeof(int)    );
-        memcpy(FixedNodes, r.FixedNodes, nFixed*nDimensions * sizeof(int) );
+        FixedNodes  = (idx*)    malloc( nFixed * nDimensions * sizeof(idx)    );
+        memcpy(FixedNodes, r.FixedNodes, nFixed*nDimensions * sizeof(idx) );
     }
 
     if (r.FixedNodeMaterial)
     {
-        FixedNodeMaterial = (int*) malloc( nFixed*sizeof(int) );
-        memcpy( FixedNodeMaterial, r.FixedNodeMaterial, nFixed*sizeof(int) );
+        FixedNodeMaterial = (idx*) malloc( nFixed*sizeof(idx) );
+        memcpy( FixedNodeMaterial, r.FixedNodeMaterial, nFixed*sizeof(idx) );
     }
 
-// PERIODIC EQU NODES AND ELIM
-    if (r.Elim){
-        Elim 	= (int*)    malloc(nDoF * nDimensions *  sizeof(int));
-        memcpy( Elim, r.Elim , nDoF*nDimensions * sizeof(int) );
+    // PERIODIC EQU NODES AND ELIM
+    if (r.Elim)
+    {
+        Elim 	= (idx*)    malloc(nDoF * nDimensions *  sizeof(idx));
+        memcpy( Elim, r.Elim , nDoF*nDimensions * sizeof(idx) );
     }
-    if (r.EquNodes){
-        EquNodes 	= (int*)    malloc(nDoF * nDimensions *  sizeof(int));
-        memcpy( EquNodes, r.EquNodes, nDoF * nDimensions * sizeof (int) );
+    if (r.EquNodes)
+    {
+        EquNodes 	= (idx*)    malloc(nDoF * nDimensions *  sizeof(idx));
+        memcpy( EquNodes, r.EquNodes, nDoF * nDimensions * sizeof (idx) );
     }
-    if (r.IsFixed){
+    if (r.IsFixed)
+    {
         IsFixed	= (bool*)   malloc(nDoF * nDimensions *  sizeof(bool) );
         memcpy( IsFixed, r.IsFixed, nDoF * nDimensions * sizeof(bool) );
     }
@@ -140,7 +143,7 @@ SolutionVector::SolutionVector(idx np, idx dim):
     FixedValues(NULL),
     Values(NULL)
 {
-	Allocate( (unsigned int) np, (unsigned int) dim );
+    Allocate( (unsigned int) np, (unsigned int) dim );
 }
 
 void SolutionVector::Allocate(const idx np, const idx ndim)
@@ -164,7 +167,7 @@ void SolutionVector::setnDimensions(idx n)
 
 void SolutionVector::setValuesTo(const double& value)
 {
-// ALL VALUES ARE SET TO THAT OF THE INPUT VALUE
+    // ALL VALUES ARE SET TO THAT OF THE INPUT VALUE
 #ifndef DEBUG
 #pragma omp parallel for
 #endif
@@ -174,8 +177,8 @@ void SolutionVector::setValuesTo(const double& value)
 
 void SolutionVector::setValuesTo(const double *values)
 {
-// ALL VALUES ARE SET TO THOSE OF THE INPUT VECTOR
-// VECTOR LENGHTS MUCH MATCH, NO CHECKING IS PERFORMED HERE!!
+    // ALL VALUES ARE SET TO THOSE OF THE INPUT VECTOR
+    // VECTOR LENGHTS MUCH MATCH, NO CHECKING IS PERFORMED HERE!!
     idx n = nDoF * nDimensions;
 
     memcpy(Values, values, n*sizeof(double) );
@@ -213,11 +216,11 @@ void SolutionVector::ClearAll()
 
 void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
 {	/*! sets fixed nodes index list and value lists, assuming values are currently correct
-		FixedNodes is index list to all nodes that are fixied
-		FixedValues are the corresponding individual values that are fixed
-	*/
- 
-// 1. First get index to all strong anchoring nodes 
+  FixedNodes is index list to all nodes that are fixied
+  FixedValues are the corresponding individual values that are fixed
+ */
+
+    // 1. First get index to all strong anchoring nodes
 
     vector <idx> ind_to_nodes;
     for (int i = 0 ; i < alignment->getnSurfaces() ; i ++)
@@ -251,148 +254,153 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
     itr = unique(ind_to_nodes.begin() , ind_to_nodes.end() );
     ind_to_nodes.erase(itr, ind_to_nodes.end() );
 
-//2. allocate memory for index and fixed values	
-	if (FixedNodes != NULL ) free(FixedNodes);
-	if (FixedValues != NULL) free(FixedValues);
-        nFixed = ind_to_nodes.size();
+    //2. allocate memory for index and fixed values
+    if (FixedNodes != NULL ) free(FixedNodes);
+    if (FixedValues != NULL) free(FixedValues);
+    nFixed = ind_to_nodes.size();
 
-        // IF NO FIXED NODES EXIST, LEAVE
-        if (!nFixed )
+    // IF NO FIXED NODES EXIST, LEAVE
+    if (!nFixed )
+    {
+        setBooleanFixedNodeList();  // SET ALL TO NON-FIXED
+        return;
+    }
+
+
+    FixedNodes = (idx*) malloc(getnDimensions() * nFixed * sizeof(idx) );
+    if (FixedNodes == NULL){
+        printf("error - SolutionVector::setFixedNodesQ() - could not allocate memory for fixed nodes, bye!");
+        exit(1);
+    }
+    FixedValues = (double*) malloc( getnDimensions() * nFixed * sizeof(double) );
+    if (FixedValues == NULL){
+        printf("error - SolutionVector::setFixedNodesQ() - could not allocate memory for fixed values, bye!");
+        exit(1);
+    }
+
+    // 3. copy index and values to arrays. This assumes that current Q-tensor values are correct
+    // and will be fixed at these values (frozen to current)
+    idx i = 0;
+    nFixed = (idx) ind_to_nodes.size();
+
+    //  nFreeNodes = nDoF - nFixed;
+    for (itr = ind_to_nodes.begin() ; itr != ind_to_nodes.end() ; itr++ )
+    {
+        FixedNodes[i] = *itr;
+        FixedNodes[i + 1*nFixed] = *itr + 1*getnDoF();
+        FixedNodes[i + 2*nFixed] = *itr + 2*getnDoF();
+        FixedNodes[i + 3*nFixed] = *itr + 3*getnDoF();
+        FixedNodes[i + 4*nFixed] = *itr + 4*getnDoF();
+
+        FixedValues[i]            = getValue(*itr, 0); //q1
+        FixedValues[i + 1*nFixed] = getValue(*itr, 1); //q2
+        FixedValues[i + 2*nFixed] = getValue(*itr, 2); //q3;
+        FixedValues[i + 3*nFixed] = getValue(*itr, 3); //q4;
+        FixedValues[i + 4*nFixed] = getValue(*itr, 4); //q5;
+        i++;
+    }
+
+
+    setBooleanFixedNodeList();
+}
+
+/*
+void SolutionVector::setFixedNodes(vector<int> *Material, vector<double> *val ,
+                                   idx *Elem,
+                                   idx *Mat,
+                                   idx nElem,
+                                   idx nNodes)
+{// sets fixed node lists with node numbers and corresponding fixed values
+    // *Material = fixed material numbers defined in settings file
+    // *val = values corresponding to *Material
+    // *Elem = array of element node numbers
+    // *Mat  = array of material numbers corresponding to elem
+    // nElem and nNodes = dimensions of element node arrays
+
+    if (Material->size()!=val->size())
+    {
+        printf("\nerror-solutionvector::SetFixedNodes\nnumber of fixed values must equal number of materials - bye!");
+        exit(1);
+    }
+
+    nFixed = 0; // reset number of fixed nodes
+    if (FixedNodes != NULL) free(FixedNodes);	// these may have been set earlier, and should be reset
+    if (FixedValues!= NULL) free(FixedValues);
+
+    vector<int> vec_FixedNodes;
+    vector<double> vec_FixedValues;
+
+
+    //int n_fix_mat = Material->size();
+    //printf("%i fixed materials\n",n_fix_mat);
+
+    vector<int>::iterator i;
+    vector<int>::iterator j;
+    vector<double>::iterator Val; // fixed value
+
+    for ( i = Material->begin(), Val =val->begin() ; i != Material->end() ; i++,Val++ ){
+
+        // find index to all elements of material i
+        vector<int> fix_elem;
+        vector<int> fix_nodes;
+        for (idx x = 0 ; x < nElem ; x ++)
         {
-            setBooleanFixedNodeList();  // SET ALL TO NON-FIXED
-            return;
+            if ( (Mat[x] & 31*MAT_ELECTRODE1) == *i )  // bitwise testing of material number
+            {
+                fix_elem.push_back(x);
+                //printf("found\n");
+            }
         }
 
-
-        FixedNodes = (int*) malloc(getnDimensions() * nFixed * sizeof(int) );
-        if (FixedNodes == NULL){
-			printf("error - SolutionVector::setFixedNodesQ() - could not allocate memory for fixed nodes, bye!");
-			exit(1);
-		}
-        FixedValues = (double*) malloc( getnDimensions() * nFixed * sizeof(double) );
-		if (FixedValues == NULL){
-			printf("error - SolutionVector::setFixedNodesQ() - could not allocate memory for fixed values, bye!");
-			exit(1);
-		}
-		
-// 3. copy index and values to arrays. This assumes that current Q-tensor values are correct
-		// and will be fixed at these values (frozen to current)
-	int i = 0;
-	nFixed = ind_to_nodes.size();
-
-      //  nFreeNodes = nDoF - nFixed;
-        for (itr = ind_to_nodes.begin() ; itr != ind_to_nodes.end() ; itr++ )
+        // ...then get all nodes from the fixed elements
+        for (j = fix_elem.begin(); j != fix_elem.end() ; j ++)
         {
-		FixedNodes[i] = *itr;
-		FixedNodes[i + 1*nFixed] = *itr + 1*getnDoF();
-		FixedNodes[i + 2*nFixed] = *itr + 2*getnDoF();
-		FixedNodes[i + 3*nFixed] = *itr + 3*getnDoF();
-		FixedNodes[i + 4*nFixed] = *itr + 4*getnDoF();
-		
-		FixedValues[i]            = getValue(*itr, 0); //q1
-		FixedValues[i + 1*nFixed] = getValue(*itr, 1); //q2
-		FixedValues[i + 2*nFixed] = getValue(*itr, 2); //q3;
-		FixedValues[i + 3*nFixed] = getValue(*itr, 3); //q4;
-		FixedValues[i + 4*nFixed] = getValue(*itr, 4); //q5;
-		i++;
-	}
-	
+            for (int x = 0 ; x < nNodes ; x ++)
+            {
+                fix_nodes.push_back(Elem[(*j)*nNodes+x]);
+            }
+        }
+        // remove repeated nodes from list
+        sort(fix_nodes.begin(), fix_nodes.end());
+        vector<int>::iterator sorted;
+        sorted = unique(fix_nodes.begin(), fix_nodes.end());
 
-	setBooleanFixedNodeList();
+        //add nodes and values to final vector
+        for (j = fix_nodes.begin() ; j != sorted ; j++)
+        {
+            //printf("%i ",*j);
+            vec_FixedNodes.push_back(*j);
+            vec_FixedValues.push_back(*Val);
+        }
+    }
+
+    // Allocate memory for fixed node lists
+    nFixed = vec_FixedNodes.size();
+    FixedNodes = (int*)malloc(nFixed * sizeof(int));
+    FixedValues= (double*)malloc(nFixed * sizeof(double));
+
+    // nFreeNodes = nDoF - nFixed; // update free nodes count
+    // Copy values form vectors to memory
+    int c= 0;
+    for (i = vec_FixedNodes.begin(), Val = vec_FixedValues.begin(), c = 0;
+         i != vec_FixedNodes.end() ; i ++, Val++, c++)
+    {
+        FixedNodes[c] = *i;
+        FixedValues[c] = *Val;
+    }
+
+
+
 }
-void SolutionVector::setFixedNodes(vector<int> *Material, vector<double> *val ,int *Elem,int *Mat,int nElem,int nNodes)
-{// sets fixed node lists with node numbers and corresponding fixed values
-		// *Material = fixed material numbers defined in settings file
-		// *val = values corresponding to *Material
-		// *Elem = array of element node numbers
-		//*Mat  = array of material numbers corresponding to elem
-		// nElem and nNodes = dimensions of element node arrays 
-	
-        if (Material->size()!=val->size()){
-                printf("\nerror-solutionvector::SetFixedNodes\nnumber of fixed values must equal number of materials - bye!");
-		exit(1);
-	}
-	
-	nFixed = 0; // reset number of fixed nodes
-	if (FixedNodes != NULL) free(FixedNodes);	// these may have been set earlier, and should be reset
-	if (FixedValues!= NULL) free(FixedValues);
-	
-	vector<int> vec_FixedNodes;
-	vector<double> vec_FixedValues;
-	
-	
-	//int n_fix_mat = Material->size();
-	//printf("%i fixed materials\n",n_fix_mat);
-	
-	vector<int>::iterator i;
-	vector<int>::iterator j; 
-	vector<double>::iterator Val; // fixed value
-	
-        for ( i = Material->begin(), Val =val->begin() ; i != Material->end() ; i++,Val++ ){
-
-		// find index to all elements of material i
-		vector<int> fix_elem; 
-		vector<int> fix_nodes;
-		for (int x = 0 ; x < nElem ; x ++)
-			{
-			//printf(" %i == %i\n",*i,Mat[x]);
-				if ( (Mat[x] & 31*MAT_ELECTRODE1) == *i )  // bitwise testing of material number 
-				{
-				fix_elem.push_back(x);
-				//printf("found\n");
-				}
-			}
-		
-		// ...then get all nodes from the fixed elements
-		for (j = fix_elem.begin(); j != fix_elem.end() ; j ++)
-			{
-			for (int x = 0 ; x < nNodes ; x ++)
-				{
-				//printf("%i ",*j);
-				fix_nodes.push_back(Elem[(*j)*nNodes+x]);
-				}
-			}
-		// remove repeated nodes from list
-		sort(fix_nodes.begin(), fix_nodes.end());
-		vector<int>::iterator sorted;
-		sorted = unique(fix_nodes.begin(), fix_nodes.end());
-		
-		//add nodes and values to final vector
-		for (j = fix_nodes.begin() ; j != sorted ; j++)
-			{
-				//printf("%i ",*j);
-				vec_FixedNodes.push_back(*j);
-				vec_FixedValues.push_back(*Val);
-			}
-	}
-
-		// Allocate memory for fixed node lists
-		nFixed = vec_FixedNodes.size();
-		FixedNodes = (int*)malloc(nFixed * sizeof(int));
-		FixedValues= (double*)malloc(nFixed * sizeof(double));
-
-               // nFreeNodes = nDoF - nFixed; // update free nodes count
-		// Copy values form vectors to memory
-		int c= 0;
-		for (i = vec_FixedNodes.begin(), Val = vec_FixedValues.begin(), c = 0;
-			i != vec_FixedNodes.end() ; i ++, Val++, c++)
-		{
-			FixedNodes[c] = *i;
-			FixedValues[c] = *Val;
-		}
-	
-	
-	
-}
-
+*/
 void SolutionVector::allocateFixedNodesArrays(Geometry &geom)
 {
-// ALLOCATES ARRAYS FOR MANAGING FIXED NODES.
-//
-// CALCULATES NUMBER OF FIXED NODES nFixed
-// SETS FIXED NODES INDEX ARRAY FixedNodes VALUES
-// ALLOCATES MEMORY FOR FIXED VALUES, BUT DOES NOT SET VALUES
-// SETS FIXED NODES BOOLEAN FLAG ARRAY (CALLS setBoleanFixedNodesList)
+    // ALLOCATES ARRAYS FOR MANAGING FIXED NODES.
+    //
+    // CALCULATES NUMBER OF FIXED NODES nFixed
+    // SETS FIXED NODES INDEX ARRAY FixedNodes VALUES
+    // ALLOCATES MEMORY FOR FIXED VALUES, BUT DOES NOT SET VALUES
+    // SETS FIXED NODES BOOLEAN FLAG ARRAY (CALLS setBoleanFixedNodesList)
 
 
 
@@ -432,8 +440,8 @@ void SolutionVector::allocateFixedNodesArrays(Geometry &geom)
     nFixed = fixed_nodes.size();
 
     // CREATE FIXED NODES INDEXES AND VALUES ARRAYS
-    FixedNodes = (int*) malloc( nFixed*sizeof(int) * nDimensions );
-    FixedNodeMaterial = (int*) malloc( nFixed*sizeof(int) );
+    FixedNodes = (idx*) malloc( nFixed*sizeof(idx) * nDimensions );
+    FixedNodeMaterial = (idx*) malloc( nFixed*sizeof(idx) );
     FixedValues= (double*) malloc( nFixed*nDimensions*sizeof(double) );
 
     if ( (!FixedNodes) || (!FixedValues) || (!FixedNodeMaterial) )
@@ -445,7 +453,7 @@ void SolutionVector::allocateFixedNodesArrays(Geometry &geom)
     // SET FIXED NODES INDEX ARRAY VALUES
     for (idx i = 0 ; i < nFixed ; i++)
     {
-        for (int j = 0 ; j <nDimensions ; j++)
+        for (idx j = 0 ; j <nDimensions ; j++)
         {
             FixedNodes[i+j*nFixed] = fixed_nodes[i].nodenum;
         }
@@ -475,15 +483,15 @@ void SolutionVector::setFixedNodesPot(Electrodes* electrodes)
         }
     }
 
-	
+
 }
 
 void SolutionVector::setFixedNodesPot(  Electrodes& electrodes,
                                         Mesh* surface_mesh,
                                         double CurrentTime)
 {
-// sets fixed nodes for potentials, taking into account voltage waveforms and current time
-// this method is horrible and need to be rewritten
+    // sets fixed nodes for potentials, taking into account voltage waveforms and current time
+    // this method is horrible and need to be rewritten
     if (nFixed>0)
     { //IF RE-SETTING, CLEAR OLD
         if (FixedNodes) {free(FixedNodes); FixedNodes = NULL;}
@@ -492,10 +500,10 @@ void SolutionVector::setFixedNodesPot(  Electrodes& electrodes,
         nFixed = 0;
     }
     
-	
+
     for (size_t i = 0 ; i < electrodes.getnElectrodes() ; i++) // for each electrode
     {
-    // find index to current time in voltage waveform
+        // find index to current time in voltage waveform
         //int indx =-1; // start search with invalid index
         
         //for ( int j = 0 ; j < electrodes->E[i]->getnTimes() ; j ++) // for each switching time
@@ -528,22 +536,22 @@ void SolutionVector::setFixedNodesPot(  Electrodes& electrodes,
 
 
 void SolutionVector::setBooleanFixedNodeList(){
-// A BOOLEAN FLAG FOR EACH NODE, WHETHER IT IS FIXED OR NOT.
-// MAYBE A PARAMETERS VARIABLE WIT BIT MASKS WOULD BE MORE EFFICIENT
-// IF MANY "FLAG" ARRAYS ARE NEEDED
+    // A BOOLEAN FLAG FOR EACH NODE, WHETHER IT IS FIXED OR NOT.
+    // MAYBE A PARAMETERS VARIABLE WIT BIT MASKS WOULD BE MORE EFFICIENT
+    // IF MANY "FLAG" ARRAYS ARE NEEDED
     if (IsFixed != NULL) { free(IsFixed); }
-	
-// ALLOCATE MEMORY FOR ARRAY
+
+    // ALLOCATE MEMORY FOR ARRAY
     size_t size = nDimensions * nDoF * sizeof( bool );
     IsFixed = (bool*) malloc( size );
     memset(IsFixed , false , size ); // set all to false
 
-// SET VALUE TO TRUE/FALSE FOR EACH NODE
+    // SET VALUE TO TRUE/FALSE FOR EACH NODE
     for (idx i = 0 ; i < getnFixed() *nDimensions ; i ++) // then set only fixed nodes to true
         IsFixed[FixedNodes[i]]=true;
 
 }
-	
+
 
 void SolutionVector::PrintFixedNodes()
 {
@@ -552,21 +560,21 @@ void SolutionVector::PrintFixedNodes()
 
     for ( idx i = 0 ; i < nFixed ; i++ )
     {
-        for (int j = 0 ; j < nDimensions ; j++)
+        for (idx j = 0 ; j < nDimensions ; j++)
         {
-            printf("fixed node %i, node number %i, value %1.3f, ",i,FixedNodes[i],FixedValues[i]);
+            printf("fixed node %u, node number %u, value %1.3f, ",i,FixedNodes[i],FixedValues[i]);
         }
         if(FixedNodeMaterial)
-            printf("material %i", FixedNodeMaterial[i]);
+            printf("material %u", FixedNodeMaterial[i]);
         printf("\n");
     }
 }
 void SolutionVector::PrintValues()
 {
-        for (idx i = 0 ; i < nDoF *nDimensions; i++)
-	{
-                printf("Value[%i] = %e\n", i, Values[i]);
-	}
+    for (idx i = 0 ; i < nDoF *nDimensions; i++)
+    {
+        printf("Value[%i] = %e\n", i, Values[i]);
+    }
 
 }
 void SolutionVector::PrintElim(){
@@ -609,11 +617,11 @@ void SolutionVector::PrintIsFixed()
 
 void SolutionVector::setToFixedValues()
 {
-// SETS ALL VALUES TO CORRECT FIXED VALUES
+    // SETS ALL VALUES TO CORRECT FIXED VALUES
 
     // MAKE SURE ARRAYS HAVE BEEN INITIALISED
     if ( ( (FixedNodes == NULL) || (FixedValues == NULL)) &&
-                ( nFixed > 0 )    )
+         ( nFixed > 0 )    )
     {
         printf("error - SolutionVector::setToFixedValues, NULL pointer - bye!\n");
         exit(1);
@@ -632,16 +640,16 @@ void SolutionVector::setToFixedValues()
 
 void SolutionVector::setPeriodicEquNodes(Geometry* geom)
 {
-/*!
+    /*!
     SET VALUES IN THE ELIM ARRAY. THE ELIM ARRAY CONTAINS
     MAPPINGS FORM A NODE NUMBER TO ITS ACTUAL
     DEGREE OF FREEDOM (ITS POSITION IN THE GLOBAL MATRIX)
 */
     // IF NO PERIODIC NODES PRESENT, DON'T GENERATE EQUIVALENT NODES INDEXES
     if (!geom->getleft_right_is_periodic() &&
-        !geom->gettop_bottom_is_periodic() &&
-        !geom->getfront_back_is_periodic() &&
-           ( this->nFixed == 0 )
+            !geom->gettop_bottom_is_periodic() &&
+            !geom->getfront_back_is_periodic() &&
+            ( this->nFixed == 0 )
             )
     {
         return; // no periodic boundaries, can return
@@ -650,7 +658,7 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
 
     if (Elim != NULL) free(Elim);	// allocate memory for equivalent nodes
 
-    Elim  = (int*) malloc(nDoF*nDimensions*sizeof(int));
+    Elim  = (idx*) malloc(nDoF*nDimensions*sizeof(idx));
 
 
 
@@ -658,25 +666,24 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
     // REPLACE DEPENDENT NODES WITH THEIR
     // INDEPENDENT EQUIVALENT NODES
 
-    std::vector <int> elim(nDoF, 0 );   // convenience copy of Elim
-    for (size_t i = 0 ; i < (size_t) this->getnDoF() ; i++)
+    std::vector <idx> elim(nDoF, 0 );   // convenience working copy of Elim
+    for (idx i = 0 ; i < (idx) this->getnDoF() ; i++)
     {
         elim[i] =  geom->getPeriodicEquNode( i ) ;
     }
 
 
-    // MARK FIXED NODES. THSE WILL BE REMOVED FROM
+    // MARK FIXED NODES. THSE WILL BE LATER ON REMOVED FROM
     // FREE DEGREES OF FREEDOM
     for (idx i = 0 ; i < nDoF ; i++ )
     {
         if ( this->getIsFixed(i) )
-            elim[i] = FIXED_NODE;
+            elim[i] = NOT_AN_INDEX;
     }
 
     nFreeNodes = 0;
 
-
-    std::vector <int> elima(nDoF,0);    // Elim altered
+    std::vector <idx> elima(nDoF,0);    // Elim altered
     for (idx i = 0 ; i < nDoF ; i++)    // SET TO 1,2,3...
         elima[i] = i;
     elima.resize(nDoF);
@@ -688,7 +695,7 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
     {
         if (elim[i] != i)   // IF i'th NODE IS DEPENDENT
         {
-            for (int j = i ; j < nDoF ; j++) // SHIFT DOWN ALL DOF INDEXES AFTER IT
+            for (idx j = i ; j < nDoF ; j++) // SHIFT DOWN ALL DOF INDEXES AFTER IT
             {
                 elima[j] --;
             }
@@ -699,20 +706,25 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
     // INDEPENDENT DOF
     for (idx i = 0 ; i < nDoF ; i++) // SET CORRECT VALUES
     {
-        if ( (elim[i]!=i) && (elim[i]!= FIXED_NODE) ) // IF i'th NODE IS DEPENDENT ( AND NOT FIXED)
+        if ( (elim[i]!=i) && (elim[i]!= NOT_AN_INDEX ) ) // IF i'th NODE IS DEPENDENT ( AND NOT FIXED)
         {
             elima[i] = elima[ elim[i] ]; // IT WILL DEPEND ON THE CORRECTED DOF INDEX
         }
         else
-        if ( elim[i] == FIXED_NODE )    // KEEP FIXED NODE FLAGS
-        {
-            elima[i] = FIXED_NODE;
-        }
-
+            if ( elim[i] == NOT_AN_INDEX )    // KEEP FIXED NODE FLAGS
+            {
+                elima[i] = NOT_AN_INDEX;
+            }
     }
 
     // TOTAL NUMBER OF FREE DOFs THAT NEED TO BE SOLVED (PER DIMENSION)
-    nFreeNodes = *max_element(elima.begin(), elima.end() ) + 1;
+    // nFreeNodes = *max_element(elima.begin(), elima.end() ) + 1;
+    for (idx i = 0 ; i < (idx) elima.size() ; i++)
+    {
+        if (elima[i] < NOT_AN_INDEX )
+            nFreeNodes = std::max( nFreeNodes , elima[i]+1 );
+    }
+
 
     // COPY BACK VALUES TO Elim ARRAY
     for (idx i = 0 ; i < nDoF ; i++)
@@ -723,10 +735,10 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
     {
         for (idx j = 1; j < nDimensions ; j ++)
         {
-            for (int i = 0 ; i < nDoF ; i ++ )
+            for (idx i = 0 ; i < nDoF ; i ++ )
             {
-                if (Elim[i] == FIXED_NODE)
-                    Elim[j*nDoF+i] = FIXED_NODE;
+                if (Elim[i] == NOT_AN_INDEX)
+                    Elim[j*nDoF+i] = NOT_AN_INDEX;
                 else
                     Elim[j*nDoF + i] = Elim[i] + j*nFreeNodes;
             }
@@ -736,23 +748,23 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
 }// end setPeriondicEquNodes
 
 void SolutionVector::setCornerElim(
-                        list <int>& corn0, // sets periodic equivalent nodes for 4 corners
-                        list <int>& corn1, // corn1[i] = corn0[i]
-                        list <int>& corn2, // corn2[i] = corn0[i]
-                        list <int>& corn3, // corn3[i] = corn0[i]
-                        int* Elim,
-                        const int& dim, // direction of corner 0,1,2 -> x,y,z
-                        double* p // coordinates
-                        )
-					 
+    list <int>& corn0, // sets periodic equivalent nodes for 4 corners
+    list <int>& corn1, // corn1[i] = corn0[i]
+    list <int>& corn2, // corn2[i] = corn0[i]
+    list <int>& corn3, // corn3[i] = corn0[i]
+    int* Elim,
+    const int& dim, // direction of corner 0,1,2 -> x,y,z
+    double* p // coordinates
+    )
+
 {
-/*! This sets Elim vector for periodic corner nodes. 
+    /*! This sets Elim vector for periodic corner nodes.
  * Nodes are arranged so that corn1[i] = corn2[i] = corn2[i] = corn0[i]
  * AbsDist is a function pointer to a function that calculates absolute distance along 
  * X, Y or Z axes (use geom->getAbsNDist, where N is X, Y, or Z).
  * getCoord is a function pointer to getting X,Y or Z coordinate (replaces geom->getpN)
  * */	
-	
+
     list<int> :: iterator c0;
     list<int> :: iterator c1;
     list<int> :: iterator c2;
@@ -763,7 +775,7 @@ void SolutionVector::setCornerElim(
     { // outer corner loop - corn0
         bool found = false;
         double dist = 0;
-            
+
         double p0 = p[(*c0) * 3 + dim ]; // dim coordinate of node c0
         int iNearest = -1;
         double minDist = BIGNUM;
@@ -797,7 +809,7 @@ void SolutionVector::setCornerElim(
             printf("distance = %e\n", minDist);
             exit(1);
         }
-			
+
 	// COMPARISON WITH C2		
         found = false;
         iNearest = -1;
@@ -866,17 +878,17 @@ void SolutionVector::setCornerElim(
 
 
 void SolutionVector::setFaceElim( list <int>& face0, // face1[i] = face0[i]
-				list <int>& face1,
-				int* Elim,
-				const int& norm, // face normal, 0,1,2 -> x,y,z
-				double* p) // pointer to node coordinates
+                                  list <int>& face1,
+                                  int* Elim,
+                                  const int& norm, // face normal, 0,1,2 -> x,y,z
+                                  double* p) // pointer to node coordinates
 {
     // norm is face normal, need coordinates to vectors parallel to it
     int ind1 = ( norm + 1 ) % 3; // ind is a pre-calculated offeset to coordinate comparison in p.
     int ind2 = ( norm + 2 ) % 3; // e.g. norm = 0 -> ind1 = 1, ind2 = 2
     double eps = 1e-5; // accuracy of coordinate comparison
-	
-	    
+
+
     // SEARCH FOR NODE EQUIVALENCIES BY COMPARING COORDINATES
     // THAT ARE PERPENDICULAR TO FACE NORMAL
     list <int>:: iterator F0;    // FACE 0 NODES
@@ -889,12 +901,12 @@ void SolutionVector::setFaceElim( list <int>& face0, // face1[i] = face0[i]
         double dist = 1000000;
         double f1 = p[3*(*F0) + ind1 ]; // coordinates of node F2 in face0
         double f2 = p[3*(*F0) + ind2 ];
-			
+
         for (F1 = face1.begin() , bc = 0; F1!= face1.end() ; F1++, bc ++)
         {
             double fa = p[3*(*F1) + ind1]; // coordinates of node F1 in face 1
             double fb = p[3*(*F1) + ind2];
-				
+
             //compare coordinates
             double dist1 = fabs(f1 - fa); // distances in plane
             double dist2 = fabs(f2 - fb);
@@ -905,7 +917,7 @@ void SolutionVector::setFaceElim( list <int>& face0, // face1[i] = face0[i]
                 dist = tdist; // nearest distance
                 ind_n = *F1;  // index to nearest distance
             }
-				
+
             if (tdist < eps*eps) // compare squared distances
             {
                 Elim[*F1] = *F0;
@@ -916,33 +928,33 @@ void SolutionVector::setFaceElim( list <int>& face0, // face1[i] = face0[i]
         if (!found)
         {
             printf("error - matching periodic faces with normal %i - bye!\n", norm);
-                //printf("front = p[%i] = %f, %f, %f\n", *F, geom->getpX(*F) , geom->getpY(*F) , geom->getpZ(*F) );
-                //printf("nearest back = p[%i] = %f, %f, %f\n", ind_n , geom->getpX(ind_n) , geom->getpY(ind_n) , geom->getpZ(ind_n) );
-                //printf("distance = %f, fc = %i, bc = %i\n", dist, fc, bc);
-                exit(1);
+            //printf("front = p[%i] = %f, %f, %f\n", *F, geom->getpX(*F) , geom->getpY(*F) , geom->getpZ(*F) );
+            //printf("nearest back = p[%i] = %f, %f, %f\n", ind_n , geom->getpX(ind_n) , geom->getpY(ind_n) , geom->getpZ(ind_n) );
+            //printf("distance = %f, fc = %i, bc = %i\n", dist, fc, bc);
+            exit(1);
         }
     }//end for F
-//*/
+    //*/
 }				
 
 void SolutionVector::setValue(const idx n,
                               const idx dim,
                               const double val)
 {
-	//#define DEBUG
-	#ifdef DEBUG
-        if ( ( n >= (idx) getnDoF() ) || ( dim >= (idx) getnDimensions() ) )
-	{
-		printf("error - SolutionVector::setValue(n, dim, val) - n = %i and dim = %i, bye!\n",n,dim);
-		printf(", when\n");
-		printf(" this->nDimensions = %i\n", this->nDimensions );
-		printf(" this->nDoF = %i\n", this->nDoF );
-		exit(1);
-	}
-	#endif
+    //#define DEBUG
+#ifdef DEBUG
+    if ( ( n >= (idx) getnDoF() ) || ( dim >= (idx) getnDimensions() ) )
+    {
+        printf("error - SolutionVector::setValue(n, dim, val) - n = %i and dim = %i, bye!\n",n,dim);
+        printf(", when\n");
+        printf(" this->nDimensions = %i\n", this->nDimensions );
+        printf(" this->nDoF = %i\n", this->nDoF );
+        exit(1);
+    }
+#endif
 
-        Values[n + dim*nDoF ] = val;
-	
+    Values[n + dim*nDoF ] = val;
+
 }
 
 void SolutionVector::AddFixed(int mat, double val, Mesh *mesh)
@@ -952,16 +964,16 @@ void SolutionVector::AddFixed(int mat, double val, Mesh *mesh)
     // 08/02/12 mesh->FindIndexToMaterialNodes(mat,&ind_p);
     mesh->listNodesOfMaterial( ind_p, (idx) mat );
 
-// Allocate memory for old + new fixed nodes and values	
-    int NewFixedSize = ind_p.size() + nFixed; // number of old + new fixed nodes
+    // Allocate memory for old + new fixed nodes and values
+    idx NewFixedSize = (idx) ind_p.size() + nFixed; // number of old + new fixed nodes
 
-    int* NewFixedNodes = (int*) malloc(NewFixedSize*sizeof(int)); // allocate enough memory for old + new
+    idx* NewFixedNodes = (idx*) malloc(NewFixedSize*sizeof(idx)); // allocate enough memory for old + new
     if (NewFixedNodes == NULL)
     {
         printf("error - SolutionVector::AddFixed(int,double,Mesh*) - could not allocate memory for fixed nodes, bye!");
         exit(1);
     }
-	
+
     double* NewFixedValues = (double*) malloc(NewFixedSize*sizeof(double));
     if (NewFixedValues == NULL)
     {
@@ -969,7 +981,7 @@ void SolutionVector::AddFixed(int mat, double val, Mesh *mesh)
         exit(1);
     }
 
-// Copy old fixed nodes and values and add new ones 	
+    // Copy old fixed nodes and values and add new ones
     vector <idx>::iterator itr;
     itr = ind_p.begin();
     for (idx i = 0 ; i < NewFixedSize ; i++)
@@ -981,32 +993,32 @@ void SolutionVector::AddFixed(int mat, double val, Mesh *mesh)
         }
         else// add new ones
         {
-                NewFixedNodes[i] = *itr; //  = iterator to index to material nodes
-                itr++;
-		
-                NewFixedValues[i] = val;
+            NewFixedNodes[i] = *itr; //  = iterator to index to material nodes
+            itr++;
+
+            NewFixedValues[i] = val;
         }
     }// end for i
-	
-// free old arrays and set pointer to New arrays
+
+    // free old arrays and set pointer to New arrays
     if (FixedValues!=NULL) free(FixedValues);
     if (FixedNodes !=NULL) free(FixedNodes);
-	
+
     FixedValues = NewFixedValues;
     FixedNodes  = NewFixedNodes;
-	
+
     NewFixedValues = NULL;
     NewFixedNodes  = NULL; // necessary to keep only single pointer to memory location?
-	
+
     setnFixed(NewFixedSize); // update counter
 
-	
+
 }
 void SolutionVector::EnforceEquNodes(const Geometry& geom)
 {
-// MAKES SURE THAT VALUES ON PERIODIC SURFACES ARE OK.
-// THIS MAY BE NEEDED e.g. AT THE START OF A SIMULATION
-// OR TO AVOID ACCUMULATION OF NUMERICAL NOISE(?)
+    // MAKES SURE THAT VALUES ON PERIODIC SURFACES ARE OK.
+    // THIS MAY BE NEEDED e.g. AT THE START OF A SIMULATION
+    // OR TO AVOID ACCUMULATION OF NUMERICAL NOISE(?)
 
 
     // CALCULATES PERIODIC EQUIVALEN NODE FROM ELIM IN CASES WHERE
