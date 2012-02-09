@@ -471,6 +471,9 @@ void SolutionVector::setFixedNodesPot(Electrodes* electrodes)
 {
     // SETS VALUES IN FixedValues
 
+    if ( electrodes->isEField() )// DON'T DO ANYTHING IF UNIFORM E-FIELD DEFINED
+        return;
+
     for (idx i = 0 ; i < nFixed ; i++)
     {
         int mat = FixedNodeMaterial[i]; // GET MATERIAL NUMBER FOR ith FIXED NODE

@@ -137,12 +137,15 @@ double RefInfo::getValue(const size_t i) const
 
 void RefInfo::printRefInfo(FILE *fid) const
 {
-    fprintf(fid, "Iteration = %li\n", this->iter_);
-    fprintf(fid, "Time = %e\n", this->time_);
-    fprintf(fid, "Type = %i\n", this->type_);
-
+    //fprintf(fid, "Iteration = %ll\n", this->iter_);
+    std::cout << "Iteration = " << this->iter_ << std::endl;
+    //fprintf(fid, "Time = %e\n", this->time_);
+    std::cout << "Time = "<< this->time_ << std::endl;
+    //fprintf(fid, "Type = %i\n", this->type_);
+    std::cout << "Type = " << this->type_ << std::endl;
     for (size_t i = 0 ; i < values_.size() ; i++)
-        fprintf(fid,"values_[%u] = %e\n", i , values_[i]);
+        std::cout <<"values["<<i<<"]="<<values_[i]<<std::endl;
+        //fprintf(fid,"values_[%u] = %e\n", i , values_[i]);
 
 }
 

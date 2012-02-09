@@ -51,7 +51,7 @@ private:
                            list <size_t>& face1,
                            const int& norm);    // face normal 0,1,2 -> x,y,z
 
-
+    void updateMaxNodeNumbers(); // Updates MaxNodeNumbers for surface and tet meshes after a node renumbering
 public:
     // UNFORTUNATE HACKERY... SPECIAL INDEX VALUE FOR AN UNSIGNED INDEX THAT WAS NOT FOUND
     static const unsigned int NOT_AN_INDEX;// = std::numeric_limits<unsigned int>::max();

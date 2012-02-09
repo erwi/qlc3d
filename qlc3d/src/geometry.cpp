@@ -1,7 +1,7 @@
 
 #include <geometry.h>
 
-const unsigned int Geometry::NOT_AN_INDEX = std::numeric_limits<unsigned int>::max();
+const idx Geometry::NOT_AN_INDEX = std::numeric_limits<idx>::max();
 
 
 
@@ -60,6 +60,7 @@ void Geometry::setTo(Geometry* geom)
     Ymax	= geom->getYmax();
     Zmin	= geom->getZmin();
     Zmax	= geom->getZmax();
+
 
     t->CopyMesh(geom->t);
     e->CopyMesh(geom->e);
@@ -215,7 +216,21 @@ void Geometry::addCoordinates(vector<double> &coords){
 }
 
 
+void Geometry::updateMaxNodeNumbers()
+{
+// UPDATE MaxNodeNumber FOR SURFACE AND VOLUME MESHES
+// THIS NEEDS TO BE DONE AFTER NODE REOREDERING
 
+// VOLUMES
+    idx* ielem = this->t->getPtrToElement(0);
+    idx maxnn = *max_element(ielem, ielem+ t->getnElements()*t->getnNodes() );
+    t->setMaxNodeNumber( maxnn );
+
+// SURFACES
+    ielem = e->getPtrToElement(0);
+    maxnn = *max_element(ielem, ielem+e->getnElements()*e->getnNodes() );
+    e->setMaxNodeNumber( maxnn );
+}
 
 void Geometry::setnp(int n)		{np = n;}
 void Geometry::setnpLC(int n)	{npLC = n;}
@@ -305,7 +320,10 @@ void Geometry::ReorderDielectricNodes()
 
     setnpLC( getnp() );
     if (!DE_exist) // if no dielectric materials -> no need to reorder = exit
+    {
+        this->updateMaxNodeNumbers();
         return;
+    }
 
 
     //
@@ -388,6 +406,8 @@ void Geometry::ReorderDielectricNodes()
     e->setAllNodes(newe ); // copy node numbers
     free(newe);
 
+
+    this->updateMaxNodeNumbers();
 
 }
 

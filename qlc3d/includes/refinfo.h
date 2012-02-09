@@ -6,15 +6,16 @@
 #include <algorithm>
 #include <stdio.h>
 #include <vector>
+#include <iostream>
 class RefInfo
 {
 public:
     enum Type {None = 0, Change = 1, Sphere=2};
 private:
     Type type_;
-    long int iter_; // WHEN TO REFINE, IF BOTH ZERO ASSUME REPEATING
+    long long int iter_; // WHEN TO REFINE, IF BOTH ZERO ASSUME REPEATING
     double time_;   //
-    int refIter_;    // HOW MANY REFINMENT STEPS THIS OBJECT DESCRIBES
+    unsigned int refIter_;   // HOW MANY REFINMENT STEPS THIS OBJECT DESCRIBES
 
     std::vector<double> values_; // THIS WILL HOLD DIFFERENT VALUES DEPENDING ON type_
     std::vector<double> X_;      // LISTS OF COORDINATES FOR A SPECIFIED REGION
@@ -41,7 +42,7 @@ public:
 
 
 
-    int    getRefIter()const {return refIter_;}
+    unsigned int    getRefIter()const {return refIter_;}
     double getValue(const size_t i) const;//
     void   getCoords(std::vector<double>& x,    // RETURNS ALL COORDINATES IN A VECTOR
                      std::vector<double>& y,

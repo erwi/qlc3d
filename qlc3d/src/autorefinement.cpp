@@ -37,7 +37,7 @@ void interpolate(SolutionVector& qnew,
                  SolutionVector& qold,
                  Geometry& geom_old)
 {
-    // Interpolates Q-tensor qold from olde geometry geom_old to new geometry geom_new
+    // Interpolates Q-tensor qold from ye olde geometry geom_old to new geometry geom_new
 
     // MAKE COORDINATE TO CONTAINING ELEMENT IDEX pint
     vector < idx > pint; // index from point to containing tet
@@ -53,6 +53,7 @@ void interpolate(SolutionVector& qnew,
 
 
     // Loop over all new nodes and set Q-tensor
+    qnew.Allocate( geom_new.getnpLC(), 5 );
     for (size_t ind = 0 ; ind < (size_t) geom_new.getnpLC() ; ind++)// for all new nodes
     {
 
@@ -86,7 +87,7 @@ void interpolate(SolutionVector& qnew,
             exit(1);
         }
 #endif
-        // IF MAXIMUM LOCAL COORDINATE VALUE is more or less 1 -> the node is an exiting one
+        // IF MAXIMUM LOCAL COORDINATE VALUE is more or less 1 -> the node is an exsiting one
         size_t ind_max = max_element(loc, loc+4) - loc ;
         if ( loc[ ind_max ] >= 0.99999){// EXISTING CORNER NODE, STRAIGHT COPY OF OLD VALUES
             qnew.setValue(ind, 0 , qold.getValue ( n[ind_max] , 0 ) );
@@ -112,13 +113,38 @@ void interpolate(SolutionVector& qnew,
     if (dir) delete [] dir;
 }
 
+bool needsInterpolatedQ(const list<RefInfo>& refInfos,
+                        const unsigned int refiter)
+{
+// CHECKS WHETHER IT IS NECESSARY TO INTERPOLATE Q-TENSOR ONTO A DIFFERENT MESH.
+// SOME REFINEMENT TYPES NEED THIS WHILE OTHERS DON'T. INTERPOLATION CAN BE
+// SLOW, SO AVOIDING IT CAN SPEED UP THINGS
+    list<RefInfo>::const_iterator ritr = refInfos.begin();
+
+    for (;ritr!=refInfos.end() ; ritr ++)
+    {
+        // IF THIS REFITER IS NOT DEFINED FOR THIS REFINFO OBJECT, SKIP IT
+        if ( refiter > (*ritr).getRefIter() )
+            continue;
+
+        switch ((*ritr).getType() )
+        {
+            case ( RefInfo::Change ):
+                return true;
+            default:{}// DO NOTHING
+
+        }
+    }
+
+    return false;
+}
 
 void get_index_to_tred(Geometry& geom_curr, // CURRENT CALCULATION GEOMETRY
                        Geometry& geom_work, // REFINED WORKING GEOMETRY
                        SolutionVector& q,   // Q_TENSOR CORRESPONDING TO geom_curr
                        vector <idx>& i_tet,
                        const list<RefInfo>& refInfos,
-                       const int& refiter,
+                       const unsigned int refiter,
                        bool isEndRefinement = false
                        )
 {
@@ -128,37 +154,16 @@ void get_index_to_tred(Geometry& geom_curr, // CURRENT CALCULATION GEOMETRY
     i_tet.clear();
     i_tet.assign( geom_work.t->getnElements() , 0 );
 
-    list<RefInfo>::const_iterator ritr = refInfos.begin();
-
-    // DETERMINE IF INTERPOLATION OF Q-TENSOR IS NEEDED:
-    // SOME REFINEMENT TYPES NEED AN UP TO DATE Q-TENSOR
-    // TO DETERMINE REFINEMENT REGIONS. SOME DON'T.
-    bool needsInterpolatedQ = false;
     SolutionVector q_temp;
-    for (;ritr!=refInfos.end() ; ritr ++)
+
+    // IF INTERPOLATION NEEDED. DO IT
+    if ( needsInterpolatedQ(refInfos, refiter) )
     {
-        // IF THIS REFITER IS NOT DEFINED FOR THIS REFINFO OBJECT, SKIP IT
-        if ( refiter > (*ritr).getRefIter() )
-            continue;
+        interpolate(q_temp, geom_work, q, geom_curr );
+    }
 
-        switch ((*ritr).getType() )
-        {
-        case ( RefInfo::Change ):
-            needsInterpolatedQ = true;
-            break;
-        default:{}// DO NOTHING
-
-        }// end switch/case
-        // INTERPOLATION NEEDED. QUIT LOOP
-        if ( needsInterpolatedQ )
-        {
-            interpolate(q_temp, geom_work, q, geom_curr );
-            break;
-        }
-    }// end for
-
-    ritr = refInfos.begin();
     // LOOP OVER EACH REFINFO OBJECT AND PROCESS IT
+    list<RefInfo>::const_iterator ritr = refInfos.begin();
     for ( ritr = refInfos.begin() ; ritr!=refInfos.end() ; ritr++)
     {
         // CHECK WHETHER THIS RefInfo OBJECT IS DEFINED FOR THIS REFINEMENT ITERATION
@@ -172,7 +177,7 @@ void get_index_to_tred(Geometry& geom_curr, // CURRENT CALCULATION GEOMETRY
         case ( RefInfo::Change ):
         {
             printf("SEARCHING FOR TYPE = CHANGE TETS\n");
-            //findTets_Change( (*ritr) , i_tet, refiter, geom_orig , q  );
+            findTets_Change( (*ritr) , i_tet, refiter, geom_work , q_temp  );
             break;
         }
         case ( RefInfo::Sphere):
@@ -192,6 +197,17 @@ void get_index_to_tred(Geometry& geom_curr, // CURRENT CALCULATION GEOMETRY
     }// end for all refinfo objects
 }
 
+idx getMaxRefiterCount(const list<RefInfo>& refInfos)
+{
+// DETERMINES MAXIMUM NUMBER OF REFINEMENT ITERATIONS THAT MAY BE PERFORMED
+    list<RefInfo>::const_iterator ri_itr = refInfos.begin();
+    idx maxRefIter(0);
+    for(;ri_itr != refInfos.end() ; ri_itr++)
+    {
+        maxRefIter = maxRefIter > (*ri_itr).getRefIter() ? maxRefIter : (*ri_itr).getRefIter();
+    }
+    return maxRefIter;
+}
 
 bool autoref(   Geometry& geom_orig, Geometry& geom,
                 SolutionVector& q, SolutionVector& qn,
@@ -200,16 +216,12 @@ bool autoref(   Geometry& geom_orig, Geometry& geom,
                 Simu& simu, Alignment& alignment,Electrodes& electrodes, LC& lc)
 {
     bool bRefined(false);   // indicates whether mesh is changed or not
-    int refiter(0);         // refinement iteration counter
-    int maxrefiter(0);
+    unsigned int refiter(0);         // refinement iteration counter
+    unsigned int maxrefiter(0);
 
     // DETERMINE MAXIMUM REFINEMENT ITERATIONS NUMBER
-    list<RefInfo>::const_iterator ri_itr = refInfos.begin();
-    for (;ri_itr != refInfos.end() ; ri_itr++)  // find max in list of RefInfo objects
+    if ( !(maxrefiter =getMaxRefiterCount(refInfos) ) )   // IF NO REFINEMENT
     {
-        maxrefiter = maxrefiter > (*ri_itr).getRefIter() ? maxrefiter : (*ri_itr).getRefIter();
-    }
-    if (maxrefiter == 0){   // IF NO REFINEMENT
         simu.setMeshModified(false);
         return false;             // LEAVE REFINEMENT FUNCTION NOW
     }
@@ -247,6 +259,8 @@ bool autoref(   Geometry& geom_orig, Geometry& geom,
             printf("   No refinement this iteration\n");
             continue;
         }
+
+
 
         Refine( geom_temp  , i_tet);
 

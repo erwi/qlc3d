@@ -46,15 +46,18 @@ void findTets_Change( const RefInfo& refinfo,
 
     double thq = refinfo.getValue( refiter ); // GET THRESHOLD
 
-    for ( idx i = 0 ; i < (idx) geom.t->getnElements() ; i++)
+    for ( idx i = 0 ; i <  geom.t->getnElements() ; i++)// for each tetrahedron
     {
-        double maxdq = get_elem_maxdQ( i , geom, q);
+        // IF NON-LC TETRAHEDRON: DON'T DO ANYTHING
+        if (geom.t->getMaterialNumber(i) >= MAT_DIELECTRIC1 )
+            continue;
 
+        double maxdq = get_elem_maxdQ( i , geom, q);
         if ( maxdq >= thq ) // MARK AS RED IF....
         {
             i_tet[i] = RED_TET;
         }
-    }
+    }// end for
 } // END findTets_Change
 
 void findTets_Sphere(const RefInfo& refinfo,

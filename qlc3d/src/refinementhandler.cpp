@@ -17,7 +17,7 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
 {
     printf("%u REFINEMENT EVENTS NOW\n", refEvents.size() );
 
-    // MAKE LIST OF ALL REFINFO OBJECTS
+    // MAKE LIST OF ALL REFINFO OBJECTS THAT ARE HANDLES NOW
     std::list<RefInfo> refInfos;
     std::list<Event*>::iterator evitr = refEvents.begin();
     for ( ; evitr!= refEvents.end() ; evitr++)
@@ -27,6 +27,7 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
     }
     printf("%u RefInfo objects\n", refInfos.size() );
 
+    // TRY TO DO REFINEMENT
     bool isRefined(false);
     isRefined = autoref(*geometries.geom_orig,
             *geometries.geom,
@@ -40,7 +41,7 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
             lc
             );
 
-    // DELETE ALL REFINEMENT EVENTS
+    // DELETE ALL REFINEMENT EVENTS. ALWAYS
     for (evitr = refEvents.begin() ; evitr != refEvents.end() ; evitr++)
     {
         delete (*evitr);

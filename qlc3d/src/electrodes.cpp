@@ -160,8 +160,9 @@ double Electrodes::getCurrentElectrodePotential(const size_t &eNum) const
 // RETURNS THE CURRENT POTENTIAL OF ELECTRODE eln
     if ( eNum >= getnElectrodes() )
     {
-        printf("error in %s, can't get potential of electrode %u\n",__func__, eNum + 1 );
-        printf("Total number of electrodes is %u\n", getnElectrodes() );
+        printf("\nerror in %s, can't find potential for electrode %u.\n",__func__, eNum + 1 );
+        printf("Potentials have been specified for only %u electrodes.\n", getnElectrodes());
+        printf("Check your settings file - bye!\n");
         exit(1);
     }
     return potentials_[eNum];

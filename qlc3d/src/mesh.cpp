@@ -926,8 +926,7 @@ void Mesh::removeElements(std::set <idx>& index)
     // REMOVES ELEMENTS IN INDEX.
     if ( !index.size() )
     {
-        printf("error in %s, zero index size - bye !\n",__func__);
-        exit(1);
+        return ;
     }
 
     idx num_new_elements = getnElements() - (idx) index.size();
@@ -1278,13 +1277,6 @@ void Mesh::gen_p_to_elem(vector < set < idx > > &p_to_elem) const
     p_to_elem.reserve( this->getMaxNodeNumber() ); // pre-allocate space
 
     // initialise vector to allow [index] access later
-
-    //if (getDimension() == 2 ){ // FIND MAXIMUM NODE NUMBER NOW, IF A TRIANGLE
-    //    MaxNodeNumber = * max_element(Elem, Elem+ getnElements()*getnNodes() );
-    //}
-
-
-
     for ( idx i = 0 ; i < this->getMaxNodeNumber()+1 ; i++)
     {
         set <idx> empty;
@@ -1296,6 +1288,7 @@ void Mesh::gen_p_to_elem(vector < set < idx > > &p_to_elem) const
         for (idx j = 0 ; j < this->getnNodes() ; j++) // for every node
         {
             idx n = this->getNode( i , j );
+            //printf("inserting element %u to node %u\n",i, n);
             p_to_elem[n].insert( i );
         }
     }

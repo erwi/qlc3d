@@ -623,7 +623,7 @@ void modify_geometry(Geometry& geom,
     set <idx> ind_remove_tets;
     for (idx i = 0 ; i < (idx) i_tet.size() ; i++)
     {
-        if ( i_tet[i] )
+        if ( i_tet[i] >0 )
         {
             ind_remove_tets.insert(i);
         }
@@ -665,7 +665,7 @@ void Refine(Geometry& geom,                 // SOURCE (OLD) GEOMETRY
         printf("error int %s, no red tetrahedra selected - bye!\n", __func__);
         exit(1);
     }
-
+    std::cout << nrt.red << " tetrahedra selected" << std::endl;
     //=================================
     //	2.  EXPAND REFINEMENT REGION TO SATISFY
     //      PERIODICITY OF STRUCTURE
