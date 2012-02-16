@@ -11,115 +11,107 @@
 #define MAX_DIGITS 	1000000000
 #define TOLER		1e-9
 
-
-
-int CountNodes(ifstream* fin) // counts number of nodes
+void strToLower(std::string& str)
 {
-    string Coordinates = "Coordinates";
-    string end_coordinates = "end coordinates";
-    int np = 0;
-    char *charray = (char*)malloc(200*sizeof(char));
-    memset((void*)charray, 0 , 200*sizeof(char));
-    // read until "Coordintes"
-    while ( Coordinates.compare(0,Coordinates.size() , charray , 0 , Coordinates.size() ) != 0)
-        fin->getline(charray,200,'\n');
+    // CONVERTS STRING TO ALL LOWER CASE LETTERS
+    std::transform(str.begin(), str.end(), str.begin(), ::tolower);
 
-
-    while ( end_coordinates.compare(0, end_coordinates.size() , charray , 0 , end_coordinates.size()  ) != 0 )
+}
+void charsToLower(char* str)
+{
+    int i = -1;
+    while(true)
     {
-        fin->getline(charray,200,'\n');
-        np++;
+        i++;
+        char a = str[i];
+
+        if (a == '\0')
+            break;
+
+        if (a < 65 )    // IF NUMBER OR OTHER SPECIAL CHARACTER
+        {
+            continue;
+        }
+
+        str[i] = tolower( a );
+
     }
-    np--;
-    free(charray);
-    return np;
+}
+
+void EOFError(const char* where)
+{
+    std::cout << "error reading mesh file.\nUnexpected end of file encountered when reading: "<< where<<std::endl;
+    std::cout << "bye!" << std::endl;
+    exit(1);
+}
+
+
+idx forwardToLine(ifstream* fin, const char* key)
+{
+    // FINDS LINE IN FILE fin CONTAINING TEXT key AND RETURNS NUMBER OF LINES READ
+    // MAKE SURE key IS ALL LOWER CASE!!
+    char charray[256];
+    idx c = 0;
+    while (true)
+    {
+        fin->getline( charray, 256,'\n');
+        charsToLower(charray);
+
+        if ( strcmp( key,charray) == 0 )
+            break;
+
+        if ( fin->eof() )
+            EOFError( key );
+
+        c++;
+    }
+
+    return c;
+}
+
+idx CountNodes(ifstream* fin) // counts number of nodes
+{
+    idx l1 = forwardToLine(fin, "coordinates" );
+    idx l2 = forwardToLine(fin, "end coordinates");
+
+    return l2-l1;
 } //end int CountNodes
-int CountTetrahedra(ifstream* fin)// counts number of tetrahedral elements
+idx CountTetrahedra(ifstream* fin)// counts number of tetrahedral elements
 {
-    string end_elements = "end elements";
-    string Elements 	= "Elements";
-
-
-    int nt = 0;
-    char *charray = (char*)malloc(200*sizeof(char));
-    memset((void*)charray, 0 , 200*sizeof(char));
-
-    // read file until Elements start
-    while (Elements.compare(0, Elements.size() , charray , 0 , Elements.size()  ) != 0 )
-        fin->getline(charray,200,'\n');
-
-    while ( end_elements.compare(0 , end_elements.size() , charray , 0 , end_elements.size() ) )
-    {
-        fin->getline(charray,200,'\n');
-        nt++;
-    }
-    nt--;
-    free(charray);
-
-    return nt;
+    forwardToLine(fin, "elements");
+    idx l2 = forwardToLine(fin, "end elements");
+    return l2;// - l1;
 }//end int CountTetrahedra
-int CountTriangles(ifstream* fin)// counts number of triangles
+
+idx CountTriangles(ifstream* fin)// counts number of triangles
 {
-    string Elements = "Elements";
-    string end_elements = "end elements";
+    forwardToLine(fin, "elements");
+    idx l2 = forwardToLine(fin, "end elements");
 
-    char *charray = (char*)malloc(200*sizeof(char));
-    memset((void*)charray, 0 , 200*sizeof(char));
-    while ( Elements.compare(0 , Elements.size() , charray , 0 , Elements.size() ) != 0)
-        fin->getline(charray,200,'\n');
-
-    int ne = 0;
-    while ( end_elements.compare(0 , end_elements.size() , charray , 0 , end_elements.size() ) != 0)
-    {
-        fin->getline(charray,200,'\n');
-        ne++;
-    }
-    ne--;
-    free(charray);
-    return ne;
+    return l2;
 }//end int CountTriangles
-int CountPrisms( ifstream* fin)// counts number of prisms (for periodic nodes)
+idx CountPrisms( ifstream* fin)// counts number of prisms (for periodic nodes)
 {
-    char* charray = (char*)malloc(200*sizeof(char));
-    memset((void*)charray, 0 , 200*sizeof(char));
-    string Elements = "Elements";
-    string end_elements = "end elements";
 
-    while (Elements.compare(0, Elements.size() , charray, 0, Elements.size() ) != 0 )
-        fin->getline(charray,200,'\n');
+    forwardToLine(fin, "elements");
+    idx l2 = forwardToLine(fin, "end elements");
+    return l2;
 
-    int npr = 0;
-    while ( end_elements.compare(0 , end_elements.size() ,  charray , 0 ,end_elements.size() ) !=0 )
-    {
-        fin->getline(charray,200,'\n');
-        npr++;
-    }
-    npr--;
-    free(charray);
-    return npr;
 }//end int CountPrisms
 
-void ReadNodes(ifstream* fin,int np, double* dp)
+void ReadNodes(ifstream* fin,idx np, double* dp)
 {
-    char* charray = (char*)malloc(200*sizeof(char));
-    memset((void*)charray, 0 , 200*sizeof(char));
-    printf("\tReading %i nodes...",np); fflush(stdout);
-    double  temp;
 
-    string Coordinates = "Coordinates";
 
-    while (Coordinates.compare(0,Coordinates.size() , charray , 0 , Coordinates.size() ) != 0 )
-        fin->getline(charray,200,'\n');
-    free(charray);
-    for (int i = 0 ; i < np ; i++ )
+    forwardToLine(fin,"coordinates");
+
+    for (idx i = 0 ; i < np ; i++ )
     {
+        double temp;
         *fin >> temp; //node number - not needed
         *fin >> dp[i*3+0];
         *fin >> dp[i*3+1];
         *fin >> dp[i*3+2];
-        //if(i<10)
-        //printf("[%f,%f,%f]\n",dp[i*3+0] , dp[i*3+1] , dp[i*3+2]);
-
     }
 
     cout << "OK\n";
@@ -127,18 +119,10 @@ void ReadNodes(ifstream* fin,int np, double* dp)
 void ReadTetrahedra(ifstream* fin, idx nt, idx* dt, idx* dmatt)
 {
     printf("\tReading %i tetrahedra...", nt); fflush(stdout);
-
-    char* charray 	= (char*)malloc(200*sizeof(char));
-    memset((void*)charray, 0 , 200*sizeof(char));
-    string Elements = "Elements";
-
-    while ( Elements.compare(0 , Elements.size() , charray, 0 , Elements.size() ) != 0)
-        fin->getline(charray,200,'\n');	//find start of tet data
-    free(charray);
-    idx temp;
-
+    forwardToLine(fin, "elements");
     for (idx i = 0 ; i < nt ; i++ )
     {
+        idx temp;
         *fin >> temp; //tetrahedra number - not needed
         *fin  >> dt[i*4+0];
         *fin  >> dt[i*4+1];
@@ -152,6 +136,7 @@ void ReadTetrahedra(ifstream* fin, idx nt, idx* dt, idx* dmatt)
 void ReadPrisms(ifstream* fin, idx npr, idx* pr)
 {
     printf("\tReading %i prisms (periodic boundaries)...",npr); fflush(stdout);
+    /*
     char* charray = (char*)malloc(200*sizeof(char));
     memset((void*) charray , 0 , 22*sizeof(char) );
     idx temp;
@@ -159,9 +144,11 @@ void ReadPrisms(ifstream* fin, idx npr, idx* pr)
     while ( Elements.compare(0 , Elements.size() , charray , 0 , Elements.size() ) != 0 )
         fin->getline(charray,200,'\n'); //find start of periodic nodes
     free(charray);
-
+    */
+    forwardToLine(fin, "elements");
     for (idx i = 0 ; i < npr ; i++)
     {
+        idx temp;
         *fin >> temp;
         *fin >> pr[i*6+0];
         *fin >> pr[i*6+1];
@@ -177,18 +164,11 @@ void ReadPrisms(ifstream* fin, idx npr, idx* pr)
 void ReadTriangles(ifstream* fin, idx ne, idx* e, idx* emat)
 {
     printf("\tReading %i triangles...",ne); fflush(stdout);
-    char* charray 	= (char*)malloc(200*sizeof(char));
-    memset((void*)charray, 0 , 200*sizeof(char));
-    idx temp;
 
-    string Elements = "Elements";
-    while (Elements.compare(0,Elements.size() , charray,0,Elements.size() )!= 0)
-        fin->getline(charray,200,'\n');		//find start of triangle data
-    free(charray);
-
-
+    forwardToLine(fin, "elements");
     for (idx i =0 ; i<ne ; i++)
     {
+        idx temp;
         *fin >> temp; //triangle number - not needed
         *fin >> e[i*3+0];
         *fin >> e[i*3+1];
@@ -222,7 +202,8 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
         exit(1);
     }
 
-    else{
+    else
+    {
         printf("Reading GID mesh file: %s \n", filename.c_str()); fflush(stdout);
         //printf("a");
         np[0] = 0;
@@ -236,37 +217,65 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
 
 
 
-        while(!fin.eof()){ // count  - while loop
+        while(!fin.eof()) // count  - while loop
+        {
             fin.getline(charray,200);
             string line = charray;
 
-            //if ( Tets.compare(0 , Tets.size() , charray, 0 , Tets.size() ) == 0 ){ // IF TETS ARE FIRST IN MESH FILE
-            if (line.find(Tets) != std::string::npos ){
-                if (np[0] == 0){	// if tets are defined first
-                    np[0] = CountNodes(&fin);
 
+            if (line.find(Tets) != std::string::npos )
+            {
+                if (np[0] == 0)	// if tets are defined first
+                {
+                    np[0] = CountNodes(&fin);
                     tets_first = true;
                 }
 
                 nt[0] = CountTetrahedra(&fin);
             }// end if tets before prisms
 
-            //else if ( Prisms.compare(0 , Prisms.size() , charray , 0 , Prisms.size() ) == 0 ){ // IF PERIODIC NODES
-            else if (line.find(Prisms) != std::string::npos){
+
+            else if (line.find(Prisms) != std::string::npos)
+            {
                 // if prisms are defined before nodes
                 if (np[0] == 0)
                     np[0] = CountNodes(&fin);
                 nperi = CountPrisms(&fin);
             }
 
-            //else if (  Tris.compare(0 , Tris.size() , charray , 0 , Tris.size() ) == 0 ){ // IF TRIANGLES
-            else if (line.find(Tris) != std::string::npos){
+
+            else if (line.find(Tris) != std::string::npos)
+            {
                 if (np[0] == 0)
                     np[0] = CountNodes(&fin);
 
                 ne[0] = CountTriangles(&fin);
             }
         } // end count while loop
+
+        if( fin.eof() )
+        {
+            bool error = false;
+            if ( *np == 0 )
+            {
+                printf("error, could not find coordinates - bye!\n");
+                error = true;
+            }
+            if (*ne == 0)
+            {
+                printf("error, could not find triangle elements - bye\n");
+                error = true;
+            }
+            if (*nt == 0)
+            {
+                printf("error, could not find tetrhedral elements - bye\n");
+                error = true;
+            }
+            if (error)
+                exit(1);
+
+        }
+
 
         printf("Tets = %u , Tris = %u , nodes = %u\n", nt[0], ne[0] , np[0]);
 
