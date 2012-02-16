@@ -1256,21 +1256,21 @@ is only properly defined in the LC element.
 }
 
 double* Geometry::getPtrTop() 	{ return p;}
-double Geometry::getpX(int i)	
+double Geometry::getpX(int i) const
 { 
 #ifdef DEBUG
     isValidNodeIndex(i);
 #endif
     return p[i*3 + 0];
 }
-double Geometry::getpY(int i)   
+double Geometry::getpY(int i) const
 { 
 #ifdef DEBUG
     isValidNodeIndex(i);
 #endif
     return p[i*3 + 1];
 }
-double Geometry::getpZ(int i)	
+double Geometry::getpZ(int i)	const
 { 
 #ifdef DEBUG
     isValidNodeIndex(i);
@@ -1388,7 +1388,9 @@ void Geometry::getTetBaryCentre(double* x, const unsigned int &it){
     x[1]/= (double)nn;
     x[2]/= (double)nn;
 }
-void Geometry::isValidNodeIndex(const unsigned int &i) const{
+void Geometry::isValidNodeIndex(const unsigned int &i) const
+{
+// DEBUG ASSERTION TO MAKE SURE A VALID NODE IS ACCESSED
     if (i>(unsigned int) np){
         std::cout << "error, requesting node "<<i<<" , when np is: " << np << " - bye!" << std::endl;
         exit(1);

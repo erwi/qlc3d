@@ -60,6 +60,31 @@ void findTets_Change( const RefInfo& refinfo,
     }// end for
 } // END findTets_Change
 
+
+void selectTetsByCoordIndex(const std::vector<idx>& indp,
+                            const Geometry& geom,
+                            vector <idx>& i_tet
+                            )
+{
+// SETS INDED TO RED TETS TO "RED_TET" FOR THOSE TETRAHEDRAL
+// ELEMENTS THAT CONTAIN NODES THAT ARE INDEXED IN IN indp
+
+    // MAKE P TO TET INDEX
+    std::vector< std::set<idx> > p_to_t;
+    geom.t->gen_p_to_elem(p_to_t);
+    std::set<idx> :: iterator itr;
+    for (idx i = 0 ; i < (idx) indp.size() ; i++)
+    {
+        idx node = indp[i];
+        for (itr = p_to_t[node].begin() ; itr != p_to_t[node].end() ; itr++)
+        {
+            idx mat = geom.t->getMaterialNumber( *itr );
+            if (mat <= MAT_DOMAIN7 )
+                i_tet[(*itr)] = RED_TET;
+        }
+    }
+}
+
 void findTets_Sphere(const RefInfo& refinfo,
                      vector <idx>& i_tet,
                      const int refiter,
@@ -69,12 +94,12 @@ void findTets_Sphere(const RefInfo& refinfo,
 
     double rad = refinfo.getValue( refiter ); // SPHERE RADIUS
     rad*=rad;                                 // ARDIUS SQUARED
-    double centre[3] = { 0,0,0};
+    double centre[3] = {0,0,0};
     refinfo.getCoord( centre[0], centre[1], centre[2] );
 
     // MAKE INDEX OF ALL POINTS THAT ARE SUFFICIENTLY CLOSE
     std::vector<idx> p_close;
-    for (idx i = 0 ; i < geom.getnp() ; i++)
+    for (idx i = 0 ; i < geom.getnpLC() ; i++)
     {
         double distsqr = geom.getAbsDistSqr( i , centre );
 
@@ -82,27 +107,64 @@ void findTets_Sphere(const RefInfo& refinfo,
             p_close.push_back( i );
     }
 
-    // MAKE p_close INDEX UNIQUE
-    std::sort( p_close.begin() , p_close.end() );
-    std::vector< idx >::iterator uitr = unique( p_close.begin(), p_close.end() );
-    p_close.erase( uitr , p_close.end() );
+    if(p_close.size() == 0) // NO NODES SELECTED. CAN RETURN
+        return;
 
-    // LOOP OVER EACH ELEMENT
-    for (idx i = 0 ; i < geom.t->getnElements() ; i++)
+    selectTetsByCoordIndex(p_close, geom, i_tet);
+}
+
+void findTets_Box(const RefInfo& refinfo,
+                  vector<idx>& i_tet,
+                  const int refiter,
+                  const Geometry& geom)
+{
+    // FINDS INDEX TO ALL TETS THAT ARE WITHIN A BOX DEFINED FOR THIS REFITER
+
+    // GET CORRECT COORDINATE VALUES FOR THIS REFITER
+    std::vector<double> x;
+    std::vector<double> y;
+    std::vector<double> z;
+    refinfo.getCoords(x,y,z);
+
+    // BOX LIMITS [min,max]
+    double xLim[2] = {x[refiter*2], x[refiter*2 +1]};
+    double yLim[2] = {y[refiter*2], y[refiter*2 +1]};
+    double zLim[2] = {z[refiter*2], z[refiter*2 +1]};
+
+    // FIND INDEX TO ALL NODES THAT ARE WITHIN BOX
+    std::vector<idx> indp;
+    for (idx i = 0; i < geom.getnpLC() ; i++)
     {
-        idx* tt = geom.t->getPtrToElement( i );         // GET SHORTCUT TO ELEMENT NODE INDEX
+        double px = geom.getpX(i);
+        double py = geom.getpY(i);
+        double pz = geom.getpZ(i);
 
-        for ( idx j = 0 ; j < p_close.size() ; j++)    // LOOP OVER ALL SELECTED NODES
+        if ( ((xLim[0]<=px) && (xLim[1]>=px)) &&
+             ((yLim[0]<=py) && (yLim[1]>=py)) &&
+             ((zLim[0]<=pz) && (zLim[1]>=pz)) )
         {
-            if ( ( tt[0] == p_close[j] ) || // IF ELEMENT CONTAINS NODE j
-                 ( tt[1] == p_close[j] ) ||
-                 ( tt[2] == p_close[j] ) ||
-                 ( tt[3] == p_close[j] ) )
-            {
-                i_tet[i] = RED_TET;         // MARK ELEMENT AS RED
-                break;
-            }
+            indp.push_back(i);
         }
     }
 
+    if ( indp.size()== 0)
+        return;
+
+    selectTetsByCoordIndex(indp, geom, i_tet);
+    /*
+    // MAKE P TO TET INDEX
+    std::vector< std::set<idx> > p_to_t;
+    geom.t->gen_p_to_elem(p_to_t);
+    std::set<idx> :: iterator itr;
+    for (idx i = 0 ; i < (idx) indp.size() ; i++)
+    {
+        idx node = indp[i];
+        for (itr = p_to_t[node].begin() ; itr != p_to_t[node].end() ; itr++)
+        {
+            idx mat = geom.t->getMaterialNumber( *itr );
+            if (mat <= MAT_DOMAIN7 )
+                i_tet[(*itr)] = RED_TET;
+        }
+    }
+    */
 }

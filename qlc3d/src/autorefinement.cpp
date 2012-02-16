@@ -187,6 +187,12 @@ void get_index_to_tred(Geometry& geom_curr, // CURRENT CALCULATION GEOMETRY
 
             break;
         }
+        case (RefInfo::Box ):
+        {
+            printf("SEARCHING FOR TYPE = BOX TETS\n");
+            findTets_Box((*ritr), i_tet, refiter, geom_work );
+            break;
+        }
         default:
         {
             printf("error in %s, unhandled refinement type - bye!\n",__func__);
@@ -195,6 +201,12 @@ void get_index_to_tred(Geometry& geom_curr, // CURRENT CALCULATION GEOMETRY
         } // end switch/case
 
     }// end for all refinfo objects
+
+    //sort(i_tet.begin(), i_tet.end() );
+    //std::vector< idx >:: iterator itr;
+    //itr = unique(i_tet.begin() , i_tet.end() );
+    //i_tet.erase(itr, i_tet.end() );
+
 }
 
 idx getMaxRefiterCount(const list<RefInfo>& refInfos)

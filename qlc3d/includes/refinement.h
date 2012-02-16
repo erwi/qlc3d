@@ -123,5 +123,10 @@ void findTets_Sphere(const RefInfo& refInfo,
                      const int refIter,
                      const Geometry& geom);
 
+void findTets_Box(const RefInfo& refInfo,
+                  vector<idx> &i_tet,
+                  const int refIter,
+                  const Geometry& geom);
+
 
 #endif

@@ -22,6 +22,12 @@ void RefInfo::setType(std::string s)
             return;
         }
     else
+            if( ! s.compare("box") )
+        {
+            type_ = Box;
+            return;
+        }
+    else
     {
         std::cout<< "error - bad refinement type: "<< s << " bye!" << std::endl;
         exit(1);
@@ -45,6 +51,13 @@ void RefInfo::setRefIter()
     {
         refIter_ = (int) values_.size();
         // MAKE SURE NOT EMPTY AND EQUAL NUMBER OF COORDS HAVE BEEN SPECIFIED
+        break;
+    }
+    case (Box):
+    {
+        // FOR A BOX, refIter DEPENDS ON NUMBER OF COORDS SPECIFIED
+        size_t numx = X_.size();
+        refIter_ = (int) numx / 2;
         break;
     }
     default:
@@ -91,6 +104,7 @@ void RefInfo::setValues(std::vector<double> &values)
 }
 
 
+
 void RefInfo::setCoords(const std::vector<double> &x,
                         const std::vector<double> &y,
                         const std::vector<double> &z)
@@ -106,6 +120,7 @@ void RefInfo::setCoords(const std::vector<double> &x,
     this->setRefIter();
 
 }
+
 
 void RefInfo::getCoords(std::vector<double> &x,
                         std::vector<double> &y,
@@ -151,7 +166,7 @@ void RefInfo::printRefInfo(FILE *fid) const
 
 void RefInfo::validate(const RefInfo &refinfo)
 {
-#define ERRORMSG printf("error, bad or missing REFINEMENT data - bye!\n")
+#define ERRORMSG printf("\n\nerror, bad or missing REFINEMENT data - bye!\n")
     switch ( refinfo.getType() )
     {
     case( RefInfo::Change ):
@@ -163,6 +178,7 @@ void RefInfo::validate(const RefInfo &refinfo)
         }
         break;
     case( RefInfo::Sphere ):
+    {
         // MAKE SURE VALUES AND COORDINATES EXIST
         if ( ( !refinfo.values_.size() ) ||
              ( !refinfo.X_.size() ) ||
@@ -172,7 +188,39 @@ void RefInfo::validate(const RefInfo &refinfo)
              ERRORMSG;
              exit(1);
         }
-
+        break;
+    }
+    case( RefInfo::Box ):
+    {
+        // MAKE SURE CORRECT NUMBER OF X,Y AND Z COORDINATES HAVE BEEN SPECIFIED
+        size_t numx = refinfo.X_.size();
+        size_t numy = refinfo.Y_.size();
+        size_t numz = refinfo.Z_.size();
+        if ( (!numx) || // COORDINATES MUST BE DEFINED
+             (!numy) ||
+             (!numz))
+        {
+            ERRORMSG;
+            exit(1);
+        }
+        if ( (numx != numy )||  // EQUAL NUMBER OF COORDS. DEFINED
+             (numx != numz ) )
+        {
+            ERRORMSG;
+            exit(1);
+        }
+        if ( (numx%2 != 0) || // TWO COORDS PER BOX
+             (numy%2 != 0) ||
+             (numz%2 != 0) )
+        {
+            ERRORMSG;
+            exit(1);
+        }
+        break;
+    }
+    case( RefInfo::None ):
+        printf("RefInfo type is None - bye!");
+        exit(1);
         break;
     default:
         printf("error in %s, unknonwn refinement type - bye!\n",__func__);

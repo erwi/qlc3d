@@ -116,9 +116,9 @@ public:
     size_t getnpLC()const  {return npLC;}
     double* getPtrTop();
     inline double* getPtrTop(const size_t& i){ if (i<np) return &p[3*i]; return NULL; } // pointer to node i
-    double getpX(int i);	// return node coordinates at node i
-    double getpY(int i);
-    double getpZ(int i);
+    double getpX(int i)const;	// return node coordinates at node i
+    double getpY(int i)const;
+    double getpZ(int i)const;
     double getXmin();
     double getXmax();
     double getYmin();

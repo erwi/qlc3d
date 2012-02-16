@@ -10,7 +10,7 @@
 class RefInfo
 {
 public:
-    enum Type {None = 0, Change = 1, Sphere=2};
+    enum Type {None = 0, Change = 1, Sphere=2, Box = 3};
 private:
     Type type_;
     long long int iter_; // WHEN TO REFINE, IF BOTH ZERO ASSUME REPEATING
