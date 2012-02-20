@@ -195,7 +195,11 @@ inline void localKL(double* p,Mesh* t,
                  t->getNode(element_num,2),
                  t->getNode(element_num,3)};
     double Jdet = t->getDeterminant(element_num)*1e18 ; // SCALE BACK TO METRES FOR NOW...
-    //if (Jdet < 0) Jdet = -Jdet;
+
+    if (Jdet < 0) {
+      //  printf("Jdet < 0\n");
+        Jdet = -Jdet;
+    }
 
     bool three_elastic_constants = false;
     if ((L2!=0)&&(L6!=0)) three_elastic_constants = true;
