@@ -221,7 +221,7 @@ void ReadLCD_B(Simu* simu, SolutionVector *q)
 			printf("The file you're trying to load (\"%s\") doesn't seem to match the mesh - bye!\n",filename.c_str() );
 			fclose(fid);
 			exit(1);
-		}
+        }
 		
         float q1,q2,q3,q4,q5,temp;
 		

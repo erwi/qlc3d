@@ -8,11 +8,11 @@
 #include <math.h>
 using namespace std;
 
-#define ANCHORING_STRONG		1
-#define ANCHORING_WEAK			2
+#define ANCHORING_STRONG	1
+#define ANCHORING_WEAK		2
 #define ANCHORING_HOMEOTROPIC	3
 #define ANCHORING_DEGENERATE	4
-#define ANCHORING_FREEZE		5	// anchoring type where initial Q-Tensor orientation is frozen
+#define ANCHORING_FREEZE	5	// anchoring type where initial Q-Tensor orientation is frozen
 #ifndef PI
     #define PI 3.14159265358979323846264338327950288419716939937510
 #endif
