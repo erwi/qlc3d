@@ -89,6 +89,14 @@ void Surface::setAnchoringType(string atype)
         isFixed = true;
         setUsesSurfaceNormal(false);
     }
+    else if (atype.compare("Polymerise") == 0 )
+    {
+        printf("Surface::setAnchoringType - Polymerise\n");
+        Anchoring = atype;
+        AnchoringNum = ANCHORING_POLYMERISE;
+        isFixed = true;
+        setUsesSurfaceNormal(false);
+    }
     else
     {
         printf("error - Surface::setAnchoring - \"%s\" is not a known anchoring type, bye!\n",atype.c_str());

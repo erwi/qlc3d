@@ -78,7 +78,28 @@ void setFrozenSurfaces(SolutionVector* q, vector<idx>* ind_nodes)
 
 }
 
+void setPolymeriseSurfaces(SolutionVector*q, double Sth)
+{
+// FIXES Q-TENSOR ON ALL NODES WHERE ORDER PARAMETER IS BELOW DEFINED VALUE Sth
+// NOTHING NEEDS TO BE DONE HERE. SEE SolutionVector::setFixedNodesQ WHERE NODES
+// ARE SELECTED
+    /*
+    // CONVERT QURRENT Q-TENSOR TO DIRECTOR AND ORDER PARAMETERS
+    idx npLC = q->getnDoF();
+    double *n = tensortovector(q->Values,npLC); // get vector data
 
+    // FIND INDEX TO ALL NODES WHERE ORDER IS LESS OR EQUAL TO Sth
+    vector<idx> indn;
+    for (idx i = 3*npLC ; i < 4*npLC; i++) // FOR EACH ORDER PARAMETER
+    {
+        if ( n[i] <= Sth )
+            indn.push_back(i);
+    }
+    delete [] n;
+
+*/
+
+}
 
 void setStrongSurfacesQ(SolutionVector *q,
                         Alignment* alignment,
@@ -135,6 +156,7 @@ void setSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* ge
         { // if nodes found
 
             string AnchoringType = alignment->surface[i]->getAnchoringType();
+            //unsigned int AnchoringNum = alignment->surface[i]->getAnchoringNum(); // <--- SHOULD USE THIS
             if ((AnchoringType.compare("Strong") == 0) ||
                     (AnchoringType.compare("Weak") == 0))
             {
@@ -153,6 +175,11 @@ void setSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* ge
             else if ( AnchoringType.compare("Freeze") == 0 )
             {
                 setFrozenSurfaces(q, &ind_nodes);
+            }
+            else if ( AnchoringType.compare("Polymerise") ) // FREEZES ALL NODES WHOSE ORDER IS BELOW VALUE DEFINED IN STRENGTH
+            {
+                double Sth = alignment->surface[i]->getStrength();
+                setPolymeriseSurfaces(q,Sth);
             }
         }// end if alignment nodes found
     }// end for loop over alignment surfaces

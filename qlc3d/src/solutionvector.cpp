@@ -1,8 +1,15 @@
 #include <solutionvector.h>
 #include <material_numbers.h>
+#include <algorithm>
 #include <stdlib.h>
 
 const double SolutionVector::BIGNUM = 1e99;
+
+
+// HACK DECLARATION OF TENSORTOVECTOR, NEEDED FOR FIXING POLYMERISED NODES
+//
+double *tensortovector(double *a, int npLC);
+
 
 SolutionVector::~SolutionVector(){
     ClearFixed();
@@ -229,12 +236,45 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
         {
             printf("FIXLC%i is strong\n", i+1 );
             vector <idx> temp_index;
-            // 08/02/12 e->FindIndexToMaterialNodes( (i+1) * MAT_FIXLC1 , &temp_index );
-            e->listNodesOfMaterial( temp_index , (i+1)* MAT_FIXLC1 );
-            //for ( itr = temp_index.begin() ; itr != temp_index.end(); itr ++)
-            //{
-            //    ind_to_nodes.push_back(*itr);
-            //}
+
+            // HACK TO FIX POLYMERISED NODES
+            if ( alignment->getAnchoringNum(i) == ANCHORING_POLYMERISE )
+            {
+                temp_index.clear();
+
+                // Sth IS THRESHOLD VALUE FOR CHOOSING POLYMERISED NODES
+                double Sth = alignment->surface[i]->getStrength();
+
+                // CONVERT QURRENT Q-TENSOR TO DIRECTOR AND ORDER PARAMETERS
+                idx npLC = getnDoF();
+                double *n = tensortovector(Values, npLC ); // get vector data
+
+                // FIND INDEX TO ALL NODES WHERE ORDER IS LESS OR EQUAL TO Sth
+                for (idx i = 3*npLC ; i < 4*npLC; i++) // FOR EACH ORDER PARAMETER
+                {
+                    if ( n[i] <= Sth )
+                        temp_index.push_back(i - 3*npLC);
+                }
+                double minS = *std::min_element(n+3*npLC, n+4*npLC);
+                double maxS = *std::max_element(n+3*npLC, n+4*npLC);
+                printf("S range = [%f,%f], Sth = %f, Polymerised %u nodes", minS, maxS,Sth,(idx)temp_index.size() );
+
+                delete [] n;
+
+                // CHECK THAT NOT ALL NODES WERE CHOSEN
+                if (temp_index.size() >= (size_t) npLC)
+                {
+                    printf("error in %s, %s, setting Polymerised fixed nodes",__func__,__FILE__);
+                    printf("too many nodes Polymerised - bye!\n");
+                    exit(1);
+                }
+
+
+            }
+            else    // IF NOT POLYMERISED SURFACE, SELECT BY SURFACE MATERIAL NUMBER
+            {
+                e->listNodesOfMaterial( temp_index , (i+1)* MAT_FIXLC1 );
+            }
 
             ind_to_nodes.insert(ind_to_nodes.end(), temp_index.begin(), temp_index.end() );
         }
@@ -281,16 +321,17 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
     // 3. copy index and values to arrays. This assumes that current Q-tensor values are correct
     // and will be fixed at these values (frozen to current)
     idx i = 0;
-    nFixed = (idx) ind_to_nodes.size();
+
 
     //  nFreeNodes = nDoF - nFixed;
     for (itr = ind_to_nodes.begin() ; itr != ind_to_nodes.end() ; itr++ )
     {
-        FixedNodes[i] = *itr;
-        FixedNodes[i + 1*nFixed] = *itr + 1*getnDoF();
-        FixedNodes[i + 2*nFixed] = *itr + 2*getnDoF();
-        FixedNodes[i + 3*nFixed] = *itr + 3*getnDoF();
-        FixedNodes[i + 4*nFixed] = *itr + 4*getnDoF();
+        idx fixedNodeNumber = *itr;
+        FixedNodes[i] = fixedNodeNumber;
+        FixedNodes[i + 1*nFixed] = fixedNodeNumber + 1*getnDoF();
+        FixedNodes[i + 2*nFixed] = fixedNodeNumber + 2*getnDoF();
+        FixedNodes[i + 3*nFixed] = fixedNodeNumber + 3*getnDoF();
+        FixedNodes[i + 4*nFixed] = fixedNodeNumber + 4*getnDoF();
 
         FixedValues[i]            = getValue(*itr, 0); //q1
         FixedValues[i + 1*nFixed] = getValue(*itr, 1); //q2
@@ -550,8 +591,12 @@ void SolutionVector::setBooleanFixedNodeList(){
     memset(IsFixed , false , size ); // set all to false
 
     // SET VALUE TO TRUE/FALSE FOR EACH NODE
-    for (idx i = 0 ; i < getnFixed() *nDimensions ; i ++) // then set only fixed nodes to true
-        IsFixed[FixedNodes[i]]=true;
+    idx numFixedDoFs = getnFixed()*nDimensions;
+    for (idx i = 0 ; i < numFixedDoFs ; i ++) // then set only fixed nodes to true
+    {
+        idx indToFixed = FixedNodes[i];
+        IsFixed[indToFixed]=true;
+    }
 
 }
 
@@ -900,7 +945,7 @@ void SolutionVector::setFaceElim( list <int>& face0, // face1[i] = face0[i]
     for (F0 = face0.begin(), fc = 0; F0!=face0.end() ; F0++, fc++ ) // LOOP OVER FACE 0
     {
         bool found = false;
-        int ind_n  = 0;     // index to neares (debug)
+        int ind_n  = 0;     // index to nearest (debug)
         double dist = 1000000;
         double f1 = p[3*(*F0) + ind1 ]; // coordinates of node F2 in face0
         double f2 = p[3*(*F0) + ind2 ];

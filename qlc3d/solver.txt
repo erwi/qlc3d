@@ -1,5 +1,3 @@
-Settings:
-{
 	nThreads 	= 4;
 	Q_Solver	= 1;	# 0 = PCG, 1 = GMRES
 	V_Solver	= 1;	# 0 = PCG, 1 = GMRES
@@ -37,5 +35,3 @@ Settings:
 	V_GMRES_Maxiter			= 2000;
 	V_GMRES_Restart			= 50;
 	V_GMRES_Toler			= 1e-6;
-	
-};

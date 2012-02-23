@@ -530,7 +530,12 @@ void readAlignment(Alignment* alignment, Reader& reader)
                 s->setStrength(dbl_val);
             }
             else
-                s->setStrength(1e99);
+            {
+                if (ret==READER_SUCCESS)    //SET OPTIONAL
+                    s->setStrength(dbl_val);
+                else
+                    s->setStrength(99e99);
+            }
 
 
             ss.clear(); name.clear();

@@ -1402,7 +1402,7 @@ void Geometry::genIndWeakSurfaces(Alignment& alignment)
 
     // FIRST MAKE TEMPORARY VECTOR OF WEAK SURFACES
     std::vector<size_t> ws;
-    for (size_t i = 0 ; i < (size_t) e->getnElements() ; i++)
+    for (idx i = 0 ; i < (idx) e->getnElements() ; i++)
     {
         int FixLCNum = e->getFixLCNumber((int) i); // MATERIAL NUMBER / FIXLC1
 
