@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string>
 #include <string.h>
-
+#include <fstream>
 #ifdef Linux
     #include <unistd.h>
     #include <sys/stat.h> // for making directories
@@ -34,7 +34,9 @@ std::string getCurrentDirectory();
 bool dirExists(const std::string& dir);
 bool fileExists(const std::string& file);       // check whether file exists already
 bool createDirectory(const std::string& newdir);
-
+bool copyFile(const std::string& srcFile,
+              const std::string& dstDir,
+              const std::string& dstFile = "");
 }// end namespace FilesysFun
 
 #endif // FILESYSFUN_H

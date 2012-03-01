@@ -169,20 +169,21 @@ int main(int argc, char* argv[]){
 
 
 
-
+    // IF SETTINGS FILENAME HAS BEEN DEFINED AS COMMAND LINE ARGUMENT
     if ( argc >= 2)
     {
         settings_filename.clear();
         settings_filename = argv[1];  // change if set by command line argument
     }
-    if (argc >= 3 )// if working directory is defined
+    // IF WORKING DIR HAS BEEN DEFINED AS COMMAND LINE ARGUMENT
+    if (argc >= 3 )
     {
         simu.setCurrentDir( argv[2] );
     }
-
+    // CHANGE CURRENT DIR TO WORKING DIRECTORY
     if ( !FilesysFun::setCurrentDirectory( simu.getCurrentDir() ) )
     {
-        printf("error - could not set working directory to:\n%s\nbye!", simu.getCurrentDir().c_str() );
+        printf("error, could not set working directory to:\n%s\nbye!", simu.getCurrentDir().c_str() );
         exit(1);
     }
 
@@ -197,6 +198,12 @@ int main(int argc, char* argv[]){
                  &meshrefinement,
                  eventlist);
 
+    // CREATE A BACKUP OF SETTINGS FILE INTO RESULT SAVE DIRECTORY
+    if (! FilesysFun::copyFile( settings_filename, simu.getSaveDir(), "settings.qfg") )
+    {
+        printf("error, could not back up settings file - bye!\n");
+        return 1;
+    }
 
     FILE* Energy_fid = NULL; // file for outputting free energy
 
