@@ -11,8 +11,16 @@ void setNormalBox(  Box* box,
                     int npLC)
 {
 /*! Sets the Q-tensor initial configuration (volume) within a normal Box*/
+
+
+
     double d_th = box->Tilt[1] *PI/180.0; // delta tilt bottom to top of box
-    double d_ph = box->Twist[1] *PI/180.0;// delta twist
+    double d_ph = -1*box->Twist[1] *PI/180.0;// delta twist
+
+    double bHeight = box->Z[1]-box->Z[0]; // BOX HIGHT, USED FOR SCALING
+    d_th/= bHeight; // SCALE
+    d_ph/= bHeight;
+
     double power = box->Params[0];
 
     for (int i = 0; i < npLC ; i++) // loop over each node

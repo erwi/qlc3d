@@ -110,14 +110,15 @@ void LC::convert_params_n2Q()
 	    exit(1);
 	}
 
-	L1=2.0*(K33-K11+3.0*K22)/(S0*S0*27.0);
+        // WHERE DOES EXTRA FACTOR OF 2 COME IN L-TERMS?
+        L1=2.0*(K33-K11+3.0*K22)/(S0*S0*27.0);
 	L2=4.0*(K11-K22)/(9.0*S0*S0);
 	L3 = 0;
 	L4 = 0.0;
 	if (p0!=0)
 	{
 		double q0 = 2*3.14159265/p0;
-		L4 = 8.0/9.0*q0*K22 / (S0*S0);
+                L4 = ( 8.0 * q0 * K22 ) / ( S0 * S0 * 9.0 );
 	}
 	L5 = 0;
 	L6=4.0*(K33-K11)/(S0*S0*S0*27.0);
