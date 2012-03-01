@@ -156,9 +156,15 @@ void handleInitialEvents(EventList& evel,          // EVENT LIST
                &electrodes);
 
 // WRITE INITIAL RESULT FILE. ALWAYS!
-    FilesysFun::setCurrentDirectory( simu.getSaveDir() );
-    WriteResults::WriteResult(&simu, &lc, geometries.geom, solutionvectors.v, solutionvectors.q );
-    FilesysFun::setCurrentDirectory( simu.getCurrentDir() );
+
+    handleResultOutput( simu,
+                        lc,
+                        *geometries.geom,
+                        *solutionvectors.v,
+                        *solutionvectors.q);
+    //FilesysFun::setCurrentDirectory( simu.getSaveDir() );
+    //WriteResults::WriteResult(&simu, &lc, geometries.geom, solutionvectors.v, solutionvectors.q );
+    //FilesysFun::setCurrentDirectory( simu.getCurrentDir() );
 
 // ADD REOCCURRING EVENTS
     evel.manageReoccurringEvents(simu);

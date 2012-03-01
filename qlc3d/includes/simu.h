@@ -23,8 +23,9 @@ class Simu
 {
 
 public:
-    enum SaveFormats {LCview=1,         // SAVE FORMATS OPTIONSo
-                      RegularVTK=2};
+    enum SaveFormats {None          = 0,     // SAVE FORMATS OPTIONSo
+                      LCview        = 1,
+                      RegularVTK    = 2};
 private:
 
     PotentialConsistency PotCons;
@@ -155,7 +156,7 @@ public:
     inline void IncrementMeshNumber(){ MeshNumber++;}
 
     size_t getSaveFormat()const {return SaveFormat;}
-    void clearSaveFormat(){SaveFormat = 0;} // CLEARS ALL SAVE TYPES
+    void clearSaveFormat(){SaveFormat = None; } // CLEARS ALL SAVE TYPES
     void addSaveFormat(std::string format); // ADDS A SAVE FORMAT
 
 // REGULAR GRID SIZE

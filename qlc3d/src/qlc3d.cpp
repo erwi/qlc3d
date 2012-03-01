@@ -390,10 +390,13 @@ int main(int argc, char* argv[]){
 }while ( simu.IsRunning() ); // end MAIN LOOP - while simulation is runnning
 
     printf("\nSaving final result file...\n");
+    printf("\nNO FINAL REGULAR GRID RESULT WRITTEN. FIXME!!\n");
     simu.setCurrentIteration( SIMU_END_SIMULATION );
     FilesysFun::setCurrentDirectory( simu.getSaveDir() ); // GOTO OUPUT DIR
     WriteResults::WriteResult(&simu, &lc , &geom1, &v, &q);
     FilesysFun::setCurrentDirectory( simu.getCurrentDir() );// GO BACK TO EXECUTABLE DIR
+    //handleEvents()
+
     printf("OK\n");
     closeEnergyFile(Energy_fid , simu);
 

@@ -313,12 +313,13 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
 
     if ( ret == READER_SUCCESS )
     {
-        if (vec_str.size() == 0 )
+        if (vec_str.size() == 0 )   // DEFAULT IS LCVIEW
         {
             simu->addSaveFormat( Simu::SF_LCVIEW );
         }
-        else
+        else    // IF OTHERS HAVE BEEN DEFINED, SET THEM
         {
+            simu->clearSaveFormat(); // REMOVES DEFAULT
             for (size_t i = 0 ; i < vec_str.size() ; i++)
             {
                 simu->addSaveFormat( vec_str[i] );

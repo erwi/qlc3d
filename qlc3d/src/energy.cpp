@@ -84,7 +84,7 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
         return;
 
 
-    cout << " Calculating free energy ..." << endl;
+    cout << " Calculating free energy..."; fflush(stdout);
 
     // IF FIRST ITERATION, PRINT HEADERS
     if (simu->getCurrentIteration() == 1 )
@@ -230,8 +230,6 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
 
                 // chiral twist offset, scaled by S^2
                 double aa = 3.0/2.0*R;
-
-
 
                 double F_twist = ( G4- aa*q0 ) / ( 9.0 * S0 *S0 ) * 4; // DIVIDE OUT (9S^2/4) term
                 F_twist*=F_twist; // (twist^2)
