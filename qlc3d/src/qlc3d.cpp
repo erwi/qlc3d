@@ -198,6 +198,10 @@ int main(int argc, char* argv[]){
                  &meshrefinement,
                  eventlist);
 
+    //eventlist.printEventList();
+    //exit(1);
+
+
     // CREATE A BACKUP OF SETTINGS FILE INTO RESULT SAVE DIRECTORY
     if (! FilesysFun::copyFile( settings_filename, simu.getSaveDir(), "settings.qfg") )
     {

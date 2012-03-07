@@ -379,8 +379,9 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
         if (ymin<0) {ymax-=ymin;  cout << "\tshifting all y by :"<<-ymin<<endl;ymin=0;}
         if (zmin<0) {zmax-=zmin;  cout << "\tshifting all z by :"<<-zmin<<endl;zmin=0;}
 
-        //*
+        /*
         // REMOVE NUMERICAL NOISE FROM BOUNDARY NODES
+
         for (idx i=0;i<np[0];i++)
 	{
             if( dp[i*3+0]-xmin <= TOLER) dp[i*3+0]=xmin;
