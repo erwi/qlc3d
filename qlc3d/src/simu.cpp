@@ -3,7 +3,7 @@
 
 const char* Simu::SF_LCVIEW = "LCview";
 const char* Simu::SF_REGULAR_VTK = "RegularVTK";
-
+const char* Simu::SF_REGULAR_VECTOR_MATLAB = "RegularVecMat";
 Simu::Simu():
 PotCons(Off),
     TargetPotCons(1e-3),
@@ -362,6 +362,11 @@ void Simu::addSaveFormat(std::string format)
     {
         SaveFormat = SaveFormat | Simu::RegularVTK;
     }
+    else
+        if ( !format.compare( SF_REGULAR_VECTOR_MATLAB) )
+        {
+            SaveFormat = SaveFormat | Simu::RegularVecMat;
+        }
     else
     {
         printf("error in %s, unknown SaveFormat:%s - bye!\n", __func__, format.c_str() );

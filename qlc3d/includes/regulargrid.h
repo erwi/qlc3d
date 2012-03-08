@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 #include <vtkiofun.h>
+#include <matlabiofun.h>
 #include <globals.h>
 
 class Geometry; // NEED TO DECLARE EXISTENCE OF Geometry CLASS HERE TO AVOID CIRCULAR #includes
@@ -82,7 +83,11 @@ public:
                       const double* n,          // DIRECTOR DATA (INCLUDING S)
                       const idx npLC );     // NUMBER OF LC NODES
 
-
+    bool writeVecMat(const char* filename,
+                     const double* pot,
+                     const double* n,
+                     const idx npLC,
+                     const double time = 0 );
 };
 
 #endif // REGULARGRID_H

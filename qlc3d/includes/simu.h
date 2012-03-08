@@ -23,9 +23,12 @@ class Simu
 {
 
 public:
-    enum SaveFormats {None          = 0,     // SAVE FORMATS OPTIONSo
+    // SAVE FORMATS OPTIONS BITFIELDS
+    enum SaveFormats {None          = 0,
                       LCview        = 1,
-                      RegularVTK    = 2};
+                      RegularVTK    = 2,
+                      RegularVecMat = 4     // REGULAR GRID, VECTORS, MATLAB FILE
+                     };
 private:
 
     PotentialConsistency PotCons;
@@ -66,7 +69,7 @@ public:
     // SAVE FORMAT ID STRINGS
     static const char* SF_LCVIEW;
     static const char* SF_REGULAR_VTK;
-
+    static const char* SF_REGULAR_VECTOR_MATLAB;
 
     string MeshName;
     double dt;

@@ -51,16 +51,16 @@ void handleResultOutput(Simu& simu,
 
     if ( simu.getSaveFormat() & Simu::LCview )
     {
-        printf("LCview \n");
+       // printf("LCview \n");
         WriteResults::WriteResult(&simu, &lc, &geom, &v, &q);
     }
     if ( simu.getSaveFormat() & Simu::RegularVTK )
     {
-        printf("VTK GRID\n");
+        //printf("VTK GRID\n");
 
         std::stringstream ss;
         std::string filename;
-        ss << "regular"<<simu.getCurrentIteration() << ".vtk";
+        ss << "regularvtk"<<simu.getCurrentIteration() << ".vtk";
         ss >> filename;
         if (!director)
             director = tensortovector( q.Values, geom.getnpLC() );
@@ -73,7 +73,23 @@ void handleResultOutput(Simu& simu,
 
 
     }
+    if ( simu.getSaveFormat() & Simu::RegularVecMat)
+    {
+        //printf("REGULAR GRID VECTORS MATLAB\n");
+        std::stringstream ss;
+        std::string filename;
+        ss << "regularvec"<<simu.getCurrentIteration() << ".m";
+        ss >> filename;
+        if (!director)
+            director = tensortovector(q.Values, geom.getnpLC() );
 
+        RegularGrid& rGrid =  *geom.regularGrid;
+        rGrid.writeVecMat( filename.c_str() ,       // WRITE REGULAR GRID RESULT FILE
+                           v.Values,
+                           director,
+                           geom.getnpLC(),
+                           simu.getCurrentTime());
+    }
 
 // CLEANUP AFTER ALL SAVING HAS BEEN DONE
     if (director) delete [] director;

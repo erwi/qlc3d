@@ -322,7 +322,7 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
             simu->clearSaveFormat(); // REMOVES DEFAULT
             for (size_t i = 0 ; i < vec_str.size() ; i++)
             {
-                simu->addSaveFormat( vec_str[i] );
+                simu->addSaveFormat( vec_str[i] );  // SAVE FORMATS ARE DEFINED IN Simu
             }
         }
 

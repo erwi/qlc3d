@@ -293,3 +293,69 @@ bool RegularGrid::writeVTKGrid(const char *filename,
 }
 
 
+
+bool RegularGrid::writeVecMat(const char *filename,
+                              const double *pot,
+                              const double *n,
+                              const idx npLC,
+                              const double time)
+{
+// WRITES OUTPUT IN A MATLAB FILE.
+// VALUES ARE WRITTEN IN 2D MATRIXES, WHERE EACH ROW CORRESPONDS TO A
+// COLUMN OF VALUES Zmin->Zmax  IN THE MODELLED STRUCTURE
+
+    std::ofstream fid(filename);
+    if ( !fid.good() )
+        return false;
+
+    fid << "grid_size = ["<<nx_<<","<<ny_<<","<<nz_<<"];"<<std::endl;
+    fid << "current_time = " << time << ";" << std::endl;
+
+    double* regU = new double[ npr_ ];  // TEMPORARY STORAGE FOR INTERPOLATED VALUES
+    double* regNx = new double[ npr_];
+    double* regNy = new double[ npr_];
+    double* regNz = new double[ npr_];
+    double* regS = new double[ npr_];
+
+    const double* ny = n+1*npLC;
+    const double* nz = n+2*npLC;
+    const double* S = n+3*npLC;   // START OF IRREGULAR S
+
+    interpolateToRegular( pot , regU );     // IRREGULAR TO REGULAR CONVERSION
+    interpolateToRegular( n , regNx, npLC );
+    interpolateToRegular( ny , regNy, npLC );
+    interpolateToRegular( nz , regNz, npLC );
+    interpolateToRegular( S , regS, npLC );
+
+    MatlabIOFun::writeNumberColumns(fid,
+                                    "V",
+                                    regU,
+                                    nx_, ny_, nz_);
+    MatlabIOFun::writeNumberColumns(fid,
+                                    "nx",
+                                    regNx,
+                                    nx_, ny_, nz_ );
+    MatlabIOFun::writeNumberColumns(fid,
+                                    "ny",
+                                    regNy,
+                                    nx_, ny_, nz_ );
+    MatlabIOFun::writeNumberColumns(fid,
+                                    "nz",
+                                    regNz,
+                                    nx_, ny_, nz_ );
+    MatlabIOFun::writeNumberColumns(fid,
+                                    "S",
+                                    regS,
+                                    nx_, ny_, nz_ );
+
+
+    delete [] regU;
+    delete [] regNx;
+    delete [] regNy;
+    delete [] regNz;
+    delete [] regS;
+    fid.close();
+
+    return true;
+
+}
