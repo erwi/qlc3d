@@ -52,16 +52,28 @@ void setNormalBox(  Box* box,
 void setRandomBox(Box* box, double* nx, double* ny, double* nz, double* p, int npLC){
 /*! Sets the Q-tensor initial configuration within a box volume. The dircor orientation is randomized */
     srand(time(NULL) );
-    for (int i = 0 ; i < npLC ; i ++){
+    for (int i = 0 ; i < npLC ; i ++)
+    {
         if ((p[i*3+0] >= box->X[0]) && (p[i*3+0] <= box->X[1])) // If this node is inside the box
         if ((p[i*3+1] >= box->Y[0]) &&(p[i*3+1] <= box->Y[1]))
         if ((p[i*3+2] >= box->Z[0])&&(p[i*3+2] <= box->Z[1])){
                 double th = (double) rand(); // generate random director orientations
                 double ph = (double) rand();
-		
-                nx[i] = cos(th)*cos(ph);
-                ny[i] = sin(ph)*cos(th);
-                nz[i] = sin(th);
+
+
+                double r1 = rand() % 10000;
+                double r2 = rand() % 10000;
+                double r3 = rand() % 10000;
+
+                double len = r1*r1 + r2*r2 + r3*r3;
+
+                nx[i] = r1 / len;
+                ny[i] = r2 / len;
+                nz[i] = r3 / len;
+
+                //nx[i] = cos(th)*cos(ph);
+                //ny[i] = sin(ph)*cos(th);
+                //nz[i] = sin(th);
         }
     }
 }
