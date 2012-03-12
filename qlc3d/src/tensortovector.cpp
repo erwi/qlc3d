@@ -65,9 +65,10 @@ double *tensortovector(double *a, int npLC) // a = Q-tensor in traceless base
     double A[6]; // upper diagonal of tensor
     double R[9]; // matrix that will contain 3 x eigenvectors
 
-    double q1,q2,q3,q4,q5;
+
     for (i=0;i<npLC;i++)		// loop over each node...
     {
+        double q1,q2,q3,q4,q5;
         q1 = q[i];
         q2 = q[i+npLC];
         q3 = q[i+2*npLC];
@@ -81,6 +82,10 @@ double *tensortovector(double *a, int npLC) // a = Q-tensor in traceless base
         A[4] = q4;
         A[5] = -q1-q2;
 	
+
+        double At[6] ={A[0],A[1],A[2],A[3],A[4],A[5]};
+
+
         eig(1, n, A, R);	// find eigenvalue & eigenvectors
         A[1] = A[2];
         A[2] = A[5];
@@ -95,9 +100,37 @@ double *tensortovector(double *a, int npLC) // a = Q-tensor in traceless base
         if((A[1]>=A[0])&&(A[1]>=A[2])) iMax = 1;
         if((A[2]>=A[0])&&(A[2]>=A[1])) iMax = 2;
         //printf("A=[%f,%f,%f,%f,%f,%f]\n",A[0],A[1],A[2],A[3],A[4],A[5]);
-        vector[i]		= R[3*iMax+0];
+        vector[i]	= R[3*iMax+0];
         vector[i+npLC] 	= R[3*iMax+1];
         vector[i+2*npLC]= R[3*iMax+2]; // save director in o/p vector
+
+
+
+        // DEBUG -- MAKE SURE VECTOR LENGTH IS ~ 1
+        /*
+        double nx,ny,nz;
+        nx = R[3*iMax+0];
+        ny = R[3*iMax+1];
+        nz = R[3*iMax+2];
+        if( nx < 0.1 )
+        {
+            printf("node %i:\n",i);
+
+            printf("A = %f,%f,%f,%f,%f,%f\n",A[0],A[1],A[2],A[3],A[4],A[5]);
+            printf("At = %f,%f,%f,%f,%f,%f\n",At[0],At[1],At[2],At[3],At[4],At[5]);
+            printf("Q=%f,%f,%f,%f,%f\n",q1,q2,q3,q4,q5);
+            printf("R:\n");
+            printf("%f,%f,%f\n",R[0],R[1],R[2] );
+            printf("%f,%f,%f\n",R[3],R[4],R[5] );
+            printf("%f,%f,%f\n\n",R[6],R[7],R[8] );
+
+           // exit(1);
+        }
+        */
+
+
+        //double lens = nx*nx + ny*ny + nz*nz;
+        //printf("lens = %f\n", lens);
 
 	// how to get eigenvalues????	
         vector[i+3*npLC]=  2.0/3.0*(A[iMax]-A[iMin]);    // save S1

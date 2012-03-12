@@ -54,6 +54,15 @@ private:
     double interpolateNode(const double* valueIn,
                             const lookup& L) const;
 
+    // INTEPOLATES DIRECTOR, CHECKING HEAD-TAIL
+    void interpolateDirNode(const double* dirIn,
+                           double dirOut[3],
+                           const lookup& L,
+                           const idx npLC) const;
+
+
+    void printLookup(const lookup& lu) const;
+
 public:
 
     static const idx NOT_AN_INDEX; // A MAGIC NUMBER INDICATING A NODE NOT IN THE GRID
@@ -72,7 +81,9 @@ public:
     void interpolateToRegular( const double* valIn,    // input irregular
                                double*& valOut,         // output regular
                                const idx maxnp = MAX_SIZE_T); // number of nodes in irregular input (npLC or np)
-
+    void interpolateDirToRegular( const double* vecIn,
+                                  double*& vecOut,
+                                  const idx npLC );
     // ==============================================
     //
     // FILE OUTPUT FUNCTIONS
