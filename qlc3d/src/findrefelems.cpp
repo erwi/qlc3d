@@ -66,7 +66,7 @@ void selectTetsByCoordIndex(const std::vector<idx>& indp,
                             vector <idx>& i_tet
                             )
 {
-// SETS INDED TO RED TETS TO "RED_TET" FOR THOSE TETRAHEDRAL
+// SETS INDEX TO RED TETS TO "RED_TET" FOR THOSE TETRAHEDRAL
 // ELEMENTS THAT CONTAIN NODES THAT ARE INDEXED IN IN indp
 
     // MAKE P TO TET INDEX
@@ -150,21 +150,6 @@ void findTets_Box(const RefInfo& refinfo,
     if ( indp.size()== 0)
         return;
 
-    selectTetsByCoordIndex(indp, geom, i_tet);
-    /*
-    // MAKE P TO TET INDEX
-    std::vector< std::set<idx> > p_to_t;
-    geom.t->gen_p_to_elem(p_to_t);
-    std::set<idx> :: iterator itr;
-    for (idx i = 0 ; i < (idx) indp.size() ; i++)
-    {
-        idx node = indp[i];
-        for (itr = p_to_t[node].begin() ; itr != p_to_t[node].end() ; itr++)
-        {
-            idx mat = geom.t->getMaterialNumber( *itr );
-            if (mat <= MAT_DOMAIN7 )
-                i_tet[(*itr)] = RED_TET;
-        }
-    }
-    */
+    selectTetsByCoordIndex(indp, geom, i_tet); // MARK TETS THAT CONTAIN FOUND NODES
+
 }
