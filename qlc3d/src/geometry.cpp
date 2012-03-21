@@ -1083,7 +1083,9 @@ size_t Geometry::recursive_neighbour_search(double crd[3],
     }
     tetHistory.insert( currentTet ); // history should be used to avoid visiting same element multiple times (this isn't implemented yet)
 
-    if (tetHistory.size() > 10000 ) return NOT_AN_INDEX;
+// RECURSION LIMIT. UGLY SOLUTION TO STOP OUT OF MEMORY (?) CRASH FOR LARGE GRIDS AND/OR MESHES
+    int RECURSION_LIMIT = 1000;
+    if (tetHistory.size() > RECURSION_LIMIT ) return NOT_AN_INDEX;
 
 
 
