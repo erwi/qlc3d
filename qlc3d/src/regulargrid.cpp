@@ -226,9 +226,14 @@ void RegularGrid::interpolateDirNode(const double* vecin,
     dots[0] = n1[0]*L.weight[0] + n2[0]*L.weight[1] + n3[0]*L.weight[2] + n4[0]*L.weight[3]; //temp
     dots[1] = n1[1]*L.weight[0] + n2[1]*L.weight[1] + n3[1]*L.weight[2] + n4[1]*L.weight[3];
     dots[2] = n1[2]*L.weight[0] + n2[2]*L.weight[1] + n3[2]*L.weight[2] + n4[2]*L.weight[3];
-    dirout[0] = dots[0];
-    dirout[1] = dots[1];
-    dirout[2] = dots[2];
+
+    // MAINTAIN UNIT LENGTH OF DIRECTOR - NORMALISE IT
+    double len = dots[0]*dots[0] + dots[1]*dots[1] + dots[2]*dots[2];
+    len = sqrt(len);
+
+    dirout[0] = dots[0] / len;
+    dirout[1] = dots[1] / len;
+    dirout[2] = dots[2] / len;
 
 }
 
@@ -295,33 +300,36 @@ void RegularGrid::interpolateDirToRegular(const double *vecIn,
     }
     for ( idx i = 0 ; i < npr_ ; i++ )
     {
+        if (i == 32)
+            int aaa = 0;
+
         lookup L = lookupList[i];
 
         // IF TRYING TO INTEPOLATE LC PARAM TO A NON-LC GRID NODE
-        if ( (L.type == RegularGrid::NOT_LC ) )
-        {
-            //valOut[i] = std::numeric_limits<double>::quiet_NaN(); // OUTPUTS NaN
-            vecOut[i +0*npr_] = std::numeric_limits<double>::quiet_NaN();
-            vecOut[i +1*npr_] = std::numeric_limits<double>::quiet_NaN();
-            vecOut[i +2*npr_] = std::numeric_limits<double>::quiet_NaN();
-        }
-        else
+        if (L.type == RegularGrid::OK) // LC NODE
         {
             double dir[3];
-            if (i == 37)
-            {
-                int aaa = 00;
-            }
-
-
             interpolateDirNode( vecIn,dir,L, npLC);
-
-
-
             vecOut[i + 0*npr_] = dir[0];
             vecOut[i + 1*npr_] = dir[1];
             vecOut[i + 2*npr_] = dir[2];
         }
+        else
+        //if ( (L.type == RegularGrid::NOT_LC ) )
+        {
+            vecOut[i +0*npr_] = std::numeric_limits<double>::quiet_NaN();
+            vecOut[i +1*npr_] = std::numeric_limits<double>::quiet_NaN();
+            vecOut[i +2*npr_] = std::numeric_limits<double>::quiet_NaN();
+        }
+
+        //else
+        //{
+        //    double dir[3];
+        //    interpolateDirNode( vecIn,dir,L, npLC);
+        //    vecOut[i + 0*npr_] = dir[0];
+        //    vecOut[i + 1*npr_] = dir[1];
+        //    vecOut[i + 2*npr_] = dir[2];
+        //}
 
     }
 }
@@ -429,7 +437,7 @@ bool RegularGrid::writeVecMat(const char *filename,
     interpolateToRegular( S , regS, npLC );
     interpolateDirToRegular( n , regN, npLC );
 
-/*
+//*
     for (idx i = 0 ; i < npr_ ; i++)
     {
         if (regN[i]==regN[i])
@@ -442,6 +450,7 @@ bool RegularGrid::writeVecMat(const char *filename,
             if ( fabs( len-1.0 ) > 0.05)
             {
                 printf("len[%i]  = %e\n", i, len);
+                exit(1);
             }
         }
     }
