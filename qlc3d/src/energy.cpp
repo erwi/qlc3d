@@ -120,7 +120,14 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
 
     double q0(0);           // CHIRALITY
     if (lc->p0 > 0.0)
-        q0 = 2*pi/lc->p0;
+        q0 = 2*pi/lc->p0 ;
+
+    //printf("q0 = %e\n",q0);
+
+    // IF SINGLE ELASTIC COEFFICIENT
+    double L1(0);
+    if ( (lc->K11 == lc->K22) && (lc->K11 == lc->K33 ) )
+        L1 = 2.0*(lc->K33-lc->K11+3.0*lc->K22)/(S0*S0*27.0);
 
     double* p = geom->getPtrTop();
 
@@ -130,6 +137,7 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
     double Fflx = 0;	// flexoelectric enery
     double Fth	= 0;	// thermotropic energy
 
+    double Fd  = 0; // DISTORTION ENERGY FOR SINGLE ELASTIC COEFF CASE
     double F11 = 0; // SPLAY, TWIST AND BEND ENERGIES
     double F22 = 0;
     double F33 = 0;
@@ -221,31 +229,60 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
                 double mul=w[igp]*Jdet;
 
 
+                // IF 3 ELASTIC COEFFICIENTS
+                if (!L1)
+                {
+                    // CALCULATE TWIST ENERGY: 1/2*K22(n.curl(n) - q0 )^2
+                    // G4 = (9*S^2 / 4 )* n.curl(n)
 
-                // CALCULATE TWIST ENERGY: 1/2*K22(n.curl(n) - q0 )^2
-                // G4 = (9*S^2 / 4 )* n.curl(n)
+                    double G4 = (q2*q4x - q4*q2x - q3*q5x + q5*q3x + q2*q5y + q3*q4y - q4*q3y - q5*q2y - 2*q2*q3z + 2*q3*q2z + q4*q5z - q5*q4z)*0.5
+                            + (3*q1*q4x - 3*q4*q1x - 3*q1*q5y + 3*q5*q1y)/(rt2*rt6);
 
-                double G4 = (q2*q4x - q4*q2x - q3*q5x + q5*q3x + q2*q5y + q3*q4y - q4*q3y - q5*q2y - 2*q2*q3z + 2*q3*q2z + q4*q5z - q5*q4z)*0.5
-                        + (3*q1*q4x - 3*q4*q1x - 3*q1*q5y + 3*q5*q1y)/(rt2*rt6);
+                    // chiral twist offset, scaled by S^2
+                    double aa = 3.0/2.0*R;
 
-                // chiral twist offset, scaled by S^2
-                double aa = 3.0/2.0*R;
-
-                double F_twist = ( G4- aa*q0 ) / ( 9.0 * S0 *S0 ) * 4; // DIVIDE OUT (9S^2/4) term
-                F_twist*=F_twist; // (twist^2)
-
-
-                double G1 = 1.0/(rt6*rt6)*(q1x*q1x+q1y*q1y+q1z*q1z)*6.0+1.0/(rt2*rt2)*((q2x*q2x)*2.0+(q3x*q3x)*2.0+(q4x*q4x)*2.0+(q5x*q5x)*2.0+(q2y*q2y)*2.0+(q3y*q3y)*2.0+(q4y*q4y)*2.0+(q5y*q5y)*2.0+(q2z*q2z)*2.0+(q3z*q3z)*2.0+(q4z*q4z)*2.0+(q5z*q5z)*2.0);
-                double G2 = 1.0/(rt6*rt6)*(q1x*q1x+q1y*q1y+(q1z*q1z)*4.0)+1.0/(rt2*rt2)*(q2x*q3y*2.0-q3x*q2y*2.0+q5x*q4y*2.0+q2x*q5z*2.0+q3x*q4z*2.0-q2y*q4z*2.0+q3y*q5z*2.0+q2x*q2x+q3x*q3x+q5x*q5x+q2y*q2y+q3y*q3y+q4y*q4y+q4z*q4z+q5z*q5z)-(q1x*q2x*2.0+q1x*q3y*2.0+q3x*q1y*2.0-q1y*q2y*2.0+q1x*q5z*2.0-q5x*q1z*4.0+q1y*q4z*2.0-q4y*q1z*4.0)/(rt2*rt6);
-                double G6 = 1.0/(rt2*rt2*rt2)*(q2*(q2x*q2x)*2.0+q2*(q3x*q3x)*2.0+q2*(q4x*q4x)*2.0+q2*(q5x*q5x)*2.0-q2*(q2y*q2y)*2.0-q2*(q3y*q3y)*2.0-q2*(q4y*q4y)*2.0-q2*(q5y*q5y)*2.0+q3*q2x*q2y*4.0+q3*q3x*q3y*4.0+q3*q4x*q4y*4.0+q3*q5x*q5y*4.0+q5*q2x*q2z*4.0+q5*q3x*q3z*4.0+q5*q4x*q4z*4.0+q5*q5x*q5z*4.0+q4*q2y*q2z*4.0+q4*q3y*q3z*4.0+q4*q4y*q4z*4.0+q4*q5y*q5z*4.0)+(1.0/(rt6*rt6)*(q2*(q1x*q1x)-q2*(q1y*q1y)+q3*q1x*q1y*2.0+q5*q1x*q1z*2.0+q4*q1y*q1z*2.0)*6.0)/rt2-q1*1.0/(rt6*rt6*rt6)*(q1x*q1x+q1y*q1y-(q1z*q1z)*2.0)*6.0-(q1*1.0/(rt2*rt2)*(q2x*q2x+q3x*q3x+q4x*q4x+q5x*q5x+q2y*q2y+q3y*q3y+q4y*q4y+q5y*q5y-(q2z*q2z)*2.0-(q3z*q3z)*2.0-(q4z*q4z)*2.0-(q5z*q5z)*2.0)*2.0)/rt6;
-
-                double F_splay =  4*G2 / (9*S0*S0) - 2*G1/(27*S0*S0) - 4*G6 / (27*S0*S0*S0) ;
-                double F_bend  =   2*G1 / (27.0*S0*S0) + 4*G6 / (27*S0*S0*S0) ;
+                    double F_twist = ( G4- aa*q0 ) / ( 9.0 * S0 *S0 ) * 4; // DIVIDE OUT (9S^2/4) term
+                    F_twist*=F_twist; // (twist^2)
 
 
-                F11 += 0.5*lc->K11 * mul*F_splay;
-                F22 += 0.5*lc->K22 * mul*F_twist;
-                F33 += 0.5*lc->K33 * mul*F_bend;
+                    double G1 = 1.0/(rt6*rt6)*(q1x*q1x+q1y*q1y+q1z*q1z)*6.0+1.0/(rt2*rt2)*((q2x*q2x)*2.0+(q3x*q3x)*2.0+(q4x*q4x)*2.0+(q5x*q5x)*2.0+(q2y*q2y)*2.0+(q3y*q3y)*2.0+(q4y*q4y)*2.0+(q5y*q5y)*2.0+(q2z*q2z)*2.0+(q3z*q3z)*2.0+(q4z*q4z)*2.0+(q5z*q5z)*2.0);
+                    double G2 = 1.0/(rt6*rt6)*(q1x*q1x+q1y*q1y+(q1z*q1z)*4.0)+1.0/(rt2*rt2)*(q2x*q3y*2.0-q3x*q2y*2.0+q5x*q4y*2.0+q2x*q5z*2.0+q3x*q4z*2.0-q2y*q4z*2.0+q3y*q5z*2.0+q2x*q2x+q3x*q3x+q5x*q5x+q2y*q2y+q3y*q3y+q4y*q4y+q4z*q4z+q5z*q5z)-(q1x*q2x*2.0+q1x*q3y*2.0+q3x*q1y*2.0-q1y*q2y*2.0+q1x*q5z*2.0-q5x*q1z*4.0+q1y*q4z*2.0-q4y*q1z*4.0)/(rt2*rt6);
+                    double G6 = 1.0/(rt2*rt2*rt2)*(q2*(q2x*q2x)*2.0+q2*(q3x*q3x)*2.0+q2*(q4x*q4x)*2.0+q2*(q5x*q5x)*2.0-q2*(q2y*q2y)*2.0-q2*(q3y*q3y)*2.0-q2*(q4y*q4y)*2.0-q2*(q5y*q5y)*2.0+q3*q2x*q2y*4.0+q3*q3x*q3y*4.0+q3*q4x*q4y*4.0+q3*q5x*q5y*4.0+q5*q2x*q2z*4.0+q5*q3x*q3z*4.0+q5*q4x*q4z*4.0+q5*q5x*q5z*4.0+q4*q2y*q2z*4.0+q4*q3y*q3z*4.0+q4*q4y*q4z*4.0+q4*q5y*q5z*4.0)+(1.0/(rt6*rt6)*(q2*(q1x*q1x)-q2*(q1y*q1y)+q3*q1x*q1y*2.0+q5*q1x*q1z*2.0+q4*q1y*q1z*2.0)*6.0)/rt2-q1*1.0/(rt6*rt6*rt6)*(q1x*q1x+q1y*q1y-(q1z*q1z)*2.0)*6.0-(q1*1.0/(rt2*rt2)*(q2x*q2x+q3x*q3x+q4x*q4x+q5x*q5x+q2y*q2y+q3y*q3y+q4y*q4y+q5y*q5y-(q2z*q2z)*2.0-(q3z*q3z)*2.0-(q4z*q4z)*2.0-(q5z*q5z)*2.0)*2.0)/rt6;
+
+                    double F_splay =  4*G2 / (9*S0*S0) - 2*G1/(27*S0*S0) - 4*G6 / (27*S0*S0*S0);
+                    double F_bend  =   2*G1 / (27.0*S0*S0) + 4*G6 / (27*S0*S0*S0);
+
+                    F11 += 0.5*lc->K11 * mul*F_splay;
+                    F22 += 0.5*lc->K22 * mul*F_twist;
+                    F33 += 0.5*lc->K33 * mul*F_bend;
+                }
+                else
+                {
+                    // CALCULATE ELASTIC ENERGY FOR CHIRAL/BLUE PHASE LC
+                    // USING ENERGY FROM WRIGTH & MERMIN, Rev. Mod. Phys. 61,2,1989
+
+
+                    // NON-CHIRAL PART  div(Q)^ 2
+                    double Fdtemp =0;
+                    Fdtemp += q1x*q1x + q2x*q2x + q3x*q3x + q4x*q4x + q5x*q5x + q1y*q1y + q2y*q2y + q3y*q3y + q4y*q4y + q5y*q5y + q1z*q1z + q2z*q2z + q3z*q3z + q4z*q4z + q5z*q5z;
+
+                    // CHIRAL PART (curl(Q) + 2*q0*Q )^2
+                    double T11 = 2.0*q0*(q2/rt2 - q1/rt6) + q5y/rt2 - q3z/rt2;
+                    double T12 = q4y/rt2 + q2z/rt2 + q1z/rt6 + (2.0*q0*q3)/rt2;
+                    double T13 = (2.0*q1y)/rt6 - q4z/rt2 + (2.0*q0*q5)/rt2;
+                    double T21 = q2z/rt2 - q5x/rt2 - q1z/rt6 + (2.0*q0*q3)/rt2;
+                    double T22 = q3z/rt2 - q4x/rt2 - 2.0*q0*(q2/rt2 + q1/rt6);
+                    double T23 = q5z/rt2 - (2.0*q1x)/rt6 + (2.0*q0*q4)/rt2;
+                    double T31 = q3x/rt2 - q2y/rt2 + q1y/rt6 + (2.0*q0*q5)/rt2;
+                    double T32 = (2.0*q0*q4)/rt2 - q1x/rt6 - q3y/rt2 - q2x/rt2;
+                    double T33 =  q4x/rt2 - q5y/rt2 + (4.0*q0*q1)/rt6;
+
+                    Fdtemp += T11*T11 + T12*T12 + T13*T13 + T21*T21 + T22*T22 + T23*T23 + T31*T31 + T32*T32 + T33*T33;
+
+                    Fd += mul*L1*Fdtemp;
+                }
+
+
 
                 double Fel_elem = e0*(-Vx*Vx - Vy*Vy- Vz*Vz)*epsav*0.5 +
                         e0*deleps*(Vx*Vx*q1*rt6/12.0  - Vx*Vx*q2*rt2/4.0 - Vx*Vy*q3*rt2/2.0  -  Vx*Vz*q5*rt2/2.0
@@ -276,7 +313,14 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
     //
     //	END BULK ENERGY
     //
-    fprintf(fid,"%e\t%e\t%e\t%e\t%e\t%e;\n",simu->getCurrentTime(), F11,F22,F33 , Fth , Fe);
+    if (L1)
+    {
+        fprintf(fid,"%e\t%e\t%e\t%e;\n", simu->getCurrentTime(), Fd, Fth, Fe);
+    }
+    else
+    {
+        fprintf(fid,"%e\t%e\t%e\t%e\t%e\t%e;\n",simu->getCurrentTime(), F11,F22,F33 , Fth , Fe);
+    }
     printf("OK\n");
 }
 
