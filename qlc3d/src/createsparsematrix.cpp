@@ -14,7 +14,7 @@ void print_dangly_list( vector < list <unsigned int> > dl){
     for (unsigned int i = 0 ; i < dl.size() ; i ++){
         printf("column %i :" , i );
         list < unsigned int> :: iterator itr;
-        for (itr = dl[i].begin() ; itr != dl[i].end() ; itr ++){
+        for (itr = dl[i].begin() ; itr != dl[i].end() ; ++itr){
             printf("%u ", *itr);
         }
         printf("\n");
@@ -26,7 +26,7 @@ void print_dangly_set( vector < set <unsigned int> > dl){
     for (unsigned int i = 0 ; i < dl.size() ; i ++){
         printf("column %i :" , i );
         set < unsigned int> :: iterator itr;
-        for (itr = dl[i].begin() ; itr != dl[i].end() ; itr ++){
+        for (itr = dl[i].begin() ; itr != dl[i].end() ; ++itr){
             printf("%u ", *itr);
         }
         printf("\n");
@@ -180,7 +180,7 @@ void convert_sets_to_arrays( vector<list <unsigned int> > &ds,
 
         //unsigned int n_row_nnzs =ds[col].size(); // number of nonzeros in this column before expansion
         for (unsigned int rc = 0; rc < dim ; rc++ ){ // loop over row dimensions
-            for (r = ds[ col ].begin(); r!=ds[ col ].end(); r ++){ // loop over rows, dim 1
+            for (r = ds[ col ].begin(); r!=ds[ col ].end(); ++r){ // loop over rows, dim 1
                 Ir[nnz] = *r + ( rc*ncols_s );
                 nnz++;
             }// end for rows dim 1

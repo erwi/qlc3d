@@ -1088,13 +1088,13 @@ void assembleQ(
 /*  ASSEMBLES LOCAL ELEMENT CONTRIBUTIONS FROM PREVIOUS TIME-STEP */
 /*================================================================*/
 
-void assemble_local_prev_volumes(double lL[20],
-				 SolutionVector& q,  SolutionVector& v,
-                                 Mesh& t, double* p,  idx element_num,
-				 LC& mat_par, Simu& simu, int th  ){
+void assemble_local_prev_volumes(   double lL[20],
+                                    SolutionVector& q,  SolutionVector& v,
+                                    Mesh& t, double* p,  idx element_num,
+                                    LC& mat_par, Simu& simu )
+{
 
-    // th = current thread number for debugging
-    if (th){} // no warnings of unused variables
+
 
     memset(lL,0,20*sizeof(double));
     double lI[20][20];
@@ -1338,12 +1338,16 @@ void assemble_prev_rhs(double* Ln,
     // WINXP32, COMPILED WITHMinGW. THIS IS NOT A PROBLEM WITH UBUNTU,
     // NO PROBLEMS FOUND WITH gdb / valgrind. SGFAULTING LINE MARKED IN FUNTION
     // assemble_local_prev_volumes. ENABLING OPENMP ONLY FOR LINUX (02/12/2010)
-#ifndef __WIN32__
-#pragma omp parallel for // PARALLEL LOOP IN LINUX
-#endif
-    int th = 0; // debug thread number
+    // 07/04/2012 compiling with TDM gcc4.6.1 on win7-64 -> no problems
+//#ifndef __WIN32__
+//#pragma omp parallel for // PARALLEL LOOP IN LINUX
+//#endif
+    //int th = 0; // debug thread number
     Mesh& t = *geom.t;
     double* p = geom.getPtrTop();
+#ifndef DEBUG
+  #pragma omp parallel for
+#endif
     for ( idx it = 0 ; it < elem_cnt ; it++)
     {
         // IF THIS ELEMENT IS LC ELEMENT, ASSEMBLE LOCAL MATRIX
@@ -1355,7 +1359,7 @@ void assemble_prev_rhs(double* Ln,
             assemble_local_prev_volumes(lL,
                                         qn, v ,
                                         t , p , it,
-                                        mat_par , simu, th );
+                                        mat_par , simu );
 
 	    // ADD LOCAL MATRIX TO GLOBAL MATRIX
             for (unsigned int i=0;i<20;i++)

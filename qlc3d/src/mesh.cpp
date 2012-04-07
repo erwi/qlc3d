@@ -303,7 +303,7 @@ void Mesh::setConnectedVolume(Mesh* vol)
             set_intersection( tets2.begin() , tets2.end() , tets3.begin() , tets3.end() , inserter( intr2 , intr2.begin() ) );
             set_intersection( intr1.begin() , intr1.end() , intr2.begin() , intr2.end() , inserter( final , final.begin() ) );
 
-            if (final.size() == 0)
+            if ( final.empty() )
             {
                 printf("error - Mesh::setConnectedVolume - tri %u does not seem to be connected to any tets!\n", i);
                 this->PrintElement( i );
@@ -338,7 +338,7 @@ void Mesh::setConnectedVolume(Mesh* vol)
                     if (vol->getMaterialNumber( *itr ) <= MAT_DOMAIN7 )// only connect to an LC element
                         ConnectedVolume[i] = *itr;
                     else{
-                        itr++;
+                        ++itr;
                         if (vol->getMaterialNumber( *itr ) <= MAT_DOMAIN7 )// only connect to an LC element
                             ConnectedVolume[i] = *itr;
                     }
@@ -418,7 +418,7 @@ void Mesh::ContainsNodes(list <idx>* elems, list <idx>* points)
     list <idx>::iterator int_itr;
     for (idx i = 0 ; i < getnElements() ; i ++ ) // loop over all elements
     {
-        for (int_itr = points->begin() ; int_itr != points->end() ; int_itr++) // loop over all points in list
+        for (int_itr = points->begin() ; int_itr != points->end() ; ++int_itr) // loop over all points in list
         {
             for (idx j = 0 ; j < getnNodes() ; j++) // loop over all nodes in element i
             {
@@ -991,7 +991,7 @@ void Mesh::removeElements(std::set <idx>& index)
         }// end if
         else if (*itr != *index.rbegin() ) // if not end of list, increment (ugly comparison of values instead of pointers)
         {
-            itr++;
+            ++itr;
         }
     }// end for all elements
 
@@ -1327,7 +1327,7 @@ void Mesh::gen_neighbour_list( vector<vector<idx> >& neigh) const
 	// CHECK WHICK OF THE POSSIBLE ELEMENTS ARE FACE/EDGE NEIGHBOURS
         set <idx> ::iterator itr;
         vector <idx> neighs;
-        for (itr = tets.begin() ; itr != tets.end() ; itr++) // for all node neighbours
+        for (itr = tets.begin() ; itr != tets.end() ; ++itr) // for all node neighbours
         {
             if (isNeighbours( elem , *itr) )
             {

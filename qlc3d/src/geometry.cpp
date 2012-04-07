@@ -431,7 +431,7 @@ void Geometry::setFacePeriNodes(list<size_t> &face0,
     list <size_t>:: iterator F0;    // FACE 0 NODES
     list <size_t>:: iterator F1;    // FACE 1 NODES
     int fc, bc; // debug counters
-    for (F0 = face0.begin(), fc = 0; F0!=face0.end() ; F0++, fc++ ) // LOOP OVER FACE 0
+    for (F0 = face0.begin(), fc = 0; F0!=face0.end() ; ++F0, ++fc ) // LOOP OVER FACE 0
     {
         bool found = false;
         int ind_n  = 0;     // index to neares (debug)
@@ -439,7 +439,7 @@ void Geometry::setFacePeriNodes(list<size_t> &face0,
         double f1 = p[3*(*F0) + ind1 ]; // coordinates of node F2 in face0
         double f2 = p[3*(*F0) + ind2 ];
 
-        for (F1 = face1.begin() , bc = 0; F1!= face1.end() ; F1++, bc ++)
+        for (F1 = face1.begin() , bc = 0; F1!= face1.end() ; ++F1, ++bc)
         {
             double fa = p[3*(*F1) + ind1]; // coordinates of node F1 in face 1
             double fb = p[3*(*F1) + ind2];
@@ -496,7 +496,7 @@ void Geometry::setEdgePeriNodes(list<size_t> &edge0,
     double eps = 1e-5;
 
     // LOOP OVER EACH NODE IN EDGE 0 AND FIND ITS EQUIVALENT IN OTHER EDGES
-    for (e0 = edge0.begin() ; e0 != edge0.end() ; e0++ )
+    for (e0 = edge0.begin() ; e0 != edge0.end() ; ++e0 )
     { // outer corner loop - corn0
         bool found = false;
         double dist = 0;
@@ -506,7 +506,7 @@ void Geometry::setEdgePeriNodes(list<size_t> &edge0,
         double minDist = BIGNUM;
 
         // COMPARISON WITH C1
-        for (e1 = edge1.begin() ; e1 != edge1.end() ; e1++)
+        for (e1 = edge1.begin() ; e1 != edge1.end() ; ++e1)
         { // inner corner loop - corn1
             double p1 = p[(*e1) * 3 + dim];
             dist = fabs( p0 - p1 );

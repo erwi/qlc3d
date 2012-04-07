@@ -318,10 +318,10 @@ void SparseMatrix::setFixedIndexes(SolutionVector* sv)
 void SparseMatrix::setFixed()
 {
     vector <int>::iterator itr;
-    for (itr = indFixedDiagonals.begin(); itr != indFixedDiagonals.end() ; itr++)
+    for (itr = indFixedDiagonals.begin(); itr != indFixedDiagonals.end() ; ++itr)
         P[*itr] = 1;
 
-    for (itr = indFixedOffDiagonals.begin(); itr != indFixedOffDiagonals.end() ; itr++)
+    for (itr = indFixedOffDiagonals.begin(); itr != indFixedOffDiagonals.end() ; ++itr)
         P[*itr] = 0;
 
 }

@@ -155,7 +155,7 @@ void fix_green3_red_confusions( vector <idx>& i_tet,        // tets line counter
             // NUMBER OF UNIQUE NODES
             set < idx > ::iterator itr;
             set < idx > nodes; // nodes set, size of this determines type
-            for (itr = t_to_l[i].begin() ; itr != t_to_l[i].end() ; itr++) // for index to lines
+            for (itr = t_to_l[i].begin() ; itr != t_to_l[i].end() ; ++itr) // for index to lines
             {
                 nodes.insert( lines[*itr].L[0]); // insert both nodes of line
                 nodes.insert( lines[*itr].L[1]);
@@ -319,7 +319,7 @@ void expand_periodic_boundaries(vector <Line>& lines, // lines to split
     vector <Line> :: iterator litr;
     vector <Line> :: iterator lotr;
     //vector <Line> :: iterator loend; // end iterator
-    for (litr = lines.begin() ; litr != lines.end() ; litr++ ) // loop over each line
+    for (litr = lines.begin() ; litr != lines.end() ; ++litr ) // loop over each line
     {
 
         if ( geom.getfront_back_is_periodic() )
@@ -615,7 +615,7 @@ void modify_geometry(Geometry& geom,
                      vector <idx> new_mat_e
                      ){
 
-    if (i_tet.size() == 0) return;
+    if ( i_tet.empty() ) return;
 
     geom.addCoordinates( new_p ); // APPENDS NEW COORDINATE DATA
     // MAKE LIST OF TETS AND TRIS TO BE REMOVED. THESE ARE REPLACED BY THE NEWLY

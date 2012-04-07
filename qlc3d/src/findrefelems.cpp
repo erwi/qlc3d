@@ -76,7 +76,7 @@ void selectTetsByCoordIndex(const std::vector<idx>& indp,
     for (idx i = 0 ; i < (idx) indp.size() ; i++)
     {
         idx node = indp[i];
-        for (itr = p_to_t[node].begin() ; itr != p_to_t[node].end() ; itr++)
+        for (itr = p_to_t[node].begin() ; itr != p_to_t[node].end() ; ++itr)
         {
             idx mat = geom.t->getMaterialNumber( *itr );
             if (mat <= MAT_DOMAIN7 )
@@ -107,7 +107,7 @@ void findTets_Sphere(const RefInfo& refinfo,
             p_close.push_back( i );
     }
 
-    if(p_close.size() == 0) // NO NODES SELECTED. CAN RETURN
+    if(p_close.empty() ) // NO NODES SELECTED. CAN RETURN
         return;
 
     selectTetsByCoordIndex(p_close, geom, i_tet);
@@ -147,7 +147,7 @@ void findTets_Box(const RefInfo& refinfo,
         }
     }
 
-    if ( indp.size()== 0)
+    if ( indp.empty() )
         return;
 
     selectTetsByCoordIndex(indp, geom, i_tet);

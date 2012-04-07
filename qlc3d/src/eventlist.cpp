@@ -287,7 +287,7 @@ void EventList::manageReoccurringEvents(Simu& simu)
         // EVENT QUEUE TO BE PROCESSED NEXT TIME STEP
         //
         std::list<Event*> ::iterator itr = repRefinements_.begin();
-        for ( ;itr != repRefinements_.end() ; itr++)
+        for ( ;itr != repRefinements_.end() ; ++itr)
         {
             // GET PTR TO REPEATING REFINFO OBJECT
             RefInfo* repref = static_cast<RefInfo*> ( (*itr)->getEventDataPtr() );
@@ -347,7 +347,7 @@ void EventList::printEventList()const
 
     printf(" %u TimeEvents:\n", timeEvents_.size() );
     std::list<TimeEvent*>::const_iterator tei = timeEvents_.begin();
-    for (tei = timeEvents_.begin(); tei != timeEvents_.end() ; tei++)
+    for (tei = timeEvents_.begin(); tei != timeEvents_.end() ; ++tei)
     {
         EventType et = (*tei)->getEventType();
         double time = (*tei)->getEventTime();
@@ -358,7 +358,7 @@ void EventList::printEventList()const
     // ADD LOOP OVER ITER EVENTS
     printf(" %u IterEvent:\n", iterationEvents_.size() );
     std::list<IterEvent*>::const_iterator iei = iterationEvents_.begin();
-    for(; iei != iterationEvents_.end() ; iei++)
+    for(; iei != iterationEvents_.end() ; ++iei)
     {
         EventType et = (*iei)->getEventType();
         size_t iter = (*iei)->getEventIteration();

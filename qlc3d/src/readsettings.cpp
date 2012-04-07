@@ -313,7 +313,7 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
 
     if ( ret == READER_SUCCESS )
     {
-        if (vec_str.size() == 0 )   // DEFAULT IS LCVIEW
+        if (vec_str.empty() )   // DEFAULT IS LCVIEW
         {
             simu->addSaveFormat( Simu::SF_LCVIEW );
         }
@@ -878,8 +878,8 @@ void readRefinement(Reader& reader,
             problem_format( key , ret );
 
             // MAKE SURE THAT ONLY Iterations OR Times IS DEFINED, NOT BOTH
-            if ( (iterations.size() > 0 ) &&
-                 (times.size()>0) )
+            if ( (iterations.empty() ) &&
+                 (!times.empty() ) )
             {
                 char msg[200];
                 sprintf( msg, "error with REFINEMENT%i, can't define both Iterations AND Times for same setting - bye!", i);
@@ -907,7 +907,7 @@ void readRefinement(Reader& reader,
         // EVENTS HAVE BEEN DEFINED ADD EVENT(s) TO EVENT LIST
 
             // IF EXPLICIT ITERATIOSN ARE DEFINED, BREAK THEM TO SEPARATE EVENT
-            if (iterations.size() )
+            if (iterations.empty() )
             {
                 for (size_t j = 0 ; j < iterations.size() ; j++)
                 {
@@ -924,7 +924,7 @@ void readRefinement(Reader& reader,
 
             }
             // IF EXPLICIT TIMES ARE DEFINED, BREAK INTO SEPARATE EVENTS
-            else if (times.size() )
+            else if ( !times.empty() )
             {
                 for (size_t j = 0 ; j < times.size() ; j++)
                 {

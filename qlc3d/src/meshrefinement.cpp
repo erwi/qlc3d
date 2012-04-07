@@ -96,24 +96,24 @@ void RefReg::PrintRefinementRegion()
 	
 	vector <double> :: iterator litr;
 	printf("Params:");
-	for (litr = Params.begin() ; litr != Params.end() ; litr++)
+	for (litr = Params.begin() ; litr != Params.end() ; ++litr)
 		printf(" %f",*litr);
 
 
 	printf("\nDistance:");
-	for (litr = Distance.begin() ; litr != Distance.end() ; litr++)
+	for (litr = Distance.begin() ; litr != Distance.end() ; ++litr)
 		printf(" %f",*litr);
 	
 	printf("\nX:");
-	for (litr = X.begin() ; litr != X.end() ; litr++)
+	for (litr = X.begin() ; litr != X.end() ; ++litr)
 		printf(" %f",*litr);
 		
 	printf("\nY:");
-	for (litr = Y.begin() ; litr != Y.end() ; litr++)
+	for (litr = Y.begin() ; litr != Y.end() ; ++litr)
 		printf(" %f",*litr);
 		
 	printf("\nZ:");
-	for (litr = Z.begin() ; litr != Z.end() ; litr++)
+	for (litr = Z.begin() ; litr != Z.end() ; ++litr)
 		printf(" %f",*litr);
 	printf("\n");
 	
@@ -215,7 +215,7 @@ void MeshRefinement::addEndrefinement( EndRef reg){
 
 void MeshRefinement::PrintRefinementRegions(){
 	vector <RefReg>::iterator ritr;
-	for (ritr = RefinementRegion.begin() ; ritr!=RefinementRegion.end() ; ritr++)
+	for (ritr = RefinementRegion.begin() ; ritr!=RefinementRegion.end() ; ++ritr)
 		ritr->PrintRefinementRegion();
 }
 
@@ -231,7 +231,7 @@ MeshRefinement::~MeshRefinement(){
 int MeshRefinement::getMaxNumRefIterations(){
     vector <RefReg>::iterator ritr;
     int max = 0;
-    for (ritr = RefinementRegion.begin() ; ritr !=RefinementRegion.end() ; ritr++)
+    for (ritr = RefinementRegion.begin() ; ritr !=RefinementRegion.end() ; ++ritr)
 	max = ritr->getNumIterations() > max ? ritr->getNumIterations() : max;
 
     return max;
@@ -243,7 +243,7 @@ int MeshRefinement::getMaxNumAutoRefIterations(){
     vector <AutoRef>::iterator itr;
     int max = 0;
 
-    for ( itr = AutoRefinement.begin() ; itr!= AutoRefinement.end() ; itr ++){
+    for ( itr = AutoRefinement.begin() ; itr!= AutoRefinement.end() ; ++itr){
        // itr->printAutoref();
         max = (int) itr->getNumIterations() > max ? itr->getNumIterations() : max;
        // printf(" Meshrefinement::getmaxnumautoref... ax  = %i \n", max);
@@ -255,7 +255,7 @@ int MeshRefinement::getMaxNumEndRefIterations(){
 /*! returns maximum number of End-refinement iterations */
     vector <EndRef> ::iterator itr;
     int max = 0;
-    for (itr = EndRefinement.begin() ; itr != EndRefinement.end() ; itr ++)
+    for (itr = EndRefinement.begin() ; itr != EndRefinement.end() ; ++itr)
     {
         max = (int) itr->getNumIterations() > max ? itr->getNumIterations() : max ;
     }
@@ -266,7 +266,7 @@ int MeshRefinement::getMaxNumEndRefIterations(){
 bool MeshRefinement::isRefinementIteration(const int &iteration){
 
     vector<AutoRef>::iterator itr;
-    for (itr = this->AutoRefinement.begin() ; itr!= this->AutoRefinement.end() ; itr++){
+    for (itr = this->AutoRefinement.begin() ; itr!= this->AutoRefinement.end() ; ++itr){
        // itr->printAutoref();
         if ( itr->isRefIter( iteration) ) return true;
     }
