@@ -2,9 +2,16 @@
 #define LC_H
 
 #include <stdio.h>
+
+
 class LC
 {
 	public:
+    // SELECTS WHICH FORMULATION IS USED
+    enum Formulation {K3 ,  // MORI'S 3K ELASTIC FORMULATION
+                      K2};  // 2K FORMULATION FROM WRIGHT(?) BLUE PHASE PAPER
+    Formulation PhysicsFormulation;
+
 	// elastic coefficients
 	double K11, K22, K33;
 	double L1, L2, L3, L4, L5, L6;

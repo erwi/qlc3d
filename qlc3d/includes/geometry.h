@@ -11,6 +11,7 @@
 # include <limits>
 # include <alignment.h>
 # include <regulargrid.h>
+# include <globals.h>
 # define EPS 1e-7
 
 class RegularGrid; // DECLARE HERE TO AVOID CIRCULAR #inlcude
@@ -19,8 +20,8 @@ using namespace std;
 class Geometry
 {
 private:
-    size_t np;						// number of nodes
-    size_t npLC;					// number of LC nodes
+    unsigned int np;						// number of nodes
+    unsigned int npLC;					// number of LC nodes
     double* p;					// nodal coordinates x,y,z
     double* NodeNormals;
 
@@ -112,8 +113,8 @@ public:
             return i;
     }
 
-    size_t getnp() const {return np;}
-    size_t getnpLC()const  {return npLC;}
+    unsigned int getnp() const {return np;}
+    unsigned int getnpLC()const  {return npLC;}
     double* getPtrTop();
     inline double* getPtrTop(const size_t& i){ if (i<np) return &p[3*i]; return NULL; } // pointer to node i
     double getpX(int i)const;	// return node coordinates at node i

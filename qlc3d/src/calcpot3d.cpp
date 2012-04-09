@@ -1,6 +1,6 @@
-# include <math.h>
-# include <math.h>
-# include <omp.h>
+#include <calcpot3d.h>
+#include <math.h>
+#include <omp.h>
 #include <time.h>
 
 #include <solutionvector.h>
@@ -8,6 +8,8 @@
 #include <sparsematrix.h>
 #include <settings.h>
 #include <geometry.h>
+#include <shapefunction3d.h>
+#include <shapefunction2d.h>
 #ifndef COMPLEX
 #define COMPLEX std::complex<double>
 #endif
@@ -28,7 +30,7 @@ const idx npt = 4; //Number of Points per Tetrahedra
 double rt2 = sqrt(2.0);
 double rt6 = sqrt(6.0);
 
-void init_shapes_surf();
+//void init_shapes_surf();
 void potasm(SolutionVector *v, SolutionVector* q, LC* lc,Mesh *mesh, double *p, SparseMatrix *K, double* L);
 
 
@@ -56,7 +58,7 @@ void printlK(double* lK , int size){
 // ---------------------------------------------------------
 //     3D Gauss-Legendre weights for N = 11, D = 4
 // ---------------------------------------------------------
-
+/*
 const int ngp=11;
 const double a=(1+sqrt(5.0/14.0))/4.0;
 const double b=(1-sqrt(5.0/14.0))/4.0;
@@ -112,11 +114,13 @@ void init_shapes()
         //   cout << i << endl;
     }
 }
-
+*/
 
 // ---------------------------------------------------------
 //     2D Gauss-Legendre weights for Neumann Boundary integrals N = 6, D = 4
 // ---------------------------------------------------------
+
+/*
 const int ngps=6;
 const double gps[ngps][2] ={
     {0.8168476, 0.09157621},
@@ -157,20 +161,18 @@ void init_shapes_surf() // surface integral shape functions
         sh1t[i][3]=1;
     }
 }
+*/
 // DECLARATION ONLY
 void setUniformEField( Electrodes& electrodes, SolutionVector& v, double* p);
 
 void calcpot3d(
-    SparseMatrix* K,
-    SolutionVector *v,
-    SolutionVector* q,
-    LC* lc,
-    //Mesh *mesh,
-    //Mesh* surf_mesh,
-    //double *p,
-    Geometry& geom,
-    Settings* settings,
-    Electrodes* electrodes)
+        SparseMatrix* K,
+        SolutionVector *v,
+        SolutionVector* q,
+        LC* lc,
+        Geometry& geom,
+        Settings* settings,
+        Electrodes* electrodes)
 {
     // First check whether potential calculation is actually needed...
 
@@ -200,11 +202,11 @@ void calcpot3d(
     memset(V,0,v->getnFreeNodes()*sizeof(double) );
     // Assemble system
 
-    init_shapes();
+    //init_shapes();
     assemble_volume(geom.getPtrTop(),v,q,lc,geom.t, K , L, electrodes);
 
 
-    init_shapes_surf();
+    //init_shapes_surf();
     assemble_Neumann(geom.getPtrTop() , v , q , lc , geom.t , geom.e , K , L);
 
 #ifdef DEBUG
@@ -243,7 +245,7 @@ void calcpot3d(
 }
 //end calcpot3d
 
-void localKL(
+inline void localKL(
     double *p,
     int *tt,
     double lK[npt][npt],
@@ -252,7 +254,10 @@ void localKL(
     Mesh* mesh,
     SolutionVector* q,
     LC* lc,
-    Electrodes* electrodes){
+    Electrodes* electrodes,
+    const Shape4thOrder& shapes)
+
+{
     idx i,j;
     double eper, deleps;
     double S0 = lc->getS0();
@@ -280,22 +285,23 @@ void localKL(
     double xr,xs,xt,yr,ys,yt,zr,zs,zt;
     xr=xs=xt=yr=ys=yt=zr=zs=zt=0.0;
 
-    for (i=0; i<npt; i++) {
-        xr+=sh1r[0][i]*p[ tt[i]*3 + 0 ]*1e-6;
-        xs+=sh1s[0][i]*p[ tt[i]*3 + 0 ]*1e-6;
-        xt+=sh1t[0][i]*p[ tt[i]*3 + 0 ]*1e-6;
+    for (i=0; i<npt; i++)
+    {
+        xr+=shapes.sh1r[0][i]*p[ tt[i]*3 + 0 ]*1e-6;
+        xs+=shapes.sh1s[0][i]*p[ tt[i]*3 + 0 ]*1e-6;
+        xt+=shapes.sh1t[0][i]*p[ tt[i]*3 + 0 ]*1e-6;
 
-        yr+=sh1r[0][i]*p[ tt[i]*3 + 1 ]*1e-6;
-        ys+=sh1s[0][i]*p[ tt[i]*3 + 1 ]*1e-6;
-        yt+=sh1t[0][i]*p[ tt[i]*3 + 1 ]*1e-6;
+        yr+=shapes.sh1r[0][i]*p[ tt[i]*3 + 1 ]*1e-6;
+        ys+=shapes.sh1s[0][i]*p[ tt[i]*3 + 1 ]*1e-6;
+        yt+=shapes.sh1t[0][i]*p[ tt[i]*3 + 1 ]*1e-6;
 
-        zr+=sh1r[0][i]*p[ tt[i]*3 + 2 ]*1e-6;
-        zs+=sh1s[0][i]*p[ tt[i]*3 + 2 ]*1e-6;
-        zt+=sh1t[0][i]*p[ tt[i]*3 + 2 ]*1e-6;
+        zr+=shapes.sh1r[0][i]*p[ tt[i]*3 + 2 ]*1e-6;
+        zs+=shapes.sh1s[0][i]*p[ tt[i]*3 + 2 ]*1e-6;
+        zt+=shapes.sh1t[0][i]*p[ tt[i]*3 + 2 ]*1e-6;
     }//end for i
-    //(xr*ys*zt-xr*zs*yt+xs*yt*zr-xs*yr*zt+xt*yr*zs-xt*ys*zr);
-    if (Jdet<0) Jdet = -Jdet;// printf("negative jacobian!\n");
-    //cout << "Jdet = " << Jdet << endl;
+
+    if (Jdet<0) Jdet = -Jdet;
+
     double Jinv[3][3]={{(zt*ys-yt*zs)/Jdet,(xt*zs-zt*xs)/Jdet,(xs*yt-ys*xt)/Jdet}
                        ,{(yt*zr-zt*yr)/Jdet,(zt*xr-xt*zr)/Jdet,(xt*yr-yt*xr)/Jdet}
                        ,{(yr*zs-ys*zr)/Jdet,(xs*zr-xr*zs)/Jdet,(ys*xr-xs*yr)/Jdet}};
@@ -303,16 +309,25 @@ void localKL(
     double Sh[4],dSh[4][3];
     // x,y,z derivatives of shape functions
     for(i=0;i<4;i++){
-        dSh[i][0]=sh1r[0][i]*Jinv[0][0]+sh1s[0][i]*Jinv[1][0]+sh1t[0][i]*Jinv[2][0];
-        dSh[i][1]=sh1r[0][i]*Jinv[0][1]+sh1s[0][i]*Jinv[1][1]+sh1t[0][i]*Jinv[2][1];
-        dSh[i][2]=sh1r[0][i]*Jinv[0][2]+sh1s[0][i]*Jinv[1][2]+sh1t[0][i]*Jinv[2][2];
+        dSh[i][0]=shapes.sh1r[0][i]*Jinv[0][0]+
+                shapes.sh1s[0][i]*Jinv[1][0]+
+                shapes.sh1t[0][i]*Jinv[2][0];
+
+        dSh[i][1]=shapes.sh1r[0][i]*Jinv[0][1]+
+                shapes.sh1s[0][i]*Jinv[1][1]+
+                shapes.sh1t[0][i]*Jinv[2][1];
+
+        dSh[i][2]=shapes.sh1r[0][i]*Jinv[0][2]+
+                shapes.sh1s[0][i]*Jinv[1][2]+
+                shapes.sh1t[0][i]*Jinv[2][2];
     }//end for i
 
-    for (int igp=0; igp<ngp; igp++){
-        Sh[0] = sh1[igp][0];
-        Sh[1] = sh1[igp][1];
-        Sh[2] = sh1[igp][2];
-        Sh[3] = sh1[igp][3];
+    for (unsigned int igp=0; igp<shapes.ngp; igp++)
+    {
+        Sh[0] = shapes.sh1[igp][0];
+        Sh[1] = shapes.sh1[igp][1];
+        Sh[2] = shapes.sh1[igp][2];
+        Sh[3] = shapes.sh1[igp][3];
 
         double e11,e22,e33,e12,e13,e23;
         e11=0;e22=0;e33=0;e12=0;e13=0;e23=0;
@@ -320,28 +335,30 @@ void localKL(
         if ( mesh->getMaterialNumber(it) != MAT_DOMAIN1){ // if this element is not LC
             // only set diagonal permittivities to non-zero
             for ( i = 0 ; i<npt ;++i){
-                e11+= sh1[igp][i]*eper;
-                e22+= sh1[igp][i]*eper;
-                e33+= sh1[igp][i]*eper;
+                e11+= Sh[i]*eper;
+                e22+= Sh[i]*eper;
+                e33+= Sh[i]*eper;
             }
 
         }
         else{// otherwise LC ->
             for(i=0;i<npt;i++){
-                e11+= sh1[igp][i]*(((2.0/3.0/S0)*(-q->getValue(tt[i],0) /rt6 + q->getValue(tt[i],1)/rt2)+(1.0/3.0))*deleps + eper);	//~nx*nx
-                e22+= sh1[igp][i]*(((2.0/3.0/S0)*(-q->getValue(tt[i],0)/rt6 - q->getValue(tt[i],1)/rt2)+(1.0/3.0))*deleps + eper);	//~ny*ny
-                e33+= sh1[igp][i]*(((2.0/3.0/S0)*(2.0*q->getValue(tt[i],0)/rt6)	     +(1.0/3.0))*deleps + eper);			//~nz*nz
-                e12+= sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],2)/rt2)			*deleps;						//~nx*ny
-                e13+= sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],4)/rt2)			*deleps;						//~nx*nz
-                e23+= sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],3)/rt2)			*deleps;
+                e11+= Sh[i]*(((2.0/3.0/S0)*(-q->getValue(tt[i],0) /rt6 + q->getValue(tt[i],1)/rt2)+(1.0/3.0))*deleps + eper);	//~nx*nx
+                e22+= Sh[i]*(((2.0/3.0/S0)*(-q->getValue(tt[i],0)/rt6 - q->getValue(tt[i],1)/rt2)+(1.0/3.0))*deleps + eper);	//~ny*ny
+                e33+= Sh[i]*(((2.0/3.0/S0)*(2.0*q->getValue(tt[i],0)/rt6)	     +(1.0/3.0))*deleps + eper);			//~nz*nz
+                e12+= Sh[i]*(2.0/3.0/S0)*(q->getValue(tt[i],2)/rt2)			*deleps;						//~nx*ny
+                e13+= Sh[i]*(2.0/3.0/S0)*(q->getValue(tt[i],4)/rt2)			*deleps;						//~nx*nz
+                e23+= Sh[i]*(2.0/3.0/S0)*(q->getValue(tt[i],3)/rt2)			*deleps;
             }
             //cout << "e =" << e11<<","<< e22<<","<< e33 <<","<< e12 <<","<< e13 <<","<< e23 << endl;
         }
         // Local K and L
-        double mul=w[igp]*Jdet;
+        double mul=shapes.w[igp]*Jdet;
 
-        for (i=0; i<4; i++) {
-            for (j=0; j<4; j++) {
+        for (i=0; i<4; i++)
+        {
+            for (j=0; j<4; j++)
+            {
 
                 lK[i][j]+=mul*(
                             dSh[i][0]*dSh[j][0]*e11+
@@ -358,7 +375,7 @@ void localKL(
             }//end for j
         }//end for i
     }//end for igp
-    // printlK( &lK[0][0] , 4);
+
 
 }// end void localKL
 void localKL_N(
@@ -371,16 +388,19 @@ void localKL_N(
     Mesh*  mesh,
     Mesh* surf_mesh,
     SolutionVector* q,
-    LC* lc){
+    LC* lc,
+    const ShapeSurf4thOrder& shapes)
+{
     int i,j;
     double S0=lc->getS0();
 
     double eper   = 4.5;
     double deleps = 0.0;	// default for dielectric material
 
-    if (mesh->getMaterialNumber(index_to_Neumann) == MAT_DOMAIN1){
-	eper   = lc->eps_per / S0;
-	deleps = (lc->eps_par - lc->eps_per) / S0;
+    if (mesh->getMaterialNumber(index_to_Neumann) == MAT_DOMAIN1)
+    {
+        eper   = lc->eps_per / S0;
+        deleps = (lc->eps_par - lc->eps_per) / S0;
     }
     memset(lK,0,npt*npt*sizeof(double));
     memset(lL,0,4*sizeof(double));
@@ -389,20 +409,9 @@ void localKL_N(
     surf_mesh->CopySurfaceNormal(it,n);
     if ( n[0]*n[0] + n[1]*n[1] + n[2]*n[2]  < 0.1 )
     {
-	printf("zero normal in neumann tri %i ", it);
-	exit(1);
+        printf("zero normal in neumann tri %i ", it);
+        exit(1);
     }
-
-
-    // if ( ( p[ tt[0]*3 + 2 ] <= 0.01)&&
-    // ( p[ tt[1]*3 + 2 ] <= 0.01)&&
-    //( p[ tt[2]*3 + 2 ] <= 0.01) ){
-
-    //	printf("normal[%i] = %f,%f,%f\n",it, n[0], n[1] , n[2]);
-
-    //  }
-    //*/
-
 
     double eDet = surf_mesh->getDeterminant(it);
     double Jdet = mesh->getDeterminant(index_to_Neumann);
@@ -414,17 +423,17 @@ void localKL_N(
 
 
     for (i=0; i<4; i++){
-	xr+=sh1r[0][i]*p[ tt[i] *3+0]*1e-6; //  <- tt is reordered volume element
-	xs+=sh1s[0][i]*p[ tt[i] *3+0]*1e-6;
-	xt+=sh1t[0][i]*p[ tt[i] *3+0]*1e-6;
+        xr+=shapes.sh1r[0][i]*p[ tt[i] *3+0]*1e-6; //  <- tt is reordered volume element
+        xs+=shapes.sh1s[0][i]*p[ tt[i] *3+0]*1e-6;
+        xt+=shapes.sh1t[0][i]*p[ tt[i] *3+0]*1e-6;
 
-	yr+=sh1r[0][i]*p[ tt[i] *3+1]*1e-6;
-	ys+=sh1s[0][i]*p[ tt[i] *3+1]*1e-6;
-	yt+=sh1t[0][i]*p[ tt[i] *3+1]*1e-6;
+        yr+=shapes.sh1r[0][i]*p[ tt[i] *3+1]*1e-6;
+        ys+=shapes.sh1s[0][i]*p[ tt[i] *3+1]*1e-6;
+        yt+=shapes.sh1t[0][i]*p[ tt[i] *3+1]*1e-6;
 
-	zr+=sh1r[0][i]*p[ tt[i] *3+2]*1e-6;
-	zs+=sh1s[0][i]*p[ tt[i] *3+2]*1e-6;
-	zt+=sh1t[0][i]*p[ tt[i] *3+2]*1e-6;
+        zr+=shapes.sh1r[0][i]*p[ tt[i] *3+2]*1e-6;
+        zs+=shapes.sh1s[0][i]*p[ tt[i] *3+2]*1e-6;
+        zt+=shapes.sh1t[0][i]*p[ tt[i] *3+2]*1e-6;
     }//end for i
 
     double Jinv[3][3]={{ (zt*ys-yt*zs)/Jdet , (xt*zs-zt*xs)/Jdet , (xs*yt-ys*xt)/Jdet}
@@ -433,37 +442,44 @@ void localKL_N(
 
     double Sh[4],dSh[4][3];
     for(i=0;i<4;i++){
-	dSh[i][0]=sh1r[0][i]*Jinv[0][0]+sh1s[0][i]*Jinv[1][0]+sh1t[0][i]*Jinv[2][0];
-	dSh[i][1]=sh1r[0][i]*Jinv[0][1]+sh1s[0][i]*Jinv[1][1]+sh1t[0][i]*Jinv[2][1];
-	dSh[i][2]=sh1r[0][i]*Jinv[0][2]+sh1s[0][i]*Jinv[1][2]+sh1t[0][i]*Jinv[2][2];
+    dSh[i][0]=shapes.sh1r[0][i]*Jinv[0][0]+
+            shapes.sh1s[0][i]*Jinv[1][0]+
+            shapes.sh1t[0][i]*Jinv[2][0];
+    dSh[i][1]=shapes.sh1r[0][i]*Jinv[0][1]+
+            shapes.sh1s[0][i]*Jinv[1][1]+
+            shapes.sh1t[0][i]*Jinv[2][1];
+    dSh[i][2]=shapes.sh1r[0][i]*Jinv[0][2]+
+            shapes.sh1s[0][i]*Jinv[1][2]+
+            shapes.sh1t[0][i]*Jinv[2][2];
     }//end for i
 
 
 
     // Jacobian
-    for (int igp=0; igp<ngps; igp++) {
-	Sh[0] = sh1[igp][0];
-	Sh[1] = sh1[igp][1];
-	Sh[2] = sh1[igp][2];
-	Sh[3] = sh1[igp][3];
+    for (unsigned int igp=0; igp<shapes.ngps; igp++)
+    {
+        Sh[0] = shapes.sh1[igp][0];
+        Sh[1] = shapes.sh1[igp][1];
+        Sh[2] = shapes.sh1[igp][2];
+        Sh[3] = shapes.sh1[igp][3];
 
-	double e11=0,e22=0,e33=0,e12=0,e23=0,e13=0;
-	for(i=0;i<4;i++){
-	    e11+= sh1[igp][i]*(((2.0/3.0/S0)*(-q->getValue(tt[i],0) /rt6 + q->getValue(tt[i],1)/rt2)+(1.0/3.0))*deleps + eper);	//~nx*nx
-	    e22+= sh1[igp][i]*(((2.0/3.0/S0)*(-q->getValue(tt[i],0)/rt6 - q->getValue(tt[i],1)/rt2)+(1.0/3.0))*deleps + eper);	//~ny*ny
-	    e33+= sh1[igp][i]*(((2.0/3.0/S0)*(2.0*q->getValue(tt[i],0)/rt6)	     +(1.0/3.0))*deleps + eper);			//~nz*nz
-	    e12+= sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],2)/rt2)			*deleps;						//~nx*ny
-	    e13+= sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],4)/rt2)			*deleps;						//~nx*nz
-	    e23+= sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],3)/rt2)			*deleps;					//~ny*nz
+        double e11=0,e22=0,e33=0,e12=0,e23=0,e13=0;
+        for(i=0;i<4;i++){
+            e11+= shapes.sh1[igp][i]*(((2.0/3.0/S0)*(-q->getValue(tt[i],0) /rt6 + q->getValue(tt[i],1)/rt2)+(1.0/3.0))*deleps + eper);	//~nx*nx
+            e22+= shapes.sh1[igp][i]*(((2.0/3.0/S0)*(-q->getValue(tt[i],0)/rt6 - q->getValue(tt[i],1)/rt2)+(1.0/3.0))*deleps + eper);	//~ny*ny
+            e33+= shapes.sh1[igp][i]*(((2.0/3.0/S0)*(2.0*q->getValue(tt[i],0)/rt6)	     +(1.0/3.0))*deleps + eper);			//~nz*nz
+            e12+= shapes.sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],2)/rt2)			*deleps;						//~nx*ny
+            e13+= shapes.sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],4)/rt2)			*deleps;						//~nx*nz
+            e23+= shapes.sh1[igp][i]*(2.0/3.0/S0)*(q->getValue(tt[i],3)/rt2)			*deleps;					//~ny*nz
         }//end for i
-	double mul=wsurf[igp]*eDet;
-	for (i=0; i<4; i++){
-	    for (j=0; j<4; j++){
-		lK[i][j]+=mul*Sh[i]*(((e11-1)*dSh[j][0] + e12*dSh[j][1] + e13*dSh[j][2])*n[0]
-				     +(e12*dSh[j][0] + (e22-1)*dSh[j][1] + e23*dSh[j][2])*n[1]
-				     +(e13*dSh[j][0] + e23*dSh[j][1] + (e33-1)*dSh[j][2])*n[2] );
-	    }//end for j
-	}//end for i
+        double mul=shapes.w[igp]*eDet;
+        for (i=0; i<4; i++){
+            for (j=0; j<4; j++){
+                lK[i][j]+=mul*Sh[i]*(((e11-1)*dSh[j][0] + e12*dSh[j][1] + e13*dSh[j][2])*n[0]
+                                     +(e12*dSh[j][0] + (e22-1)*dSh[j][1] + e23*dSh[j][2])*n[1]
+                                     +(e13*dSh[j][0] + e23*dSh[j][1] + (e33-1)*dSh[j][2])*n[2] );
+            }//end for j
+        }//end for i
     }//end for igp
 }
 // end void localKL
@@ -479,25 +495,25 @@ void assemble_volume(
     Mesh *mesh,
     SparseMatrix *K,
     double* L,
-    Electrodes* electrodes){
+    Electrodes* electrodes)
+{
     idx it;
-    //#pragma omp parallel for
+    Shape4thOrder shapes;
+    #pragma omp parallel for
+    for (it=0; it< mesh->getnElements(); it++)
+    {
+        double lK[npt][npt];
+        double lL[npt];
+        int tmat;
+        int t[4] = {0,0,0,0};
+        t[0] =  mesh->getNode(it,0);
+        t[1] =  mesh->getNode(it,1);
+        t[2] =  mesh->getNode(it,2);
+        t[3] =  mesh->getNode(it,3);
+        tmat = mesh->getMaterialNumber(it);
 
-
-
-    for (it=0; it< mesh->getnElements(); it++){
-	double lK[npt][npt];
-	double lL[npt];
-	int tmat;
-	int t[4] = {0,0,0,0};
-	t[0] =  mesh->getNode(it,0);
-	t[1] =  mesh->getNode(it,1);
-	t[2] =  mesh->getNode(it,2);
-	t[3] =  mesh->getNode(it,3);
-	tmat = mesh->getMaterialNumber(it);
-
-	localKL(p,t,lK,lL,it, mesh,q,lc,electrodes);
-	//printlK( &lK[0][0] , npt);
+        localKL(p,t,lK,lL,it, mesh,q,lc,electrodes, shapes);
+        //printlK( &lK[0][0] , npt);
         for (idx i=0; i<npt; i++) // FOR ROWS
         {
             idx ri=v->getEquNode(t[i]);
@@ -510,12 +526,12 @@ void assemble_volume(
                     idx nc = v->getEquNode( t[j] ); // INDEX TO CONNECTED NODE DEGREE OF FREEDOM POSITION
                     if (nc != NOT_AN_INDEX )
                     {
-                    #ifndef DEBUG
-                    #pragma omp atomic
-                    #endif
+#ifndef DEBUG
+#pragma omp atomic
+#endif
                         L[ nc ] -= lK[i][j]*v->getValue(t[i]); // L = -K*v
                     }
-		}
+                }
 
             }// END IF ROW NODE IS FIXED
 
@@ -542,8 +558,10 @@ void assemble_Neumann(
     Mesh *mesh,
     Mesh* surf_mesh,
     SparseMatrix *K,
-    double* L){
+    double* L)
+{
     idx it = 0;
+    ShapeSurf4thOrder shapes;
 #ifndef DEBUG
 #pragma omp parallel for
 #endif
@@ -576,7 +594,7 @@ void assemble_Neumann(
 
             int ti[4] = { ee[0], ee[1], ee[2], tt[intr] }; // reordered local element, internal node is always last
 
-            localKL_N(p,&ti[0], lK , lL, it,index_to_Neumann, mesh, surf_mesh, q, lc);
+            localKL_N(p,&ti[0], lK , lL, it,index_to_Neumann, mesh, surf_mesh, q, lc, shapes);
 
             for (int i=0; i<4; i++)
             {

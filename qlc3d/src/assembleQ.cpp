@@ -4,6 +4,7 @@
 #include <time.h>
 #include <qlc3d.h>
 #include <sparsematrix.h>
+#include <shapefunction3d.h>
 //#include "gauss.h"
 
 #define	BIGNUM 2e16
@@ -12,12 +13,12 @@ const int	npt = 4; //Number of Points per Tetrahedra
 // ---------------------------------------------------------
 //     3D Gauss-Legendre weights for N = 11, D = 4
 // ---------------------------------------------------------
-
+/*
 const int ngp = 11;
 const double a=(1+sqrt(5.0/14.0))/4.0;
 const double b=(1-sqrt(5.0/14.0))/4.0;
 
-static double gp[ngp][4]={	{0.25	  , 0.25	,	0.25	,0.25}
+const double gp[ngp][4]={	{0.25	  , 0.25	,	0.25	,0.25}
                                 ,{11.0/14.0     ,	1.0/14.0	,	1.0/14.0	,1.0/14.0}
                                 ,{1.0/14.0      ,	11.0/14.0	,	1.0/14.0	,1.0/14.0}
                                 ,{1.0/14.0	  ,	1.0/14.0	,	11.0/14.0   ,1.0/14.0},
@@ -31,17 +32,17 @@ static double gp[ngp][4]={	{0.25	  , 0.25	,	0.25	,0.25}
 const double w11 = -74.0/5625.0;
 const double w12 = 343.0/45000.0;
 const double w13 = 56.0/2250.0;
-static double w[ngp]={w11,w12,w12,w12,w12,w13,w13,w13,w13,w13,w13};
-
+const double w[ngp]={w11,w12,w12,w12,w12,w13,w13,w13,w13,w13,w13};
+*/
 // ---------------------------------------------------------
 //     2D Gauss-Legendre weights for N = 27, D = 11
 // ---------------------------------------------------------
 const int ngps=27;
-static double wsurf[ngps]={ 0.006829866, 0.006829866, 0.006829866, 0.01809227, 0.01809227, 0.01809227, 0.0004635032, 0.0004635032,
+const double wsurf[ngps]={ 0.006829866, 0.006829866, 0.006829866, 0.01809227, 0.01809227, 0.01809227, 0.0004635032, 0.0004635032,
                             0.0004635032,0.02966149 , 0.02966149 , 0.02966149, 0.03857477, 0.03857477, 0.03857477, 0.02616856,
                             0.02616856  ,0.02616856 , 0.02616856 , 0.02616856, 0.02616856, 0.01035383, 0.01035383, 0.01035383,
                             0.01035383  ,0.01035383 , 0.01035383 };
-static double sgp[ngps][2] = 
+const double sgp[ngps][2] =
 {
     {0.9352701	,0.03236495},
     {0.03236495	,0.9352701 },
@@ -73,15 +74,15 @@ static double sgp[ngps][2] =
 };
 
 // using ngps for volume shapes too, since ngps>gps
-static double sh1[ngps][4]; // P1 Shape functions
-static double sh1r[ngps][4]; // P1 Shape functions r-derivatives
-static double sh1s[ngps][4]; // P1 Shape functions s-derivatives
-static double sh1t[ngps][4]; //P1 shape functions t-derivative
-static double ssh1[ngps][3];	//SURFACE term P1 shape function
+double sh1[ngps][4]; // P1 Shape functions
+double sh1r[ngps][4]; // P1 Shape functions r-derivatives
+double sh1s[ngps][4]; // P1 Shape functions s-derivatives
+double sh1t[ngps][4]; //P1 shape functions t-derivative
+double ssh1[ngps][3];	//SURFACE term P1 shape function
 
-static double rt2 = sqrt(2.0);
-static double rt6 = sqrt(6.0);
-static double rt3 = sqrt(3.0);
+const double rt2 = sqrt(2.0);
+const double rt6 = sqrt(6.0);
+const double rt3 = sqrt(3.0);
 
 static double S0;
 static double L1, L2, L4, L6;
@@ -103,6 +104,7 @@ void init_globals(LC& mat_par, SolutionVector& q){
     efe2 = (4.0/S0/9.0)*(mat_par.e11 - mat_par.e33);
 }
 
+/*
 void init_shape()
 {
     memset(sh1,0,ngps*4*sizeof(double));
@@ -133,7 +135,8 @@ void init_shape()
         sh1t[i][3]=1.0;
 	//printf("sh1[%i][1] = %f\n",i,sh1[i][1]);
     }
-}					
+}
+*/
 void init_shape_N() // initialise Neumann and surface derivative shape functions
 {
     //  memset(sh1,0,ngps*4*sizeof(double));
@@ -142,11 +145,12 @@ void init_shape_N() // initialise Neumann and surface derivative shape functions
     //  memset(sh1t,0,ngps*4*sizeof(double));
 
 
-    for (int i=0; i<ngp; i++) { // use surface shape functions ( <-!! ngps = 27, but array defined for gps = 11. WHY NO ERROR?!) FIX!!!
+    //for (int i=0; i<ngp; i++)
+    for (int i=0; i<ngps; i++)
+    {
 	// P1 Shape functions
-        //cout << "i ="<< i << endl;
-        cout<<"";
-        sh1[i][0]=1-sgp[i][0]-sgp[i][1];
+
+    sh1[i][0]=1-sgp[i][0]-sgp[i][1];
 	sh1[i][1]=sgp[i][0];
 	sh1[i][2]=sgp[i][1];
 	sh1[i][3]=0;//gps[i][2];	// this is always zero
@@ -180,7 +184,8 @@ void init_shape_surf(){
 inline void localKL(double* p,Mesh* t,
              idx element_num, SolutionVector* q ,
              SolutionVector* v, double lK[20][20],
-             double lL[20],LC* mat_par, Simu* simu)
+             double lL[20],LC* mat_par, Simu* simu,
+             const Shape4thOrder& shapes)
 {
 
     memset(lK,0,20*20*sizeof(double));
@@ -213,17 +218,17 @@ inline void localKL(double* p,Mesh* t,
 
     for (int i=0;i<4;++i)
     {
-        xr+=sh1r[0][i]*pp[i][0];
-        xs+=sh1s[0][i]*pp[i][0];
-        xt+=sh1t[0][i]*pp[i][0];
+        xr+=shapes.sh1r[0][i]*pp[i][0];
+        xs+=shapes.sh1s[0][i]*pp[i][0];
+        xt+=shapes.sh1t[0][i]*pp[i][0];
 
-        yr+=sh1r[0][i]*pp[i][1];
-        ys+=sh1s[0][i]*pp[i][1];
-        yt+=sh1t[0][i]*pp[i][1];
+        yr+=shapes.sh1r[0][i]*pp[i][1];
+        ys+=shapes.sh1s[0][i]*pp[i][1];
+        yt+=shapes.sh1t[0][i]*pp[i][1];
 
-        zr+=sh1r[0][i]*pp[i][2];
-        zs+=sh1s[0][i]*pp[i][2];
-        zt+=sh1t[0][i]*pp[i][2];
+        zr+=shapes.sh1r[0][i]*pp[i][2];
+        zs+=shapes.sh1s[0][i]*pp[i][2];
+        zt+=shapes.sh1t[0][i]*pp[i][2];
     }//end for i
     //Inverse Jacobian
     //Jdet = fabs(xr*ys*zt-xr*zs*yt+xs*yt*zr-xs*yr*zt+xt*yr*zs-xt*ys*zr);
@@ -237,9 +242,17 @@ inline void localKL(double* p,Mesh* t,
     // shape function derivatives
     double dSh[4][3] = {{0,0,0},{0,0,0},{0,0,0},{0,0,0}};
     for(int i=0;i<4;++i){
-        dSh[i][0]=sh1r[0][i]*Jinv[0][0]+sh1s[0][i]*Jinv[1][0]+sh1t[0][i]*Jinv[2][0];
-        dSh[i][1]=sh1r[0][i]*Jinv[0][1]+sh1s[0][i]*Jinv[1][1]+sh1t[0][i]*Jinv[2][1];
-        dSh[i][2]=sh1r[0][i]*Jinv[0][2]+sh1s[0][i]*Jinv[1][2]+sh1t[0][i]*Jinv[2][2];
+        dSh[i][0]=shapes.sh1r[0][i]*Jinv[0][0]
+                    + shapes.sh1s[0][i]*Jinv[1][0]
+                    + shapes.sh1t[0][i]*Jinv[2][0];
+
+        dSh[i][1]=shapes.sh1r[0][i]*Jinv[0][1]
+                    + shapes.sh1s[0][i]*Jinv[1][1]
+                    + shapes.sh1t[0][i]*Jinv[2][1];
+
+        dSh[i][2]=shapes.sh1r[0][i]*Jinv[0][2]
+                    + shapes.sh1s[0][i]*Jinv[1][2]
+                    + shapes.sh1t[0][i]*Jinv[2][2];
     }//end for i
 
     // LOCAL COPY OF Q-TENSOR AND POTENTIAL VARIABLES AT THE FOUR NODES OF THE CURRENT ELEMENT
@@ -250,14 +263,14 @@ inline void localKL(double* p,Mesh* t,
                          q->getValue(tt[3],0), q->getValue(tt[3],1), q->getValue(tt[3],2), q->getValue(tt[3],3), q->getValue(tt[3],4),
                          v->getValue(tt[0])  , v->getValue(tt[1]),   v->getValue(tt[2]),   v->getValue(tt[3])
                         };
-    for (int igp = 0 ; igp < ngp ; ++igp)
+    for (unsigned int igp = 0 ; igp < shapes.ngp ; ++igp)
     {
 	//shape function
 	double Sh[4];
-	Sh[0] = sh1[igp][0];
-	Sh[1] = sh1[igp][1];
-	Sh[2] = sh1[igp][2];
-	Sh[3] = sh1[igp][3];
+    Sh[0] = shapes.sh1[igp][0];
+    Sh[1] = shapes.sh1[igp][1];
+    Sh[2] = shapes.sh1[igp][2];
+    Sh[3] = shapes.sh1[igp][3];
 
 	// Function variables and derivatives
 	double q1=0, q2=0, q3=0, q4=0, q5=0;
@@ -300,7 +313,7 @@ inline void localKL(double* p,Mesh* t,
             Vz+=dSh[i][2]*qbuff[20+i];
 
 	}//end for i
-        double mul=w[igp]*Jdet;
+        double mul=shapes.w[igp]*Jdet;
 	double R=q1*q1+q2*q2+q3*q3+q5*q5+q4*q4; // frequently reoccurring term
         double T1,T2,T3,T4,T5,T11,T12,T13,T14,T15,T22,T23,T24,T25,T33,T34,T35,T44,T45,T55;
 
@@ -863,7 +876,8 @@ void assemble_volumes(
 {
 
     int npLC = q->getnDoF();
-    init_shape();
+    //init_shape();
+    Shape4thOrder shapes;
 #ifndef DEBUG
     omp_set_num_threads( settings->getnThreads() ); // number of threads used
 #pragma omp parallel for
@@ -878,7 +892,7 @@ void assemble_volumes(
 
         if( t->getMaterialNumber(it) == MAT_DOMAIN1 ) // if LC element
         {
-            localKL(p,t,it,q,v,lK,lL,mat_par, simu);
+            localKL(p,t,it,q,v,lK,lL,mat_par, simu, shapes);
 
             // ADD LOCAL MATRIX TO GLOBAL MATRIX
             for (int i=0;i<20;i++)  // LOOP OVER ROWS
@@ -1071,14 +1085,22 @@ void assembleQ(
     efe  = (2.0/S0/3.0)*(mat_par->e11+2*mat_par->e33);
     efe2 = (4.0/S0/9.0)*(mat_par->e11 - mat_par->e33);
 
+    // SELECT MORI'S FORMULATION
+    if (mat_par->PhysicsFormulation == LC::K3 )
+    {
+        assemble_volumes(K, L, q,  v, t, p, mat_par, simu, settings);
 
-    assemble_volumes(K, L, q,  v, t, p, mat_par, simu, settings);
+        //SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
+        assemble_Neumann_surfaces( L, q, v, t, e, p);
 
-    //SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
-    assemble_Neumann_surfaces( L, q, v, t, e, p);
+        if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
+            assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
+    }
+    // USE WRIGHT'S 2K FORMULATION
+    else if (mat_par->PhysicsFormulation == LC::K2 )
+    {
 
-    if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
-        assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
+    }
 
 }
 // end void assembleQ
@@ -1088,10 +1110,12 @@ void assembleQ(
 /*  ASSEMBLES LOCAL ELEMENT CONTRIBUTIONS FROM PREVIOUS TIME-STEP */
 /*================================================================*/
 
-void assemble_local_prev_volumes(   double lL[20],
+inline void assemble_local_prev_volumes(   double lL[20],
                                     SolutionVector& q,  SolutionVector& v,
                                     Mesh& t, double* p,  idx element_num,
-                                    LC& mat_par, Simu& simu )
+                                    LC& mat_par, Simu& simu,
+                                    const Shape4thOrder& shapes
+                                           )
 {
 
 
@@ -1132,17 +1156,17 @@ void assemble_local_prev_volumes(   double lL[20],
     double xr,xs,xt,yr,ys,yt,zr,zs,zt;
     xr=xs=xt=yr=ys=yt=zr=zs=zt=0.0;
     for (int i=0;i<4;i++) {
-        xr+=sh1r[0][i]*p[(tt[i])*3+0]*1e-6;
-        xs+=sh1s[0][i]*p[(tt[i])*3+0]*1e-6;
-        xt+=sh1t[0][i]*p[(tt[i])*3+0]*1e-6;
+        xr+=shapes.sh1r[0][i]*p[(tt[i])*3+0]*1e-6;
+        xs+=shapes.sh1s[0][i]*p[(tt[i])*3+0]*1e-6;
+        xt+=shapes.sh1t[0][i]*p[(tt[i])*3+0]*1e-6;
 
-        yr+=sh1r[0][i]*p[(tt[i])*3+1]*1e-6;
-        ys+=sh1s[0][i]*p[(tt[i])*3+1]*1e-6;
-        yt+=sh1t[0][i]*p[(tt[i])*3+1]*1e-6;
+        yr+=shapes.sh1r[0][i]*p[(tt[i])*3+1]*1e-6;
+        ys+=shapes.sh1s[0][i]*p[(tt[i])*3+1]*1e-6;
+        yt+=shapes.sh1t[0][i]*p[(tt[i])*3+1]*1e-6;
 
-        zr+=sh1r[0][i]*p[(tt[i])*3+2]*1e-6;
-        zs+=sh1s[0][i]*p[(tt[i])*3+2]*1e-6;
-        zt+=sh1t[0][i]*p[(tt[i])*3+2]*1e-6;
+        zr+=shapes.sh1r[0][i]*p[(tt[i])*3+2]*1e-6;
+        zs+=shapes.sh1s[0][i]*p[(tt[i])*3+2]*1e-6;
+        zt+=shapes.sh1t[0][i]*p[(tt[i])*3+2]*1e-6;
     }//end for i
     //Inverse Jacobian
     Jdet = fabs(xr*ys*zt-xr*zs*yt+xs*yt*zr-xs*yr*zt+xt*yr*zs-xt*ys*zr);
@@ -1159,14 +1183,14 @@ void assemble_local_prev_volumes(   double lL[20],
         dSh[i][2]=sh1r[0][i]*Jinv[0][2]+sh1s[0][i]*Jinv[1][2]+sh1t[0][i]*Jinv[2][2];
     }//end for i
 
-    for (int igp = 0 ; igp < ngp ; igp ++)
+    for (unsigned int igp = 0 ; igp < shapes.ngp ; igp ++)
     {
         //shape function
         double Sh[4];
-        Sh[0] = sh1[igp][0];
-        Sh[1] = sh1[igp][1];
-        Sh[2] = sh1[igp][2];
-        Sh[3] = sh1[igp][3];
+        Sh[0] = shapes.sh1[igp][0];
+        Sh[1] = shapes.sh1[igp][1];
+        Sh[2] = shapes.sh1[igp][2];
+        Sh[3] = shapes.sh1[igp][3];
 
         // Function variables and derivatives
         double q1=0, q2=0, q3=0, q4=0, q5=0;
@@ -1208,7 +1232,7 @@ void assemble_local_prev_volumes(   double lL[20],
         }//end for i
 
         double R=q1*q1+q2*q2+q3*q3+q5*q5+q4*q4; // frequently reoccurring term
-        double mul=w[igp]*Jdet;
+        double mul=shapes.w[igp]*Jdet;
 
         T1=((A*q1+B*(q5*q5*rt6/4.0-q3*q3*rt6/2.0-rt6*q2*q2/2.0+q1*q1*rt6/2.0+q4*q4*rt6/4.0)/3.0)+C*R*q1);
         T2=(A*q2+B*(3.0/4.0*q5*q5*rt2-q1*rt6*q2-3.0/4.0*q4*q4*rt2)/3.0+C*R*q2);
@@ -1331,7 +1355,8 @@ void assemble_prev_rhs(double* Ln,
     //if (e.getnElements()){} // no warning of unused variables. WRITE fUNCTION FOR WEAK ANCHORING CONTRIBUTIONS
 
     init_globals(mat_par, qn);
-    init_shape();
+    //init_shape();
+    Shape4thOrder shapes;
     unsigned int elem_cnt = geom.t->getnElements();//unsigned int) t.getnElements();
 
     // OPENMP LOOP COMPILED WITH -march=native an -O3 RESULTS IN SEGFAULT ON
@@ -1359,7 +1384,8 @@ void assemble_prev_rhs(double* Ln,
             assemble_local_prev_volumes(lL,
                                         qn, v ,
                                         t , p , it,
-                                        mat_par , simu );
+                                        mat_par , simu,
+                                        shapes);
 
 	    // ADD LOCAL MATRIX TO GLOBAL MATRIX
             for (unsigned int i=0;i<20;i++)

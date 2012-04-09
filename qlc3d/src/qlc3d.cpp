@@ -19,6 +19,8 @@
 #include <eventhandler.h>
 #include <calcpot3d.h>
 #include <resultoutput.h>
+
+
 int minnode(int *t, int dim1, int dim2){ // what does this do?
 	int min = (int)1e9;
 	for (int i =0 ; i < dim1 * dim2 ; i++ )
@@ -91,11 +93,6 @@ void adjustTimeStepSize(Simu& simu, const double& maxdq){
 
 }
 
-//void incrementIteration(Simu& simu)
-//{
-//    simu.IncrementCurrentIteration();
-//    simu.setdt( simu.getdt() + simu.getCurrentTime() );
-//}
 
 
 // THESE SHOULD NOT BE HERE!!
@@ -118,24 +115,25 @@ double maxDiff(const double* arr, const SolutionVector& sv){// finds the maximum
 			md = diff;
 	}
 
-	return md;
+    return md;
 }
 double updateSolutions(SolutionVector& v, SolutionVector& q , SolutionVector& qn,
-                        double* v_cons, double* q_cons, double* qn_cons,
-                        Geometry& geom1,
-                        Simu& simu, LC& lc, Settings& settings,
-                        Alignment& alignment, Electrodes& electrodes,
-                        SparseMatrix* Kq, SparseMatrix* Kpot ){
-        //double consistency = 1e99; // arb. bignumber!
-	double maxdq = 0;
+                       double* v_cons, double* q_cons, double* qn_cons,
+                       Geometry& geom1,
+                       Simu& simu, LC& lc, Settings& settings,
+                       Alignment& alignment, Electrodes& electrodes,
+                       SparseMatrix* Kq, SparseMatrix* Kpot ){
+    //double consistency = 1e99; // arb. bignumber!
+    double maxdq = 0;
 
-	// in some cases Pot Cons loops are not needed (if gong for steady state or PotCons == Off)
-	bool isPotCons = ( simu.getdt() > 0 ) && ( simu.getPotCons() != Off );
-        isPotCons = false; // turn of consisteny loop
-        calcpot3d(Kpot,&v, &q, &lc, geom1, &settings, &electrodes);
-        maxdq = calcQ3d(&q,&qn,&v,geom1,&lc, &simu, Kq, &settings, &alignment );
+    // in some cases Pot Cons loops are not needed (if gong for steady state or PotCons == Off)
+    //bool isPotCons = ( simu.getdt() > 0 ) && ( simu.getPotCons() != Off );
+    //    isPotCons = false; // turn of consisteny loop
+    calcpot3d(Kpot,&v, &q, &lc, geom1, &settings, &electrodes);
 
-	return maxdq;
+    maxdq = calcQ3d(&q,&qn,&v,geom1,&lc, &simu, Kq, &settings, &alignment );
+
+    return maxdq;
 
 }
 
