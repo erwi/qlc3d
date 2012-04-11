@@ -202,11 +202,7 @@ void calcpot3d(
     memset(V,0,v->getnFreeNodes()*sizeof(double) );
     // Assemble system
 
-    //init_shapes();
     assemble_volume(geom.getPtrTop(),v,q,lc,geom.t, K , L, electrodes);
-
-
-    //init_shapes_surf();
     assemble_Neumann(geom.getPtrTop() , v , q , lc , geom.t , geom.e , K , L);
 
 #ifdef DEBUG

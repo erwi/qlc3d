@@ -45,25 +45,20 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         newton_iter++;
         clock_t time1 = clock();
 
-        // ASSEMBLE RHS CONTRIBUTION FROM PREVIOUS TIME-STEP
+        // ASSEMBLE RHS CONTRIBUTION FROM PREVIOUS TIME-STEP, IF NEEDED
         if ( (newton_iter == 1) && (simu->getdt() > 0 ) )
         {
             memset(RHS, 0, numCols*sizeof( double ) );
-            assemble_prev_rhs(RHS,
-                              *qn,
-                              *v,
-                              *mat_par,
-                              *simu,
-                              geom );
+            assemble_prev_rhs(RHS, *qn, *v, *mat_par, *simu, geom );
         }
 
-        if ( simu->IsAssembleMatrix() )
-            // CLEAR MATRIX, RHS AND dq
-            K->setAllValuesTo(0);
+
+        // CLEAR MATRIX, RHS AND dq
+        K->setAllValuesTo(0);
         memset(L  , 0 , numCols * sizeof(double) );
         memset(dq , 0 , numCols * sizeof(double) );
 
-        std::cout << " " <<newton_iter << " Assembly...";
+        std::cout << " " <<newton_iter << " Assembly..."; fflush(stdout);
         // ASSEMBLE MATRIX AND RHS
         assembleQ(K, L, q, v, geom.t, geom.e, geom.getPtrTop(), mat_par, simu, settings, alignment, geom.getPtrToNodeNormals());
 
@@ -76,8 +71,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         elapsed = ( (float) clock() - (float) time1 ) / (float) CLOCKS_PER_SEC; // get assembly time
         time1 = clock(); // used for solver timing next.
 
-        printf("OK %1.3es. ", elapsed );
-        fflush(stdout);
+        printf("OK %1.3es. ", elapsed ); fflush(stdout);
 
         if (simu->getdt() > 0) // make Non-linear Crank-Nicholson RHS
         {
@@ -91,14 +85,12 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         // SOLUTION
         if (settings->getQ_Solver() == Q_SOLVER_PCG)// use PCG for Q solution
         {
-            printf("PCG...");
-            fflush( stdout );
+            printf("PCG..."); fflush( stdout );
             solve_pcg(K,L,dq,settings);
         }
         else if (settings->getQ_Solver() == Q_SOLVER_GMRES)// use GMRES for Q solution
         {
-            printf("GMRES...");
-            fflush( stdout );
+            printf("GMRES..."); fflush( stdout );
             solve_gmres(K,L,dq,settings);
         }
 
@@ -106,7 +98,6 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 
         // UPDATE SOLUTION VECTOR - USES getEquNode REDIRECTION FOR PERIODIC NODES
         maxdq_previous = maxdq;
-        //int indMax = 0;
         for (unsigned int i = 0 ; i < 5 ; i++)   // LOOP OVER DIMENSIONS
         {
             for (idx j = 0; j < npLC ; j++) // LOOP OVER EACH NODE IN DIMENSION i
