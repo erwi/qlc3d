@@ -188,6 +188,17 @@ void readLC(LC& lc,Reader& reader)
         lc.gamma2 = val;
 	problem(name, ret);
 
+// SELECT PHYSICS FORMULATION SWITCH
+    name = "Formulation";
+    std::string str_val;
+    ret = reader.readString(name, str_val );
+    problem_format( name , ret );
+    if (ret == READER_SUCCESS )
+    {
+        lc.setFormulation(str_val);
+    }
+
+
 // DO THIS LATER IF NEEDED
    // name = "alpha1";
    // name = "aplha2";

@@ -22,16 +22,22 @@ namespace SurfaceShapes
 class ShapeSurf4thOrder{
 public:
     const unsigned int ngps;
-    const double w[NGPS4];
+    double w[NGPS4];
     double sh1[NGPS4][3];
     double sh1r[NGPS4][3];
     double sh1s[NGPS4][3];
     double sh1t[NGPS4][3];
 
     ShapeSurf4thOrder():
-        ngps(NGPS4),
-        w{ 0.05497587, 0.05497587, 0.05497587, 0.1116908, 0.1116908, 0.1116908}
+        ngps(NGPS4)
+
     {
+    w[0] = 0.05497587;
+    w[1] = 0.05497587;
+    w[2] = 0.05497587;
+    w[3] = 0.1116908;
+    w[4] = 0.1116908;
+    w[5] = 0.1116908;
         for(unsigned int i = 0 ; i < NGPS4 ; i++)
         {
             // P1 Shape functions

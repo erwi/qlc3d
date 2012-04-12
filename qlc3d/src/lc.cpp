@@ -3,6 +3,10 @@
 #include <math.h>
 #include <iostream>
 #include <stdlib.h>
+
+const char* LC::FORMULATION_2K_STRING = "elastic2k";
+const char* LC::FORMULATION_3K_STRING = "elastic3k";
+
 LC::LC()
 {
     PhysicsFormulation = K3; // USE MORI'S 3K FORMULATION BY DEFAULT
@@ -134,3 +138,25 @@ double LC::getS0()
 	return S0;
 }
 
+void LC::setFormulation( std::string& f)
+{
+    // MAKE LOWERCASE
+    std::transform(f.begin(), f.end(), f.begin(), std::ptr_fun<int, int>(std::tolower));
+
+    if (f.compare(FORMULATION_2K_STRING) == 0 )
+    {
+        this->PhysicsFormulation = K2;
+
+    }
+    else if (f.compare(FORMULATION_3K_STRING) == 0 )
+    {
+        this->PhysicsFormulation = K3;
+    }
+    else
+    {
+        std::cout <<"error in "<<__func__ <<"unknown formulation "<< f <<" - bye!"<<std::endl;
+        exit(1);
+    }
+
+
+}

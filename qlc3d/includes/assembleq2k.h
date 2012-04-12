@@ -10,13 +10,14 @@
 
 void assemble_volumes2K(SparseMatrix& K,
                         double* L,
-                        SolutionVector& q,
-                        SolutionVector& v,
-                        LC& mat_par,
-                        Simu& simu,
-                        Mesh& t,
+                        const SolutionVector& q,
+                        const SolutionVector& v,
+                        const LC& mat_par,
+                        const Simu& simu,
+                        const Mesh& t,
                         double* p
                         );
+
 
 
 #endif // ASSEMBLEQ2K_H

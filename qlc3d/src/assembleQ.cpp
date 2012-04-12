@@ -6,7 +6,7 @@
 #include <sparsematrix.h>
 #include <shapefunction3d.h>
 #include <qassembly_macros.h>
-
+#include <assembleq2k.h>
 #define	BIGNUM 2e16
 const int	npt = 4; //Number of Points per Tetrahedra
 
@@ -265,78 +265,78 @@ inline void localKL(double* p,Mesh* t,
         {
             double T;
             // Q1
-            T=(A*q1    +   D3*0.5*B*(q5*q5*rt6*0.5    -   q3*q3*rt6   -   rt6*q2*q2   +   q1*q1*rt6   +   q4*q4*rt6*0.5)  +   C*R*q1);
+            T = RHS_THERMO1; //(A*q1    +   D3*0.5*B*(q5*q5*rt6*0.5    -   q3*q3*rt6   -   rt6*q2*q2   +   q1*q1*rt6   +   q4*q4*rt6*0.5)  +   C*R*q1);
             T += rt6*(Vx*Vx + Vy*Vy-2.0*Vz*Vz)*deleps*D3*D6*eps0;
-            RHS_BULK_TERMS(0,T);
+            ADD_RHS_BULK_TERMS(0,T);
 
             // Q2
-            T=(A*q2    +   D3*B*(0.75*q5*q5*rt2    -   q1*rt6*q2   -   0.75*q4*q4*rt2)   +   C*R*q2);
+            T = RHS_THERMO2;//(A*q2    +   D3*B*(0.75*q5*q5*rt2    -   q1*rt6*q2   -   0.75*q4*q4*rt2)   +   C*R*q2);
             T += -rt2*(Vx*Vx - Vy*Vy)*deleps*D6*eps0;
-            RHS_BULK_TERMS(4,T);
+            ADD_RHS_BULK_TERMS(4,T);
 
             // Q3
-            T=(A*q3    +   D3*B*(-q3*q1*rt6   +   1.5*rt2*q5*q4 )     +   C*R*q3);
+            T = RHS_THERMO3;//(A*q3    +   D3*B*(-q3*q1*rt6   +   1.5*rt2*q5*q4 )     +   C*R*q3);
             T += -rt2*Vx*Vy*deleps*D3*eps0;
-            RHS_BULK_TERMS(8,T);
+            ADD_RHS_BULK_TERMS(8,T);
 
             // Q4
-            T=(A*q4    +   D3*0.5*B*(3.0*q3*rt2*q5    +   q4*q1*rt6   -   3.0*q4*q2*rt2)   +   C*R*q4);
+            T = RHS_THERMO4; //(A*q4    +   D3*0.5*B*(3.0*q3*rt2*q5    +   q4*q1*rt6   -   3.0*q4*q2*rt2)   +   C*R*q4);
             T += -rt2*Vz*Vy*deleps*D3*eps0;
-            RHS_BULK_TERMS(12,T);
+            ADD_RHS_BULK_TERMS(12,T);
 
             // Q5
-            T=(A*q5    +   D3*0.5*B*(q5*q1*rt6    +   3.0*q5*q2*rt2   +   3.0*q3*rt2*q4)   +   C*R*q5);
+            T = RHS_THERMO5;//(A*q5    +   D3*0.5*B*(q5*q1*rt6    +   3.0*q5*q2*rt2   +   3.0*q3*rt2*q4)   +   C*R*q5);
             T += -rt2*Vx*Vz*deleps*D3*eps0;
-            RHS_BULK_TERMS(16,T);
+            ADD_RHS_BULK_TERMS(16,T);
         } // END BULK RHS TERMS
 
         // BULK THERMOTROPIC MATRIX TERMS
         {
             double Th;
 
-            Th=(A  +   D3*B*q1*rt6 +   2.0*C*q1*q1 + C*R); // T11
+            Th = MATRIX_THERMO11;//(A  +   D3*B*q1*rt6 +   2.0*C*q1*q1 + C*R); // T11
             THERMOdiag(0,Th);
 
-            Th=(-D3*B*rt6*q2   +       2.0*C*q2*q1);    // T12,T21
+            Th = MATRIX_THERMO12;//(-D3*B*rt6*q2   +       2.0*C*q2*q1);    // T12,T21
             THERMO(0,4,Th);
 
-            Th=(-B*q3*rt6*D3   +       2.0*C*q3*q1);    // T13,T31
+            Th = MATRIX_THERMO13;//(-B*q3*rt6*D3   +       2.0*C*q3*q1);    // T13,T31
             THERMO(0,8,Th);
 
-            Th=(B*q4*rt6*D6    +       2.0*C*q4*q1);    // T14, T41
+            Th = MATRIX_THERMO14;//(B*q4*rt6*D6    +       2.0*C*q4*q1);    // T14, T41
             THERMO(0,12,Th);
 
-            Th=(B*q5*rt6*D6    +       2.0*C*q5*q1);    // T15, T51
+            Th = MATRIX_THERMO15;//(B*q5*rt6*D6    +       2.0*C*q5*q1);    // T15, T51
             THERMO(0,16,Th);
 
-            Th=(A  -   D3*B*q1*rt6 +   2.0*C*q2*q2+C*R);// T22
+            Th = MATRIX_THERMO22;//(A  -   D3*B*q1*rt6 +   2.0*C*q2*q2+C*R);// T22
             THERMOdiag(4,Th);
 
-            Th=(2.0*C*q3*q2);   // T23, T32
+            Th = MATRIX_THERMO23;//(2.0*C*q3*q2);   // T23, T32
             THERMO(4,8,Th);
 
-            Th=(-B*q4*rt2*D2   +   2.0*C*q4*q2);    // T24, T42
+            Th = MATRIX_THERMO24;//(-B*q4*rt2*D2   +   2.0*C*q4*q2);    // T24, T42
             THERMO(4,12,Th);
 
-            Th=(B*q5*rt2*D2    +   2.0*C*q5*q2);    // T25, T52
+            Th = MATRIX_THERMO25;//(B*q5*rt2*D2    +   2.0*C*q5*q2);    // T25, T52
             THERMO(4,16,Th);
 
-            Th=(A  -   B*q1*rt6*D3 +   2.0*C*q3*q3+C*R);    // T33
+            Th = MATRIX_THERMO33;//(A  -   B*q1*rt6*D3 +   2.0*C*q3*q3+C*R);    // T33
             THERMOdiag(8,Th);
 
-            Th=(B*q5*rt2*D2    +   2.0*C*q4*q3);    // T34, T43
+            Th = MATRIX_THERMO34;//(B*q5*rt2*D2    +   2.0*C*q4*q3);    // T34, T43
             THERMO(8,12,Th);
 
-            Th=(B*q4*rt2*D2    +   2.0*C*q5*q3);    // T35, T53
+            Th = MATRIX_THERMO35;//(B*q4*rt2*D2    +   2.0*C*q5*q3);    // T35, T53
             THERMO(8,16,Th);
 
-            Th=(A  +   B*(q1*rt6-3.0*q2*rt2)*D6    +   2.0*C*q4*q4+C*R); // T44
+            Th = MATRIX_THERMO44;//(A  +   B*(q1*rt6-3.0*q2*rt2)*D6    +   2.0*C*q4*q4+C*R); // T44
             THERMOdiag(12,Th);
 
-            Th=(B*q3*rt2*D2    +   2.0*C*q5*q4);    // T45, T54
+            Th = MATRIX_THERMO45;//(B*q3*rt2*D2    +   2.0*C*q5*q4);    // T45, T54
             THERMO(12,16,Th);
 
-            Th=(A  +   B*(q1*rt6+3.0*q2*rt2)*D6    +   2.0*C*q5*q5+C*R); // T55
+            Th = MATRIX_THERMO55;//(A  +   B*(q1*rt6+3.0*q2*rt2)*D6    +   2.0*C*q5*q5+C*R); // T55
             THERMOdiag(16,Th);
         }// END BULK THERMO SCOPE
 
@@ -1050,7 +1050,8 @@ void assembleQ(
     // USE WRIGHT'S 2K FORMULATION
     else if (mat_par->PhysicsFormulation == LC::K2 )
     {
-
+        printf("2K formulation\n");
+        assemble_volumes2K(*K, L, *q, *v, *mat_par, *simu, *t, p);
     }
 
 }
@@ -1114,7 +1115,7 @@ inline void assemble_local_prev_volumes(   double lL[20],
 
 
     // shape function derivatives
-    double dSh[4][3] = {0};
+    double dSh[4][3] = {{0}};
     for(int i=0;i<4;i++){
         dSh[i][0]=sh1r[0][i]*Jinv[0][0]+sh1s[0][i]*Jinv[1][0]+sh1t[0][i]*Jinv[2][0];
         dSh[i][1]=sh1r[0][i]*Jinv[0][1]+sh1s[0][i]*Jinv[1][1]+sh1t[0][i]*Jinv[2][1];
@@ -1178,23 +1179,23 @@ inline void assemble_local_prev_volumes(   double lL[20],
 
         T1 = ((A*q1+B*(q5*q5*rt6/4.0-q3*q3*rt6/2.0-rt6*q2*q2/2.0+q1*q1*rt6/2.0+q4*q4*rt6/4.0)/3.0)+C*R*q1);
         T1 += rt6*(Vx*Vx + Vy*Vy-2.0*Vz*Vz)*deleps/18.0*eps0;
-        RHS_BULK_TERMS(0, T1);
+        ADD_RHS_BULK_TERMS(0, T1);
 
         T2 =(A*q2+B*(3.0/4.0*q5*q5*rt2-q1*rt6*q2-3.0/4.0*q4*q4*rt2)/3.0+C*R*q2);
         T2 += -rt2*(Vx*Vx - Vy*Vy)*deleps/6.0*eps0;
-        RHS_BULK_TERMS(4,T2);
+        ADD_RHS_BULK_TERMS(4,T2);
 
         T3 =(A*q3+B*(-q3*q1*rt6+3.0/2.0*rt2*q5*q4)/3.0+C*R*q3);
         T3 += -rt2*Vx*Vy*deleps/3.0*eps0;
-        RHS_BULK_TERMS(8,T3);
+        ADD_RHS_BULK_TERMS(8,T3);
 
         T4 =(A*q4+B*(3.0/2.0*q3*rt2*q5+q4*q1*rt6/2.0-3.0/2.0*q4*q2*rt2)/3.0+C*R*q4);
         T4 += -rt2*Vz*Vy*deleps/3.0*eps0;
-        RHS_BULK_TERMS(12,T4);
+        ADD_RHS_BULK_TERMS(12,T4);
 
         T5 =(A*q5+B*(q5*q1*rt6/2.0+3.0/2.0*q5*q2*rt2+3.0/2.0*q3*rt2*q4)/3.0+C*R*q5);
         T5 += -rt2*Vx*Vz*deleps/3.0*eps0;
-        RHS_BULK_TERMS(16,T4);
+        ADD_RHS_BULK_TERMS(16,T4);
 
 
         double Lflexo1, Lflexo2, Lflexo3, Lflexo4, Lflexo5;

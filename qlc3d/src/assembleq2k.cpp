@@ -2,6 +2,7 @@
 #include <globals.h>
 #include <shapefunction3d.h>
 #include <material_numbers.h>
+#include <qassembly_macros.h>
 #define	BIGNUM 2e16
 
 // LOCAL ELEMENT MATRIX ASSEMBLY
@@ -14,7 +15,7 @@ inline void localKL_2K( double* p,                      // COORINDATES
                         const Simu& simu,               //
                         const Shape4thOrder& shapes,    // SHAPE FUNCTIONS
                         double lK[20][20],              // LOCAL MATRIX
-                        double lL[20] )                 // LOCAL R.H.S.
+                        double* lL )                 // LOCAL R.H.S.
 {
     memset(lK, 0 , 20*20*sizeof(double) );
     memset(lL, 0 , 20*sizeof(double) );
@@ -47,7 +48,8 @@ inline void localKL_2K( double* p,                      // COORINDATES
         zs+=shapes.sh1s[0][i]*pp[i][2];
         zt+=shapes.sh1t[0][i]*pp[i][2];
     }//end for i
-    double invJdet = 1.0 / t.getDeterminant(it)*1e12;
+    const double Jdet = t.getDeterminant(it);
+    double invJdet = 1.0 / Jdet*1e12;
     // ACTUAL INVERSE JACOBIAN
     double Jinv[3][3]={{ (zt*ys-yt*zs)*invJdet ,(xt*zs-zt*xs)*invJdet, (xs*yt-ys*xt)*invJdet}
                        ,{(yt*zr-zt*yr)*invJdet ,(zt*xr-xt*zr)*invJdet, (xt*yr-yt*xr)*invJdet}
@@ -77,6 +79,15 @@ inline void localKL_2K( double* p,                      // COORINDATES
                                 q.getValue(tt[3],0), q.getValue(tt[3],1), q.getValue(tt[3],2), q.getValue(tt[3],3), q.getValue(tt[3],4),
                                 v.getValue(tt[0])  , v.getValue(tt[1])  , v.getValue(tt[2])  , v.getValue(tt[3]   , 0.0                )
                         };
+
+
+    const double A = mat_par.A;
+    const double B = mat_par.B;
+    const double C = mat_par.C;
+    const double rt6 = sqrt(6.0);
+    const double rt2 = sqrt(2.0);
+    const double deleps = 0.0;
+    const double eps0 = 0.0;
     // FOR EACH GAUSS POINT
     for (unsigned int igp = 0 ; igp < shapes.ngp; ++igp)
     {
@@ -121,24 +132,121 @@ inline void localKL_2K( double* p,                      // COORINDATES
             Vy+=dSh[i][1]*vars[20+i];
             Vz+=dSh[i][2]*vars[20+i];
         }//end for i
+       // printf("haa %u\n",igp);
+        const double mul=shapes.w[igp]*Jdet;
+        const double R=q1*q1+q2*q2+q3*q3+q5*q5+q4*q4; // frequently reoccurring term
+        const double D2 = 0.5;
+        const double D3 = 0.33333333333333333333333333333;
+        const double D6 = 0.16666666666666666666666666667;
+
+        // BULK RHS TERMS
+        {
+
+            double T;
+            // Q1
+            T = RHS_THERMO1;
+            //printf("T = %e\n", T);
+            // T += rt6*(Vx*Vx + Vy*Vy-2.0*Vz*Vz)*deleps*D3*D6*eps0;
+            ADD_RHS_BULK_TERMS(0,T);
+            //T*=mul;
+            //lL[0] +=1.0;// T*Sh[0];
+            //for (int i = 0 ; i < 4 ; ++i){
+               // lL[0+i] += T*Sh[i];
+            //}
+
+
+
+            // Q2
+            T = RHS_THERMO2;
+            //T += -rt2*(Vx*Vx - Vy*Vy)*deleps*D6*eps0;
+            ADD_RHS_BULK_TERMS(4,T);
+
+            // Q3
+            T = RHS_THERMO3;
+           // T += -rt2*Vx*Vy*deleps*D3*eps0;
+            ADD_RHS_BULK_TERMS(8,T);
+
+            // Q4
+            T = RHS_THERMO4;
+            //T += -rt2*Vz*Vy*deleps*D3*eps0;
+            ADD_RHS_BULK_TERMS(12,T);
+
+            // Q5
+            T = RHS_THERMO5;
+            //T += -rt2*Vx*Vz*deleps*D3*eps0;
+            ADD_RHS_BULK_TERMS(16,T);
+
+        } // END BULK RHS TERMS
+        // BULK THERMOTROPIC MATRIX TERMS
+        //*
+        {
+            double Th;
+
+            Th = MATRIX_THERMO11;//(A  +   D3*B*q1*rt6 +   2.0*C*q1*q1 + C*R); // T11
+            THERMOdiag(0,Th);
+
+            Th = MATRIX_THERMO12;//(-D3*B*rt6*q2   +       2.0*C*q2*q1);    // T12,T21
+            THERMO(0,4,Th);
+
+            Th = MATRIX_THERMO13;//(-B*q3*rt6*D3   +       2.0*C*q3*q1);    // T13,T31
+            THERMO(0,8,Th);
+
+            Th = MATRIX_THERMO14;//(B*q4*rt6*D6    +       2.0*C*q4*q1);    // T14, T41
+            THERMO(0,12,Th);
+
+            Th = MATRIX_THERMO15;//(B*q5*rt6*D6    +       2.0*C*q5*q1);    // T15, T51
+            THERMO(0,16,Th);
+
+            Th = MATRIX_THERMO22;//(A  -   D3*B*q1*rt6 +   2.0*C*q2*q2+C*R);// T22
+            THERMOdiag(4,Th);
+
+            Th = MATRIX_THERMO23;//(2.0*C*q3*q2);   // T23, T32
+            THERMO(4,8,Th);
+
+            Th = MATRIX_THERMO24;//(-B*q4*rt2*D2   +   2.0*C*q4*q2);    // T24, T42
+            THERMO(4,12,Th);
+
+            Th = MATRIX_THERMO25;//(B*q5*rt2*D2    +   2.0*C*q5*q2);    // T25, T52
+            THERMO(4,16,Th);
+
+            Th = MATRIX_THERMO33;//(A  -   B*q1*rt6*D3 +   2.0*C*q3*q3+C*R);    // T33
+            THERMOdiag(8,Th);
+
+            Th = MATRIX_THERMO34;//(B*q5*rt2*D2    +   2.0*C*q4*q3);    // T34, T43
+            THERMO(8,12,Th);
+
+            Th = MATRIX_THERMO35;//(B*q4*rt2*D2    +   2.0*C*q5*q3);    // T35, T53
+            THERMO(8,16,Th);
+
+            Th = MATRIX_THERMO44;//(A  +   B*(q1*rt6-3.0*q2*rt2)*D6    +   2.0*C*q4*q4+C*R); // T44
+            THERMOdiag(12,Th);
+
+            Th = MATRIX_THERMO45;//(B*q3*rt2*D2    +   2.0*C*q5*q4);    // T45, T54
+            THERMO(12,16,Th);
+
+            Th = MATRIX_THERMO55;//(A  +   B*(q1*rt6+3.0*q2*rt2)*D6    +   2.0*C*q5*q5+C*R); // T55
+            THERMOdiag(16,Th);
+        }// END BULK THERMO SCOPE
+//*/
+
 
 
     }// end for igp
-
+   // printf("elem %u done\n", it);
 }
 
 void assemble_volumes2K(SparseMatrix& K,
                         double* L,
                         const SolutionVector& q,
-                        SolutionVector& v,
-                        LC& mat_par,
-                        Simu& simu,
+                        const SolutionVector& v,
+                        const LC& mat_par,
+                        const Simu& simu,
                         const Mesh& t,
                         double* p
                         )
 {
     idx npLC = q.getnDoF();
-    Shape4thOrder shapes;
+    const Shape4thOrder shapes;
 
     for (idx it = 0 ; it < t.getnElements() ; it++)
     {
@@ -148,8 +256,9 @@ void assemble_volumes2K(SparseMatrix& K,
         double lK[20][20];  // LOCAL MATRIX
         double lL[20];      // LOCAL R.H.S. VECTOR
 
-        localKL_2K(p, t, it, q, v, mat_par, simu, shapes, lK, lL );
 
+        localKL_2K(p, t, it, q, v, mat_par, simu, shapes, lK, lL );
+        //printf("ok\n");
 
         // ADD LOCAL MATRIX AND R.H.S. VECTOR CONTRIBUTIONS TO
         // GLOBAL MATRIX AND R.H.S.
@@ -180,7 +289,13 @@ void assemble_volumes2K(SparseMatrix& K,
         }
 
     }// end for elements
-
 }
+
+
+//void assemble_volumes2K(SparseMatrix &K,
+//                        double *L, SolutionVector &q, SolutionVector &v, LC &mat_par, Simu &simu, Mesh &t, double *p)
+//{
+//
+//}
 
 
