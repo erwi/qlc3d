@@ -18,7 +18,12 @@ void assemble_volumes2K(SparseMatrix& K,
                         double* p
                         );
 
-
+void assemble_prev_rhs_K2(double* RHS,
+                         const SolutionVector& qn,
+                         const SolutionVector& v,
+                         const LC& mat_par,
+                         const Simu& simu,
+                         Geometry& geom );
 
 #endif // ASSEMBLEQ2K_H
 

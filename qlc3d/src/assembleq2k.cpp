@@ -48,8 +48,9 @@ inline void localKL_2K( double* p,                      // COORINDATES
         zs+=shapes.sh1s[0][i]*pp[i][2];
         zt+=shapes.sh1t[0][i]*pp[i][2];
     }//end for i
-    const double Jdet = t.getDeterminant(it);
-    double invJdet = 1.0 / Jdet*1e12;
+    double Jdet = t.getDeterminant(it)*1e18;
+    double invJdet = 1e6 / Jdet;
+    Jdet*=1e-18;
     // ACTUAL INVERSE JACOBIAN
     double Jinv[3][3]={{ (zt*ys-yt*zs)*invJdet ,(xt*zs-zt*xs)*invJdet, (xs*yt-ys*xt)*invJdet}
                        ,{(yt*zr-zt*yr)*invJdet ,(zt*xr-xt*zr)*invJdet, (xt*yr-yt*xr)*invJdet}
@@ -88,6 +89,9 @@ inline void localKL_2K( double* p,                      // COORINDATES
     const double rt2 = sqrt(2.0);
     const double deleps = 0.0;
     const double eps0 = 0.0;
+    const double q0 = 2*PI/mat_par.p0;
+    const double K1 = mat_par.K11;
+    const double K2 = mat_par.K22;
     // FOR EACH GAUSS POINT
     for (unsigned int igp = 0 ; igp < shapes.ngp; ++igp)
     {
@@ -145,35 +149,22 @@ inline void localKL_2K( double* p,                      // COORINDATES
             double T;
             // Q1
             T = RHS_THERMO1;
-            //printf("T = %e\n", T);
-            // T += rt6*(Vx*Vx + Vy*Vy-2.0*Vz*Vz)*deleps*D3*D6*eps0;
             ADD_RHS_BULK_TERMS(0,T);
-            //T*=mul;
-            //lL[0] +=1.0;// T*Sh[0];
-            //for (int i = 0 ; i < 4 ; ++i){
-               // lL[0+i] += T*Sh[i];
-            //}
-
-
 
             // Q2
             T = RHS_THERMO2;
-            //T += -rt2*(Vx*Vx - Vy*Vy)*deleps*D6*eps0;
             ADD_RHS_BULK_TERMS(4,T);
 
             // Q3
             T = RHS_THERMO3;
-           // T += -rt2*Vx*Vy*deleps*D3*eps0;
             ADD_RHS_BULK_TERMS(8,T);
 
             // Q4
             T = RHS_THERMO4;
-            //T += -rt2*Vz*Vy*deleps*D3*eps0;
             ADD_RHS_BULK_TERMS(12,T);
 
             // Q5
             T = RHS_THERMO5;
-            //T += -rt2*Vx*Vz*deleps*D3*eps0;
             ADD_RHS_BULK_TERMS(16,T);
 
         } // END BULK RHS TERMS
@@ -228,10 +219,110 @@ inline void localKL_2K( double* p,                      // COORINDATES
             THERMOdiag(16,Th);
         }// END BULK THERMO SCOPE
 //*/
+        // FOR ROWS i
+        for (unsigned int i = 0 ; i < 4 ; ++i)
+        {
+            const double ShRx=mul*dSh[i][0];//including weight and jacobian in trial function
+            const double ShRy=mul*dSh[i][1];
+            const double ShRz=mul*dSh[i][2];
+            const double ShR =mul*Sh[i];
+
+            double R[5];
+            #include "K2_RHS_ELASTIC_ASSEMBLY.txt";
+            lL[i + 0] += R[0];
+            lL[i + 4] += R[1];
+            lL[i + 8] += R[2];
+            lL[i +12] += R[3];
+            lL[i +16] += R[4];
+
+            // FOR COLUMNS j
+            for (unsigned int j = 0 ; j < 4 ; ++j)
+            {
+                const double ShCx=dSh[j][0];
+                const double ShCy=dSh[j][1];
+                const double ShCz=dSh[j][2];
+                const double ShC =Sh[j];
+                const double ShRC=ShR*Sh[j];
+                double M[5][5];
+                #include "K2_MATRIX_ELASTIC_ASSEMBLY.txt";
+
+                lK[i+0 ][j+0 ] += M[0][0];
+                lK[i+0 ][j+4 ] += M[0][1];
+                lK[i+0 ][j+8 ] += M[0][2];
+                lK[i+0 ][j+12] += M[0][3];
+                lK[i+0 ][j+16] += M[0][4];
+
+                lK[i+4 ][j+0 ] += M[1][0];
+                lK[i+4 ][j+4 ] += M[1][1];
+                lK[i+4 ][j+8 ] += M[1][2];
+                lK[i+4 ][j+12] += M[1][3];
+                lK[i+4 ][j+16] += M[1][4];
+
+                lK[i+8 ][j+0 ] += M[2][0];
+                lK[i+8 ][j+4 ] += M[2][1];
+                lK[i+8 ][j+8 ] += M[2][2];
+                lK[i+8 ][j+12] += M[2][3];
+                lK[i+8 ][j+16] += M[2][4];
+
+                lK[i+12][j+0 ] += M[3][0];
+                lK[i+12][j+4 ] += M[3][1];
+                lK[i+12][j+8 ] += M[3][2];
+                lK[i+12][j+12] += M[3][3];
+                lK[i+12][j+16] += M[3][4];
+
+                lK[i+16][j+0 ] += M[4][0];
+                lK[i+16][j+4 ] += M[4][1];
+                lK[i+16][j+8 ] += M[4][2];
+                lK[i+16][j+12] += M[4][3];
+                lK[i+16][j+16] += M[4][4];
 
 
+                // LOCAL IDENTITY MATRIX, NEEDED FOR CRANK-NICHOLSON
+                lI[i   ][j   ]+=ShRC;
+                lI[i+4 ][j+4 ]+=ShRC;
+                lI[i+8 ][j+8 ]+=ShRC;
+                lI[i+12][j+12]+=ShRC;
+                lI[i+16][j+16]+=ShRC;
 
+
+            }// END FOR COLUMNS j
+
+        }// END FOR ROWS i
     }// end for igp
+
+
+    // IF CRANK-NICHOLSON
+    if(simu.dt!=0)// Crank-Nicolson time stepping
+    {
+        // %0 calculates the steady state
+        // the product of the mass matrix and the various q vectors
+        double Mq[20];	// M * q
+        memset(Mq,0,20*sizeof(double));
+
+        for (int i=0;i<4;i++) 		//each node row
+        {
+            for (int j=0;j<4;j++) 	//each node column
+            {
+                Mq[4*0+i]+=lI[i][j]*vars[IND(j,0)];
+                Mq[4*1+i]+=lI[i][j]*vars[IND(j,1)];
+                Mq[4*2+i]+=lI[i][j]*vars[IND(j,2)];
+                Mq[4*3+i]+=lI[i][j]*vars[IND(j,3)];
+                Mq[4*4+i]+=lI[i][j]*vars[IND(j,4)];
+            }
+        }
+
+        const double temp = mat_par.u1 / simu.dt;
+        for (int i=0;i<20;i++)
+        {
+            lL[i] =  0.5*lL[i] + Mq[i]*temp;    // current RHS
+            for (int j=0 ; j<20 ; j++)
+            {
+                lK[i][j] = 0.5*lK[i][j] + lI[i][j]*temp;
+            }
+        }
+    }//if(dt!=0)
+
+
    // printf("elem %u done\n", it);
 }
 
@@ -248,6 +339,7 @@ void assemble_volumes2K(SparseMatrix& K,
     idx npLC = q.getnDoF();
     const Shape4thOrder shapes;
 
+#pragma omp parallel for
     for (idx it = 0 ; it < t.getnElements() ; it++)
     {
         if (t.getMaterialNumber(it) != MAT_DOMAIN1 )    // ONLY LC ELEMENTS ARE ASSEMBLED HERE
@@ -273,7 +365,7 @@ void assemble_volumes2K(SparseMatrix& K,
 
             if (ri == NOT_AN_INDEX ) // IF FIXED NODE, SKIP GLOBAL ASSEMBLY
                 continue;
-
+#pragma omp atomic
             L[ri] += lL[i]*BIGNUM;
 
             // FOR COLUMNS j
@@ -292,10 +384,65 @@ void assemble_volumes2K(SparseMatrix& K,
 }
 
 
-//void assemble_volumes2K(SparseMatrix &K,
-//                        double *L, SolutionVector &q, SolutionVector &v, LC &mat_par, Simu &simu, Mesh &t, double *p)
-//{
-//
-//}
+
+
+void assemble_volumes2K_previous(double lL[20],
+                                 const SolutionVector& q,
+                                 const SolutionVector& v,
+                                 const Mesh& t,
+                                 double* p,
+                                 const unsigned int it,
+                                 const LC& mat_par,
+                                 const Simu& simu,
+                                 const Shape4thOrder& shapes
+                                 )
+{
+
+}
+
+
+
+void assemble_prev_rhs_2K(double* Ln,
+                          const SolutionVector& qn,
+                          const SolutionVector& v,
+                          const LC& mat_par,
+                          const Simu& simu,
+                          Geometry& geom)
+{
+    Shape4thOrder shapes;
+    unsigned int elem_cnt = geom.t->getnElements();
+    Mesh& t = *geom.t;
+    double* p = geom.getPtrTop();
+    unsigned int npLC = qn.getnDoF();
+#ifndef DEBUG
+#pragma opm parallel for
+#endif
+    for (idx it = 0 ; it < elem_cnt ; it++)
+    {
+        // ONLY ASSEMBLE LC ELEMENTS
+        if (t.getMaterialNumber(it) != MAT_DOMAIN1 )
+            continue;
+
+        double lL[20];
+        assemble_volumes2K_previous(lL, qn, v, t, p, it, mat_par, simu, shapes );
+
+        // ADD TO GLOBAL RHS VECTOR
+        for (unsigned int i = 0 ; i < 20 ; i++)
+        {
+            // ROW INDEX (GLOBAL)
+            idx ri = t.getNode( it,i%4 ) + npLC*( i/4 );
+            ri = qn.getEquNode( ri );
+            if (ri != NOT_AN_INDEX) // IF NOT FIXED
+            {
+                #pragma omp atomic
+                Ln[ri] += lL[i]*BIGNUM;
+            }
+        }
+
+
+    }// end for it
+
+
+}
 
 
