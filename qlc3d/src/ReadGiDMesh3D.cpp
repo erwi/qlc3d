@@ -57,7 +57,11 @@ idx forwardToLine(ifstream* fin, const char* key)
         fin->getline( charray, 256,'\n');
         charsToLower(charray);
 
-        if ( strcmp( key,charray) == 0 )
+        // CONVERT READ LINE TO STRING AND SEARCH FOR SUBSTRINGS
+        // THIS FIXES PROBLEM WITH DIFFERENCES BETWEEN WINDOWS/LINUX
+        // END OF LINE CHARACTERS (Win = '\r\n', Linux = '\n')
+        std::string sline = charray;
+        if ( sline.find(key) != std::string::npos ) // IF LINE CONTAINS SUBSTRING.
             break;
 
         if ( fin->eof() )

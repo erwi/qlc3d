@@ -23,7 +23,11 @@ SPARSELIBINCS = -I$(SPARSELIB_INCLUDE_DIR) -I$(SPARSELIB_MV_INCLUDE_DIR)
 UNAME = $(shell uname)
 ifeq ($(UNAME), Linux)
 	QLC3D_PATH  = $(CURDIR)/..
-	SPARSELIB_DIR			= /home/eero/programming/libs/SparseLib++/1.7
+# DEBUG	
+	SPARSELIB_DIR			= /home/eero/Projects/libs/SparseLib++/debug/1.7
+	
+# RELEASE
+#	SPARSELIB_DIR			= /home/eero/Projects/libs/SparseLib++/1.7 
 	SPARSELIB_INCLUDE_DIR		= $(SPARSELIB_DIR)/include/
 	SPARSELIB_MV_INCLUDE_DIR	= $(SPARSELIB_DIR)/mv/include/
 	D_OF = -DLinux
@@ -38,7 +42,8 @@ INCLUDES 		= $(SPARSELIBINCS) $(QLC3D_INCS)
 CCCFLAGS =    '-DCOMPLEX=std::complex<double>'
 
 # THIS SET OF FLAGS (WITH -O3) RESULTED IN UNEXPLAINED RUNTIME CRASH. 
-CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -fopenmp -funroll-loops 
+#CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -fopenmp -funroll-loops 
+CFLAGS = -g
 
 #-std=c++0x
 
