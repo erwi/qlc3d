@@ -30,7 +30,7 @@ void setGlobalAngles(SolutionVector *q,
     vector <idx>::iterator itr;
 
     //printf("setting angles for %i nodes\n", (int) ind_nodes->size() );
-    for (itr = ind_nodes->begin() ; itr != ind_nodes->end() ; itr++)
+    for (itr = ind_nodes->begin() ; itr != ind_nodes->end() ; ++itr)
     {
         q->setValue(*itr,0, (a1+a2)*(sqrt(6)/-2) );
         q->setValue(*itr,1, (a1+(a1+a2)/-2)*sqrt(2) );
@@ -48,7 +48,7 @@ void setHomeotropic(SolutionVector* q,
 {
     vector <idx>::iterator i;
     double S = lc->getS0();
-    for (i = ind_nodes->begin(); i != ind_nodes->end() ; i++)
+    for (i = ind_nodes->begin(); i != ind_nodes->end() ; ++i)
     {
 
         double nx = geom->getNodeNormalsX(*i);
@@ -115,7 +115,7 @@ void setStrongSurfacesQ(SolutionVector *q,
         geom->e->listNodesOfMaterial( ind_nodes, (i+1)*MAT_FIXLC1 );
 
 
-        if (ind_nodes.size()>0){ // if nodes found
+        if ( !ind_nodes.empty() ){ // if nodes found
             string AnchoringType = alignment->surface[i]->getAnchoringType();
 
             if ( (AnchoringType.compare("Strong") == 0) ){
@@ -152,7 +152,7 @@ void setSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* ge
         // creates index of all nodes of this alignment surface type
         // 08/02/12 geom->e->FindIndexToMaterialNodes((i+1)*MAT_FIXLC1, &ind_nodes);
         geom->e->listNodesOfMaterial( ind_nodes , (i+1)*MAT_FIXLC1 );
-        if (ind_nodes.size()>0)
+        if ( !ind_nodes.empty() )
         { // if nodes found
 
             string AnchoringType = alignment->surface[i]->getAnchoringType();

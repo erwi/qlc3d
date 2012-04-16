@@ -3,9 +3,14 @@
 #include <math.h>
 #include <iostream>
 #include <stdlib.h>
+
+const char* LC::FORMULATION_2K_STRING = "elastic2k";
+const char* LC::FORMULATION_3K_STRING = "elastic3k";
+
 LC::LC()
 {
-	//printf("===========================================\n");
+    PhysicsFormulation = K3; // USE MORI'S 3K FORMULATION BY DEFAULT
+    //printf("===========================================\n");
 	A =  0.0;
 	B = -0.3e6;
 	C =  0.5e6;
@@ -22,7 +27,7 @@ LC::LC()
 	L1=2.0*(K33-K11+3.0*K22)/(S0*S0*27.0);
 	L2=4.0*(K11-K22)/(9.0*S0*S0);
 	L3 = 0;
-        L4 = 8.0*2*3.14159*K22/ ( p0 * 9.0 * S0*S0);// chiral
+    L4 = 8.0*2*3.14159*K22/ ( p0 * 9.0 * S0*S0);// chiral
 	L5 = 0;
 	L6=4.0*(K33-K11)/(S0*S0*S0*27.0);
 	//printf("\tL1 = %f, L2 = %f, L6 = %f\n",L1,L2,L6);
@@ -133,3 +138,25 @@ double LC::getS0()
 	return S0;
 }
 
+void LC::setFormulation( std::string& f)
+{
+    // MAKE LOWERCASE
+    std::transform(f.begin(), f.end(), f.begin(), std::ptr_fun<int, int>(std::tolower));
+
+    if (f.compare(FORMULATION_2K_STRING) == 0 )
+    {
+        this->PhysicsFormulation = K2;
+
+    }
+    else if (f.compare(FORMULATION_3K_STRING) == 0 )
+    {
+        this->PhysicsFormulation = K3;
+    }
+    else
+    {
+        std::cout <<"error in "<<__func__ <<"unknown formulation "<< f <<" - bye!"<<std::endl;
+        exit(1);
+    }
+
+
+}

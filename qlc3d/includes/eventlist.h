@@ -21,18 +21,46 @@ enum EventType {    EVENT_SWITCHING,    // SWITCH ELECTRODE
                     EVENT_SAVE,         // SAVE RESULT
                     EVENT_REFINEMENT,  // MESH REFINEMENT
                     EVENT_INVALID};     // BAD/ERROR EVENT
+
+enum EventOccurrence{
+    EVENT_TIME,         // EVENT OCCUREENCE DETERMINED BY TIME
+    EVENT_ITERATION     // EVENT OCCURRENVE DETERMINED BY ITERATION NUMBER
+};
+
 // BASE EVENT CLASS
 class Event
 {
+public:
     const EventType eventType_;
+    const EventOccurrence eventOccurrence_;
+    const double time;
+    const unsigned int iteration;
+private:
     void *eventData_;    // EVENT DATA IS AN OPTIONAL CUSTOM STRUCT/OBJECT WITH ADDITIONAL DATA ABOUT THE EVENT
 public:
-    Event(const EventType& et, void* const ed = NULL):
+
+
+
+    Event(const EventType& et, const double& time, void* const ed = NULL):
         eventType_(et),
+        eventOccurrence_(EVENT_TIME),
+        time(time),
+        iteration(0),
         eventData_(ed)
     { }
+
+    Event(const EventType& et, const unsigned int iter, void* const ed = NULL):
+        eventType_(et),
+        eventOccurrence_(EVENT_ITERATION),
+        time(0),
+        iteration(iter),
+        eventData_(ed)
+    {}
+
+
     ~Event();
     EventType getEventType()const {return eventType_;}
+    EventOccurrence getEventOccurrence() const {return eventOccurrence_;}
     void* getEventDataPtr()
     {
         return eventData_;
@@ -42,9 +70,10 @@ public:
     {
         eventData_ = ed;
     }
-    static const char* getEventString( const EventType );
+    static const char* getEventString( const EventType );   // DEBUG, RETURN EVENT TYPE STRING
 };
 
+/*
 class TimeEvent:public Event
 {
     double time_;
@@ -57,8 +86,9 @@ public:
     bool operator <(const TimeEvent& other) const;
     bool occursNow(const Simu &simu) const;
 };
+*/
 
-
+/*
 class IterEvent:public Event
 {
     size_t iteration_;
@@ -71,6 +101,44 @@ public:
     bool occursNow(const Simu& simu) const;
 
 };
+*/
+
+// A CLASS FOR TAKING CARE OF PROPERLY DEALLOCATING
+// ALL TYPES OF EVENTS
+/*
+class EventExterminator{
+
+public:
+    static void exterminateEvent(Event *&e)
+    {
+    // EVENTS CAN BE EITHER TIME-EVENTS OR ITEREVENTS
+
+        // TRY TO CAST TO ITER EVENT, DESTROY AND EXIT FUNCTION
+        IterEvent* ie = dynamic_cast <IterEvent*> (e);
+        if (ie)
+        {
+            delete ie;
+            e = NULL;
+            return;
+        }
+
+        // TRY TO CAST TO TIME EVENT, DESTROY AND EXIT FUNCTION
+        TimeEvent* te = dynamic_cast <TimeEvent*> (e);
+        if (te)
+        {
+            delete te;
+            e = NULL;
+            return;
+        }
+
+        // IF NEITHER CAST DIDN'T WORK, SOMETHING IS REALLY WRONG
+        printf("error in %s, could not destroy event - bye\n", __func__);
+        exit(1);
+
+    }
+};
+*/
+
 
 /*
 class SwitchingEvent:public TimeEvent
@@ -104,8 +172,8 @@ class EventList
         double nextTimeEvent_;  // TIME OF NEXT TIMED EVENT
         size_t nextIterEvent_;  // ITERATION NUMBER OF NEXT ITER EVENT
 
-        list <TimeEvent*> timeEvents_;
-        list <IterEvent*> iterationEvents_;
+        list <Event*> timeEvents_;
+        list <Event*> iterationEvents_;
         list <Event*> repRefinements_;  // ALL OF THESE WILL BE EXECUTED SIMULTANEOUSLY
 
         // REOCCURRING SAVE EVENTS
@@ -119,15 +187,16 @@ class EventList
         size_t repRefTimeCount_;   // KEEPS COUNT OF PROCESSED ROCCURRING REFINEMENT EVENT SO FAR
 
 
-        void prependReoccurringIterEvent(IterEvent* iEvent); // ADDS REOCCURRING TIME EVENT TO FRONT OF QUEUE
+        void prependReoccurringIterEvent(Event* iEvent); // ADDS REOCCURRING TIME EVENT TO FRONT OF QUEUE
 
     public:
         EventList();
+        ~EventList();
         bool eventsInQueue() const; // return true if further events exist in queue
         bool eventOccursNow(const Simu& simu) const;
 
-        void insertTimeEvent(TimeEvent* tEvent);
-        void insertIterEvent(IterEvent* iEvent);
+        void insertTimeEvent(Event* tEvent);
+        void insertIterEvent(Event* iEvent);
         void setSaveIter(const size_t& si){saveIter_ = si;}
         void setSaveTime(const double& st);//{saveTime_ = st;}
         size_t getSaveIter() const {return saveIter_;}

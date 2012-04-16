@@ -44,7 +44,18 @@ Event::~Event()
     }
 }
 
+bool compare_timeptr(const Event* first, const Event* second)
+{
+    // COMPARISON OF POINTERS TO TIME EVENTS
+    return ( first->time < second->time );
+}
 
+bool compare_iterptr(const Event* first, const Event* second)
+{
+    return ( first->iteration < second->iteration );
+}
+
+/*
 //-------- TimeEvent DEFINITINS -------------
 TimeEvent::TimeEvent(const EventType &et, const double &time):
     Event(et),
@@ -57,18 +68,9 @@ bool TimeEvent::operator <(const TimeEvent& other) const
     return ( this->getEventTime() < other.getEventTime() );
 }
 
-bool compare_timeptr(const TimeEvent* first, const TimeEvent* second)
-{
-    // COMPARISON OF POINTERS TO TIME EVENTS
-    return ( first->getEventTime() < second->getEventTime() );
-}
 
-bool compare_iterptr(const IterEvent* first, const IterEvent* second)
-{
-    return ( first->getEventIteration() < second->getEventIteration() );
-}
-
-
+*/
+/*
 //-------- IterEvent DEFINITINS ------------
 IterEvent::IterEvent(const EventType &et, const size_t &iter):
     Event(et),
@@ -84,7 +86,7 @@ bool IterEvent::operator <( const IterEvent& other) const
 {
     return ( getEventIteration() < other.getEventIteration() );
 }
-
+*/
 // -------------EventList DEFINITIONS --------------
 
 EventList::EventList():
@@ -102,6 +104,46 @@ EventList::EventList():
 
 
 }
+
+EventList::~EventList()
+{
+    // ITERATE THROUGH LISTS DELETING REMAINING EVENT OBJECT POINTERS
+    list<Event*> :: iterator itr;
+
+    if (!timeEvents_.empty())
+    {
+#ifdef DEBUG
+        printf("unhandled time Events \n");
+#endif
+
+        for (itr = timeEvents_.begin() ; itr != timeEvents_.end(); itr++)
+            delete *itr;
+    }
+
+    if (!iterationEvents_.empty())
+    {
+#ifdef DEBUG
+        printf("unhandled iteration Events \n");
+#endif
+        for (itr = iterationEvents_.begin(); itr!= iterationEvents_.end(); itr++)
+            delete *itr;
+    }
+
+    if (!repRefinements_.empty() )
+    {
+#ifdef DEBUG
+        printf("unhandled repRef Events \n");
+#endif
+
+
+
+        for (itr = repRefinements_.begin(); itr!= repRefinements_.end(); itr++)
+            delete *itr;
+    }
+
+
+}
+
 
 bool EventList::eventsInQueue() const
 {
@@ -134,20 +176,19 @@ Event* EventList::getCurrentEvent(const Simu &simu)
 // FIRST CHECK TIME EVENTS
     if ( nextTimeEvent_ == simu.getCurrentTime() )
     {
-        if ( ! timeEvents_.size() )
+        if ( timeEvents_.empty() )
         {
             printf("error in %s, no time events in queue - bye!\n", __func__ );
             exit(1);
         }
 
-        TimeEvent* timeEve( ( *timeEvents_.begin() ) );   // MAKE A POINTER TO OBJECT ON HEAP
-        Event* eve = static_cast<Event*>( timeEve );      // CAST TO EVENT
+        Event* eve =  *timeEvents_.begin();   // MAKE A POINTER TO OBJECT ON HEAP
         timeEvents_.erase( timeEvents_.begin() );         // REMOVE EVENT POINTER FROM QUEUE FRONT
 
         // UPDATE TIME FOR NEXT TIME EVENT MONITOR
-        if ( timeEvents_.size() )// THIS NEED MODIFYING TO ALLOW FOR REPEATING EVENTS
+        if ( !timeEvents_.empty() )// THIS NEED MODIFYING TO ALLOW FOR REPEATING EVENTS
         {
-            nextTimeEvent_ = (*timeEvents_.begin() )->getEventTime();
+            nextTimeEvent_ = (*timeEvents_.begin() )->time;
         }
         else
         {
@@ -160,27 +201,26 @@ Event* EventList::getCurrentEvent(const Simu &simu)
     else
     if ( nextIterEvent_ == (size_t) simu.getCurrentIteration() )
     {
-        if ( ! iterationEvents_.size() )
+        if ( iterationEvents_.empty() )
         {
             printf("error in %s, no iteration event is queue - bye !\n", __func__);
             exit(1);
         }
 
-        const IterEvent* iterEve ( (*iterationEvents_.begin() ) ); // MAKE A POINTER TO OBJECT ON HEAP
-        const Event* eve = static_cast<const Event*>( iterEve );   // CAST TO EVENT
+        Event* eve = *iterationEvents_.begin(); // MAKE A POINTER TO OBJECT ON HEAP
         iterationEvents_.erase(iterationEvents_.begin());          // REMOVE EVENT POINTER FROM QUEUE FRONT
 
 // UPDATE NEXT ITER EVENT MONITOR
-        if ( iterationEvents_.size() )  // THIS NEED MODIFYING TO ALLOW FOR REPEATING EVENTS
+        if ( !iterationEvents_.empty() )  // THIS NEED MODIFYING TO ALLOW FOR REPEATING EVENTS
         {
-            nextIterEvent_ = ( *iterationEvents_.begin() )->getEventIteration();
+            nextIterEvent_ = ( *iterationEvents_.begin() )->iteration;
         }
         else
         {
             nextIterEvent_ = NO_ITER_EVENTS;
         }
 
-        return const_cast<Event*>(eve);
+        return eve;
     }
     else
     {
@@ -208,26 +248,42 @@ void EventList::setSaveTime(const double &st)
 }
 
 
-void EventList::insertTimeEvent(TimeEvent *tEvent)
+void EventList::insertTimeEvent(Event *tEvent)
 {
-// ADDS TIMED EVENT TO EVENT QUEUE
+// ADDS TIMED EVENT TO CORRECT POSITION IN EVENT QUEUE
+
+    // MAKE SURE OCCURRENCE IS TIME
+    if (tEvent->getEventOccurrence() != EVENT_TIME )
+    {
+        printf("error in %s, expected 'time' event - bye!\n", __func__);
+        exit(1);
+    }
+
     timeEvents_.push_back( tEvent );
     timeEvents_.sort( compare_timeptr );    // USE COMPARISON OF *POINTERS* TO TIME EVENT (OTHERWISE SORTING BY ADDRESS VALUE)
 
 // KEEP NEXT TIME EVENT TRACKER UP TO DATE
-    if (tEvent->getEventTime() < nextTimeEvent_ )
-        nextTimeEvent_ = tEvent->getEventTime();
+    if (tEvent->time < nextTimeEvent_ )
+        nextTimeEvent_ = tEvent->time;
 }
 
-void EventList::insertIterEvent(IterEvent *iEvent)
+void EventList::insertIterEvent(Event *iEvent)
 {
-// ADDS ITERATION EVENT TO EVENT QUEUE
+// ADDS ITERATION EVENT TO CORRECT POSITION IN EVENT QUEUE
+
+    // MAKE SURE OCCURENCE IN ITERATIONS
+    if (iEvent->getEventOccurrence() != EVENT_ITERATION)
+    {
+        printf("error in %s, expected 'itertion' event - bye!\n", __func__);
+        exit(1);
+    }
+
     iterationEvents_.push_back( iEvent );
     iterationEvents_.sort(compare_iterptr);
 
 // KEEP NEXT ITERATION EVENT TRACKER UP TO DATE
-    if (iEvent->getEventIteration() < nextIterEvent_ )
-        nextIterEvent_ = iEvent->getEventIteration();
+    if (iEvent->iteration < nextIterEvent_ )
+        nextIterEvent_ = iEvent->iteration;
 }
 
 void EventList::addRepRefInfo(Event* e)
@@ -240,11 +296,11 @@ void EventList::manageReoccurringEvents(Simu& simu)
 {
 // ADDS REOCCURRING EVENTS TO FRONT OF QUEUE IF NEEDED.
 // NEW EVENTS WILL BE SCEDULED FOR NEXT ITERATION/TIME STEP.
-// NOTE THAT THIS SHOULD BE CALLED AFTER ALL EVENTS FOR CURRENT
+// NOTE THAT THIS MUST BE CALLED AFTER ALL EVENTS FOR CURRENT
 // ITERATION/TIMESTEP HAVE BEEN PROCESSED.
 
 // ADD ITER EVENTS
-    size_t nextIter = (size_t) simu.getCurrentIteration() + 1;
+    unsigned int nextIter = (unsigned int) simu.getCurrentIteration() + 1;
     double nextTime = simu.getCurrentTime() + simu.getdt(); // TIME AT NEXT ITERATION
 
 
@@ -252,7 +308,7 @@ void EventList::manageReoccurringEvents(Simu& simu)
     if ( ( saveIter_ > 0 ) &&
          ( nextIter % saveIter_ ) == 0 )
     {
-        prependReoccurringIterEvent( new IterEvent(EVENT_SAVE ,  nextIter) );
+        prependReoccurringIterEvent( new Event(EVENT_SAVE ,  nextIter) );
     }
 
 // REOCCURRING SAVE TIME
@@ -273,7 +329,7 @@ void EventList::manageReoccurringEvents(Simu& simu)
                 printf("Warning in %s, floating point numerical accuracy in determining reoccurring save time\n", __func__);
             }
 
-            this->insertTimeEvent( new TimeEvent(EVENT_SAVE, t_next) );
+            this->insertTimeEvent( new Event(EVENT_SAVE, t_next) );
             saveTimeCount_++;
         }
     }
@@ -287,13 +343,13 @@ void EventList::manageReoccurringEvents(Simu& simu)
         // EVENT QUEUE TO BE PROCESSED NEXT TIME STEP
         //
         std::list<Event*> ::iterator itr = repRefinements_.begin();
-        for ( ;itr != repRefinements_.end() ; itr++)
+        for ( ;itr != repRefinements_.end() ; ++itr)
         {
             // GET PTR TO REPEATING REFINFO OBJECT
             RefInfo* repref = static_cast<RefInfo*> ( (*itr)->getEventDataPtr() );
             // CREATE COPY OF REPEATING REFINFO OBJECT
             RefInfo* cpy_repref = new RefInfo( *repref );
-            IterEvent* ev = new IterEvent(EVENT_REFINEMENT, nextIter );         // EVENT FOR NEXT ITERATOR
+            Event* ev = new Event(EVENT_REFINEMENT, nextIter );         // EVENT FOR NEXT ITERATOR
             ev->setEventDataPtr( cpy_repref );
             this->prependReoccurringIterEvent( ev ); // ADD TO FRONT OF QUEUE
         }
@@ -310,22 +366,29 @@ void EventList::manageReoccurringEvents(Simu& simu)
 
 }
 
-void EventList::prependReoccurringIterEvent(IterEvent *iEvent)
+void EventList::prependReoccurringIterEvent(Event *iEvent)
 {
 // ADDS NEW EVENT AT FRONT OF QUEUE
 
+    //MAKE SURE EVENT OCCURRENCE IS ITERATIONS
+    if ( iEvent->getEventOccurrence() != EVENT_ITERATION )
+    {
+        printf("error in %s, event occurrence is not 'iterations' - bye!\n",__func__);
+        exit(1);
+    }
+
     // MAKE SURE ADDED EVENT REALLY BELONGS TO FRONT OF QUEUE
-    if (nextIterEvent_ < iEvent->getEventIteration() )
+    if (nextIterEvent_ < iEvent->iteration )
     {
         printf("error in %s. Trying to add event with iteration number %u to front of queue when first existing event has number %u - bye!\n",
                __func__,
-               iEvent->getEventIteration(),
+               iEvent->iteration,
                nextIterEvent_ );
         exit(1);
     }
 
     iterationEvents_.push_front( iEvent );
-    nextIterEvent_ = iEvent->getEventIteration();
+    nextIterEvent_ = iEvent->iteration;
 }
 
 
@@ -346,22 +409,22 @@ void EventList::printEventList()const
 // DEBUG PRINTING
 
     printf(" %u TimeEvents:\n", timeEvents_.size() );
-    std::list<TimeEvent*>::const_iterator tei = timeEvents_.begin();
-    for (tei = timeEvents_.begin(); tei != timeEvents_.end() ; tei++)
+    std::list<Event*>::const_iterator tei = timeEvents_.begin();
+    for (tei = timeEvents_.begin(); tei != timeEvents_.end() ; ++tei)
     {
         EventType et = (*tei)->getEventType();
-        double time = (*tei)->getEventTime();
+        double time = (*tei)->time;
         printf("Event type %s, at t = %e\n",Event::getEventString(et), time );
     }
 
 
     // ADD LOOP OVER ITER EVENTS
     printf(" %u IterEvent:\n", iterationEvents_.size() );
-    std::list<IterEvent*>::const_iterator iei = iterationEvents_.begin();
-    for(; iei != iterationEvents_.end() ; iei++)
+    std::list<Event*>::const_iterator iei = iterationEvents_.begin();
+    for(; iei != iterationEvents_.end() ; ++iei)
     {
         EventType et = (*iei)->getEventType();
-        size_t iter = (*iei)->getEventIteration();
+        unsigned int iter = (*iei)->iteration;
         printf("Event type %s at iteration %u\n", Event::getEventString(et), iter);
     }
 }

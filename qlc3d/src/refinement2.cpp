@@ -100,7 +100,7 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
     itr = t_to_l[elem].begin();
     unodes.insert( lines[*itr].L[0] );
     unodes.insert( lines[*itr].L[1] );
-    itr++;
+    ++itr;
     unodes.insert( lines[*itr].L[0] );
     unodes.insert( lines[*itr].L[1] );
     no.insert( no.end() , unodes.begin() , unodes.end() ); // unique nodes
@@ -120,7 +120,7 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
         itr = t_to_l[elem].begin();
         nA = lines[*itr].L[0];
         nB = lines[*itr].L[1];
-        itr++;
+        ++itr;
         nC = lines[*itr].L[0];
         nD = lines[*itr].L[1];
 
@@ -175,7 +175,7 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
 
             nodes.push_back( lines[*itr].L[0] );
             nodes.push_back( lines[*itr].L[1] );
-            itr++;
+            ++itr;
             nodes.push_back( lines[*itr].L[0] );
             nodes.push_back( lines[*itr].L[1] );
 
@@ -296,7 +296,7 @@ void make_new_green3_tet( vector <idx>& new_t,
     set <unsigned int > un;
 
     set <unsigned int> ::iterator itr;
-    for ( itr = t_to_l[elem].begin() ; itr!= t_to_l[elem].end() ; itr++){ // loop over line indexes
+    for ( itr = t_to_l[elem].begin() ; itr!= t_to_l[elem].end() ; ++itr){ // loop over line indexes
         un.insert( lines[*itr].L[0] );
         un.insert( lines[*itr].L[1] );
     }
@@ -387,7 +387,7 @@ void make_new_tri2(vector <idx>& new_e,
 
     nu.insert( lines[*iter].L[0] );
     nu.insert( lines[*iter].L[1] );
-    iter++;
+    ++iter;
     nu.insert( lines[*iter].L[0] );
     nu.insert( lines[*iter].L[1] );
 
@@ -404,7 +404,7 @@ void make_new_tri2(vector <idx>& new_e,
     iter = e_to_l[ elem ].begin();
     nodes.push_back( lines[*iter].L[0] ) ;
     nodes.push_back( lines[*iter].L[1] ) ;
-    iter++;
+    ++iter;
     nodes.push_back( lines[*iter].L[0] ) ;
     nodes.push_back( lines[*iter].L[1] ) ;
 

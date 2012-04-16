@@ -324,7 +324,7 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
 
 
     //  nFreeNodes = nDoF - nFixed;
-    for (itr = ind_to_nodes.begin() ; itr != ind_to_nodes.end() ; itr++ )
+    for (itr = ind_to_nodes.begin() ; itr != ind_to_nodes.end() ; ++itr )
     {
         idx fixedNodeNumber = *itr;
         FixedNodes[i] = fixedNodeNumber;
@@ -819,7 +819,7 @@ void SolutionVector::setCornerElim(
     list<int> :: iterator c3;
     double eps = 1e-5;
 
-    for (c0 = corn0.begin() ; c0 != corn0.end() ; c0++ )
+    for (c0 = corn0.begin() ; c0 != corn0.end() ; ++c0 )
     { // outer corner loop - corn0
         bool found = false;
         double dist = 0;
@@ -829,7 +829,7 @@ void SolutionVector::setCornerElim(
         double minDist = BIGNUM;
 
         // COMPARISON WITH C1
-        for (c1 = corn1.begin() ; c1 != corn1.end() ; c1++)
+        for (c1 = corn1.begin() ; c1 != corn1.end() ; ++c1)
         { // inner corner loop - corn1
             double p1 = p[(*c1) * 3 + dim];
             dist = fabs( p0 - p1 );
@@ -863,7 +863,7 @@ void SolutionVector::setCornerElim(
         iNearest = -1;
         minDist = BIGNUM;
 
-        for ( c2 = corn2.begin() ; c2 != corn2.end() ; c2++ )
+        for ( c2 = corn2.begin() ; c2 != corn2.end() ; ++c2 )
         { // inner corner loop - corn2
             double p2 = p[(*c2)*3 + dim ];
             dist = fabs( p0 - p2 );
@@ -895,7 +895,7 @@ void SolutionVector::setCornerElim(
         iNearest = -1;
         minDist = BIGNUM;
 
-        for ( c3 = corn3.begin() ; c3 != corn3.end() ; c3++ )
+        for ( c3 = corn3.begin() ; c3 != corn3.end() ; ++c3 )
         { // inner corner loop - corn2
             double p3 = p[(*c3)*3 + dim ];
             dist = fabs(p0 - p3 );
@@ -942,7 +942,7 @@ void SolutionVector::setFaceElim( list <int>& face0, // face1[i] = face0[i]
     list <int>:: iterator F0;    // FACE 0 NODES
     list <int>:: iterator F1;    // FACE 1 NODES
     int fc, bc; // debug counters
-    for (F0 = face0.begin(), fc = 0; F0!=face0.end() ; F0++, fc++ ) // LOOP OVER FACE 0
+    for (F0 = face0.begin(), fc = 0; F0!=face0.end() ; ++F0, ++fc ) // LOOP OVER FACE 0
     {
         bool found = false;
         int ind_n  = 0;     // index to nearest (debug)
@@ -950,7 +950,7 @@ void SolutionVector::setFaceElim( list <int>& face0, // face1[i] = face0[i]
         double f1 = p[3*(*F0) + ind1 ]; // coordinates of node F2 in face0
         double f2 = p[3*(*F0) + ind2 ];
 
-        for (F1 = face1.begin() , bc = 0; F1!= face1.end() ; F1++, bc ++)
+        for (F1 = face1.begin() , bc = 0; F1!= face1.end() ; ++F1, ++bc)
         {
             double fa = p[3*(*F1) + ind1]; // coordinates of node F1 in face 1
             double fb = p[3*(*F1) + ind2];
@@ -1042,7 +1042,7 @@ void SolutionVector::AddFixed(int mat, double val, Mesh *mesh)
         else// add new ones
         {
             NewFixedNodes[i] = *itr; //  = iterator to index to material nodes
-            itr++;
+            ++itr;
 
             NewFixedValues[i] = val;
         }

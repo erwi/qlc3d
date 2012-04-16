@@ -2,9 +2,18 @@
 #define LC_H
 
 #include <stdio.h>
+#include <string>
+#include <algorithm>
 class LC
 {
 	public:
+    // SELECTS WHICH FORMULATION IS USED
+    enum Formulation {K3 ,  // MORI'S 3K ELASTIC FORMULATION
+                      K2};  // 2K FORMULATION FROM WRIGHT(?) BLUE PHASE PAPER
+    Formulation PhysicsFormulation;
+    const static char* FORMULATION_3K_STRING;
+    const static char* FORMULATION_2K_STRING;
+
 	// elastic coefficients
 	double K11, K22, K33;
 	double L1, L2, L3, L4, L5, L6;
@@ -39,6 +48,11 @@ class LC
 	void WriteLC(FILE* fid);
 	void convert_params_n2Q();
 	double getS0();
+
+    void setFormulation(std::string& f);
+
+
+
 };
 
 #endif

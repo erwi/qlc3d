@@ -113,7 +113,7 @@ Boxes::~Boxes(){
 
 	std::vector<Box*>::iterator itr;
 
-	for(itr = box.begin() ; itr!= box.end() ; itr++)
+	for(itr = box.begin() ; itr!= box.end() ; ++itr)
 		delete (*itr);
 
 }

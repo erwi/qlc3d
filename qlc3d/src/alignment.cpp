@@ -183,7 +183,7 @@ bool    Surface::getisFixed()           {return isFixed;}
 Alignment::Alignment(){	setnSurfaces(0);}//end constructor
 Alignment::~Alignment(){
     std::vector<Surface*>::iterator itr;
-    for(itr = surface.begin() ; itr!= surface.end() ; itr++)
+    for(itr = surface.begin() ; itr!= surface.end() ; ++itr)
         delete (*itr);
 
 }

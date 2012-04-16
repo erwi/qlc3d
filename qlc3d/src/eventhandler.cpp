@@ -133,6 +133,7 @@ void handleInitialEvents(EventList& evel,          // EVENT LIST
         switch (et)
         {
         case(EVENT_SAVE): // INITIAL RESULT IS ALWAYS WRITTEN. SEE BELOW
+            delete currentEvent;
             break;
         case(EVENT_SWITCHING):  // SWITCH ELECTRODES
             handleElectrodeSwitching(currentEvent,

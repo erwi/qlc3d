@@ -57,7 +57,11 @@ idx forwardToLine(ifstream* fin, const char* key)
         fin->getline( charray, 256,'\n');
         charsToLower(charray);
 
-        if ( strcmp( key,charray) == 0 )
+        // CONVERT READ LINE TO STRING AND SEARCH FOR SUBSTRINGS
+        // THIS FIXES PROBLEM WITH DIFFERENCES BETWEEN WINDOWS/LINUX
+        // END OF LINE CHARACTERS (Win = '\r\n', Linux = '\n')
+        std::string sline = charray;
+        if ( sline.find(key) != std::string::npos ) // IF LINE CONTAINS SUBSTRING.
             break;
 
         if ( fin->eof() )
@@ -201,8 +205,7 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
         cout << "failed opening: " << filename.c_str() << endl;
         exit(1);
     }
-
-    else
+    else // FILE OPENED OK
     {
         printf("Reading GID mesh file: %s \n", filename.c_str()); fflush(stdout);
         //printf("a");
@@ -307,7 +310,7 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
             }
         }   // END ERROR CHECKING BLOCK
 
-	double *dp 		= (double*) malloc(3*np[0]*sizeof(double));
+        double *dp 		= (double*) malloc(3*np[0]*sizeof(double));
 
         idx *dt			= (idx*)  malloc(4*nt[0]*sizeof(idx));
         idx *de 		= (idx*)  malloc(3*ne[0]*sizeof(idx));
@@ -316,17 +319,17 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
         idx *dmate 		= (idx*)malloc(ne[0]*sizeof(idx));
 
         idx* pr=NULL;
-	if (nperi>0)
+        if (nperi>0)
             pr 	= (idx*)malloc(nperi*6*sizeof(idx) );
 
 
         //REWIND TO START OF FILE
-	fin.clear();              // forget we hit the end of file
-	fin.seekg(0, ios::beg);   // move to the start of the file
+        fin.clear();              // forget we hit the end of file
+        fin.seekg(0, ios::beg);   // move to the start of the file
 
 
-	while(!fin.eof())	// read - while loop
-	{
+        while(!fin.eof())	// read - while loop
+        {
             fin.getline(charray,200,'\n');
             string line = charray;
             //if ( Tets.compare(0 , Tets.size() , charray , 0 , Tets.size()  ) == 0)
@@ -347,17 +350,17 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
             else if ( line.find(Tris) != std::string::npos ){
                 ReadTriangles(&fin,ne[0],de,dmate);
             }
-	} // end read while loop
+        } // end read while loop
 
 
 
         // ONLY POSITIVE COORDINATES ALLOWED - MOVE IF NECESSARY
         double xmin,ymin,zmin,xmax,ymax,zmax;
-	xmin = 1e9 ; ymin = 1e9 ; zmin = 1e9;
-	xmax = -1e9; ymax = -1e9; zmax = -1e9;
+        xmin = 1e9 ; ymin = 1e9 ; zmin = 1e9;
+        xmax = -1e9; ymax = -1e9; zmax = -1e9;
 
         for (idx i=0 ; i<np[0] ; i++)
-	{
+        {
             if(dp[i*3+0]<xmin) xmin = dp[i*3+0]; // find min
             if(dp[i*3+1]<ymin) ymin = dp[i*3+1];
             if(dp[i*3+2]<zmin) zmin = dp[i*3+2];
@@ -365,14 +368,14 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
             if(dp[i*3+0]>xmax) xmax = dp[i*3+0]; // find max
             if(dp[i*3+1]>ymax) ymax = dp[i*3+1];
             if(dp[i*3+2]>zmax) zmax = dp[i*3+2];
-	}
+        }
 
         for (idx i=0;i<np[0];i++)
-	{
+        {
             if(xmin<0) dp[i*3+0]-=xmin; // move mesh
             if(ymin<0) dp[i*3+1]-=ymin;
             if(zmin<0) dp[i*3+2]-=zmin;
-	}
+        }
 
 
         if (xmin<0) {xmax-=xmin;  cout << "\tshifting all x by :"<<-xmin<<endl;xmin=0;}
@@ -383,7 +386,7 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
         // REMOVE NUMERICAL NOISE FROM BOUNDARY NODES
 
         for (idx i=0;i<np[0];i++)
-	{
+    {
             if( dp[i*3+0]-xmin <= TOLER) dp[i*3+0]=xmin;
             if( xmax-dp[i*3+0] <= TOLER) dp[i*3+0]=xmax;
 
@@ -392,21 +395,21 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
 
             if( dp[i*3+2]-zmin <= TOLER) dp[i*3+2]=zmin;
             if( zmax-dp[3*i+2] <= TOLER) dp[i*3+2]=zmax;
-	}
+    }
         //*/
 
 
-	if (pr!=NULL)
+        if (pr!=NULL)
             free(pr);
-	*p=dp;
-	*t=dt;
-	*e=de;
-	*matt = dmatt;
-	*mate = dmate;
-	free(charray);
+        *p=dp;
+        *t=dt;
+        *e=de;
+        *matt = dmatt;
+        *mate = dmate;
+        free(charray);
         /*
  */
-	//exit(0);
+        //exit(0);
     }//end if mesh file opened ok
 
 

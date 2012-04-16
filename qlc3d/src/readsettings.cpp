@@ -188,6 +188,17 @@ void readLC(LC& lc,Reader& reader)
         lc.gamma2 = val;
 	problem(name, ret);
 
+// SELECT PHYSICS FORMULATION SWITCH
+    name = "Formulation";
+    std::string str_val;
+    ret = reader.readString(name, str_val );
+    problem_format( name , ret );
+    if (ret == READER_SUCCESS )
+    {
+        lc.setFormulation(str_val);
+    }
+
+
 // DO THIS LATER IF NEEDED
    // name = "alpha1";
    // name = "aplha2";
@@ -313,7 +324,7 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
 
     if ( ret == READER_SUCCESS )
     {
-        if (vec_str.size() == 0 )   // DEFAULT IS LCVIEW
+        if (vec_str.empty() )   // DEFAULT IS LCVIEW
         {
             simu->addSaveFormat( Simu::SF_LCVIEW );
         }
@@ -634,7 +645,7 @@ void readElectrodes(Electrodes* electrodes,
         // ADD CODE HERE TO DISTINGUISH BETWEEN TIME/ITERATION SWITCHING
         for (size_t j = 0 ; j < times.size() ; j++)
         {
-            TimeEvent* swEvent = new TimeEvent(EVENT_SWITCHING, times[j]);
+            Event* swEvent = new Event(EVENT_SWITCHING, times[j]);
             SwitchingInstance* si = new SwitchingInstance(times[j],  // WHEN
                                                          pots[j],   // NEW POTENTIAL VALUE
                                                          i-1);      // WHICH ELECTRODE
@@ -657,7 +668,7 @@ void readElectrodes(Electrodes* electrodes,
 
         // ADD SWITCHING INSTANCE WITH SPECIAL ELECTRODE NUMBER
         // INDICATING THAT A UNIFORM ELECTRC FIELD WILL BE CONSIDERED
-        TimeEvent* swEvent = new TimeEvent( EVENT_SWITCHING , 0 );
+        Event* swEvent = new Event( EVENT_SWITCHING , 0.0 );
         SwitchingInstance* si = new SwitchingInstance( 0 ,
                                                        0 ,
                                                        SwitchingInstance::UNIFORM_E_FIELD
@@ -878,8 +889,8 @@ void readRefinement(Reader& reader,
             problem_format( key , ret );
 
             // MAKE SURE THAT ONLY Iterations OR Times IS DEFINED, NOT BOTH
-            if ( (iterations.size() > 0 ) &&
-                 (times.size()>0) )
+            if ( (iterations.empty() ) &&
+                 (!times.empty() ) )
             {
                 char msg[200];
                 sprintf( msg, "error with REFINEMENT%i, can't define both Iterations AND Times for same setting - bye!", i);
@@ -907,24 +918,24 @@ void readRefinement(Reader& reader,
         // EVENTS HAVE BEEN DEFINED ADD EVENT(s) TO EVENT LIST
 
             // IF EXPLICIT ITERATIOSN ARE DEFINED, BREAK THEM TO SEPARATE EVENT
-            if (iterations.size() )
+            if (iterations.empty() )
             {
                 for (size_t j = 0 ; j < iterations.size() ; j++)
                 {
-                    long int itr = iterations[j];
+                    unsigned int itr = (unsigned int) iterations[j];
                     RefInfo* refinfo = new RefInfo(type);
                     refinfo->setIteration( itr );
                     refinfo->setValues( values );
                     refinfo->setCoords(X, Y, Z);
                     RefInfo::validate( *refinfo );
-                    IterEvent* e = new IterEvent(EVENT_REFINEMENT, itr);
+                    Event* e = new Event(EVENT_REFINEMENT, itr);
                     e->setEventDataPtr( static_cast<void*> (refinfo) );
                     evli.insertIterEvent( e );
                 }
 
             }
             // IF EXPLICIT TIMES ARE DEFINED, BREAK INTO SEPARATE EVENTS
-            else if (times.size() )
+            else if ( !times.empty() )
             {
                 for (size_t j = 0 ; j < times.size() ; j++)
                 {
@@ -934,7 +945,7 @@ void readRefinement(Reader& reader,
                     refinfo->setValues( values );
                     refinfo->setCoords(X, Y, Z);
                     RefInfo::validate( *refinfo );
-                    TimeEvent* e = new TimeEvent( EVENT_REFINEMENT, tme );
+                    Event* e = new Event( EVENT_REFINEMENT, tme );
                     e->setEventDataPtr( static_cast<void*> (refinfo) );
                     evli.insertTimeEvent( e );
                 }
@@ -946,7 +957,7 @@ void readRefinement(Reader& reader,
                 refinfo->setValues( values );
                 refinfo->setCoords(X, Y, Z);
                 RefInfo::validate( *refinfo );
-                Event* e = new Event(EVENT_REFINEMENT);
+                Event* e = new Event(EVENT_REFINEMENT, refinfo->getRefIter() ); // REPETITION BY ITERATION ONLY CURRENTLY SUPPORTED
                 e->setEventDataPtr( static_cast<void*> (refinfo) );
                 evli.addRepRefInfo( e );
             }

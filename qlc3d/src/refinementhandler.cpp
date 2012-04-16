@@ -20,7 +20,7 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
     // MAKE LIST OF ALL REFINFO OBJECTS THAT ARE HANDLES NOW
     std::list<RefInfo> refInfos;
     std::list<Event*>::iterator evitr = refEvents.begin();
-    for ( ; evitr!= refEvents.end() ; evitr++)
+    for ( ; evitr!= refEvents.end() ; ++evitr)
     {
         RefInfo* ref = static_cast<RefInfo*>( (*evitr)->getEventDataPtr() );
         refInfos.push_back( *ref );
@@ -42,7 +42,7 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
             );
 
     // DELETE ALL REFINEMENT EVENTS. ALWAYS
-    for (evitr = refEvents.begin() ; evitr != refEvents.end() ; evitr++)
+    for (evitr = refEvents.begin() ; evitr != refEvents.end() ; ++evitr)
     {
         delete (*evitr);
     }

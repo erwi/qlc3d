@@ -78,9 +78,10 @@ void interpolate(SolutionVector& qnew,
         n[1] = geom_old.t->getNode( pint[ind], 1);
         n[2] = geom_old.t->getNode( pint[ind], 2);
         n[3] = geom_old.t->getNode( pint[ind], 3);
-        int max_node = *max_element(n, n+3);
+        
 #ifdef DEBUG
-        if (max_node >= (int)   npLC_old){
+        int max_node = *max_element(n, n+3);
+		if (max_node >= (int)   npLC_old){
             printf("error - node is larger than npLC(= %i)\n", npLC_old);
             printf(" interpolate in autorefinement.cpp\n");
             geom_old.t->PrintElement(pint[ind] );
@@ -121,7 +122,7 @@ bool needsInterpolatedQ(const list<RefInfo>& refInfos,
 // SLOW, SO AVOIDING IT CAN SPEED UP THINGS
     list<RefInfo>::const_iterator ritr = refInfos.begin();
 
-    for (;ritr!=refInfos.end() ; ritr ++)
+    for (;ritr!=refInfos.end() ; ++ritr )
     {
         // IF THIS REFITER IS NOT DEFINED FOR THIS REFINFO OBJECT, SKIP IT
         if ( refiter > (*ritr).getRefIter() )
@@ -164,7 +165,7 @@ void get_index_to_tred(Geometry& geom_curr, // CURRENT CALCULATION GEOMETRY
 
     // LOOP OVER EACH REFINFO OBJECT AND PROCESS IT
     list<RefInfo>::const_iterator ritr = refInfos.begin();
-    for ( ritr = refInfos.begin() ; ritr!=refInfos.end() ; ritr++)
+    for ( ritr = refInfos.begin() ; ritr!=refInfos.end() ; ++ritr)
     {
         // CHECK WHETHER THIS RefInfo OBJECT IS DEFINED FOR THIS REFINEMENT ITERATION
         if ( refiter > (*ritr).getRefIter() )
@@ -214,7 +215,7 @@ idx getMaxRefiterCount(const list<RefInfo>& refInfos)
 // DETERMINES MAXIMUM NUMBER OF REFINEMENT ITERATIONS THAT MAY BE PERFORMED
     list<RefInfo>::const_iterator ri_itr = refInfos.begin();
     idx maxRefIter(0);
-    for(;ri_itr != refInfos.end() ; ri_itr++)
+    for(;ri_itr != refInfos.end() ; ++ri_itr)
     {
         maxRefIter = maxRefIter > (*ri_itr).getRefIter() ? maxRefIter : (*ri_itr).getRefIter();
     }
@@ -335,7 +336,7 @@ bool autoref(   Geometry& geom_orig, Geometry& geom,
     simu.IncrementMeshNumber();     // output mesh name will be appended with this number
     simu.setMeshModified( true );   // this is a flag set to notify that a new output file needs to be written
 
-    return true; //bRefined; // WHETHER MESH WAS REFINED
+    return bRefined; // WHETHER MESH WAS REFINED
 }
 
 

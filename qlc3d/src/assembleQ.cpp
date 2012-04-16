@@ -4,44 +4,22 @@
 #include <time.h>
 #include <qlc3d.h>
 #include <sparsematrix.h>
-//#include "gauss.h"
-
+#include <shapefunction3d.h>
+#include <qassembly_macros.h>
+#include <assembleq2k.h>
 #define	BIGNUM 2e16
 const int	npt = 4; //Number of Points per Tetrahedra
-// Gauss integration
-// ---------------------------------------------------------
-//     3D Gauss-Legendre weights for N = 11, D = 4
-// ---------------------------------------------------------
 
-const int ngp = 11;
-const double a=(1+sqrt(5.0/14.0))/4.0;
-const double b=(1-sqrt(5.0/14.0))/4.0;
-
-static double gp[ngp][4]={	{0.25	  , 0.25	,	0.25	,0.25}
-                                ,{11.0/14.0     ,	1.0/14.0	,	1.0/14.0	,1.0/14.0}
-                                ,{1.0/14.0      ,	11.0/14.0	,	1.0/14.0	,1.0/14.0}
-                                ,{1.0/14.0	  ,	1.0/14.0	,	11.0/14.0   ,1.0/14.0},
-                                {1.0/14.0  , 1.0/14.0	,	1.0/14.0	,11.0/14.0},
-                                {a	  , a	,  b , b},
-                                {a	  , b	,  a , b},
-                                {a        , b   ,  b , a},
-                                {b	  , a   ,  a , b},
-                                {b	  , a   ,  b , a},
-                                {b	  , b   ,  a , a}};
-const double w11 = -74.0/5625.0;
-const double w12 = 343.0/45000.0;
-const double w13 = 56.0/2250.0;
-static double w[ngp]={w11,w12,w12,w12,w12,w13,w13,w13,w13,w13,w13};
 
 // ---------------------------------------------------------
 //     2D Gauss-Legendre weights for N = 27, D = 11
 // ---------------------------------------------------------
 const int ngps=27;
-static double wsurf[ngps]={ 0.006829866, 0.006829866, 0.006829866, 0.01809227, 0.01809227, 0.01809227, 0.0004635032, 0.0004635032,
-                            0.0004635032,0.02966149 , 0.02966149 , 0.02966149, 0.03857477, 0.03857477, 0.03857477, 0.02616856,
-                            0.02616856  ,0.02616856 , 0.02616856 , 0.02616856, 0.02616856, 0.01035383, 0.01035383, 0.01035383,
-                            0.01035383  ,0.01035383 , 0.01035383 };
-static double sgp[ngps][2] = 
+const double wsurf[ngps]={ 0.006829866, 0.006829866, 0.006829866, 0.01809227, 0.01809227, 0.01809227, 0.0004635032, 0.0004635032,
+                           0.0004635032,0.02966149 , 0.02966149 , 0.02966149, 0.03857477, 0.03857477, 0.03857477, 0.02616856,
+                           0.02616856  ,0.02616856 , 0.02616856 , 0.02616856, 0.02616856, 0.01035383, 0.01035383, 0.01035383,
+                           0.01035383  ,0.01035383 , 0.01035383 };
+const double sgp[ngps][2] =
 {
     {0.9352701	,0.03236495},
     {0.03236495	,0.9352701 },
@@ -73,15 +51,15 @@ static double sgp[ngps][2] =
 };
 
 // using ngps for volume shapes too, since ngps>gps
-static double sh1[ngps][4]; // P1 Shape functions
-static double sh1r[ngps][4]; // P1 Shape functions r-derivatives
-static double sh1s[ngps][4]; // P1 Shape functions s-derivatives
-static double sh1t[ngps][4]; //P1 shape functions t-derivative
-static double ssh1[ngps][3];	//SURFACE term P1 shape function
+double sh1[ngps][4]; // P1 Shape functions
+double sh1r[ngps][4]; // P1 Shape functions r-derivatives
+double sh1s[ngps][4]; // P1 Shape functions s-derivatives
+double sh1t[ngps][4]; //P1 shape functions t-derivative
+double ssh1[ngps][3];	//SURFACE term P1 shape function
 
-static double rt2 = sqrt(2.0);
-static double rt6 = sqrt(6.0);
-static double rt3 = sqrt(3.0);
+const double rt2 = sqrt(2.0);
+const double rt6 = sqrt(6.0);
+const double rt3 = sqrt(3.0);
 
 static double S0;
 static double L1, L2, L4, L6;
@@ -103,37 +81,7 @@ void init_globals(LC& mat_par, SolutionVector& q){
     efe2 = (4.0/S0/9.0)*(mat_par.e11 - mat_par.e33);
 }
 
-void init_shape()
-{
-    memset(sh1,0,ngps*4*sizeof(double));
-    memset(sh1r,0,ngps*4*sizeof(double));
-    memset(sh1s,0,ngps*4*sizeof(double));
-    memset(sh1t,0,ngps*4*sizeof(double));
-    for (int i=0; i<ngp; i++) {
-        //  cout<<"i=" << i << endl;
-        // P1 Shape functions
-        sh1[i][0]=1-gp[i][0]-gp[i][1]-gp[i][2];
-        sh1[i][1]=gp[i][0];
-        sh1[i][2]=gp[i][1];
-        sh1[i][3]=gp[i][2];
-        // P1 Shape functions r-derivatives
-        sh1r[i][0]=-1.0;
-        sh1r[i][1]=1.0;
-        sh1r[i][2]=0.0;
-        sh1r[i][3]=0.0;
-        // P1 Shape functions s-derivatives
-        sh1s[i][0]=-1.0;
-        sh1s[i][1]=0.0;
-        sh1s[i][2]=1.0;
-        sh1s[i][3]=0.0;
-        // P1 Shape functions t-derivatives
-        sh1t[i][0]=-1.0;
-        sh1t[i][1]=0.0;
-        sh1t[i][2]=0.0;
-        sh1t[i][3]=1.0;
-	//printf("sh1[%i][1] = %f\n",i,sh1[i][1]);
-    }
-}					
+
 void init_shape_N() // initialise Neumann and surface derivative shape functions
 {
     //  memset(sh1,0,ngps*4*sizeof(double));
@@ -142,45 +90,47 @@ void init_shape_N() // initialise Neumann and surface derivative shape functions
     //  memset(sh1t,0,ngps*4*sizeof(double));
 
 
-    for (int i=0; i<ngp; i++) { // use surface shape functions ( <-!! ngps = 27, but array defined for gps = 11. WHY NO ERROR?!) FIX!!!
-	// P1 Shape functions
-        //cout << "i ="<< i << endl;
-        cout<<"";
+    //for (int i=0; i<ngp; i++)
+    for (int i=0; i<ngps; i++)
+    {
+        // P1 Shape functions
+
         sh1[i][0]=1-sgp[i][0]-sgp[i][1];
-	sh1[i][1]=sgp[i][0];
-	sh1[i][2]=sgp[i][1];
-	sh1[i][3]=0;//gps[i][2];	// this is always zero
-	// P1 Shape functions r-derivatives
-	sh1r[i][0]=-1;
-	sh1r[i][1]=1;
-	sh1r[i][2]=0;
-	sh1r[i][3]=0;
-	// P1 Shape functions s-derivatives
-	sh1s[i][0]=-1;
-	sh1s[i][1]=0;
-	sh1s[i][2]=1;
-	sh1s[i][3]=0;
-	//P1 Shape functions t-derivatives
-	sh1t[i][0]=-1;
-	sh1t[i][1]=0;
-	sh1t[i][2]=0;
-	sh1t[i][3]=1;
+        sh1[i][1]=sgp[i][0];
+        sh1[i][2]=sgp[i][1];
+        sh1[i][3]=0;//gps[i][2];	// this is always zero
+        // P1 Shape functions r-derivatives
+        sh1r[i][0]=-1;
+        sh1r[i][1]=1;
+        sh1r[i][2]=0;
+        sh1r[i][3]=0;
+        // P1 Shape functions s-derivatives
+        sh1s[i][0]=-1;
+        sh1s[i][1]=0;
+        sh1s[i][2]=1;
+        sh1s[i][3]=0;
+        //P1 Shape functions t-derivatives
+        sh1t[i][0]=-1;
+        sh1t[i][1]=0;
+        sh1t[i][2]=0;
+        sh1t[i][3]=1;
     }
 }				
 
 void init_shape_surf(){
     for (int i=0; i<ngps;i++){
-	ssh1[i][0]=1-sgp[i][0]-sgp[i][1];
-	ssh1[i][1]=sgp[i][0];
-	ssh1[i][2]=sgp[i][1];
+        ssh1[i][0]=1-sgp[i][0]-sgp[i][1];
+        ssh1[i][1]=sgp[i][0];
+        ssh1[i][2]=sgp[i][1];
     }
 }//end void init_shape_surf
 
 
 inline void localKL(double* p,Mesh* t,
-             idx element_num, SolutionVector* q ,
-             SolutionVector* v, double lK[20][20],
-             double lL[20],LC* mat_par, Simu* simu)
+                    idx element_num, SolutionVector* q ,
+                    SolutionVector* v, double lK[20][20],
+                    double lL[20],LC* mat_par, Simu* simu,
+                    const Shape4thOrder& shapes)
 {
 
     memset(lK,0,20*20*sizeof(double));
@@ -197,7 +147,7 @@ inline void localKL(double* p,Mesh* t,
     double Jdet = t->getDeterminant(element_num)*1e18 ; // SCALE BACK TO METRES FOR NOW...
 
     if (Jdet < 0) {
-      //  printf("Jdet < 0\n");
+        printf("Warning, Jdet < 0\n");
         Jdet = -Jdet;
     }
 
@@ -206,30 +156,30 @@ inline void localKL(double* p,Mesh* t,
 
     //1. Calculate Inverse Jacobian - for 1st order elements can be done outside integration loop -> igp = 0
     double xr(0),xs(0),xt(0),yr(0),ys(0),yt(0),zr(0),zs(0),zt(0);
-    double pp[4][3] ={ {p[tt[0]*3] , p[tt[0]*3+1] , p[tt[0]*3+2]} ,
+    const double pp[4][3] ={ {p[tt[0]*3] , p[tt[0]*3+1] , p[tt[0]*3+2]} ,
                        {p[tt[1]*3] , p[tt[1]*3+1] , p[tt[1]*3+2]} ,
                        {p[tt[2]*3] , p[tt[2]*3+1] , p[tt[2]*3+2]} ,
                        {p[tt[3]*3] , p[tt[3]*3+1] , p[tt[3]*3+2]} };
 
     for (int i=0;i<4;++i)
     {
-        xr+=sh1r[0][i]*pp[i][0];
-        xs+=sh1s[0][i]*pp[i][0];
-        xt+=sh1t[0][i]*pp[i][0];
+        xr+=shapes.sh1r[0][i]*pp[i][0];
+        xs+=shapes.sh1s[0][i]*pp[i][0];
+        xt+=shapes.sh1t[0][i]*pp[i][0];
 
-        yr+=sh1r[0][i]*pp[i][1];
-        ys+=sh1s[0][i]*pp[i][1];
-        yt+=sh1t[0][i]*pp[i][1];
+        yr+=shapes.sh1r[0][i]*pp[i][1];
+        ys+=shapes.sh1s[0][i]*pp[i][1];
+        yt+=shapes.sh1t[0][i]*pp[i][1];
 
-        zr+=sh1r[0][i]*pp[i][2];
-        zs+=sh1s[0][i]*pp[i][2];
-        zt+=sh1t[0][i]*pp[i][2];
+        zr+=shapes.sh1r[0][i]*pp[i][2];
+        zs+=shapes.sh1s[0][i]*pp[i][2];
+        zt+=shapes.sh1t[0][i]*pp[i][2];
     }//end for i
     //Inverse Jacobian
     //Jdet = fabs(xr*ys*zt-xr*zs*yt+xs*yt*zr-xs*yr*zt+xt*yr*zs-xt*ys*zr);
     // SCALING TO MICRONS HERE: (1e-6*1e-6)/1e-18 = x1e6
-    double invJdet = 1e6/Jdet;
-    double Jinv[3][3]={{ (zt*ys-yt*zs)*invJdet ,(xt*zs-zt*xs)*invJdet, (xs*yt-ys*xt)*invJdet}
+    const double invJdet = 1e6/Jdet;
+    const double Jinv[3][3]={{ (zt*ys-yt*zs)*invJdet ,(xt*zs-zt*xs)*invJdet, (xs*yt-ys*xt)*invJdet}
                        ,{(yt*zr-zt*yr)*invJdet ,(zt*xr-xt*zr)*invJdet, (xt*yr-yt*xr)*invJdet}
                        ,{(yr*zs-ys*zr)*invJdet ,(xs*zr-xr*zs)*invJdet, (ys*xr-xs*yr)*invJdet}};
 
@@ -237,40 +187,44 @@ inline void localKL(double* p,Mesh* t,
     // shape function derivatives
     double dSh[4][3] = {{0,0,0},{0,0,0},{0,0,0},{0,0,0}};
     for(int i=0;i<4;++i){
-        dSh[i][0]=sh1r[0][i]*Jinv[0][0]+sh1s[0][i]*Jinv[1][0]+sh1t[0][i]*Jinv[2][0];
-        dSh[i][1]=sh1r[0][i]*Jinv[0][1]+sh1s[0][i]*Jinv[1][1]+sh1t[0][i]*Jinv[2][1];
-        dSh[i][2]=sh1r[0][i]*Jinv[0][2]+sh1s[0][i]*Jinv[1][2]+sh1t[0][i]*Jinv[2][2];
+        dSh[i][0]=shapes.sh1r[0][i]*Jinv[0][0]
+                + shapes.sh1s[0][i]*Jinv[1][0]
+                + shapes.sh1t[0][i]*Jinv[2][0];
+
+        dSh[i][1]=shapes.sh1r[0][i]*Jinv[0][1]
+                + shapes.sh1s[0][i]*Jinv[1][1]
+                + shapes.sh1t[0][i]*Jinv[2][1];
+
+        dSh[i][2]=shapes.sh1r[0][i]*Jinv[0][2]
+                + shapes.sh1s[0][i]*Jinv[1][2]
+                + shapes.sh1t[0][i]*Jinv[2][2];
     }//end for i
 
     // LOCAL COPY OF Q-TENSOR AND POTENTIAL VARIABLES AT THE FOUR NODES OF THE CURRENT ELEMENT
     // THIS SEEMS TO SPEED UP THE EXECUTION OF THIS FUNCTION
-    double qbuff[6*4] = {q->getValue(tt[0],0), q->getValue(tt[0],1), q->getValue(tt[0],2), q->getValue(tt[0],3), q->getValue(tt[0],4),
+    const double qbuff[6*4] = {q->getValue(tt[0],0), q->getValue(tt[0],1), q->getValue(tt[0],2), q->getValue(tt[0],3), q->getValue(tt[0],4),
                          q->getValue(tt[1],0), q->getValue(tt[1],1), q->getValue(tt[1],2), q->getValue(tt[1],3), q->getValue(tt[1],4),
                          q->getValue(tt[2],0), q->getValue(tt[2],1), q->getValue(tt[2],2), q->getValue(tt[2],3), q->getValue(tt[2],4),
                          q->getValue(tt[3],0), q->getValue(tt[3],1), q->getValue(tt[3],2), q->getValue(tt[3],3), q->getValue(tt[3],4),
                          v->getValue(tt[0])  , v->getValue(tt[1]),   v->getValue(tt[2]),   v->getValue(tt[3])
                         };
-    for (int igp = 0 ; igp < ngp ; ++igp)
+    for (unsigned int igp = 0 ; igp < shapes.ngp ; ++igp)
     {
-	//shape function
-	double Sh[4];
-	Sh[0] = sh1[igp][0];
-	Sh[1] = sh1[igp][1];
-	Sh[2] = sh1[igp][2];
-	Sh[3] = sh1[igp][3];
+        //shape function
+        const double Sh[4]= {   shapes.sh1[igp][0], shapes.sh1[igp][1],
+                                shapes.sh1[igp][2], shapes.sh1[igp][3]};
 
-	// Function variables and derivatives
-	double q1=0, q2=0, q3=0, q4=0, q5=0;
-	double q1x=0,q2x=0,q3x=0,q4x=0,q5x=0;
-	double q1y=0,q2y=0,q3y=0,q4y=0,q5y=0;
-	double q1z=0,q2z=0,q3z=0,q4z=0,q5z=0;
-	double Vx=0,Vy=0,Vz=0;
+        // Function variables and derivatives
+        double q1=0, q2=0, q3=0, q4=0, q5=0;
+        double q1x=0,q2x=0,q3x=0,q4x=0,q5x=0;
+        double q1y=0,q2y=0,q3y=0,q4y=0,q5y=0;
+        double q1z=0,q2z=0,q3z=0,q4z=0,q5z=0;
+        double Vx=0,Vy=0,Vz=0;
 
-	// Solution and derivatives
-
+        // Solution and derivatives
+        #define IND(i,j) 5*(i) + (j)
         for(int i=0;i<4;++i)
         {
-            #define IND(i,j) 5*(i) + (j)
             q1+=Sh[i]*qbuff[IND(i,0)];// OPTIMIZE BY PREFETCHING Q AND V TO LOCAL BUFFER AT START OF FUNCTION
             q2+=Sh[i]*qbuff[IND(i,1)];
             q3+=Sh[i]*qbuff[IND(i,2)];
@@ -298,76 +252,118 @@ inline void localKL(double* p,Mesh* t,
             Vx+=dSh[i][0]*qbuff[20+i];
             Vy+=dSh[i][1]*qbuff[20+i];
             Vz+=dSh[i][2]*qbuff[20+i];
+        }//end for i
 
-	}//end for i
-        double mul=w[igp]*Jdet;
-	double R=q1*q1+q2*q2+q3*q3+q5*q5+q4*q4; // frequently reoccurring term
-        double T1,T2,T3,T4,T5,T11,T12,T13,T14,T15,T22,T23,T24,T25,T33,T34,T35,T44,T45,T55;
-
-double D2 = 0.5;
-double D3 = 0.33333333333333333333333333333;
-double D6 = 0.16666666666666666666666666667;
-
-        T1=(A*q1    +   D3*0.5*B*(q5*q5*rt6*0.5    -   q3*q3*rt6   -   rt6*q2*q2   +   q1*q1*rt6   +   q4*q4*rt6*0.5)  +   C*R*q1);
-        T2=(A*q2    +   D3*B*(0.75*q5*q5*rt2    -   q1*rt6*q2   -   0.75*q4*q4*rt2)   +   C*R*q2);
-        T3=(A*q3    +   D3*B*(-q3*q1*rt6   +   1.5*rt2*q5*q4 )     +   C*R*q3);
-        T4=(A*q4    +   D3*0.5*B*(3.0*q3*rt2*q5    +   q4*q1*rt6   -   3.0*q4*q2*rt2)   +   C*R*q4);
-        T5=(A*q5    +   D3*0.5*B*(q5*q1*rt6    +   3.0*q5*q2*rt2   +   3.0*q3*rt2*q4)   +   C*R*q5);
+        const double mul=shapes.w[igp]*Jdet;
+        const double R=q1*q1+q2*q2+q3*q3+q5*q5+q4*q4; // frequently reoccurring term
+        const double D2 = 0.5;
+        const double D3 = 0.33333333333333333333333333333;
+        const double D6 = 0.16666666666666666666666666667;
 
 
-        // ADD POTENTIAL TERMS TO RHS VECTOR TERMS
-        T1 += rt6*(Vx*Vx + Vy*Vy-2.0*Vz*Vz)*deleps*D3*D6*eps0;;
-        T2 += -rt2*(Vx*Vx - Vy*Vy)*deleps*D6*eps0;
-        T3 += -rt2*Vx*Vy*deleps*D3*eps0;
-        T4 += -rt2*Vz*Vy*deleps*D3*eps0;
-        T5 += -rt2*Vx*Vz*deleps*D3*eps0;
+        // BULK RHS TERMS
+        {
+            double T;
+            // Q1
+            T = RHS_THERMO1; //(A*q1    +   D3*0.5*B*(q5*q5*rt6*0.5    -   q3*q3*rt6   -   rt6*q2*q2   +   q1*q1*rt6   +   q4*q4*rt6*0.5)  +   C*R*q1);
+            T += rt6*(Vx*Vx + Vy*Vy-2.0*Vz*Vz)*deleps*D3*D6*eps0;
+            ADD_RHS_BULK_TERMS(0,T);
 
-        T11=(A  +   D3*B*q1*rt6 +   2.0*C*q1*q1 + C*R);
-        T12=(-D3*B*rt6*q2   +       2.0*C*q2*q1);
-        T13=(-B*q3*rt6*D3   +       2.0*C*q3*q1);
-        T14=(B*q4*rt6*D6    +       2.0*C*q4*q1);
-        T15=(B*q5*rt6*D6    +       2.0*C*q5*q1);
+            // Q2
+            T = RHS_THERMO2;//(A*q2    +   D3*B*(0.75*q5*q5*rt2    -   q1*rt6*q2   -   0.75*q4*q4*rt2)   +   C*R*q2);
+            T += -rt2*(Vx*Vx - Vy*Vy)*deleps*D6*eps0;
+            ADD_RHS_BULK_TERMS(4,T);
 
-        T22=(A  -   D3*B*q1*rt6 +   2.0*C*q2*q2+C*R);
-	T23=(2.0*C*q3*q2);
-        T24=(-B*q4*rt2*D2   +   2.0*C*q4*q2);
-        T25=(B*q5*rt2*D2    +   2.0*C*q5*q2);
+            // Q3
+            T = RHS_THERMO3;//(A*q3    +   D3*B*(-q3*q1*rt6   +   1.5*rt2*q5*q4 )     +   C*R*q3);
+            T += -rt2*Vx*Vy*deleps*D3*eps0;
+            ADD_RHS_BULK_TERMS(8,T);
 
-        T33=(A  -   B*q1*rt6*D3 +   2.0*C*q3*q3+C*R);
-        T34=(B*q5*rt2*D2    +   2.0*C*q4*q3);
-        T35=(B*q4*rt2*D2    +   2.0*C*q5*q3);
+            // Q4
+            T = RHS_THERMO4; //(A*q4    +   D3*0.5*B*(3.0*q3*rt2*q5    +   q4*q1*rt6   -   3.0*q4*q2*rt2)   +   C*R*q4);
+            T += -rt2*Vz*Vy*deleps*D3*eps0;
+            ADD_RHS_BULK_TERMS(12,T);
 
-        T44=(A  +   B*(q1*rt6-3.0*q2*rt2)*D6    +   2.0*C*q4*q4+C*R);
-        T45=(B*q3*rt2*D2    +   2.0*C*q5*q4);
-        T55=(A  +   B*(q1*rt6+3.0*q2*rt2)*D6    +   2.0*C*q5*q5+C*R);
+            // Q5
+            T = RHS_THERMO5;//(A*q5    +   D3*0.5*B*(q5*q1*rt6    +   3.0*q5*q2*rt2   +   3.0*q3*rt2*q4)   +   C*R*q5);
+            T += -rt2*Vx*Vz*deleps*D3*eps0;
+            ADD_RHS_BULK_TERMS(16,T);
+        } // END BULK RHS TERMS
 
-        //double Lflexo1, Lflexo2, Lflexo3, Lflexo4, Lflexo5;
-        //Lflexo1 = 0; Lflexo2 =0; Lflexo3=0; Lflexo4=0; Lflexo5=0;
+        // BULK THERMOTROPIC MATRIX TERMS
+        {
+            double Th;
+
+            Th = MATRIX_THERMO11;//(A  +   D3*B*q1*rt6 +   2.0*C*q1*q1 + C*R); // T11
+            THERMOdiag(0,Th);
+
+            Th = MATRIX_THERMO12;//(-D3*B*rt6*q2   +       2.0*C*q2*q1);    // T12,T21
+            THERMO(0,4,Th);
+
+            Th = MATRIX_THERMO13;//(-B*q3*rt6*D3   +       2.0*C*q3*q1);    // T13,T31
+            THERMO(0,8,Th);
+
+            Th = MATRIX_THERMO14;//(B*q4*rt6*D6    +       2.0*C*q4*q1);    // T14, T41
+            THERMO(0,12,Th);
+
+            Th = MATRIX_THERMO15;//(B*q5*rt6*D6    +       2.0*C*q5*q1);    // T15, T51
+            THERMO(0,16,Th);
+
+            Th = MATRIX_THERMO22;//(A  -   D3*B*q1*rt6 +   2.0*C*q2*q2+C*R);// T22
+            THERMOdiag(4,Th);
+
+            Th = MATRIX_THERMO23;//(2.0*C*q3*q2);   // T23, T32
+            THERMO(4,8,Th);
+
+            Th = MATRIX_THERMO24;//(-B*q4*rt2*D2   +   2.0*C*q4*q2);    // T24, T42
+            THERMO(4,12,Th);
+
+            Th = MATRIX_THERMO25;//(B*q5*rt2*D2    +   2.0*C*q5*q2);    // T25, T52
+            THERMO(4,16,Th);
+
+            Th = MATRIX_THERMO33;//(A  -   B*q1*rt6*D3 +   2.0*C*q3*q3+C*R);    // T33
+            THERMOdiag(8,Th);
+
+            Th = MATRIX_THERMO34;//(B*q5*rt2*D2    +   2.0*C*q4*q3);    // T34, T43
+            THERMO(8,12,Th);
+
+            Th = MATRIX_THERMO35;//(B*q4*rt2*D2    +   2.0*C*q5*q3);    // T35, T53
+            THERMO(8,16,Th);
+
+            Th = MATRIX_THERMO44;//(A  +   B*(q1*rt6-3.0*q2*rt2)*D6    +   2.0*C*q4*q4+C*R); // T44
+            THERMOdiag(12,Th);
+
+            Th = MATRIX_THERMO45;//(B*q3*rt2*D2    +   2.0*C*q5*q4);    // T45, T54
+            THERMO(12,16,Th);
+
+            Th = MATRIX_THERMO55;//(A  +   B*(q1*rt6+3.0*q2*rt2)*D6    +   2.0*C*q5*q5+C*R); // T55
+            THERMOdiag(16,Th);
+        }// END BULK THERMO SCOPE
 
         for (int i=0;i<4;++i) // matrix rows
         {
-            double ShRx=mul*dSh[i][0];//including weight and jacobian in trial function
-	    double ShRy=mul*dSh[i][1];
-	    double ShRz=mul*dSh[i][2];
-	    double ShR =mul*Sh[i];
+            const double ShRx=mul*dSh[i][0];//including weight and jacobian in trial function
+            const double ShRy=mul*dSh[i][1];
+            const double ShRz=mul*dSh[i][2];
+            const double ShR =mul*Sh[i];
 
 
             // ADD THERMOTROPIC, ELASTIC (SINGLE K) AND POTENTIAL TERMS TO RHS VECTOR
             // THESE ARE ALWAYS PRESENT
             double L1_term;
             L1_term=(ShRx*q1x+ShRy*q1y+ShRz*q1z)*L1;
-            lL[i+0] += T1*ShR + L1_term;
+            lL[i+0] +=L1_term;
             L1_term=(ShRx*q2x+ShRy*q2y+ShRz*q2z)*L1;
-            lL[i+4] += T2*ShR + L1_term;
+            lL[i+4] += L1_term;
             L1_term=(ShRx*q3x+ShRy*q3y+ShRz*q3z)*L1;
-            lL[i+8] += T3*ShR + L1_term;
+            lL[i+8] += L1_term;
             L1_term=(ShRx*q4x+ShRy*q4y+ShRz*q4z)*L1;
-            lL[i+12] += T4*ShR + L1_term;
+            lL[i+12] += L1_term;
             L1_term=(ShRx*q5x+ShRy*q5y+ShRz*q5z)*L1;
-            lL[i+16] += T5*ShR + L1_term;
+            lL[i+16] += L1_term;
 
-	    //Chiral term
-	    if (L4!=0)
+            //Chiral term
+            if (L4!=0)
             {
                 double Lc;//[5];
                 double D4 = 0.25;
@@ -381,7 +377,7 @@ double D6 = 0.16666666666666666666666666667;
                 lL[i+12]+= Lc;
                 Lc = ((q4z*D4-q1y*rt3*D4+q2y*D4-q3x*D4)*ShR+ShRx*q3*D4+ShRy*q1*rt3*D4-ShRy*q2*D4-ShRz*q4*D4)*L4;
                 lL[i+16]+= Lc;
-	    }
+            }
             if (three_elastic_constants)
             {
 
@@ -428,61 +424,27 @@ double D6 = 0.16666666666666666666666666667;
                 lL[i+12] += flexo;
                 flexo = -0.5*rt2*(Vz*ShRx+Vx*ShRz)*efe;
                 lL[i+16] += flexo;
-                //Lflexo1 = (rt6*(Vx*ShRx+Vy*ShRy-2.0*Vz*ShRz)*efe/6.0);
-                //Lflexo2 = (-rt2*(Vx*ShRx-Vy*ShRy)*efe/2.0);
-                //Lflexo3 = (-rt2*(Vy*ShRx+Vx*ShRy)*efe/2.0);
-                //Lflexo4 = (-rt2*(Vz*ShRy+Vy*ShRz)*efe/2.0);
-                //Lflexo5 = (-rt2*(Vz*ShRx+Vx*ShRz)*efe/2.0);
-	    }
+            }
 
-	    //ADD TERMS TO RHS VECTOR
-            //lL[i+0]  += L2_1 + L6_1  +  Lflexo1;// + Lc[0]
-            //lL[i+4]  += L2_2 + L6_2  +  Lflexo2;// + Lc[1]
-            //lL[i+8]  += L2_3 + L6_3  +  Lflexo3;// + Lc[2]
-            //lL[i+12] += L2_4 + L6_4  +  Lflexo4;// + Lc[3]
-            //lL[i+16] += L2_5 + L6_5  +  Lflexo5;// + Lc[4]
+
 
             // ADD AND ASSEMBLE MATRIX TERMS
             for (int j=0 ; j<4 ; ++j)
             {
-                double ShCx=dSh[j][0];
-                double ShCy=dSh[j][1];
-                double ShCz=dSh[j][2];
-                double ShC =Sh[j];
-                double ShRC=ShR*Sh[j];
+                const double ShCx=dSh[j][0];
+                const double ShCy=dSh[j][1];
+                const double ShCz=dSh[j][2];
+                const double ShC =Sh[j];
+                const double ShRC=ShR*Sh[j];
 
                 //L1- matrix term 'dot' only appears on diagonal
-                double dot=L1*mul*(dSh[i][0]*dSh[j][0]+dSh[i][1]*dSh[j][1]+dSh[i][2]*dSh[j][2]);
+                const double dot=L1*mul*(dSh[i][0]*dSh[j][0]+dSh[i][1]*dSh[j][1]+dSh[i][2]*dSh[j][2]);
 
-                lK[i][j   ] +=ShRC*T11	+ dot;
-                lK[i][j+4 ] +=ShRC*T12;
-                lK[i][j+8 ] +=ShRC*T13;
-                lK[i][j+12] +=ShRC*T14;
-                lK[i][j+16] +=ShRC*T15;
-
-                lK[i+4][j+0 ] +=ShRC*T12;
-                lK[i+4][j+4 ] +=ShRC*T22 + dot;
-                lK[i+4][j+8 ] +=ShRC*T23;
-                lK[i+4][j+12] +=ShRC*T24;
-                lK[i+4][j+16] +=ShRC*T25;
-
-                lK[i+8][j+0] +=ShRC*T13 ;
-                lK[i+8][j+4] +=ShRC*T23 ;
-                lK[i+8][j+8]  +=ShRC*T33 + dot;
-                lK[i+8][j+12] +=ShRC*T34 ;
-                lK[i+8][j+16] +=ShRC*T35 ;
-
-                lK[i+12][j+0 ]+=ShRC*T14;
-                lK[i+12][j+4 ]+=ShRC*T24;
-                lK[i+12][j+8 ]+=ShRC*T34;
-                lK[i+12][j+12]+=ShRC*T44 + dot;
-                lK[i+12][j+16]+=ShRC*T45;
-
-                lK[i+16][j+0 ]+=ShRC*T15;
-                lK[i+16][j+4] +=ShRC*T25;
-                lK[i+16][j+8] +=ShRC*T35;
-                lK[i+16][j+12]+=ShRC*T45;
-                lK[i+16][j+16]+=ShRC*T55 + dot;
+                lK[i   ][j   ] += dot;
+                lK[i+4 ][j+4 ] += dot;
+                lK[i+8 ][j+8 ] += dot;
+                lK[i+12][j+12] += dot;
+                lK[i+16][j+16] += dot;
 
                 //Local identity matrix
 
@@ -495,8 +457,8 @@ double D6 = 0.16666666666666666666666666667;
                 if (three_elastic_constants)//if three elastic constants used
                 {
                     double temp(0);
-                    double rt2L = rt2;
-                    double rt23 = rt2*rt3;
+                    const double rt2L = rt2;
+                    const double rt23 = rt2*rt3;
 
                     // dlL[0]/dq1 -> dlL[0]/dq5 L2 and L6 terms
                     temp =  (ShRx*ShCx*D6+ShRy*ShCy*D6+2.0*D3*ShRz*ShCz)*L2;
@@ -574,7 +536,7 @@ double D6 = 0.16666666666666666666666666667;
                 if (L4!=0)
                 {
                     double temp(0);
-                    double D4 = 0.25;
+                    const double D4 = 0.25;
                     //Kc[0][3] = (ShRx*rt3*ShC/4.0-ShR*rt3*ShCx/4.0)*L4;
                     temp = (ShRx*ShC - ShR*ShCx)*L4*D4*rt3;
                     lK[i   ][j+12] += temp;
@@ -613,7 +575,7 @@ double D6 = 0.16666666666666666666666666667;
 
             }//end for j
 
-	} // end for i  - rows
+        } // end for i  - rows
     }//end for igp
 
     // IF CRANK-NICHOLSON
@@ -621,8 +583,8 @@ double D6 = 0.16666666666666666666666666667;
     {
         // %0 calculates the steady state
         // the product of the mass matrix and the various q vectors
-	double Mq[20];	// M * q
-	memset(Mq,0,20*sizeof(double));
+        double Mq[20];	// M * q
+        memset(Mq,0,20*sizeof(double));
 
         for (int i=0;i<4;i++) 		//each node row
         {
@@ -636,7 +598,7 @@ double D6 = 0.16666666666666666666666666667;
             }
         }
 
-        double temp = mat_par->u1 / simu->dt;
+        const double temp = mat_par->u1 / simu->dt;
         for (int i=0;i<20;i++)
         {
             lL[i] =  0.5*lL[i] + Mq[i]*temp;    // current RHS
@@ -644,19 +606,19 @@ double D6 = 0.16666666666666666666666666667;
             {
                 lK[i][j] = 0.5*lK[i][j] + lI[i][j]*temp;
             }
-	}
+        }
     }//if(dt!=0)
 }// end void localKL
 
 void localKL_NQ(
-    double* p,
-    idx* tt,
-    double lL[20],
-    idx it,
-    idx index_to_Neumann,
-    Mesh*  mesh,
-    Mesh* surf_mesh,
-    SolutionVector* v){
+        double* p,
+        idx* tt,
+        double lL[20],
+        idx it,
+        idx index_to_Neumann,
+        Mesh*  mesh,
+        Mesh* surf_mesh,
+        SolutionVector* v){
 
     int i;
 
@@ -672,17 +634,17 @@ void localKL_NQ(
     double xr,xs,xt,yr,ys,yt,zr,zs,zt;
     xr=xs=xt=yr=ys=yt=zr=zs=zt=0.0;
     for (i=0; i<4; i++) {
-	xr+=sh1r[0][i]*p[(tt[i])*3+0]*1e-6; //  <- tt is reordered volume element
-	xs+=sh1s[0][i]*p[(tt[i])*3+0]*1e-6;
-	xt+=sh1t[0][i]*p[(tt[i])*3+0]*1e-6;
+        xr+=sh1r[0][i]*p[(tt[i])*3+0]*1e-6; //  <- tt is reordered volume element
+        xs+=sh1s[0][i]*p[(tt[i])*3+0]*1e-6;
+        xt+=sh1t[0][i]*p[(tt[i])*3+0]*1e-6;
 
-	yr+=sh1r[0][i]*p[(tt[i])*3+1]*1e-6;
-	ys+=sh1s[0][i]*p[(tt[i])*3+1]*1e-6;
-	yt+=sh1t[0][i]*p[(tt[i])*3+1]*1e-6;
+        yr+=sh1r[0][i]*p[(tt[i])*3+1]*1e-6;
+        ys+=sh1s[0][i]*p[(tt[i])*3+1]*1e-6;
+        yt+=sh1t[0][i]*p[(tt[i])*3+1]*1e-6;
 
-	zr+=sh1r[0][i]*p[(tt[i])*3+2]*1e-6;
-	zs+=sh1s[0][i]*p[(tt[i])*3+2]*1e-6;
-	zt+=sh1t[0][i]*p[(tt[i])*3+2]*1e-6;
+        zr+=sh1r[0][i]*p[(tt[i])*3+2]*1e-6;
+        zs+=sh1s[0][i]*p[(tt[i])*3+2]*1e-6;
+        zt+=sh1t[0][i]*p[(tt[i])*3+2]*1e-6;
     }//end for i
 
     double Jinv[3][3]={{ (zt*ys-yt*zs)/Jdet , (xt*zs-zt*xs)/Jdet , (xs*yt-ys*xt)/Jdet}
@@ -697,45 +659,45 @@ void localKL_NQ(
     }//end for i
 
     for (int igp=0; igp<ngps; igp++) {
-	double Sh[4];
-	Sh[0] = sh1[igp][0];
-	Sh[1] = sh1[igp][1];
-	Sh[2] = sh1[igp][2];
-	Sh[3] = sh1[igp][3];
+        double Sh[4];
+        Sh[0] = sh1[igp][0];
+        Sh[1] = sh1[igp][1];
+        Sh[2] = sh1[igp][2];
+        Sh[3] = sh1[igp][3];
 
-	double Vx=0,Vy=0,Vz=0;
-	for(i=0;i<4;i++){
-	    // voltages
-	    Vx+=dSh[i][0]*v->getValue(tt[i]);
-	    Vy+=dSh[i][1]*v->getValue(tt[i]);
-	    Vz+=dSh[i][2]*v->getValue(tt[i]);
-	}//end for i
+        double Vx=0,Vy=0,Vz=0;
+        for(i=0;i<4;i++){
+            // voltages
+            Vx+=dSh[i][0]*v->getValue(tt[i]);
+            Vy+=dSh[i][1]*v->getValue(tt[i]);
+            Vz+=dSh[i][2]*v->getValue(tt[i]);
+        }//end for i
 
-	double mul=wsurf[igp]*eDet;
-	double ShR;
-	for (i=0; i<4; i++) {
-	    ShR = sh1[igp][i]*mul;
+        double mul=wsurf[igp]*eDet;
+        double ShR;
+        for (i=0; i<4; i++) {
+            ShR = sh1[igp][i]*mul;
             lL[i+0] += (rt6* ShR*(Vx*n[0]+Vy*n[1]-2.0*Vz*n[2])*efe/6.0);
-	    lL[i+4] += (-rt2*ShR*(Vx*n[0]-Vy*n[1])*efe/2.0);
-	    lL[i+8] += (-rt2*ShR*(Vy*n[0]+Vx*n[1])*efe/2.0);
-	    lL[i+12]+= (-rt2*ShR*(Vz*n[1]+Vy*n[2])*efe/2.0);
-	    lL[i+16]+= (-rt2*ShR*(Vz*n[0]+Vx*n[2])*efe/2.0);
-	}//end for i
+            lL[i+4] += (-rt2*ShR*(Vx*n[0]-Vy*n[1])*efe/2.0);
+            lL[i+8] += (-rt2*ShR*(Vy*n[0]+Vx*n[1])*efe/2.0);
+            lL[i+12]+= (-rt2*ShR*(Vz*n[1]+Vy*n[2])*efe/2.0);
+            lL[i+16]+= (-rt2*ShR*(Vz*n[0]+Vx*n[2])*efe/2.0);
+        }//end for i
     }//end for igp
 }
 // end void localKL_NQ
 
 // ASSEMBLE LOCAL WEAK ANCHORING SURFACES
 void wk_localKL(
-    Mesh* e,
-    idx element_num ,
-    SolutionVector* q,
-    double lL[15],
-    double lK[15][15],
-    idx FixLCNumber,
-    Alignment* alignment,
-    LC* lc ,
-    double* NodeNormals)
+        Mesh* e,
+        idx element_num ,
+        SolutionVector* q,
+        double lL[15],
+        double lK[15][15],
+        idx FixLCNumber,
+        Alignment* alignment,
+        LC* lc ,
+        double* NodeNormals)
 {		
     double Ss=lc->S0;
     double 	W = alignment->getStrength(FixLCNumber);
@@ -763,9 +725,9 @@ void wk_localKL(
         v2[0] = * ( alignment->getPtrTov2(FixLCNumber) + 0);
         v2[1] = * ( alignment->getPtrTov2(FixLCNumber) + 1);
         v2[2] = * ( alignment->getPtrTov2(FixLCNumber) + 2);
-	
-	//	printf("v1= [%f,%f,%f], v2 =[%f,%f,%f]\n", v1[0], v1[1], v1[2], v2[0], v2[1],v2[2] );
-	//	printf("Easy = [%f,%f,%f]\n", alignment->Easy[0], alignment->Easy[1], alignment->Easy[2]);  
+
+        //	printf("v1= [%f,%f,%f], v2 =[%f,%f,%f]\n", v1[0], v1[1], v1[2], v2[0], v2[1],v2[2] );
+        //	printf("Easy = [%f,%f,%f]\n", alignment->Easy[0], alignment->Easy[1], alignment->Easy[2]);
     }
 
     memset(lK,0,15*15*sizeof(double));	//SET LOCAL MATRICES TO ZERO
@@ -773,97 +735,98 @@ void wk_localKL(
 
 
     for (int igp=0;igp<ngps;igp++){
-	double q1,q2,q3,q4,q5,v1x,v1y,v1z,v2x,v2y,v2z;
-	q1=q2=q3=q4=q5=v1x=v1y=v1z=v2x=v2y=v2z=0;
-	for (int i = 0 ;i < 3 ; i++){
-	    // Q-tensor components with shape functions
-	    q1+=ssh1[igp][i]*q->getValue(e->getNode( element_num , i ) , 0);
-	    q2+=ssh1[igp][i]*q->getValue(e->getNode( element_num , i ) , 1);
-	    q3+=ssh1[igp][i]*q->getValue(e->getNode( element_num , i ) , 2);
-	    q4+=ssh1[igp][i]*q->getValue(e->getNode( element_num , i ) , 3);
-	    q5+=ssh1[igp][i]*q->getValue(e->getNode( element_num , i ) , 4);
+        double q1,q2,q3,q4,q5,v1x,v1y,v1z,v2x,v2y,v2z;
+        q1=q2=q3=q4=q5=v1x=v1y=v1z=v2x=v2y=v2z=0;
+        for (int i = 0 ;i < 3 ; i++){
+            // Q-tensor components with shape functions
+            q1+=ssh1[igp][i]*q->getValue(e->getNode( element_num , i ) , 0);
+            q2+=ssh1[igp][i]*q->getValue(e->getNode( element_num , i ) , 1);
+            q3+=ssh1[igp][i]*q->getValue(e->getNode( element_num , i ) , 2);
+            q4+=ssh1[igp][i]*q->getValue(e->getNode( element_num , i ) , 3);
+            q5+=ssh1[igp][i]*q->getValue(e->getNode( element_num , i ) , 4);
 
             // vector components with shape functions
-	    if (! alignment->getUsesSurfaceNormal(FixLCNumber) ){ // if a non-degenerate surface
-		v1x+=ssh1[igp][i]*v1[0];// v1---- x,y and z-components
-		v1y+=ssh1[igp][i]*v1[1];
-		v1z+=ssh1[igp][i]*v1[2];
+            if (! alignment->getUsesSurfaceNormal(FixLCNumber) ){ // if a non-degenerate surface
+                v1x+=ssh1[igp][i]*v1[0];// v1---- x,y and z-components
+                v1y+=ssh1[igp][i]*v1[1];
+                v1z+=ssh1[igp][i]*v1[2];
 
-		v2x+=ssh1[igp][i]*v2[0];// v2 ---- x,y and z-components
-		v2y+=ssh1[igp][i]*v2[1];
-		v2z+=ssh1[igp][i]*v2[2];
-	    }
-	    else // use node normals
+                v2x+=ssh1[igp][i]*v2[0];// v2 ---- x,y and z-components
+                v2y+=ssh1[igp][i]*v2[1];
+                v2z+=ssh1[igp][i]*v2[2];
+            }
+            else // use node normals
             {
                 v1x+=ssh1[igp][i]*NodeNormals[e->getNode(element_num,i)*3 + 0];
                 v1y+=ssh1[igp][i]*NodeNormals[e->getNode(element_num,i)*3 + 1];
                 v1z+=ssh1[igp][i]*NodeNormals[e->getNode(element_num,i)*3 + 2];
             }
-	}//end for i
+        }//end for i
 
-	//Tii = thermotropic stiffness term
-	double	Tii=2*A*W;
-	//Ti = thermotropic RHS vector terms
-	double	T1=Tii*q1;
-	double  T2=Tii*q2;
-	double 	T3=Tii*q3;
-	double 	T4=Tii*q4;
-	double 	T5=Tii*q5;
+        //Tii = thermotropic stiffness term
+        double	Tii=2*A*W;
+        //Ti = thermotropic RHS vector terms
+        double	T1=Tii*q1;
+        double  T2=Tii*q2;
+        double 	T3=Tii*q3;
+        double 	T4=Tii*q4;
+        double 	T5=Tii*q5;
 
-	double S1v1, S2v1, S3v1, S4v1, S5v1;
-	//vector v1 - terms
+        double S1v1, S2v1, S3v1, S4v1, S5v1;
+        //vector v1 - terms
         S1v1 = (-v1x*v1x*rt6  - v1y*v1y*rt6 + 2*v1z*v1z*rt6)*W*K1/6.0;
-	S2v1 = (v1x*v1x*rt2   - v1y*v1y*rt2)*W*K1/2.0;
-	S3v1 = v1x * rt2 * v1y*W*K1;
-	S4v1 = v1y * rt2 * v1z*W*K1;
-	S5v1 = v1x * rt2 * v1z*W*K1;
-	//vector v2 - terms
-	double S1v2=0, S2v2=0, S3v2=0, S4v2=0, S5v2=0;
-	if ( !alignment->getUsesSurfaceNormal(FixLCNumber) ){ // only needed for non-degenerate surfaces
+        S2v1 = (v1x*v1x*rt2   - v1y*v1y*rt2)*W*K1/2.0;
+        S3v1 = v1x * rt2 * v1y*W*K1;
+        S4v1 = v1y * rt2 * v1z*W*K1;
+        S5v1 = v1x * rt2 * v1z*W*K1;
+        //vector v2 - terms
+        double S1v2=0, S2v2=0, S3v2=0, S4v2=0, S5v2=0;
+        if ( !alignment->getUsesSurfaceNormal(FixLCNumber) ){ // only needed for non-degenerate surfaces
             S1v2 = (-v2x*v2x*rt6 - v2y*v2y*rt6 +  2*v2z*v2z*rt6)*W*K2/6.0;
             S2v2 = (v2x*v2x*rt2  - v2y*v2y*rt2)*W*K2/2.0;
             S3v2 = v2x * rt2 * v2y *W*K2;
             S4v2 = v2y * rt2 * v2z *W*K2;
             S5v2 = v2x * rt2 * v2z *W*K2;
-	}
+        }
 
-	double		mul=wsurf[igp]*e->getDeterminant(element_num);
- 	
-	for (int i=0;i<3;i++){
+        double		mul=wsurf[igp]*e->getDeterminant(element_num);
+
+        for (int i=0;i<3;i++){
             //LOCAL RHS
-	    lL[i+0] +=ssh1[igp][i]*mul*(S1v1  + S1v2 + T1);//
-	    lL[i+3] +=ssh1[igp][i]*mul*(S2v1  + S2v2 + T2);//
-	    lL[i+6] +=ssh1[igp][i]*mul*(S3v1  + S3v2 + T3);//
-	    lL[i+9] +=ssh1[igp][i]*mul*(S4v1  + S4v2 + T4);//
-	    lL[i+12]+=ssh1[igp][i]*mul*(S5v1  + S5v2 + T5);//
+            lL[i+0] +=ssh1[igp][i]*mul*(S1v1  + S1v2 + T1);//
+            lL[i+3] +=ssh1[igp][i]*mul*(S2v1  + S2v2 + T2);//
+            lL[i+6] +=ssh1[igp][i]*mul*(S3v1  + S3v2 + T3);//
+            lL[i+9] +=ssh1[igp][i]*mul*(S4v1  + S4v2 + T4);//
+            lL[i+12]+=ssh1[igp][i]*mul*(S5v1  + S5v2 + T5);//
 
-	    for ( int j=0;j<3;j++){
-		double Sh2=ssh1[igp][i]*ssh1[igp][j]*mul;
-		//K MATRIX
-		lK[i][j   ]   += Sh2*Tii;
-		lK[i+3][j+3 ] += Sh2*Tii;
-		lK[i+6][j+6]  += Sh2*Tii;
-		lK[i+9][j+9]  += Sh2*Tii;
-		lK[i+12][j+12]+= Sh2*Tii;
-	    }//end for j
-	}//end for i
+            for ( int j=0;j<3;j++){
+                double Sh2=ssh1[igp][i]*ssh1[igp][j]*mul;
+                //K MATRIX
+                lK[i][j   ]   += Sh2*Tii;
+                lK[i+3][j+3 ] += Sh2*Tii;
+                lK[i+6][j+6]  += Sh2*Tii;
+                lK[i+9][j+9]  += Sh2*Tii;
+                lK[i+12][j+12]+= Sh2*Tii;
+            }//end for j
+        }//end for i
     }//end for igp
 }//end void wk_localKL
 
 
 void assemble_volumes(
-    SparseMatrix* K,
-    double* L,
-    SolutionVector* q,
-    SolutionVector* v,
-    Mesh* t, double* p,
-    LC* mat_par,
-    Simu* simu,
-    Settings* settings)
+        SparseMatrix* K,
+        double* L,
+        SolutionVector* q,
+        SolutionVector* v,
+        Mesh* t, double* p,
+        LC* mat_par,
+        Simu* simu,
+        Settings* settings)
 {
 
     int npLC = q->getnDoF();
-    init_shape();
+    //init_shape();
+    Shape4thOrder shapes;
 #ifndef DEBUG
     omp_set_num_threads( settings->getnThreads() ); // number of threads used
 #pragma omp parallel for
@@ -871,57 +834,59 @@ void assemble_volumes(
     // LOOP OVER EACH ELEMENT  it
     for (idx it= 0 ; it < t->getnElements () ;it++)
     {
-	double lK[20][20]; 	// local element matrix
-	double lL[20];		// local RHS vector
-        idx eqr,eqc;
+
         // IF THIS ELEMENT IS LC ELEMENT, ASSEMBLE LOCAL MATRIX
 
-        if( t->getMaterialNumber(it) == MAT_DOMAIN1 ) // if LC element
+        if( t->getMaterialNumber(it) != MAT_DOMAIN1 ) // if LC element
+            continue;
+        double lK[20][20]; 	// local element matrix
+        double lL[20];		// local RHS vector
+
+
+        localKL(p,t,it,q,v,lK,lL,mat_par, simu, shapes);
+
+        // ADD LOCAL MATRIX TO GLOBAL MATRIX
+        for (int i=0;i<20;i++)  // LOOP OVER ROWS
         {
-            localKL(p,t,it,q,v,lK,lL,mat_par, simu);
+            //int ri = tt[i%4]+npLC*(i/4); //
+            int ri = t->getNode(it,i%4) + npLC*(i/4);   // LOCAL TO GLOBAL
 
-            // ADD LOCAL MATRIX TO GLOBAL MATRIX
-            for (int i=0;i<20;i++)  // LOOP OVER ROWS
+            idx eqr = q->getEquNode(ri);    // eqr IS MAPPED INDEX TO GLOBAL MATRIX ROW
+
+
+            if ( eqr != NOT_AN_INDEX ) // ONLY FOR NON-FIXED NODES
             {
-                //int ri = tt[i%4]+npLC*(i/4); //
-                int ri = t->getNode(it,i%4) + npLC*(i/4);   // LOCAL TO GLOBAL
-
-                eqr = q->getEquNode(ri);    // eqr IS MAPPED INDEX TO GLOBAL MATRIX ROW
-
-
-                if ( eqr != NOT_AN_INDEX ) // ONLY FOR NON-FIXED NODES
-                {
 #ifndef DEBUG
 #pragma omp atomic
 #endif
-                    L[eqr]+= lL[i]*BIGNUM;
+                L[eqr]+= lL[i]*BIGNUM;
 
-                    for (int j = 0 ; j < 20 ; j++) // LOOP OVER COLUMNS
+                for (int j = 0 ; j < 20 ; j++) // LOOP OVER COLUMNS
+                {
+                    int rj = t->getNode(it,j%4) + npLC*(j/4);
+                    idx eqc = q->getEquNode( rj );
+
+                    if ( eqc != NOT_AN_INDEX ) // IF NOT FIXED
                     {
-                        int rj = t->getNode(it,j%4) + npLC*(j/4);
-                        eqc = q->getEquNode( rj );
-
-                        if ( eqc != NOT_AN_INDEX ) // IF NOT FIXED
-                        {
-                            K->sparse_add(eqr,eqc,lK[i][j]*BIGNUM);
-                        }
+                        K->sparse_add(eqr,eqc,lK[i][j]*BIGNUM);
                     }
-                }// end NON-FIXED NODE
+                }
+            }// end NON-FIXED NODE
 
 
-	    }//end for i
-        }//end for if tmat
+        }//end for i
+
     }//end fr it
 }
 // end void assemble_volumes
 
 void assemble_Neumann_surfaces(
-    double* L,
-    SolutionVector* q,
-    SolutionVector* v,
-    Mesh* mesh,
-    Mesh* surf_mesh,
-    double* p){
+        double* L,
+        SolutionVector* q,
+        SolutionVector* v,
+        Mesh* mesh,
+        Mesh* surf_mesh,
+        double* p){
 
     int npLC = q->getnDoF();
     init_shape_N();
@@ -940,13 +905,13 @@ void assemble_Neumann_surfaces(
 
             // ELEMENT NODE NUMBERS ARE RE-ORDERED SO THAT t[4] IS NOT PART OF TRI ELEMENT
             idx ee[3] = {   surf_mesh->getNode(it,0) ,
-			    surf_mesh->getNode(it,1) ,
-			    surf_mesh->getNode(it,2) } ;
+                            surf_mesh->getNode(it,1) ,
+                            surf_mesh->getNode(it,2) } ;
 
             idx tt[4] = {   mesh->getNode(index_to_Neumann,0),
-			    mesh->getNode(index_to_Neumann,1),
-			    mesh->getNode(index_to_Neumann,2),
-			    mesh->getNode(index_to_Neumann,3)};
+                            mesh->getNode(index_to_Neumann,1),
+                            mesh->getNode(index_to_Neumann,2),
+                            mesh->getNode(index_to_Neumann,3)};
 
             idx intr=-1;//find  index to internal node
             for (idx i=0;i<4;i++)
@@ -954,14 +919,14 @@ void assemble_Neumann_surfaces(
                 if ( (tt[i]!= ee[0]) && (tt[i]!= ee[1]) && (tt[i]!= ee[2]) )
                 {
                     intr = i;
-		    break;
+                    break;
                 }
-	    }
+            }
             idx ti[4] = { ee[0], ee[1], ee[2], tt[intr] }; // REORDER LOCAL TET ELEMENT
             // NODE-NUMBERING SO THAT
             // INTERNAL NODE IS ALWAYS LAST
 
-	    localKL_NQ(p, tt, lL , it , index_to_Neumann,mesh, surf_mesh, v);
+            localKL_NQ(p, tt, lL , it , index_to_Neumann,mesh, surf_mesh, v);
 
             for (unsigned int i=0; i<20; i++) // LOOP OVER ROWS
             {
@@ -977,7 +942,7 @@ void assemble_Neumann_surfaces(
                     L[eqr]+=lL[i]*BIGNUM;
                 }
             }//end for i
-	}//end if LC
+        }//end if LC
     }//end for it
 }
 //end void assemble_Neumann
@@ -985,13 +950,13 @@ void assemble_Neumann_surfaces(
 
 // ASSEMBLE WEAK ANCHORING SURFACES
 void assemble_surfaces(
-    SparseMatrix* K ,
-    double* L ,
-    SolutionVector* q ,
-    Mesh* e ,
-    LC* lc ,
-    Alignment* alignment,
-    double* NodeNormals){
+        SparseMatrix* K ,
+        double* L ,
+        SolutionVector* q ,
+        Mesh* e ,
+        LC* lc ,
+        Alignment* alignment,
+        double* NodeNormals){
 
     init_shape_surf();
     int npLC = q->getnDoF();
@@ -1045,18 +1010,18 @@ void assemble_surfaces(
 }
 //*/
 void assembleQ(
-    SparseMatrix* K,
-    double* L,  // current RHS
-    SolutionVector *q,  // current Q-Tensor
-    SolutionVector* v,
-    Mesh* t,
-    Mesh* e,
-    double* p,
-    LC* mat_par,
-    Simu* simu,
-    Settings* settings,
-    Alignment* alignment,
-    double* NodeNormals)
+        SparseMatrix* K,
+        double* L,  // current RHS
+        SolutionVector *q,  // current Q-Tensor
+        SolutionVector* v,
+        Mesh* t,
+        Mesh* e,
+        double* p,
+        LC* mat_par,
+        Simu* simu,
+        Settings* settings,
+        Alignment* alignment,
+        double* NodeNormals)
 {
     S0	= mat_par->S0;
     L1 = mat_par->L1 ;
@@ -1071,14 +1036,23 @@ void assembleQ(
     efe  = (2.0/S0/3.0)*(mat_par->e11+2*mat_par->e33);
     efe2 = (4.0/S0/9.0)*(mat_par->e11 - mat_par->e33);
 
+    // SELECT MORI'S FORMULATION
+    if (mat_par->PhysicsFormulation == LC::K3 )
+    {
+        assemble_volumes(K, L, q,  v, t, p, mat_par, simu, settings);
 
-    assemble_volumes(K, L, q,  v, t, p, mat_par, simu, settings);
+        //SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
+        assemble_Neumann_surfaces( L, q, v, t, e, p);
 
-    //SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
-    assemble_Neumann_surfaces( L, q, v, t, e, p);
-
-    if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
-        assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
+        if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
+            assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
+    }
+    // USE WRIGHT'S 2K FORMULATION
+    else if (mat_par->PhysicsFormulation == LC::K2 )
+    {
+        printf("2K formulation\n");
+        assemble_volumes2K(*K, L, *q, *v, *mat_par, *simu, *t, p);
+    }
 
 }
 // end void assembleQ
@@ -1088,41 +1062,30 @@ void assembleQ(
 /*  ASSEMBLES LOCAL ELEMENT CONTRIBUTIONS FROM PREVIOUS TIME-STEP */
 /*================================================================*/
 
-void assemble_local_prev_volumes(double lL[20],
-				 SolutionVector& q,  SolutionVector& v,
-                                 Mesh& t, double* p,  idx element_num,
-				 LC& mat_par, Simu& simu, int th  ){
+inline void assemble_local_prev_volumes(   double lL[20],
+                                           SolutionVector& q,  SolutionVector& v,
+                                           Mesh& t, double* p,  idx element_num,
+                                           LC& mat_par, Simu& simu,
+                                           const Shape4thOrder& shapes
+                                           )
+{
 
-    // th = current thread number for debugging
-    if (th){} // no warnings of unused variables
 
     memset(lL,0,20*sizeof(double));
     double lI[20][20];
     memset(lI,0,20*20*sizeof(double));
 
 
-
-    int tt[4] = {0,0,0,0};
-    tt[0] = t.getNode(element_num,0);
-    tt[1] = t.getNode(element_num,1);
-    tt[2] = t.getNode(element_num,2);
-    tt[3] = t.getNode(element_num,3);
+    int tt[4] = {   t.getNode(element_num,0), t.getNode(element_num,1),
+                    t.getNode(element_num,2), t.getNode(element_num,3)};
 
     double Jdet = t.getDeterminant(element_num);
-
-    if (Jdet < 0) Jdet = -Jdet;
-
 
     bool three_elastic_constants = false;
     if ((L2!=0)&&(L6!=0)) three_elastic_constants = true;
 
 
-    double L1_1,L1_2,L1_3,L1_4,L1_5;//L1 elastic RHS  terms;
-    double L2_1,L2_2,L2_3,L2_4,L2_5;//L2 elastic RHS  terms;
-    double L6_1,L6_2,L6_3,L6_4,L6_5;//L6 elastic RHS  terms;
-    double Lc[5] = {0,0,0,0,0};
-    double V1,V2,V3,V4,V5;
-    double T1,T2,T3,T4,T5;
+
     double Kc[5][5];
     memset(Kc,0,5*5*sizeof(double));
 
@@ -1132,41 +1095,42 @@ void assemble_local_prev_volumes(double lL[20],
     double xr,xs,xt,yr,ys,yt,zr,zs,zt;
     xr=xs=xt=yr=ys=yt=zr=zs=zt=0.0;
     for (int i=0;i<4;i++) {
-        xr+=sh1r[0][i]*p[(tt[i])*3+0]*1e-6;
-        xs+=sh1s[0][i]*p[(tt[i])*3+0]*1e-6;
-        xt+=sh1t[0][i]*p[(tt[i])*3+0]*1e-6;
+        xr+=shapes.sh1r[0][i]*p[(tt[i])*3+0]*1e-6;
+        xs+=shapes.sh1s[0][i]*p[(tt[i])*3+0]*1e-6;
+        xt+=shapes.sh1t[0][i]*p[(tt[i])*3+0]*1e-6;
 
-        yr+=sh1r[0][i]*p[(tt[i])*3+1]*1e-6;
-        ys+=sh1s[0][i]*p[(tt[i])*3+1]*1e-6;
-        yt+=sh1t[0][i]*p[(tt[i])*3+1]*1e-6;
+        yr+=shapes.sh1r[0][i]*p[(tt[i])*3+1]*1e-6;
+        ys+=shapes.sh1s[0][i]*p[(tt[i])*3+1]*1e-6;
+        yt+=shapes.sh1t[0][i]*p[(tt[i])*3+1]*1e-6;
 
-        zr+=sh1r[0][i]*p[(tt[i])*3+2]*1e-6;
-        zs+=sh1s[0][i]*p[(tt[i])*3+2]*1e-6;
-        zt+=sh1t[0][i]*p[(tt[i])*3+2]*1e-6;
+        zr+=shapes.sh1r[0][i]*p[(tt[i])*3+2]*1e-6;
+        zs+=shapes.sh1s[0][i]*p[(tt[i])*3+2]*1e-6;
+        zt+=shapes.sh1t[0][i]*p[(tt[i])*3+2]*1e-6;
     }//end for i
     //Inverse Jacobian
     Jdet = fabs(xr*ys*zt-xr*zs*yt+xs*yt*zr-xs*yr*zt+xt*yr*zs-xt*ys*zr);
-    double Jinv[3][3]={{(zt*ys-yt*zs)/Jdet,(xt*zs-zt*xs)/Jdet,(xs*yt-ys*xt)/Jdet}
-                       ,{(yt*zr-zt*yr)/Jdet,(zt*xr-xt*zr)/Jdet,(xt*yr-yt*xr)/Jdet}
-                       ,{(yr*zs-ys*zr)/Jdet,(xs*zr-xr*zs)/Jdet,(ys*xr-xs*yr)/Jdet}};
+    const double Jinv[3][3]={{(zt*ys-yt*zs)/Jdet,(xt*zs-zt*xs)/Jdet,(xs*yt-ys*xt)/Jdet}
+                             ,{(yt*zr-zt*yr)/Jdet,(zt*xr-xt*zr)/Jdet,(xt*yr-yt*xr)/Jdet}
+                               ,{(yr*zs-ys*zr)/Jdet,(xs*zr-xr*zs)/Jdet,(ys*xr-xs*yr)/Jdet}};
 
 
     // shape function derivatives
-    double dSh[4][3] = {{0,0,0},{0,0,0},{0,0,0},{0,0,0}};
+    double dSh[4][3] = {{0}};
     for(int i=0;i<4;i++){
         dSh[i][0]=sh1r[0][i]*Jinv[0][0]+sh1s[0][i]*Jinv[1][0]+sh1t[0][i]*Jinv[2][0];
         dSh[i][1]=sh1r[0][i]*Jinv[0][1]+sh1s[0][i]*Jinv[1][1]+sh1t[0][i]*Jinv[2][1];
         dSh[i][2]=sh1r[0][i]*Jinv[0][2]+sh1s[0][i]*Jinv[1][2]+sh1t[0][i]*Jinv[2][2];
     }//end for i
-
-    for (int igp = 0 ; igp < ngp ; igp ++)
+    const double qbuff[6*4] = { q.getValue(tt[0],0), q.getValue(tt[0],1), q.getValue(tt[0],2), q.getValue(tt[0],3), q.getValue(tt[0],4),
+                                q.getValue(tt[1],0), q.getValue(tt[1],1), q.getValue(tt[1],2), q.getValue(tt[1],3), q.getValue(tt[1],4),
+                                q.getValue(tt[2],0), q.getValue(tt[2],1), q.getValue(tt[2],2), q.getValue(tt[2],3), q.getValue(tt[2],4),
+                                q.getValue(tt[3],0), q.getValue(tt[3],1), q.getValue(tt[3],2), q.getValue(tt[3],3), q.getValue(tt[3],4),
+                                v.getValue(tt[0])  , v.getValue(tt[1])  , v.getValue(tt[2])  , v.getValue(tt[3])};
+    for (unsigned int igp = 0 ; igp < shapes.ngp ; igp ++)
     {
         //shape function
-        double Sh[4];
-        Sh[0] = sh1[igp][0];
-        Sh[1] = sh1[igp][1];
-        Sh[2] = sh1[igp][2];
-        Sh[3] = sh1[igp][3];
+        const double Sh[4]={  shapes.sh1[igp][0], shapes.sh1[igp][1],
+                              shapes.sh1[igp][2], shapes.sh1[igp][3] };
 
         // Function variables and derivatives
         double q1=0, q2=0, q3=0, q4=0, q5=0;
@@ -1176,101 +1140,133 @@ void assemble_local_prev_volumes(double lL[20],
         double Vx=0,Vy=0,Vz=0;
 
         // Solution and derivatives
-        for(int i=0;i<4;i++){
-            q1+=Sh[i]*q.getValue(tt[i],0);				// q1i * Ni  = A1
-            q2+=Sh[i]*q.getValue(tt[i],1);
-            q3+=Sh[i]*q.getValue(tt[i],2);
-            q4+=Sh[i]*q.getValue(tt[i],3);
-            q5+=Sh[i]*q.getValue(tt[i],4);
+        #define IND(i,j) 5*(i) + (j)
+        for(int i=0;i<4;i++)
+        {
+            q1+=Sh[i]*qbuff[IND(i,0)];// OPTIMIZE BY PREFETCHING Q AND V TO LOCAL BUFFER AT START OF FUNCTION
+            q2+=Sh[i]*qbuff[IND(i,1)];
+            q3+=Sh[i]*qbuff[IND(i,2)];
+            q4+=Sh[i]*qbuff[IND(i,3)];
+            q5+=Sh[i]*qbuff[IND(i,4)];
 
+            q1x+=dSh[i][0]*qbuff[IND(i,0)];
+            q2x+=dSh[i][0]*qbuff[IND(i,1)];
+            q3x+=dSh[i][0]*qbuff[IND(i,2)];
+            q4x+=dSh[i][0]*qbuff[IND(i,3)];
+            q5x+=dSh[i][0]*qbuff[IND(i,4)];
+
+            q1y+=dSh[i][1]*qbuff[IND(i,0)];
+            q2y+=dSh[i][1]*qbuff[IND(i,1)];
+            q3y+=dSh[i][1]*qbuff[IND(i,2)];
+            q4y+=dSh[i][1]*qbuff[IND(i,3)];
+            q5y+=dSh[i][1]*qbuff[IND(i,4)];
+
+            q1z+=dSh[i][2]*qbuff[IND(i,0)];
+            q2z+=dSh[i][2]*qbuff[IND(i,1)];
+            q3z+=dSh[i][2]*qbuff[IND(i,2)];
+            q4z+=dSh[i][2]*qbuff[IND(i,3)];
+            q5z+=dSh[i][2]*qbuff[IND(i,4)];
             // voltages
-            Vx+=dSh[i][0]*v.getValue(tt[i]);
-            Vy+=dSh[i][1]*v.getValue(tt[i]);
-            Vz+=dSh[i][2]*v.getValue(tt[i]);
-
-            q1x+=dSh[i][0]*q.getValue(tt[i],0);
-            q2x+=dSh[i][0]*q.getValue(tt[i],1);
-            q3x+=dSh[i][0]*q.getValue(tt[i],2);
-            q4x+=dSh[i][0]*q.getValue(tt[i],3);
-            q5x+=dSh[i][0]*q.getValue(tt[i],4);
-
-            q1y+=dSh[i][1]*q.getValue(tt[i],0);
-            q2y+=dSh[i][1]*q.getValue(tt[i],1);
-            q3y+=dSh[i][1]*q.getValue(tt[i],2);
-            q4y+=dSh[i][1]*q.getValue(tt[i],3);
-            q5y+=dSh[i][1]*q.getValue(tt[i],4);
-
-            q1z+=dSh[i][2]*q.getValue(tt[i],0);
-            q2z+=dSh[i][2]*q.getValue(tt[i],1);
-            q3z+=dSh[i][2]*q.getValue(tt[i],2);
-            q4z+=dSh[i][2]*q.getValue(tt[i],3);
-            q5z+=dSh[i][2]*q.getValue(tt[i],4);
+            Vx+=dSh[i][0]*qbuff[20+i];
+            Vy+=dSh[i][1]*qbuff[20+i];
+            Vz+=dSh[i][2]*qbuff[20+i];
         }//end for i
+        #undef IND
+        const double R=q1*q1+q2*q2+q3*q3+q5*q5+q4*q4; // frequently reoccurring term
+        const double mul=shapes.w[igp]*Jdet;
 
-        double R=q1*q1+q2*q2+q3*q3+q5*q5+q4*q4; // frequently reoccurring term
-        double mul=w[igp]*Jdet;
+        double T1,T2,T3,T4,T5;
 
-        T1=((A*q1+B*(q5*q5*rt6/4.0-q3*q3*rt6/2.0-rt6*q2*q2/2.0+q1*q1*rt6/2.0+q4*q4*rt6/4.0)/3.0)+C*R*q1);
-        T2=(A*q2+B*(3.0/4.0*q5*q5*rt2-q1*rt6*q2-3.0/4.0*q4*q4*rt2)/3.0+C*R*q2);
-        T3=(A*q3+B*(-q3*q1*rt6+3.0/2.0*rt2*q5*q4)/3.0+C*R*q3);
-        T4=(A*q4+B*(3.0/2.0*q3*rt2*q5+q4*q1*rt6/2.0-3.0/2.0*q4*q2*rt2)/3.0+C*R*q4);
-        T5=(A*q5+B*(q5*q1*rt6/2.0+3.0/2.0*q5*q2*rt2+3.0/2.0*q3*rt2*q4)/3.0+C*R*q5);
+        T1 = ((A*q1+B*(q5*q5*rt6/4.0-q3*q3*rt6/2.0-rt6*q2*q2/2.0+q1*q1*rt6/2.0+q4*q4*rt6/4.0)/3.0)+C*R*q1);
+        T1 += rt6*(Vx*Vx + Vy*Vy-2.0*Vz*Vz)*deleps/18.0*eps0;
+        ADD_RHS_BULK_TERMS(0, T1);
 
-        V1 =  rt6*(Vx*Vx + Vy*Vy-2.0*Vz*Vz)*deleps/18.0*eps0;
-        V2 = -rt2*(Vx*Vx - Vy*Vy)*deleps/6.0*eps0;
-        V3 = -rt2*Vx*Vy*deleps/3.0*eps0;
-        V4 = -rt2*Vz*Vy*deleps/3.0*eps0;
-        V5 = -rt2*Vx*Vz*deleps/3.0*eps0;
+        T2 =(A*q2+B*(3.0/4.0*q5*q5*rt2-q1*rt6*q2-3.0/4.0*q4*q4*rt2)/3.0+C*R*q2);
+        T2 += -rt2*(Vx*Vx - Vy*Vy)*deleps/6.0*eps0;
+        ADD_RHS_BULK_TERMS(4,T2);
+
+        T3 =(A*q3+B*(-q3*q1*rt6+3.0/2.0*rt2*q5*q4)/3.0+C*R*q3);
+        T3 += -rt2*Vx*Vy*deleps/3.0*eps0;
+        ADD_RHS_BULK_TERMS(8,T3);
+
+        T4 =(A*q4+B*(3.0/2.0*q3*rt2*q5+q4*q1*rt6/2.0-3.0/2.0*q4*q2*rt2)/3.0+C*R*q4);
+        T4 += -rt2*Vz*Vy*deleps/3.0*eps0;
+        ADD_RHS_BULK_TERMS(12,T4);
+
+        T5 =(A*q5+B*(q5*q1*rt6/2.0+3.0/2.0*q5*q2*rt2+3.0/2.0*q3*rt2*q4)/3.0+C*R*q5);
+        T5 += -rt2*Vx*Vz*deleps/3.0*eps0;
+        ADD_RHS_BULK_TERMS(16,T4);
+
 
         double Lflexo1, Lflexo2, Lflexo3, Lflexo4, Lflexo5;
         Lflexo1 = 0; Lflexo2 =0; Lflexo3=0; Lflexo4=0; Lflexo5=0;
 
         for (int i=0;i<4;i++){ // matrix rows
-            double ShRx=mul*dSh[i][0];//including weight and jacobian in trial function
-            double ShRy=mul*dSh[i][1];
-            double ShRz=mul*dSh[i][2];
-            double ShR =mul*Sh[i];
-
-            L1_1=(ShRx*q1x+ShRy*q1y+ShRz*q1z)*L1;
-            L1_2=(ShRx*q2x+ShRy*q2y+ShRz*q2z)*L1;
-            L1_3=(ShRx*q3x+ShRy*q3y+ShRz*q3z)*L1;
-            L1_4=(ShRx*q4x+ShRy*q4y+ShRz*q4z)*L1;
-            L1_5=(ShRx*q5x+ShRy*q5y+ShRz*q5z)*L1;
-
+            const double ShRx=mul*dSh[i][0];//including weight and jacobian in trial function
+            const double ShRy=mul*dSh[i][1];
+            const double ShRz=mul*dSh[i][2];
+            const double ShR =mul*Sh[i];
+            // L1 ELASTIC TERM
+            {
+                double L1term[5];
+                L1term[0]=(ShRx*q1x+ShRy*q1y+ShRz*q1z)*L1;
+                L1term[1]=(ShRx*q2x+ShRy*q2y+ShRz*q2z)*L1;
+                L1term[2]=(ShRx*q3x+ShRy*q3y+ShRz*q3z)*L1;
+                L1term[3]=(ShRx*q4x+ShRy*q4y+ShRz*q4z)*L1;
+                L1term[4]=(ShRx*q5x+ShRy*q5y+ShRz*q5z)*L1;
+                lL[i   ] += L1term[0];
+                lL[i+4 ] += L1term[1];
+                lL[i+8 ] += L1term[2];
+                lL[i+12] += L1term[3];
+                lL[i+16] += L1term[4];
+            }
             //Chiral term
-            if (L4!=0){
+            if (L4!=0)
+            {
+                double Lc[5];
                 Lc[0] = ((rt3*q5y/4.0-rt3*q4x/4.0)*ShR+ShRx*q4*rt3/4.0-ShRy*q5*rt3/4.0)*L4;
                 Lc[1] = ((q3z/2.0-q5y/4.0-q4x/4.0)*ShR+ShRx*q4/4.0+ShRy*q5/4.0-ShRz*q3/2.0)*L4;
                 Lc[2] = ((-q2z/2.0-q4y/4.0+q5x/4.0)*ShR+ShRy*q4/4.0+ShRz*q2/2.0-ShRx*q5/4.0)*L4;
                 Lc[3] = ((-q5z/4.0+q1x*rt3/4.0+q3y/4.0+q2x/4.0)*ShR-ShRx*q1*rt3/4.0-ShRx*q2/4.0-ShRy*q3/4.0+ShRz*q5/4.0)*L4;
                 Lc[4] = ((q4z/4.0-q1y*rt3/4.0+q2y/4.0-q3x/4.0)*ShR+ShRx*q3/4.0+ShRy*q1*rt3/4.0-ShRy*q2/4.0-ShRz*q4/4.0)*L4;
+                lL[i   ] += Lc[0];
+                lL[i+4 ] += Lc[1];
+                lL[i+8 ] += Lc[2];
+                lL[i+12] += Lc[3];
+                lL[i+16] += Lc[4];
             }
             if (three_elastic_constants){
-                L2_1= (ShRx*q1x/6.0-ShRx*rt3*q2x/6.0-ShRx*rt3*q3y/6.0-ShRx*rt3*q5z/6.0-ShRy*q3x*rt3/6.0+ShRy*q1y/6.0+ShRy*rt3*q2y/6.0-	ShRy*rt3*q4z/6.0+ShRz*q5x*rt3/3.0	+ShRz*q4y*rt3/3.0+2.0/3.0*ShRz*q1z)	*L2;
+                double L2_1,L2_2,L2_3,L2_4,L2_5;//L2 elastic RHS  terms;
+                double L6_1,L6_2,L6_3,L6_4,L6_5;//L6 elastic RHS  terms;
+                L2_1 = (ShRx*q1x/6.0-ShRx*rt3*q2x/6.0-ShRx*rt3*q3y/6.0-ShRx*rt3*q5z/6.0-ShRy*q3x*rt3/6.0+ShRy*q1y/6.0+ShRy*rt3*q2y/6.0-	ShRy*rt3*q4z/6.0+ShRz*q5x*rt3/3.0	+ShRz*q4y*rt3/3.0+2.0/3.0*ShRz*q1z)	*L2;
                 L2_2 = (-ShRx*q1x*rt3/6.0+q2x*ShRx/2.0+q3y*ShRx/2.0+q5z*ShRx/2.0-q3x*ShRy/2.0+ShRy*q1y*rt3/6.0+q2y*ShRy/2.0-q4z*ShRy/2.0)*L2;
                 L2_3 = (ShRx*q3x/2.0-ShRx*q1y*rt3/6.0-ShRx*q2y/2.0+ShRx*q4z/2.0-ShRy*q1x*rt3/6.0+ShRy*q2x/2.0+ShRy*q3y/2.0+ShRy*q5z/2.0)*L2;
-                L2_4= (ShRy*q5x/2.0+ShRy*q4y/2.0+ShRy*q1z*rt3/3.0+ShRz*q3x/2.0-	ShRz*q1y*rt3/6.0-ShRz*q2y/2.0+ShRz*q4z/2.0)*L2;
+                L2_4 = (ShRy*q5x/2.0+ShRy*q4y/2.0+ShRy*q1z*rt3/3.0+ShRz*q3x/2.0-	ShRz*q1y*rt3/6.0-ShRz*q2y/2.0+ShRz*q4z/2.0)*L2;
                 L2_5 = (ShRx*q5x/2.0+ShRx*q4y/2.0+ShRx*q1z*rt3/3.0-ShRz*q1x*rt3/6.0	+ShRz*q2x/2.0+ShRz*q3y/2.0+ShRz*q5z/2.0)*L2;
                 L6_1 = (-ShRx*q1x*q1*rt2*rt3/6.0-ShRy*q1y*q1*rt2*rt3/6.0+ShRz*q1*rt2*rt3*q1z/3.0-ShR*rt2*rt3*q5y*q5y/12.0+ShRx*q5*rt2*q1z/2.0+ShRy*q3*rt2*q1x/2.0+ShRy*q4*rt2*q1z/2.0+ShRz*q5*rt2*q1x/2.0-ShR*rt2*rt3*q4x*q4x/12.0-ShR*rt2*rt3*q4y*q4y/12.0-ShR*rt2*rt3*q3x*q3x/12.0-ShR*rt2*rt3*q2y*q2y/12.0+ShR*rt2*rt3*q2z*q2z/6.0+ShR*rt2*rt3*q3z*q3z/6.0+ShR*rt2*rt3*q5z*q5z/6.0+ShR*rt2*rt3*q4z*q4z/6.0+ShR*rt2*rt3*q1z*q1z/6.0+ShRz*q4*rt2*q1y/2.0-ShR*rt2*rt3*q1x*q1x/12.0-ShR*rt2*rt3*q3y*q3y/12.0-ShR*rt2*rt3*q2x*q2x/12.0-ShR*rt2*rt3*q1y*q1y/12.0+ShRx*q1x*q2*rt2/2.0+ShRx*q3*rt2*q1y/2.0-ShRy*q1y*q2*rt2/2.0-ShR*rt2*rt3*q5x*q5x/12.0)*L6;
                 L6_2 = (-ShR*rt2*q5y*q5y/4.0-ShR*rt2*q1y*q1y/4.0+ShR*rt2*q4x*q4x/4.0+ShR*rt2*q1x*q1x/4.0-ShR*rt2*q3y*q3y/4.0+ShR*rt2*q2x*q2x/4.0+ShR*rt2*q5x*q5x/4.0+ShR*rt2*q3x*q3x/4.0-ShR*rt2*q4y*q4y/4.0-ShR*rt2*q2y*q2y/4.0-ShRx*q1*rt2*rt3*q2x/6.0+ShRx*rt2*q2*q2x/2.0+ShRx*q3*q2y*rt2/2.0+ShRx*q5*q2z*rt2/2.0-ShRy*q1*rt2*rt3*q2y/6.0-ShRy*rt2*q2*q2y/2.0+ShRy*q3*q2x*rt2/2.0+ShRy*q4*q2z*rt2/2.0+ShRz*q5*q2x*rt2/2.0+ShRz*q4*q2y*rt2/2.0+ShRz*q1*rt2*rt3*q2z/3.0)*L6;
                 L6_3 = (ShR*rt2*q1x*q1y/2.0+ShR*rt2*q2x*q2y/2.0+ShR*rt2*q3x*q3y/2.0+ShR*rt2*q5x*q5y/2.0+ShR*rt2*q4x*q4y/2.0-ShRx*q3x*q1*rt2*rt3/6.0+ShRx*q3x*q2*rt2/2.0+ShRx*q3*rt2*q3y/2.0+ShRx*q5*rt2*q3z/2.0-ShRy*q3y*q1*rt2*rt3/6.0-ShRy*q3y*q2*rt2/2.0+ShRy*q3*rt2*q3x/2.0+ShRy*q4*rt2*q3z/2.0+ShRz*q5*rt2*q3x/2.0+ShRz*q4*rt2*q3y/2.0+ShRz*q1*rt2*rt3*q3z/3.0)*L6;
                 L6_4 = (ShR*rt2*q1y*q1z/2.0+ShR*rt2*q2y*q2z/2.0+ShR*rt2*q3y*q3z/2.0+ShR*rt2*q5y*q5z/2.0+ShR*rt2*q4y*q4z/2.0-ShRx*q4x*q1*rt2*rt3/6.0+ShRx*q4x*q2*rt2/2.0+ShRx*q3*rt2*q4y/2.0+ShRx*q5*rt2*q4z/2.0-ShRy*q4y*q1*rt2*rt3/6.0-ShRy*q4y*q2*rt2/2.0+ShRy*q3*rt2*q4x/2.0+ShRy*q4*rt2*q4z/2.0+ShRz*q5*rt2*q4x/2.0+ShRz*q4*rt2*q4y/2.0+ShRz*q1*rt2*rt3*q4z/3.0)*L6;
                 L6_5 = (ShR*rt2*q1x*q1z/2.0+ShR*rt2*q2x*q2z/2.0+ShR*rt2*q3x*q3z/2.0+ShR*rt2*q5x*q5z/2.0+ShR*rt2*q4x*q4z/2.0-ShRx*q5x*q1*rt2*rt3/6.0+ShRx*q5x*q2*rt2/2.0+ShRx*q3*rt2*q5y/2.0+ShRx*q5*rt2*q5z/2.0-ShRy*q5y*q1*rt2*rt3/6.0-ShRy*q5y*q2*rt2/2.0+ShRy*q3*rt2*q5x/2.0+ShRy*q4*rt2*q5z/2.0+ShRz*q5*rt2*q5x/2.0+ShRz*q4*rt2*q5y/2.0+ShRz*q1*rt2*rt3*q5z/3.0)*L6;
-            }else{L2_1=L2_2=L2_3=L2_4=L2_5=L6_1=L6_2=L6_3=L6_4=L6_5=0.0;}//end if 3 elestic constants
+                lL[i+0]  +=  L2_1 + L6_1;
+                lL[i+4]  +=  L2_2 + L6_2;
+                lL[i+8]  +=  L2_3 + L6_3;
+                lL[i+12] +=  L2_4 + L6_4;
+                lL[i+16] +=  L2_5 + L6_5;
+
+            }
             if ((efe!=0.0)||(efe2!=0.0)){ // IF FLEXOELECTRIC COEFFICIENTS ARN'T 0
                 Lflexo1 = (rt6*(Vx*ShRx+Vy*ShRy-2.0*Vz*ShRz)*efe/6.0);
                 Lflexo2 = (-rt2*(Vx*ShRx-Vy*ShRy)*efe/2.0);
                 Lflexo3 = (-rt2*(Vy*ShRx+Vx*ShRy)*efe/2.0);
                 Lflexo4 = (-rt2*(Vz*ShRy+Vy*ShRz)*efe/2.0);
                 Lflexo5 = (-rt2*(Vz*ShRx+Vx*ShRz)*efe/2.0);
+                lL[i+0]  +=    Lflexo1;
+                lL[i+4]  +=    Lflexo2;
+                lL[i+8]  +=    Lflexo3;
+                lL[i+12] +=    Lflexo4;
+                lL[i+16] +=    Lflexo5;
             }
-
-            //ADD TERMS TO RHS VECTOR
-            lL[i+0]  += T1*ShR + L1_1 + L2_1 + L6_1 + Lc[0] + V1*ShR + Lflexo1;
-            lL[i+4]  += T2*ShR + L1_2 + L2_2 + L6_2 + Lc[1] + V2*ShR + Lflexo2;
-            lL[i+8]  += T3*ShR + L1_3 + L2_3 + L6_3 + Lc[2] + V3*ShR + Lflexo3;
-            lL[i+12] += T4*ShR + L1_4 + L2_4 + L6_4 + Lc[3] + V4*ShR + Lflexo4;
-            lL[i+16] += T5*ShR + L1_5 + L2_5 + L6_5 + Lc[4] + V5*ShR + Lflexo5;
 
             for (int j = 0 ; j < 4 ; j++)
             {
@@ -1290,7 +1286,7 @@ void assemble_local_prev_volumes(double lL[20],
     // the product of the mass matrix and the various q vectors
     double Mq[20]={0,0,0,0,0,0,0,0,0,0,
                    0,0,0,0,0,0,0,0,0,0};	// M * q
-    //memset(Mq,0,20*sizeof(double));
+
     for (int i=0;i<4;i++) {		//each node row
         for (int j=0;j<4;j++) {	//each node column
             for (int k=0;k<5;k++){//each component
@@ -1303,7 +1299,7 @@ void assemble_local_prev_volumes(double lL[20],
     double u1 = mat_par.u1;
 
 
-    for (size_t i=0;i<20;i++){
+    for (int i=0;i<20;i++){
         /* SEGFAULT WITH OPENMP HERE*/
         lL[i] =   ( lL[i] / 2.0 ) -  ( Mq[i]*(u1 / dt) ) ;   // M*current Q
 
@@ -1318,12 +1314,12 @@ void assemble_local_prev_volumes(double lL[20],
 /*=====================================================*/
 
 void assemble_prev_rhs(double* Ln,
-		       SolutionVector& qn,
-		       SolutionVector& v,
+                       SolutionVector& qn,
+                       SolutionVector& v,
                        //Mesh& t,
                        //Mesh& e,
                        //double* p ,
-		       LC& mat_par,
+                       LC& mat_par,
                        Simu& simu,
                        Geometry& geom
                        )
@@ -1331,19 +1327,24 @@ void assemble_prev_rhs(double* Ln,
     //if (e.getnElements()){} // no warning of unused variables. WRITE fUNCTION FOR WEAK ANCHORING CONTRIBUTIONS
 
     init_globals(mat_par, qn);
-    init_shape();
+    //init_shape();
+    Shape4thOrder shapes;
     unsigned int elem_cnt = geom.t->getnElements();//unsigned int) t.getnElements();
 
     // OPENMP LOOP COMPILED WITH -march=native an -O3 RESULTS IN SEGFAULT ON
     // WINXP32, COMPILED WITHMinGW. THIS IS NOT A PROBLEM WITH UBUNTU,
     // NO PROBLEMS FOUND WITH gdb / valgrind. SGFAULTING LINE MARKED IN FUNTION
     // assemble_local_prev_volumes. ENABLING OPENMP ONLY FOR LINUX (02/12/2010)
-#ifndef __WIN32__
-#pragma omp parallel for // PARALLEL LOOP IN LINUX
-#endif
-    int th = 0; // debug thread number
+    // 07/04/2012 compiling with TDM gcc4.6.1 on win7-64 -> no problems
+    //#ifndef __WIN32__
+    //#pragma omp parallel for // PARALLEL LOOP IN LINUX
+    //#endif
+    //int th = 0; // debug thread number
     Mesh& t = *geom.t;
     double* p = geom.getPtrTop();
+#ifndef DEBUG
+#pragma omp parallel for
+#endif
     for ( idx it = 0 ; it < elem_cnt ; it++)
     {
         // IF THIS ELEMENT IS LC ELEMENT, ASSEMBLE LOCAL MATRIX
@@ -1355,9 +1356,10 @@ void assemble_prev_rhs(double* Ln,
             assemble_local_prev_volumes(lL,
                                         qn, v ,
                                         t , p , it,
-                                        mat_par , simu, th );
+                                        mat_par , simu,
+                                        shapes);
 
-	    // ADD LOCAL MATRIX TO GLOBAL MATRIX
+            // ADD LOCAL MATRIX TO GLOBAL MATRIX
             for (unsigned int i=0;i<20;i++)
             {
                 int ri = t.getNode(it,i%4) + npLC*(i/4);
