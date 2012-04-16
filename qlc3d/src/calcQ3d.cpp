@@ -4,6 +4,7 @@
 #include <omp.h>
 #include <qlc3d.h>
 #include <cstdio>
+#include <assembleq2k.h>
 double calcQ3d(SolutionVector *q,   // current Q-tensor
 	       SolutionVector* qn,  // previous Q-tensor
 	       SolutionVector *v,   // potential
@@ -49,7 +50,17 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         if ( (newton_iter == 1) && (simu->getdt() > 0 ) )
         {
             memset(RHS, 0, numCols*sizeof( double ) );
-            assemble_prev_rhs(RHS, *qn, *v, *mat_par, *simu, geom );
+
+            // CHOOSE WHICH VERSION TO CALL DEPENDING ON FORMULATION USED
+            if (mat_par->PhysicsFormulation == LC::K3 )
+            {
+                assemble_prev_rhs(RHS, *qn, *v, *mat_par, *simu, geom );
+            }
+            else
+            if (mat_par->PhysicsFormulation == LC::K2 )
+            {
+                assemble_prev_rhs_K2(RHS, *qn, *v, *mat_par, *simu, geom);
+            }
         }
 
 
