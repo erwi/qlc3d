@@ -227,13 +227,7 @@ inline void localKL_2K( double* p,                      // COORINDATES
             const double ShRz=mul*dSh[i][2];
             const double ShR =mul*Sh[i];
 
-            double R[5];
-            #include "K2_RHS_ELASTIC_ASSEMBLY.txt";
-            lL[i + 0] += R[0];
-            lL[i + 4] += R[1];
-            lL[i + 8] += R[2];
-            lL[i +12] += R[3];
-            lL[i +16] += R[4];
+            RHS_ELASTIC_2K_FORMULATION(lL);   // CALCULATES AND ADDS TO RHS
 
             // FOR COLUMNS j
             for (unsigned int j = 0 ; j < 4 ; ++j)
@@ -243,38 +237,8 @@ inline void localKL_2K( double* p,                      // COORINDATES
                 const double ShCz=dSh[j][2];
                 const double ShC =Sh[j];
                 const double ShRC=ShR*Sh[j];
-                double M[5][5];
-                #include "K2_MATRIX_ELASTIC_ASSEMBLY.txt";
 
-                lK[i+0 ][j+0 ] += M[0][0];
-                lK[i+0 ][j+4 ] += M[0][1];
-                lK[i+0 ][j+8 ] += M[0][2];
-                lK[i+0 ][j+12] += M[0][3];
-                lK[i+0 ][j+16] += M[0][4];
-
-                lK[i+4 ][j+0 ] += M[1][0];
-                lK[i+4 ][j+4 ] += M[1][1];
-                lK[i+4 ][j+8 ] += M[1][2];
-                lK[i+4 ][j+12] += M[1][3];
-                lK[i+4 ][j+16] += M[1][4];
-
-                lK[i+8 ][j+0 ] += M[2][0];
-                lK[i+8 ][j+4 ] += M[2][1];
-                lK[i+8 ][j+8 ] += M[2][2];
-                lK[i+8 ][j+12] += M[2][3];
-                lK[i+8 ][j+16] += M[2][4];
-
-                lK[i+12][j+0 ] += M[3][0];
-                lK[i+12][j+4 ] += M[3][1];
-                lK[i+12][j+8 ] += M[3][2];
-                lK[i+12][j+12] += M[3][3];
-                lK[i+12][j+16] += M[3][4];
-
-                lK[i+16][j+0 ] += M[4][0];
-                lK[i+16][j+4 ] += M[4][1];
-                lK[i+16][j+8 ] += M[4][2];
-                lK[i+16][j+12] += M[4][3];
-                lK[i+16][j+16] += M[4][4];
+                MATRIX_ELASTIC_2K_FORMULATION(lK);
 
 
                 // LOCAL IDENTITY MATRIX, NEEDED FOR CRANK-NICHOLSON
@@ -402,11 +366,11 @@ void assemble_volumes2K_previous(double lL[20],
 
 
 
-void assemble_prev_rhs_2K(double* Ln,
-                          const SolutionVector& qn,
-                          const SolutionVector& v,
-                          const LC& mat_par,
-                          const Simu& simu,
+void assemble_prev_rhs_K2(double* Ln,
+                          SolutionVector& qn,
+                          SolutionVector& v,
+                          LC& mat_par,
+                          Simu& simu,
                           Geometry& geom)
 {
     Shape4thOrder shapes;

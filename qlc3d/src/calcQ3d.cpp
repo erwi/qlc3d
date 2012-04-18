@@ -6,11 +6,8 @@
 #include <cstdio>
 #include <assembleq2k.h>
 double calcQ3d(SolutionVector *q,   // current Q-tensor
-	       SolutionVector* qn,  // previous Q-tensor
+               SolutionVector *qn,  // previous Q-tensor
 	       SolutionVector *v,   // potential
-               //Mesh *t,		    // tet-mesh
-               //Mesh *e,		    // tri-mesh
-               //double *p,	    // node coordinates
                Geometry& geom,
                LC *mat_par,
 	       Simu* simu,
@@ -60,6 +57,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
             if (mat_par->PhysicsFormulation == LC::K2 )
             {
                 assemble_prev_rhs_K2(RHS, *qn, *v, *mat_par, *simu, geom);
+
             }
         }
 
