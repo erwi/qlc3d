@@ -1052,6 +1052,11 @@ void assembleQ(
     {
         printf("2K formulation\n");
         assemble_volumes2K(*K, L, *q, *v, *mat_par, *simu, *t, p);
+
+        if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
+            assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
+
+
     }
 
 }
@@ -1301,7 +1306,8 @@ inline void assemble_local_prev_volumes(   double lL[20],
 
     for (int i=0;i<20;i++){
         /* SEGFAULT WITH OPENMP HERE*/
-        lL[i] =   ( lL[i] / 2.0 ) -  ( Mq[i]*(u1 / dt) ) ;   // M*current Q
+       lL[i] =   ( lL[i] / 2.0 ) -  ( Mq[i]*(u1 / dt) ) ;   // ORIGNAL
+       // lL[i] =   ( lL[i] / 2.0 ) +  ( Mq[i]*(u1 / dt) ) ;   // M*current Q
 
     }
 
@@ -1358,6 +1364,11 @@ void assemble_prev_rhs(double* Ln,
                                         t , p , it,
                                         mat_par , simu,
                                         shapes);
+            printf("elem %u\n", it);
+            for (int i = 0 ; i < 20 ; i++)
+            {
+                printf("lL[%i] = %e\n", i, lL[i]);
+            }
 
             // ADD LOCAL MATRIX TO GLOBAL MATRIX
             for (unsigned int i=0;i<20;i++)

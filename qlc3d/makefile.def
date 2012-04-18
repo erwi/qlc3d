@@ -24,10 +24,10 @@ UNAME = $(shell uname)
 ifeq ($(UNAME), Linux)
 	QLC3D_PATH  = $(CURDIR)/..
 # DEBUG	
-	SPARSELIB_DIR			= /home/eero/Projects/libs/SparseLib++/debug/1.7
+	#SPARSELIB_DIR			= /home/eero/Projects/libs/SparseLib++/debug/1.7
 	
 # RELEASE
-#	SPARSELIB_DIR			= /home/eero/Projects/libs/SparseLib++/1.7 
+	SPARSELIB_DIR			= /home/eero/Projects/libs/SparseLib++/1.7 
 	SPARSELIB_INCLUDE_DIR		= $(SPARSELIB_DIR)/include/
 	SPARSELIB_MV_INCLUDE_DIR	= $(SPARSELIB_DIR)/mv/include/
 	D_OF = -DLinux

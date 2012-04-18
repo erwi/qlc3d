@@ -144,19 +144,19 @@
       double t58 = K2*ShCx*ShRy*t33;\
       double t59 = K2*ShCz*ShR*q0*t33*2.0;\
       double t60 = ShCz*ShRz*t36;\
-      M[i+0][j+0] += ShCx*ShRx*t25+ShCy*ShRy*t25+ShCz*ShRz*(K1*t22*4.0+K2*t22*2.0)+K2*ShC*ShR*t22*t37*2.4E1;\
-      M[i+0][j+4] += t32;\
-      M[i+0][j+8] += t40;\
+      M[i+0][j+0]  += ShCx*ShRx*t25+ShCy*ShRy*t25+ShCz*ShRz*(K1*t22*4.0+K2*t22*2.0)+K2*ShC*ShR*t22*t37*2.4E1;\
+      M[i+0][j+4]  += t32;\
+      M[i+0][j+8]  += t40;\
       M[i+0][j+12] += t52+K2*ShCy*ShRz*t26*t27-K2*ShCz*ShRy*t26*t27*2.0-K2*ShC*ShRx*q0*t26*t27*6.0;\
       M[i+0][j+16] += t55+K2*ShCx*ShRz*t26*t27-K2*ShCz*ShRx*t26*t27*2.0-K2*ShCy*ShR*q0*t26*t27*6.0;\
-      M[i+4][j+0] += t32;\
-      M[i+4][j+4] += t47;\
-      M[i+4][j+8] += t41+t42-K2*ShCx*ShRy*t33-K2*ShCz*ShR*q0*t33*4.0;\
+      M[i+4][j+0]  += t32;\
+      M[i+4][j+4]  += t47;\
+      M[i+4][j+8]  += t41+t42-K2*ShCx*ShRy*t33-K2*ShCz*ShR*q0*t33*4.0;\
       M[i+4][j+12] += t50+t51-K2*ShC*ShRx*q0*t33*2.0;\
       M[i+4][j+16] += t49;\
-      M[i+8][j+0] += t40;\
-      M[i+8][j+4] += -t41-t42+t58+K2*ShCz*ShR*q0*t33*4.0;\
-      M[i+8][j+8] += t47;\
+      M[i+8][j+0]  += t40;\
+      M[i+8][j+4]  += -t41-t42+t58+K2*ShCz*ShR*q0*t33*4.0;\
+      M[i+8][j+8]  += t47;\
       M[i+8][j+12] += t49;\
       M[i+8][j+16] += -t50-t51+t53;\
       M[i+12][j+0] += -t52-K2*ShCy*ShRz*t26*t27*2.0+K2*ShCz*ShRy*t26*t27+K2*ShC*ShRx*q0*t26*t27*6.0;\
@@ -169,6 +169,29 @@
       M[i+16][j+8] += t51-t53-t57;\
       M[i+16][j+12] += -t58-t59+K2*ShC*ShRz*q0*t33*2.0;\
       M[i+16][j+16] += t43+t46+t60+K2*ShCy*ShRy*t33*2.0;\
+}\
+
+
+//==============================================
+//  ELASTIC ENERGY RHS FOR SINGLE K
+//==============================================
+#define RHS_ELASTIC_SINGLE_K(lL){\
+    lL[i+0]  += (ShRx*q1x+ShRy*q1y+ShRz*q1z)*L1; \
+    lL[i+4]  += (ShRx*q2x+ShRy*q2y+ShRz*q2z)*L1; \
+    lL[i+8]  += (ShRx*q3x+ShRy*q3y+ShRz*q3z)*L1; \
+    lL[i+12] += (ShRx*q4x+ShRy*q4y+ShRz*q4z)*L1;\
+    lL[i+16] += (ShRx*q5x+ShRy*q5y+ShRz*q5z)*L1;\
+}\
+//================================================
+//  ELASTIC ENERGY MATRIX FOR SINGLE K
+//================================================
+#define MATRIX_ELASTIC_SINGLE_K(lK){\
+double dot = L1*mul*(dSh[i][0]*dSh[j][0]+dSh[i][1]*dSh[j][1]+dSh[i][2]*dSh[j][2]);\
+    lK[i   ][j   ] += dot;\
+    lK[i+4 ][j+4 ] += dot;\
+    lK[i+8 ][j+8 ] += dot;\
+    lK[i+12][j+12] += dot;\
+    lK[i+16][j+16] += dot;\
 }\
 
 #endif // QASSEMBLY_MACROS_H

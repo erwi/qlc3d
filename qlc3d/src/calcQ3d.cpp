@@ -7,11 +7,11 @@
 #include <assembleq2k.h>
 double calcQ3d(SolutionVector *q,   // current Q-tensor
                SolutionVector *qn,  // previous Q-tensor
-	       SolutionVector *v,   // potential
+               SolutionVector *v,   // potential
                Geometry& geom,
                LC *mat_par,
-	       Simu* simu,
-	       SparseMatrix* K,
+               Simu* simu,
+               SparseMatrix* K,
                Settings* settings,
                Alignment* alignment)
 //double* NodeNormals)
@@ -38,6 +38,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
     }
 
     bool LOOP = true;
+
     while ( LOOP ) // Q-TENSOR SOLUTION LOOP
     {
         newton_iter++;
@@ -57,7 +58,6 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
             if (mat_par->PhysicsFormulation == LC::K2 )
             {
                 assemble_prev_rhs_K2(RHS, *qn, *v, *mat_par, *simu, geom);
-
             }
         }
 
@@ -84,9 +84,9 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 
         if (simu->getdt() > 0) // make Non-linear Crank-Nicholson RHS
         {
-#ifndef DEBUG
-#pragma omp parallel for
-#endif
+            //#ifndef DEBUG
+            //#pragma omp parallel for
+            //#endif
             for (size_t i = 0 ; i < numCols ; i++)
                 L[i] += RHS[i];
         }
@@ -142,7 +142,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         {
             printf("Newton in distress!! - reducing time step by a factor of %f\n", settings->getQ_Newton_Panic_Coeff() );
             simu->setdt(settings->getQ_Newton_Panic_Coeff() * simu->getdt() );
-            printf("new time step is : %f ms.\n",simu->getdt() * 1e3);
+            printf("new time step is : %e s.\n",simu->getdt());
             newton_iter = 0;
             q->setValuesTo(*qn);
         }// end if PANIC!!!
@@ -150,11 +150,12 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 
         // DETERMINE WHETHER NEWTON LOOP IS DONE
         if (simu->getdt() == 0) // IF dt == 0, GOING FOR STEADY STATE AND ONLY DOING ONE ITERATION -> NO LOOPS
+        {
             LOOP = false;
+        }
         else
             if ( fabs(maxdq) < simu->getMaxError() ) // EXIT IF ACCURATE ENOUGH
             {
-                //printf("maxdq = %f, maxError = %f\n", fabs(maxdq), simu->getMaxError() );
                 LOOP = false;
             }// end if
     }//end while dq > MaxError  ---- ENDS NEWTON LOOP
