@@ -2,6 +2,8 @@
 #include <cstdio>
 #include <iostream>
 #include <math.h>
+#include <lc.h>
+#include <energy_calculation_macros.h>
 namespace Energy
 {
 #define SIGN(x)		(x)>=0 ? 1:-1
@@ -101,7 +103,7 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
     using namespace Energy;
 
     init_shape();
-
+    LC::Formulation formulation = lc->PhysicsFormulation;
     double e0 = 8.8541878176*1e-12;
     double S0 = lc->S0;
 
@@ -115,12 +117,16 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
     efe2+= 0; //no warnings...
     double f0=(3.0* A / 4.0)*(S0*S0) + (B/4.0)*(S0*S0*S0) + (9.0*C/16.0)*(S0*S0*S0*S0);
 
+    double K1 = lc->K11;
+    double K2 = lc->K22;
 
     double pi = 3.141569;
 
     double q0(0);           // CHIRALITY
     if (lc->p0 > 0.0)
         q0 = 2*pi/lc->p0 ;
+    if (formulation==LC::K2)    // CHANGE HANDEDNESS
+        q0*=-1.0;
 
     //printf("q0 = %e\n",q0);
 
@@ -141,6 +147,7 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
     double F11 = 0; // SPLAY, TWIST AND BEND ENERGIES
     double F22 = 0;
     double F33 = 0;
+
 
 
     //loop over each element and calculate elastic energy contribution
@@ -230,7 +237,7 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
 
 
                 // IF 3 ELASTIC COEFFICIENTS
-                if (!L1)
+                if (formulation == LC::K3 )
                 {
                     // CALCULATE TWIST ENERGY: 1/2*K22(n.curl(n) - q0 )^2
                     // G4 = (9*S^2 / 4 )* n.curl(n)
@@ -256,30 +263,15 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
                     F22 += 0.5*lc->K22 * mul*F_twist;
                     F33 += 0.5*lc->K33 * mul*F_bend;
                 }
-                else
+                else if (formulation == LC::K2)
                 {
                     // CALCULATE ELASTIC ENERGY FOR CHIRAL/BLUE PHASE LC
                     // USING ENERGY FROM WRIGTH & MERMIN, Rev. Mod. Phys. 61,2,1989
 
+                    double Fdtemp(0);
+                    ENERGY_ELASTIC_2K(Fdtemp);
 
-                    // NON-CHIRAL PART  div(Q)^ 2
-                    double Fdtemp =0;
-                    Fdtemp += q1x*q1x + q2x*q2x + q3x*q3x + q4x*q4x + q5x*q5x + q1y*q1y + q2y*q2y + q3y*q3y + q4y*q4y + q5y*q5y + q1z*q1z + q2z*q2z + q3z*q3z + q4z*q4z + q5z*q5z;
-
-                    // CHIRAL PART (curl(Q) + 2*q0*Q )^2
-                    double T11 = 2.0*q0*(q2/rt2 - q1/rt6) + q5y/rt2 - q3z/rt2;
-                    double T12 = q4y/rt2 + q2z/rt2 + q1z/rt6 + (2.0*q0*q3)/rt2;
-                    double T13 = (2.0*q1y)/rt6 - q4z/rt2 + (2.0*q0*q5)/rt2;
-                    double T21 = q2z/rt2 - q5x/rt2 - q1z/rt6 + (2.0*q0*q3)/rt2;
-                    double T22 = q3z/rt2 - q4x/rt2 - 2.0*q0*(q2/rt2 + q1/rt6);
-                    double T23 = q5z/rt2 - (2.0*q1x)/rt6 + (2.0*q0*q4)/rt2;
-                    double T31 = q3x/rt2 - q2y/rt2 + q1y/rt6 + (2.0*q0*q5)/rt2;
-                    double T32 = (2.0*q0*q4)/rt2 - q1x/rt6 - q3y/rt2 - q2x/rt2;
-                    double T33 =  q4x/rt2 - q5y/rt2 + (4.0*q0*q1)/rt6;
-
-                    Fdtemp += T11*T11 + T12*T12 + T13*T13 + T21*T21 + T22*T22 + T23*T23 + T31*T31 + T32*T32 + T33*T33;
-
-                    Fd += mul*L1*Fdtemp;
+                    Fd += mul*Fdtemp;
                 }
 
 

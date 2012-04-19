@@ -91,7 +91,7 @@ inline void localKL_2K( double* p,                      // COORINDATES
     const double eps0 = 0.0;
     double q0(0);
     if (mat_par.p0 != 0.0 )
-        {q0 = 2*PI/mat_par.p0;}
+        {q0 = -2*PI/mat_par.p0;} // '-' SIGN RESULTS IN LEFT HADED CHEIRALITY FOR p0 > 0
 
     const double K1 = mat_par.K11;
     const double K2 = mat_par.K22;
@@ -439,7 +439,7 @@ void assemble_volumes2K_previous(double lL[20],
     const double eps0 = 0.0;
     double q0(0);
     if (mat_par.p0 != 0.0 )
-        {q0 = 2*PI/mat_par.p0;}
+        {q0 = -2*PI/mat_par.p0;} // '-' SIGN RESULTS IN LEFT HANDED CHIRALITY FOR p0 > 0
 
     const double K1 = mat_par.K11;
     const double K2 = mat_par.K22;
@@ -530,8 +530,8 @@ void assemble_volumes2K_previous(double lL[20],
             const double ShRz=mul*dSh[i][2];
             const double ShR =mul*Sh[i];
 
-           // RHS_ELASTIC_2K_FORMULATION(lL);   // CALCULATES AND ADDS TO RHS
-            RHS_ELASTIC_SINGLE_K(lL);
+            RHS_ELASTIC_2K_FORMULATION(lL);   // CALCULATES AND ADDS TO RHS
+            //RHS_ELASTIC_SINGLE_K(lL);
 
             // FOR COLUMNS j
             for (unsigned int j = 0 ; j < 4 ; ++j)

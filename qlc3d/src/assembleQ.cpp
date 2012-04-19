@@ -1050,7 +1050,7 @@ void assembleQ(
     // USE WRIGHT'S 2K FORMULATION
     else if (mat_par->PhysicsFormulation == LC::K2 )
     {
-        printf("2K formulation\n");
+        //printf("2K formulation\n");
         assemble_volumes2K(*K, L, *q, *v, *mat_par, *simu, *t, p);
 
         if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
