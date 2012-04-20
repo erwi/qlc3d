@@ -4,12 +4,12 @@
 #include <iostream>
 #include <stdlib.h>
 
-const char* LC::FORMULATION_2K_STRING = "elastic2k";
-const char* LC::FORMULATION_3K_STRING = "elastic3k";
+const char* LC::FORMULATION_NEMATIC_STRING = "nematic";
+const char* LC::FORMULATION_BLUEPHASE_STRING = "bluephase";
 
 LC::LC()
 {
-    PhysicsFormulation = K3; // USE MORI'S 3K FORMULATION BY DEFAULT
+    PhysicsFormulation = Nematic; // USE MORI'S 3K FORMULATION BY DEFAULT
     //printf("===========================================\n");
 	A =  0.0;
 	B = -0.3e6;
@@ -143,14 +143,14 @@ void LC::setFormulation( std::string& f)
     // MAKE LOWERCASE
     std::transform(f.begin(), f.end(), f.begin(), std::ptr_fun<int, int>(std::tolower));
 
-    if (f.compare(FORMULATION_2K_STRING) == 0 )
+    if (f.compare(FORMULATION_NEMATIC_STRING) == 0 )
     {
-        this->PhysicsFormulation = K2;
+        this->PhysicsFormulation = Nematic;
 
     }
-    else if (f.compare(FORMULATION_3K_STRING) == 0 )
+    else if (f.compare(FORMULATION_BLUEPHASE_STRING) == 0 )
     {
-        this->PhysicsFormulation = K3;
+        this->PhysicsFormulation = BluePhase;
     }
     else
     {

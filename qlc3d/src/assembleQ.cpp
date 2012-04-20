@@ -256,40 +256,19 @@ inline void localKL(double* p,Mesh* t,
 
         const double mul=shapes.w[igp]*Jdet;
         const double R=q1*q1+q2*q2+q3*q3+q5*q5+q4*q4; // frequently reoccurring term
-        const double D2 = 0.5;
-        const double D3 = 0.33333333333333333333333333333;
-        const double D6 = 0.16666666666666666666666666667;
+        //const double D2 = 0.5;
+        //const double D3 = 0.33333333333333333333333333333;
+        //const double D6 = 0.16666666666666666666666666667;
 
 
         // BULK RHS TERMS
-        {
-            double T;
-            // Q1
-            T = RHS_THERMO1; //(A*q1    +   D3*0.5*B*(q5*q5*rt6*0.5    -   q3*q3*rt6   -   rt6*q2*q2   +   q1*q1*rt6   +   q4*q4*rt6*0.5)  +   C*R*q1);
-            T += rt6*(Vx*Vx + Vy*Vy-2.0*Vz*Vz)*deleps*D3*D6*eps0;
-            ADD_RHS_BULK_TERMS(0,T);
+        double L[5] = {0,0,0,0,0};
+        RHS_THERMOTROPIC(L);
+        RHS_DIELECTRIC(L);
+        ADD_RHS_BULK_TERMS(lL,L);
 
-            // Q2
-            T = RHS_THERMO2;//(A*q2    +   D3*B*(0.75*q5*q5*rt2    -   q1*rt6*q2   -   0.75*q4*q4*rt2)   +   C*R*q2);
-            T += -rt2*(Vx*Vx - Vy*Vy)*deleps*D6*eps0;
-            ADD_RHS_BULK_TERMS(4,T);
-
-            // Q3
-            T = RHS_THERMO3;//(A*q3    +   D3*B*(-q3*q1*rt6   +   1.5*rt2*q5*q4 )     +   C*R*q3);
-            T += -rt2*Vx*Vy*deleps*D3*eps0;
-            ADD_RHS_BULK_TERMS(8,T);
-
-            // Q4
-            T = RHS_THERMO4; //(A*q4    +   D3*0.5*B*(3.0*q3*rt2*q5    +   q4*q1*rt6   -   3.0*q4*q2*rt2)   +   C*R*q4);
-            T += -rt2*Vz*Vy*deleps*D3*eps0;
-            ADD_RHS_BULK_TERMS(12,T);
-
-            // Q5
-            T = RHS_THERMO5;//(A*q5    +   D3*0.5*B*(q5*q1*rt6    +   3.0*q5*q2*rt2   +   3.0*q3*rt2*q4)   +   C*R*q5);
-            T += -rt2*Vx*Vz*deleps*D3*eps0;
-            ADD_RHS_BULK_TERMS(16,T);
-        } // END BULK RHS TERMS
-
+        MATRIX_THERMOTROPIC(lK);
+        /*
         // BULK THERMOTROPIC MATRIX TERMS
         {
             double Th;
@@ -339,7 +318,7 @@ inline void localKL(double* p,Mesh* t,
             Th = MATRIX_THERMO55;//(A  +   B*(q1*rt6+3.0*q2*rt2)*D6    +   2.0*C*q5*q5+C*R); // T55
             THERMOdiag(16,Th);
         }// END BULK THERMO SCOPE
-
+*/
         for (int i=0;i<4;++i) // matrix rows
         {
             const double ShRx=mul*dSh[i][0];//including weight and jacobian in trial function
@@ -380,10 +359,12 @@ inline void localKL(double* p,Mesh* t,
             }
             if (three_elastic_constants)
             {
-
+                const double D2 = 0.5;\
+                const double D3 = 0.33333333333333333333333333333;\
+                const double D6 = 0.16666666666666666666666666667;\
                 double temp(0);
-                double D4 = 0.25;
-                double rt23 = rt2*rt3;
+                const double D4 = 0.25;
+                const double rt23 = rt2*rt3;
                 //L2 and L6 q1 terms
                 temp = (ShRx*q1x*D6-ShRx*rt3*q2x*D6-ShRx*rt3*q3y*D6-ShRx*rt3*q5z*D6-ShRy*q3x*rt3*D6+ShRy*q1y*D6+ShRy*rt3*q2y*D6-ShRy*rt3*q4z*D6+ShRz*q5x*rt3*D3+ShRz*q4y*rt3*D3+2.0*D3*ShRz*q1z)	*L2;
                 // L6 q1 term
@@ -459,7 +440,9 @@ inline void localKL(double* p,Mesh* t,
                     double temp(0);
                     const double rt2L = rt2;
                     const double rt23 = rt2*rt3;
-
+                    const double D2 = 0.5;\
+                    const double D3 = 0.33333333333333333333333333333;\
+                    const double D6 = 0.16666666666666666666666666667;\
                     // dlL[0]/dq1 -> dlL[0]/dq5 L2 and L6 terms
                     temp =  (ShRx*ShCx*D6+ShRy*ShCy*D6+2.0*D3*ShRz*ShCz)*L2;
                     temp += (-ShC*ShRx*q1x*rt23*D6-ShC*ShRy*q1y*rt23*D6+ShC*ShRz*rt23*q1z*D3-ShCx*ShRx*q1*rt23*D6+ShCx*ShRy*q3*rt2L/2.0+ShCx*ShRz*q5*rt2L*D2-ShCx*ShR*rt23*q1x*D6+ShCx*ShRx*q2*rt2L*D2-ShCy*ShRy*q1*rt23*D6+ShCy*ShRz*q4*rt2L*D2-ShCy*ShR*rt23*q1y*D6+ShCy*ShRx*q3*rt2L*D2-ShCy*ShRy*q2*rt2L*D2+ShCz*ShRz*q1*rt23*D3+ShCz*ShRx*q5*rt2L*D2+ShCz*ShRy*q4*rt2L*D2+ShCz*ShR*rt23*q1z*D3)*L6;
@@ -659,11 +642,11 @@ void localKL_NQ(
     }//end for i
 
     for (int igp=0; igp<ngps; igp++) {
-        double Sh[4];
-        Sh[0] = sh1[igp][0];
-        Sh[1] = sh1[igp][1];
-        Sh[2] = sh1[igp][2];
-        Sh[3] = sh1[igp][3];
+        //double Sh[4];
+        //Sh[0] = sh1[igp][0];
+        //Sh[1] = sh1[igp][1];
+        //Sh[2] = sh1[igp][2];
+        //Sh[3] = sh1[igp][3];
 
         double Vx=0,Vy=0,Vz=0;
         for(i=0;i<4;i++){
@@ -1037,7 +1020,7 @@ void assembleQ(
     efe2 = (4.0/S0/9.0)*(mat_par->e11 - mat_par->e33);
 
     // SELECT MORI'S FORMULATION
-    if (mat_par->PhysicsFormulation == LC::K3 )
+    if (mat_par->PhysicsFormulation == LC::Nematic )
     {
         assemble_volumes(K, L, q,  v, t, p, mat_par, simu, settings);
 
@@ -1048,7 +1031,7 @@ void assembleQ(
             assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
     }
     // USE WRIGHT'S 2K FORMULATION
-    else if (mat_par->PhysicsFormulation == LC::K2 )
+    else if (mat_par->PhysicsFormulation == LC::BluePhase )
     {
         //printf("2K formulation\n");
         assemble_volumes2K(*K, L, *q, *v, *mat_par, *simu, *t, p);
@@ -1180,27 +1163,11 @@ inline void assemble_local_prev_volumes(   double lL[20],
         const double R=q1*q1+q2*q2+q3*q3+q5*q5+q4*q4; // frequently reoccurring term
         const double mul=shapes.w[igp]*Jdet;
 
-        double T1,T2,T3,T4,T5;
-
-        T1 = ((A*q1+B*(q5*q5*rt6/4.0-q3*q3*rt6/2.0-rt6*q2*q2/2.0+q1*q1*rt6/2.0+q4*q4*rt6/4.0)/3.0)+C*R*q1);
-        T1 += rt6*(Vx*Vx + Vy*Vy-2.0*Vz*Vz)*deleps/18.0*eps0;
-        ADD_RHS_BULK_TERMS(0, T1);
-
-        T2 =(A*q2+B*(3.0/4.0*q5*q5*rt2-q1*rt6*q2-3.0/4.0*q4*q4*rt2)/3.0+C*R*q2);
-        T2 += -rt2*(Vx*Vx - Vy*Vy)*deleps/6.0*eps0;
-        ADD_RHS_BULK_TERMS(4,T2);
-
-        T3 =(A*q3+B*(-q3*q1*rt6+3.0/2.0*rt2*q5*q4)/3.0+C*R*q3);
-        T3 += -rt2*Vx*Vy*deleps/3.0*eps0;
-        ADD_RHS_BULK_TERMS(8,T3);
-
-        T4 =(A*q4+B*(3.0/2.0*q3*rt2*q5+q4*q1*rt6/2.0-3.0/2.0*q4*q2*rt2)/3.0+C*R*q4);
-        T4 += -rt2*Vz*Vy*deleps/3.0*eps0;
-        ADD_RHS_BULK_TERMS(12,T4);
-
-        T5 =(A*q5+B*(q5*q1*rt6/2.0+3.0/2.0*q5*q2*rt2+3.0/2.0*q3*rt2*q4)/3.0+C*R*q5);
-        T5 += -rt2*Vx*Vz*deleps/3.0*eps0;
-        ADD_RHS_BULK_TERMS(16,T4);
+        // BULK RHS TERMS
+        double L[5] = {0,0,0,0,0};
+        RHS_THERMOTROPIC(L);
+        RHS_DIELECTRIC(L);
+        ADD_RHS_BULK_TERMS(lL,L);
 
 
         double Lflexo1, Lflexo2, Lflexo3, Lflexo4, Lflexo5;
@@ -1322,9 +1289,6 @@ inline void assemble_local_prev_volumes(   double lL[20],
 void assemble_prev_rhs(double* Ln,
                        SolutionVector& qn,
                        SolutionVector& v,
-                       //Mesh& t,
-                       //Mesh& e,
-                       //double* p ,
                        LC& mat_par,
                        Simu& simu,
                        Geometry& geom

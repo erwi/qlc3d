@@ -8,11 +8,11 @@ class LC
 {
 	public:
     // SELECTS WHICH FORMULATION IS USED
-    enum Formulation {K3 ,  // MORI'S 3K ELASTIC FORMULATION
-                      K2};  // 2K FORMULATION FROM WRIGHT(?) BLUE PHASE PAPER
+    enum Formulation {Nematic ,  // MORI'S 3K ELASTIC FORMULATION
+                      BluePhase};  // 2K FORMULATION FROM WRIGHT(?) BLUE PHASE PAPER
     Formulation PhysicsFormulation;
-    const static char* FORMULATION_3K_STRING;
-    const static char* FORMULATION_2K_STRING;
+    const static char* FORMULATION_NEMATIC_STRING;
+    const static char* FORMULATION_BLUEPHASE_STRING;
 
 	// elastic coefficients
 	double K11, K22, K33;

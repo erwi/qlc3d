@@ -61,25 +61,25 @@ inline void localKL_2K( double* p,                      // COORINDATES
     for (int i = 0 ; i < 4 ; i++)
     {
         dSh[i][0]=shapes.sh1r[0][i]*Jinv[0][0]      // X-DERIVATIVES
-                    + shapes.sh1s[0][i]*Jinv[1][0]
-                    + shapes.sh1t[0][i]*Jinv[2][0];
+                + shapes.sh1s[0][i]*Jinv[1][0]
+                + shapes.sh1t[0][i]*Jinv[2][0];
 
         dSh[i][1]=shapes.sh1r[0][i]*Jinv[0][1]      // Y
-                    + shapes.sh1s[0][i]*Jinv[1][1]
-                    + shapes.sh1t[0][i]*Jinv[2][1];
+                + shapes.sh1s[0][i]*Jinv[1][1]
+                + shapes.sh1t[0][i]*Jinv[2][1];
 
         dSh[i][2]=shapes.sh1r[0][i]*Jinv[0][2]      // Z
-                    + shapes.sh1s[0][i]*Jinv[1][2]
-                    + shapes.sh1t[0][i]*Jinv[2][2];
+                + shapes.sh1s[0][i]*Jinv[1][2]
+                + shapes.sh1t[0][i]*Jinv[2][2];
     }
 
     // CREATE CACHED COPIES OF VARIABLES Q AND V
     const double vars[6*4] = {q.getValue(tt[0],0)  , q.getValue(tt[0],1), q.getValue(tt[0],2), q.getValue(tt[0],3), q.getValue(tt[0],4),
-                                q.getValue(tt[1],0), q.getValue(tt[1],1), q.getValue(tt[1],2), q.getValue(tt[1],3), q.getValue(tt[1],4),
-                                q.getValue(tt[2],0), q.getValue(tt[2],1), q.getValue(tt[2],2), q.getValue(tt[2],3), q.getValue(tt[2],4),
-                                q.getValue(tt[3],0), q.getValue(tt[3],1), q.getValue(tt[3],2), q.getValue(tt[3],3), q.getValue(tt[3],4),
-                                v.getValue(tt[0])  , v.getValue(tt[1])  , v.getValue(tt[2])  , v.getValue(tt[3]   , 0.0                )
-                        };
+                              q.getValue(tt[1],0), q.getValue(tt[1],1), q.getValue(tt[1],2), q.getValue(tt[1],3), q.getValue(tt[1],4),
+                              q.getValue(tt[2],0), q.getValue(tt[2],1), q.getValue(tt[2],2), q.getValue(tt[2],3), q.getValue(tt[2],4),
+                              q.getValue(tt[3],0), q.getValue(tt[3],1), q.getValue(tt[3],2), q.getValue(tt[3],3), q.getValue(tt[3],4),
+                              v.getValue(tt[0])  , v.getValue(tt[1])  , v.getValue(tt[2])  , v.getValue(tt[3]   , 0.0                )
+                             };
 
 
     const double A = mat_par.A;
@@ -87,15 +87,15 @@ inline void localKL_2K( double* p,                      // COORINDATES
     const double C = mat_par.C;
     const double rt6 = sqrt(6.0);
     const double rt2 = sqrt(2.0);
-    const double deleps = 0.0;
-    const double eps0 = 0.0;
+    const double deleps = mat_par.eps_par - mat_par.eps_per;
+
     double q0(0);
     if (mat_par.p0 != 0.0 )
-        {q0 = -2*PI/mat_par.p0;} // '-' SIGN RESULTS IN LEFT HADED CHEIRALITY FOR p0 > 0
+    {q0 = -2*PI/mat_par.p0;} // '-' SIGN RESULTS IN LEFT HADED CHEIRALITY FOR p0 > 0
 
     const double K1 = mat_par.K11;
-    const double K2 = mat_par.K22;
-    const double L1 = mat_par.L1;
+    //const double K2 = mat_par.K22;
+    //const double L1 = mat_par.L1;
     // FOR EACH GAUSS POINT
     for (unsigned int igp = 0 ; igp < shapes.ngp; ++igp)
     {
@@ -111,7 +111,7 @@ inline void localKL_2K( double* p,                      // COORINDATES
         double Vx(0),  Vy(0) , Vz(0);
         for(int i=0;i<4;++i)
         {
-            #define IND(i,j) 5*(i) + (j)
+#define IND(i,j) 5*(i) + (j)
             q1+=Sh[i]*vars[IND(i,0)];// OPTIMIZE BY PREFETCHING Q AND V TO LOCAL BUFFER AT START OF FUNCTION
             q2+=Sh[i]*vars[IND(i,1)];
             q3+=Sh[i]*vars[IND(i,2)];
@@ -140,40 +140,48 @@ inline void localKL_2K( double* p,                      // COORINDATES
             Vy+=dSh[i][1]*vars[20+i];
             Vz+=dSh[i][2]*vars[20+i];
         }//end for i
-       // printf("haa %u\n",igp);
+        // printf("haa %u\n",igp);
         const double mul=shapes.w[igp]*Jdet;
         const double R=q1*q1+q2*q2+q3*q3+q5*q5+q4*q4; // frequently reoccurring term
-        const double D2 = 0.5;
-        const double D3 = 0.33333333333333333333333333333;
-        const double D6 = 0.16666666666666666666666666667;
+        //const double D2 = 0.5;
+        //const double D3 = 0.33333333333333333333333333333;
+        //const double D6 = 0.16666666666666666666666666667;
 
+        double L[5] = {0,0,0,0,0};
+        RHS_THERMOTROPIC(L);
+        RHS_DIELECTRIC(L);
+        ADD_RHS_BULK_TERMS(lL,L);
+        MATRIX_THERMOTROPIC(lK);
+
+        /*
         // BULK RHS TERMS
         {
 
             double T;
             // Q1
             T = RHS_THERMO1;
-            ADD_RHS_BULK_TERMS(0,T);
+            //ADD_RHS_BULK_TERMS(0,T);
 
             // Q2
             T = RHS_THERMO2;
-            ADD_RHS_BULK_TERMS(4,T);
+            //ADD_RHS_BULK_TERMS(4,T);
 
             // Q3
             T = RHS_THERMO3;
-            ADD_RHS_BULK_TERMS(8,T);
+            //ADD_RHS_BULK_TERMS(8,T);
 
             // Q4
             T = RHS_THERMO4;
-            ADD_RHS_BULK_TERMS(12,T);
+            //ADD_RHS_BULK_TERMS(12,T);
 
             // Q5
             T = RHS_THERMO5;
-            ADD_RHS_BULK_TERMS(16,T);
+            //ADD_RHS_BULK_TERMS(16,T);
 
         } // END BULK RHS TERMS
         // BULK THERMOTROPIC MATRIX TERMS
-        //*
+*/
+        /*
         {
             double Th;
 
@@ -290,8 +298,8 @@ inline void localKL_2K( double* p,                      // COORINDATES
         }
     }//if(dt!=0)
 
-//*/
-   // printf("elem %u done\n", it);
+    //*/
+    // printf("elem %u done\n", it);
 }
 
 void assemble_volumes2K(SparseMatrix& K,
@@ -409,25 +417,25 @@ void assemble_volumes2K_previous(double lL[20],
     for (int i = 0 ; i < 4 ; i++)
     {
         dSh[i][0]=shapes.sh1r[0][i]*Jinv[0][0]      // X-DERIVATIVES
-                    + shapes.sh1s[0][i]*Jinv[1][0]
-                    + shapes.sh1t[0][i]*Jinv[2][0];
+                + shapes.sh1s[0][i]*Jinv[1][0]
+                + shapes.sh1t[0][i]*Jinv[2][0];
 
         dSh[i][1]=shapes.sh1r[0][i]*Jinv[0][1]      // Y
-                    + shapes.sh1s[0][i]*Jinv[1][1]
-                    + shapes.sh1t[0][i]*Jinv[2][1];
+                + shapes.sh1s[0][i]*Jinv[1][1]
+                + shapes.sh1t[0][i]*Jinv[2][1];
 
         dSh[i][2]=shapes.sh1r[0][i]*Jinv[0][2]      // Z
-                    + shapes.sh1s[0][i]*Jinv[1][2]
-                    + shapes.sh1t[0][i]*Jinv[2][2];
+                + shapes.sh1s[0][i]*Jinv[1][2]
+                + shapes.sh1t[0][i]*Jinv[2][2];
     }
 
     // CREATE CACHED COPIES OF VARIABLES Q AND V
     const double vars[6*4] = {q.getValue(tt[0],0)  , q.getValue(tt[0],1), q.getValue(tt[0],2), q.getValue(tt[0],3), q.getValue(tt[0],4),
-                                q.getValue(tt[1],0), q.getValue(tt[1],1), q.getValue(tt[1],2), q.getValue(tt[1],3), q.getValue(tt[1],4),
-                                q.getValue(tt[2],0), q.getValue(tt[2],1), q.getValue(tt[2],2), q.getValue(tt[2],3), q.getValue(tt[2],4),
-                                q.getValue(tt[3],0), q.getValue(tt[3],1), q.getValue(tt[3],2), q.getValue(tt[3],3), q.getValue(tt[3],4),
-                                v.getValue(tt[0])  , v.getValue(tt[1])  , v.getValue(tt[2])  , v.getValue(tt[3]   , 0.0                )
-                        };
+                              q.getValue(tt[1],0), q.getValue(tt[1],1), q.getValue(tt[1],2), q.getValue(tt[1],3), q.getValue(tt[1],4),
+                              q.getValue(tt[2],0), q.getValue(tt[2],1), q.getValue(tt[2],2), q.getValue(tt[2],3), q.getValue(tt[2],4),
+                              q.getValue(tt[3],0), q.getValue(tt[3],1), q.getValue(tt[3],2), q.getValue(tt[3],3), q.getValue(tt[3],4),
+                              v.getValue(tt[0])  , v.getValue(tt[1])  , v.getValue(tt[2])  , v.getValue(tt[3]   , 0.0                )
+                             };
 
 
     const double A = mat_par.A;
@@ -435,15 +443,15 @@ void assemble_volumes2K_previous(double lL[20],
     const double C = mat_par.C;
     const double rt6 = sqrt(6.0);
     const double rt2 = sqrt(2.0);
-    const double deleps = 0.0;
-    const double eps0 = 0.0;
+    const double deleps = mat_par.eps_par - mat_par.eps_per;
+
     double q0(0);
     if (mat_par.p0 != 0.0 )
-        {q0 = -2*PI/mat_par.p0;} // '-' SIGN RESULTS IN LEFT HANDED CHIRALITY FOR p0 > 0
+    {q0 = -2*PI/mat_par.p0;} // '-' SIGN RESULTS IN LEFT HANDED CHIRALITY FOR p0 > 0
 
     const double K1 = mat_par.K11;
-    const double K2 = mat_par.K22;
-    const double L1 = mat_par.L1;
+    //const double K2 = mat_par.K22;
+    //const double L1 = mat_par.L1;
 
     // FOR EACH GAUSS POINT
     for (unsigned int igp = 0 ; igp < shapes.ngp; ++igp)
@@ -460,7 +468,7 @@ void assemble_volumes2K_previous(double lL[20],
         double Vx(0),  Vy(0) , Vz(0);
         for(int i=0;i<4;++i)
         {
-            #define IND(i,j) 5*(i) + (j)
+#define IND(i,j) 5*(i) + (j)
             q1+=Sh[i]*vars[IND(i,0)];// OPTIMIZE BY PREFETCHING Q AND V TO LOCAL BUFFER AT START OF FUNCTION
             q2+=Sh[i]*vars[IND(i,1)];
             q3+=Sh[i]*vars[IND(i,2)];
@@ -489,39 +497,15 @@ void assemble_volumes2K_previous(double lL[20],
             Vy+=dSh[i][1]*vars[20+i];
             Vz+=dSh[i][2]*vars[20+i];
         }//end for i
-       // printf("haa %u\n",igp);
+        // printf("haa %u\n",igp);
         const double mul=shapes.w[igp]*Jdet;
         const double R=q1*q1+q2*q2+q3*q3+q5*q5+q4*q4; // frequently reoccurring term
-        const double D2 = 0.5;
-        const double D3 = 0.33333333333333333333333333333;
-        const double D6 = 0.16666666666666666666666666667;
 
         // BULK RHS TERMS
-        {
-
-            double T;
-            // Q1
-            T = RHS_THERMO1;
-            ADD_RHS_BULK_TERMS(0,T);
-
-            // Q2
-            T = RHS_THERMO2;
-            ADD_RHS_BULK_TERMS(4,T);
-
-            // Q3
-            T = RHS_THERMO3;
-            ADD_RHS_BULK_TERMS(8,T);
-
-            // Q4
-            T = RHS_THERMO4;
-            ADD_RHS_BULK_TERMS(12,T);
-
-            // Q5
-            T = RHS_THERMO5;
-            ADD_RHS_BULK_TERMS(16,T);
-
-        } // END BULK RHS TERMS
-
+        double L[5] = {0,0,0,0,0};
+        RHS_THERMOTROPIC(L);
+        RHS_DIELECTRIC(L);
+        ADD_RHS_BULK_TERMS(lL,L);
         // FOR ROWS i
         for (unsigned int i = 0 ; i < 4 ; ++i)
         {
@@ -533,26 +517,18 @@ void assemble_volumes2K_previous(double lL[20],
             RHS_ELASTIC_2K_FORMULATION(lL);   // CALCULATES AND ADDS TO RHS
             //RHS_ELASTIC_SINGLE_K(lL);
 
+
+
             // FOR COLUMNS j
             for (unsigned int j = 0 ; j < 4 ; ++j)
             {
-                const double ShCx=dSh[j][0];
-                const double ShCy=dSh[j][1];
-                const double ShCz=dSh[j][2];
-                const double ShC =Sh[j];
                 const double ShRC=ShR*Sh[j];
-
-                //MATRIX_ELASTIC_2K_FORMULATION(lK);
-
-
                 // LOCAL IDENTITY MATRIX, NEEDED FOR CRANK-NICHOLSON
                 lI[i   ][j   ]+=ShRC;
                 lI[i+4 ][j+4 ]+=ShRC;
                 lI[i+8 ][j+8 ]+=ShRC;
                 lI[i+12][j+12]+=ShRC;
                 lI[i+16][j+16]+=ShRC;
-
-
             }// END FOR COLUMNS j
 
         }// END FOR ROWS i
@@ -622,7 +598,7 @@ void assemble_prev_rhs_K2(double* Ln,
             ri = qn.getEquNode( ri );
             if (ri != NOT_AN_INDEX) // IF NOT FIXED
             {
-                #pragma omp atomic
+#pragma omp atomic
                 Ln[ri] += lL[i]*BIGNUM;
             }
         }//end for i

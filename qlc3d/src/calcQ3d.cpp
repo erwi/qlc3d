@@ -50,12 +50,12 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
             memset(RHS, 0, numCols*sizeof( double ) );
 
             // CHOOSE WHICH VERSION TO CALL DEPENDING ON FORMULATION USED
-            if (mat_par->PhysicsFormulation == LC::K3 )
+            if (mat_par->PhysicsFormulation == LC::Nematic )
             {
                 assemble_prev_rhs(RHS, *qn, *v, *mat_par, *simu, geom );
             }
             else
-            if (mat_par->PhysicsFormulation == LC::K2 )
+            if (mat_par->PhysicsFormulation == LC::BluePhase )
             {
                 assemble_prev_rhs_K2(RHS, *qn, *v, *mat_par, *simu, geom);
             }

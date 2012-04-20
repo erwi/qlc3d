@@ -125,7 +125,7 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
     double q0(0);           // CHIRALITY
     if (lc->p0 > 0.0)
         q0 = 2*pi/lc->p0 ;
-    if (formulation==LC::K2)    // CHANGE HANDEDNESS
+    if (formulation==LC::BluePhase)    // CHANGE HANDEDNESS
         q0*=-1.0;
 
     //printf("q0 = %e\n",q0);
@@ -237,7 +237,7 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
 
 
                 // IF 3 ELASTIC COEFFICIENTS
-                if (formulation == LC::K3 )
+                if (formulation == LC::Nematic )
                 {
                     // CALCULATE TWIST ENERGY: 1/2*K22(n.curl(n) - q0 )^2
                     // G4 = (9*S^2 / 4 )* n.curl(n)
@@ -263,7 +263,7 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
                     F22 += 0.5*lc->K22 * mul*F_twist;
                     F33 += 0.5*lc->K33 * mul*F_bend;
                 }
-                else if (formulation == LC::K2)
+                else if (formulation == LC::BluePhase)
                 {
                     // CALCULATE ELASTIC ENERGY FOR CHIRAL/BLUE PHASE LC
                     // USING ENERGY FROM WRIGTH & MERMIN, Rev. Mod. Phys. 61,2,1989
