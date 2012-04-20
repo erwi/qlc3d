@@ -57,15 +57,15 @@ void setRandomBox(Box* box, double* nx, double* ny, double* nz, double* p, int n
         if ((p[i*3+0] >= box->X[0]) && (p[i*3+0] <= box->X[1])) // If this node is inside the box
         if ((p[i*3+1] >= box->Y[0]) &&(p[i*3+1] <= box->Y[1]))
         if ((p[i*3+2] >= box->Z[0])&&(p[i*3+2] <= box->Z[1])){
-                double th = (double) rand(); // generate random director orientations
-                double ph = (double) rand();
+                //double th = (double) rand(); // generate random director orientations
+                //double ph = (double) rand();
 
 
-                double r1 = rand() % 10000;
-                double r2 = rand() % 10000;
-                double r3 = rand() % 10000;
+                double r1 =  (double) ( rand() % 10000 ) - 5000.0;
+                double r2 =  (double) ( rand() % 10000 ) - 5000.0;
+                double r3 =  (double) ( rand() % 10000 ) - 5000.0;
 
-                double len = r1*r1 + r2*r2 + r3*r3;
+                double len = sqrt(r1*r1 + r2*r2 + r3*r3);
 
                 nx[i] = r1 / len;
                 ny[i] = r2 / len;
