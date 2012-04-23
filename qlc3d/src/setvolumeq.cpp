@@ -18,8 +18,9 @@ void setNormalBox(  Box* box,
     double d_ph = -1*box->Twist[1] *PI/180.0;// delta twist
 
     double bHeight = box->Z[1]-box->Z[0]; // BOX HIGHT, USED FOR SCALING
-    d_th/= bHeight; // SCALE
-    d_ph/= bHeight;
+    // Twist, Tilt
+    double ph_bottom = box->Twist[0] * PI / 180.0;
+    double th_bottom = box->Tilt[0] * PI / 180.0;
 
     double power = box->Params[0];
 
@@ -35,10 +36,14 @@ void setNormalBox(  Box* box,
             {
                 if (( pz >= box->Z[0])&&( pz <= box->Z[1])) // Z
                 {
+                    // NORMALISE COORDINATE W.R.T BOX SIZE
+                    double pzn = ( pz - box->Z[0] ) / ( bHeight );
 
-                    // Twist, Tilt
-                    double  ph = box->Twist[0] * PI /180.0 + pow(p[i*3+2]*d_ph, power);
-                    double  th =  pow(( pz- box->Z[0] ) / (box->Z[1] - box->Z[0]), power ) * d_th  + box->Tilt[0]*PI/180.0;
+
+                    double ph = ph_bottom + pow( pzn * d_ph , power );
+                    double th = th_bottom + pow( pzn * d_th , power );
+                    //double  ph = box->Twist[0] * PI /180.0 + pow(p[i*3+2]*d_ph, power);
+                   // double  th =  pow(( pz- box->Z[0] ) / (box->Z[1] - box->Z[0]), power ) * d_th  + box->Tilt[0]*PI/180.0;
 
                     nx[i] = cos(th)*cos(ph); // sets director
                     ny[i] = sin(ph)*cos(th);
