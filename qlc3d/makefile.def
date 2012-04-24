@@ -42,13 +42,13 @@ INCLUDES 		= $(SPARSELIBINCS) $(QLC3D_INCS)
 CCCFLAGS =    '-DCOMPLEX=std::complex<double>'
 
 # THIS SET OF FLAGS (WITH -O3) RESULTED IN UNEXPLAINED RUNTIME CRASH. 
-#CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -fopenmp -funroll-loops 
+CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -fopenmp -funroll-loops 
 #CFLAGS = -g
 
 #-std=c++0x
 
 # BELOW FLAGS IS EQUIVALENT TO -O3, BUT TREE VECTORIZE IS DISABLED
-CFLAGS+= -Wall -Wextra -fopenmp -march=native -mtune=native -O3 -ffast-math -fno-tree-vectorize \
+#CFLAGS+= -Wall -Wextra -fopenmp -march=native -mtune=native -O3 -ffast-math -fno-tree-vectorize \
 		
 
 
