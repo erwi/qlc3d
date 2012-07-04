@@ -4,6 +4,7 @@
 const char* Simu::SF_LCVIEW = "LCview";
 const char* Simu::SF_REGULAR_VTK = "RegularVTK";
 const char* Simu::SF_REGULAR_VECTOR_MATLAB = "RegularVecMat";
+const char* Simu::SF_LCVIEW_TXT = "LCviewTXT";
 Simu::Simu():
 PotCons(Off),
     TargetPotCons(1e-3),
@@ -356,6 +357,7 @@ void Simu::addSaveFormat(std::string format)
     if ( !format.compare( SF_LCVIEW ) )
     {
         SaveFormat = SaveFormat | Simu::LCview;
+        OutputFormat = SIMU_OUTPUT_FORMAT_BINARY;
     }
     else
     if ( !format.compare( SF_REGULAR_VTK ) )
@@ -363,10 +365,16 @@ void Simu::addSaveFormat(std::string format)
         SaveFormat = SaveFormat | Simu::RegularVTK;
     }
     else
-        if ( !format.compare( SF_REGULAR_VECTOR_MATLAB) )
-        {
-            SaveFormat = SaveFormat | Simu::RegularVecMat;
-        }
+    if ( !format.compare( SF_REGULAR_VECTOR_MATLAB) )
+    {
+        SaveFormat = SaveFormat | Simu::RegularVecMat;
+    }
+    else
+    if ( !format.compare(SF_LCVIEW_TXT) )
+    {
+       SaveFormat = SaveFormat | Simu::LCview;
+       OutputFormat = SIMU_OUTPUT_FORMAT_TEXT;
+    }
     else
     {
         printf("error in %s, unknown SaveFormat:%s - bye!\n", __func__, format.c_str() );

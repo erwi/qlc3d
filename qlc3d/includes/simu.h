@@ -58,7 +58,7 @@ private:
     bool MeshModified;
     int MeshNumber;     // counts number of modifications. This number is appended to the end of mesh name
     int	OutputEnergy;	// boolean whether or not to calculate energy
-    int	OutputFormat;
+    int	OutputFormat;   // 0/1 -> binary/text (for SaveFormat = LCview)
     int	SaveIter;       // determines frequency of saving intermediate result files !! CAN THIS BE REMOVED FROM SIMU??
     size_t SaveFormat;  // bit field with different save formats
     size_t RegularGridSize[3];  // NUMBER OF NODES IN X,Y AND Z-DIRECTIONS
@@ -70,6 +70,7 @@ public:
     static const char* SF_LCVIEW;
     static const char* SF_REGULAR_VTK;
     static const char* SF_REGULAR_VECTOR_MATLAB;
+    static const char* SF_LCVIEW_TXT;
 
     string MeshName;
     double dt;
