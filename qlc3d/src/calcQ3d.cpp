@@ -57,6 +57,8 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
             else
             if (mat_par->PhysicsFormulation == LC::BluePhase )
             {
+                printf(" BLE PAHSE FORMULATION DISABLED IN %s\n",__func__);
+                exit(1);
                 assemble_prev_rhs_K2(RHS, *qn, *v, *mat_par, *simu, geom);
             }
         }

@@ -825,9 +825,9 @@ void assemble_volumes(
         double lK[20][20]; 	// local element matrix
         double lL[20];		// local RHS vector
 
-
+       // printf("LOCALKL");
         localKL(p,t,it,q,v,lK,lL,mat_par, simu, shapes);
-
+       // printf("OK\n");
         // ADD LOCAL MATRIX TO GLOBAL MATRIX
         for (int i=0;i<20;i++)  // LOOP OVER ROWS
         {
@@ -1019,6 +1019,9 @@ void assembleQ(
     efe  = (2.0/S0/3.0)*(mat_par->e11+2*mat_par->e33);
     efe2 = (4.0/S0/9.0)*(mat_par->e11 - mat_par->e33);
 
+
+
+
     // SELECT MORI'S FORMULATION
     if (mat_par->PhysicsFormulation == LC::Nematic )
     {
@@ -1033,7 +1036,10 @@ void assembleQ(
     // USE WRIGHT'S 2K FORMULATION
     else if (mat_par->PhysicsFormulation == LC::BluePhase )
     {
+        printf("BLUE PHASE FORMULATION DISBLED\n");
+        exit( 1 );
         //printf("2K formulation\n");
+
         assemble_volumes2K(*K, L, *q, *v, *mat_par, *simu, *t, p);
 
         if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
@@ -1328,11 +1334,11 @@ void assemble_prev_rhs(double* Ln,
                                         t , p , it,
                                         mat_par , simu,
                                         shapes);
-            printf("elem %u\n", it);
-            for (int i = 0 ; i < 20 ; i++)
-            {
-                printf("lL[%i] = %e\n", i, lL[i]);
-            }
+          //  printf("elem %u\n", it);
+          //  for (int i = 0 ; i < 20 ; i++)
+          //  {
+          //      printf("lL[%i] = %e\n", i, lL[i]);
+          //  }
 
             // ADD LOCAL MATRIX TO GLOBAL MATRIX
             for (unsigned int i=0;i<20;i++)

@@ -131,8 +131,9 @@ double updateSolutions(SolutionVector& v, SolutionVector& q , SolutionVector& qn
     //    isPotCons = false; // turn of consisteny loop
     calcpot3d(Kpot,&v, &q, &lc, geom1, &settings, &electrodes);
 
+    printf("Q");
     maxdq = calcQ3d(&q,&qn,&v,geom1,&lc, &simu, Kq, &settings, &alignment );
-
+    printf("OK\n");
     return maxdq;
 
 }
@@ -150,6 +151,7 @@ int main(int argc, char* argv[]){
     printf("= E. J. Willman, R. L. James, S. E. Day, F. A. Fernandez    =\n");
     printf("=============================================================\n");
     printf("\n\n\n");
+
 
 
 //*
