@@ -32,6 +32,6 @@
 		
 	# GMRES potential solver settings	
 	V_GMRES_Preconditioner	= 2;		# 0 = Diagonal, 1 = Incomplete Cholesky, 2 = Incoplete LU
-	V_GMRES_Maxiter			= 2000;
-	V_GMRES_Restart			= 50;
+	V_GMRES_Maxiter			= 4000;
+	V_GMRES_Restart			= 100;
 	V_GMRES_Toler			= 1e-6;

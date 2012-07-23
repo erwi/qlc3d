@@ -654,10 +654,22 @@ void readElectrodes(Electrodes* electrodes,
         }
     }
 
+    // READ DIELECTRIC PERMITTIVITIES
+
+    name = "eps_dielectric";
+    std::vector<double> eps_temp;
+    int ret = reader.readNumberArray(name, eps_temp );
+    problem_format(name, ret );
+    if ( ret == READER_SUCCESS )
+    {
+        electrodes->eps_dielectric = eps_temp;
+    }
+
+
     // READ UNIFORM ELECTRIC FIELD
     std::vector<double> Efield;
     name = "EField";
-    int ret = reader.readNumberArray(name, Efield);
+    ret = reader.readNumberArray(name, Efield);
     problem_format( name , ret);
     if ( ( ret == READER_SUCCESS ) &&
          ( Efield.size() == 3 ) )
