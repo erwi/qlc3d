@@ -398,25 +398,35 @@ void localKL_N(
         eper   = lc->eps_per / S0;
         deleps = (lc->eps_par - lc->eps_per) / S0;
     }
+    else
+    {
+        printf("NON LC NEUMANN\n"); // THIS SHOULD NEVER HAPPEN
+    }
     memset(lK,0,npt*npt*sizeof(double));
     memset(lL,0,4*sizeof(double));
     double n[3];
 
     surf_mesh->CopySurfaceNormal(it,n);
-    if ( n[0]*n[0] + n[1]*n[1] + n[2]*n[2]  < 0.1 )
+
+#ifdef DEBUG
+    if ( abs(n[0]*n[0] + n[1]*n[1] + n[2]*n[2] -1.0 ) > 0.01 )
     {
-        printf("zero normal in neumann tri %i ", it);
+        printf("bad triangle normal in neumann tri %i ", it);
         exit(1);
     }
-
+#endif
     double eDet = surf_mesh->getDeterminant(it);
     double Jdet = mesh->getDeterminant(index_to_Neumann);
 
+#ifdef DEBUG
+    if (eDet <= 0 )
+        printf("ZERO EDET\n");
+    if (Jdet <= 0 )
+        printf("ZERO JDET\n");
+#endif
+
     double xr,xs,xt,yr,ys,yt,zr,zs,zt;
     xr=xs=xt=yr=ys=yt=zr=zs=zt=0.0;
-
-
-
 
     for (i=0; i<4; i++){
         xr+=shapes.sh1r[0][i]*p[ tt[i] *3+0]*1e-6; //  <- tt is reordered volume element

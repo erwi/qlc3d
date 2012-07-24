@@ -23,10 +23,10 @@ class ShapeSurf4thOrder{
 public:
     const unsigned int ngps;
     double w[NGPS4];
-    double sh1[NGPS4][3];
-    double sh1r[NGPS4][3];
-    double sh1s[NGPS4][3];
-    double sh1t[NGPS4][3];
+    double sh1[NGPS4][4];
+    double sh1r[NGPS4][4];
+    double sh1s[NGPS4][4];
+    double sh1t[NGPS4][4];
 
     ShapeSurf4thOrder():
         ngps(NGPS4)
@@ -44,21 +44,22 @@ public:
             sh1[i][0]=1-SurfaceShapes::gps4[i][0]-SurfaceShapes::gps4[i][1];
             sh1[i][1]=SurfaceShapes::gps4[i][0];
             sh1[i][2]=SurfaceShapes::gps4[i][1];
-
+            sh1[i][3]= 0;
             // P1 Shape functions r-derivatives
             sh1r[i][0]=-1;
             sh1r[i][1]=1;
             sh1r[i][2]=0;
-
+            sh1r[i][3]=0;
             // P1 Shape functions s-derivatives
             sh1s[i][0]=-1;
             sh1s[i][1]=0;
             sh1s[i][2]=1;
-
+            sh1s[i][3]=0;
             //P1 Shape functions t-derivatives
             sh1t[i][0]=-1;
             sh1t[i][1]=0;
             sh1t[i][2]=0;
+            sh1t[i][3]=1;
 
         }
     }
