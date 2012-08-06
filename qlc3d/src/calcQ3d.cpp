@@ -57,8 +57,8 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
             else
             if (mat_par->PhysicsFormulation == LC::BluePhase )
             {
-                printf(" BLE PAHSE FORMULATION DISABLED IN %s\n",__func__);
-                exit(1);
+                //printf(" BLUE PAHSE FORMULATION DISABLED IN %s\n",__func__);
+                //exit(1);
                 assemble_prev_rhs_K2(RHS, *qn, *v, *mat_par, *simu, geom);
             }
         }
@@ -86,9 +86,9 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 
         if (simu->getdt() > 0) // make Non-linear Crank-Nicholson RHS
         {
-            //#ifndef DEBUG
-            //#pragma omp parallel for
-            //#endif
+            #ifndef DEBUG
+            #pragma omp parallel for
+            #endif
             for (size_t i = 0 ; i < numCols ; i++)
                 L[i] += RHS[i];
         }

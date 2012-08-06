@@ -41,7 +41,7 @@ public:
     inline idx getNode(const idx e, const idx n)const	// returns node n of element e
     {
 	#ifdef DEBUG
-	if ( (e<0) || (e>=nElements) || (n < 0) || (n >= nNodes))
+    if ( (e>=nElements) || (n >= nNodes))
 	{
 	    printf("error - Mesh::getNode(int,int) - index to node out of bounds, bye! ");
             printf("requested elem %u, node %u\n", e, n);

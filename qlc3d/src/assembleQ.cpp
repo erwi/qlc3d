@@ -1036,9 +1036,9 @@ void assembleQ(
     // USE WRIGHT'S 2K FORMULATION
     else if (mat_par->PhysicsFormulation == LC::BluePhase )
     {
-        printf("BLUE PHASE FORMULATION DISBLED\n");
-        exit( 1 );
-        //printf("2K formulation\n");
+        //printf("BLUE PHASE FORMULATION DISBLED\n");
+        //exit( 1 );
+        printf("2K formulation\n");
 
         assemble_volumes2K(*K, L, *q, *v, *mat_par, *simu, *t, p);
 

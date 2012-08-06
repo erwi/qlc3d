@@ -10,9 +10,11 @@
 #include <mesh.h>
 #include <geometry.h>
 #include <globals.h>
+#include <assert.h>
 using std::vector;
 using std::list;
-
+using std::cout;
+using std::endl;
 
 namespace SolutionVectorNameSpace
 {
@@ -86,8 +88,7 @@ public:
     inline idx getEquNode(const idx n) const// returns equivalent node to n (for periodic surfaces etc.)
     {
 #ifdef DEBUG
-        if (n>=nDoF*nDimensions)
-        {printf("error - SolutionVector::getEquNode(idx n) - j = %u is too big!! - bye\n",n);exit(1);}
+assert(n< getnDoF()*getnDimensions());
 #endif
         if (Elim)
             return Elim[n];
@@ -98,8 +99,7 @@ public:
     inline double getValue(const idx n) const // gets the nth value
     {
 #ifdef DEBUG
-        if ((n < 0 )  && (n >= getnDoF()) )
-        {	printf("error - SolutionVector::getValue(int n) - when trying to access n = %i, bye!",n);	exit(1);}
+assert( n<getnDoF() );
 #endif
         return Values[n];
     }
@@ -108,8 +108,8 @@ public:
     inline double getValue(size_t n , size_t dim) const // gets the nth value of dimension dim;
     {
 #ifdef DEBUG
-        if ((n < 0 )  && (n >= getnDoF()) && (dim < 0 ) && ( dim >= getnDimensions() ) )
-        {printf("error - SolutionVector::getValue(int n, int dim) - when trying to access n = %i, dim = %i, bye!",n,dim);exit(1);}
+        assert(n<getnDoF() );
+        assert(dim<getnDimensions());
 #endif
         return Values[n + dim*nDoF];
     }
@@ -157,13 +157,8 @@ public:
     inline bool getIsFixed(const size_t i)
     {
 #ifdef DEBUG
-        if (i > this->getnDoF()*this->getnDimensions() )
-        {
-            printf("error in %s, %i is too large, total nDoF = %i bye!\n",__func__, i, this->getnDoF()*this->getnDimensions());
-            exit(1);
-        }
+assert(i < getnDoF()*getnDimensions() );
 #endif
-
         return IsFixed[i];
     }
     bool test();

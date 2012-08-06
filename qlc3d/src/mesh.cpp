@@ -73,16 +73,8 @@ void Mesh::AllocateMemory()
 idx Mesh::getMaterialNumber(const idx e) const
 {
 #ifdef DEBUG
-    if (Mat == NULL)	{
-        printf("error - Mesh::getMaterialNumber - trying to acces NULL pointer, bye!\n");
-        exit(1);
-    }
-    if ( (e<0) || (e>=nElements))
-    {
-        printf("error - Mesh::getMaterialNumber - index out of bounds, bye!\n");
-        printf("trying to access material[%i], when nElements is %i\n", e, getnElements() );
-        exit(1);
-    }
+    assert(Mat);
+    assert(e<nElements);
 #endif
     return Mat[e];
 }
@@ -98,16 +90,8 @@ double Mesh::getDeterminant(const idx i) const
 {
     // RETURNS THE PRE-CALCULATED DETERMINANT FOR ELEMENT i
 #ifdef DEBUG
-    if (Determinant == NULL)
-    {
-        printf("error - Mesh::getDeterminant - Determinants not initialised, bye!");
-        exit(1);
-    }
-    if ((i<0) ||  (i > nElements))
-    {
-        printf("error - Mesh::getDeterminant - index out of bounds, bye!");
-        exit(1);
-    }
+    assert(Determinant);
+    assert(i<nElements);
 #endif
     return Determinant[i];
 }
@@ -117,21 +101,9 @@ idx Mesh::getConnectedVolume(const idx e) const
 {
     // RETURNS INDEX TO CONNECTED LC TETRAHEDRON, WHEN e IS INDEX TO A TRIANGLE
 #ifdef DEBUG
-    if ( ConnectedVolume == NULL)
-    {
-        printf("error - Mesh::getConnectedVolume - NULL pointer - bye!\n");
-        exit(1);
-    }
-    if ( ( e > getnElements() ) || (e < 0) )
-    {
-        printf("error - Mesh::getConnectedVolume(int e) - e = %i - bye!\n",e);
-        exit(1);
-    }
-    if (getDimension() != 2)
-    {
-        printf("error - Mesh::getConnectedVolume(int e) only works for surface meshes... sorry - bye\n");
-        exit(1);
-    }
+    assert(ConnectedVolume);
+    assert(e<getnElements() );
+    assert(getDimension() == 3);
 #endif
     return ConnectedVolume[e];
 }
@@ -160,13 +132,8 @@ double* Mesh::getPtrToSurfaceNormal(const idx e)const
 void Mesh::setDeterminant(const idx i, double det)
 {
 #ifdef DEBUG
-    if (Determinant == NULL)
-    {
-        printf("error - Mesh::setDeterminant - Determinants not initialised, bye!");
-        exit(1);
-    }
+    assert(Determinant);
     // ADD CHECKING OF i TOO LARGE OR SMALL
-
 #endif
     Determinant[i] = det;
 }
@@ -199,11 +166,7 @@ void Mesh::setAllNodes(idx *nodes) // copies all values from array nodes to this
 void Mesh::setAllMaterials(idx *mat)
 {
 #ifdef DEBUG
-    if (!Mat)
-    {
-        std::cout<< "error in" << __func__ <<", mesh not initialised - bye!"<< std::endl;
-        exit(1);
-    }
+    assert(Mat);
 #endif
     memcpy( Mat, mat, nElements*sizeof(idx) );
 }// end void SetAllMaterials
@@ -906,14 +869,9 @@ void Mesh::FindIndexToMaterialNodes(idx mat_num, vector<idx> *index) const
 void Mesh::CopySurfaceNormal(idx i, double* norm)
 {
 #ifdef DEBUG
-    if ( (i >= nElements) || (i < 0) || (SurfaceNormal==NULL) || (Dimension != 2))
-    {
-        printf("error - Mesh::CopySurfaceNormal(int, double*) - bad, bye!\n");
-        printf("i = %i, nElements = %i, Dimension = %i",i,nElements,Dimension);
-
-        if (SurfaceNormal == NULL)printf(" SurfaceNormal is unfortunately NULL!\n");
-        exit(1);
-    }
+    assert(i<nElements);
+    assert(SurfaceNormal);
+    assert(Dimension == 3);
 #endif
 
     norm[0] = SurfaceNormal[i*3+0];
