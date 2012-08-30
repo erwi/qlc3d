@@ -167,18 +167,13 @@ void SetVolumeQ(
     double *a4 = (double*)malloc (npLC * sizeof (double));// memory for temporary Qyz
     double *a5 = (double*)malloc (npLC * sizeof (double));// memory for temporary Qxz
 	
-    for (int i =0; i<npLC ; i++){
-
+    for (int i =0; i<npLC ; i++)
+    {
         a1[i] = (lc->S0)*(3* nx[i] * nx[i] - 1)/2.0;
-	a2[i] = (lc->S0)*(3* ny[i] * ny[i] - 1)/2.0;
-	a3[i] = (lc->S0)*(3* nx[i] * ny[i])/2.0;
-	a4[i] = (lc->S0)*(3* ny[i] * nz[i])/2.0;
-	a5[i] = (lc->S0)*(3* nx[i] * nz[i])/2.0;
-
-        //if (i == 1053)
-        //{
-        //    printf(" n = %f,%f,%f\n", nx[i], ny[i], nz[i]);
-        //}
+        a2[i] = (lc->S0)*(3* ny[i] * ny[i] - 1)/2.0;
+        a3[i] = (lc->S0)*(3* nx[i] * ny[i])/2.0;
+        a4[i] = (lc->S0)*(3* ny[i] * nz[i])/2.0;
+        a5[i] = (lc->S0)*(3* nx[i] * nz[i])/2.0;
     }
 
     // convert tensor basis to symmetric traceless

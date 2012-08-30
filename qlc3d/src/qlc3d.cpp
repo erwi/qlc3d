@@ -267,7 +267,8 @@ int main(int argc, char* argv[]){
     //  LOAD Q FROM RESULT FILE
     if (!simu.getLoadQ().empty() )
     {
-        WriteResults::ReadLCD_B(&simu,&q);
+        WriteResults::ReadResult(simu, q);
+
         setStrongSurfacesQ(&q, &alignment, &lc, &geom1); // over writes surfaces with user specified values
     }
     q.setFixedNodesQ(&alignment, geom1.e);  // set fixed surface anchoring
