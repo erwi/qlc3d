@@ -6,6 +6,12 @@
 #include <simu.h>
 #include <filesysfun.h>
 #include <globals.h>
+#include <resultoutput.h>
+
+
+//char LCVIEW_TEXT_FORMAT_STRING[] = "%i %f %f %f %f %f %f\n";
+
+
 namespace WriteResults{
 
 
@@ -73,7 +79,7 @@ void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
 	
     string resname = str;
     resname.append(".dat");
-	
+
 	
 	
     fid = fopen(resname.c_str(),"w");
@@ -94,9 +100,11 @@ void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
         for (i=0;i<np;i++)
         {
             if (i<npLC)
-                fprintf(fid,"    %i   %f   %f   %f   %f   %f   %f\n",i+1,n[i],n[i+npLC],n[i+2*npLC],v->Values[i],n[i+3*npLC],n[i+4*npLC]);
+                //fprintf(fid,"    %i   %f   %f   %f   %f   %f   %f\n",i+1,n[i],n[i+npLC],n[i+2*npLC],v->Values[i],n[i+3*npLC],n[i+4*npLC]);
+                fprintf(fid,LCVIEW_TEXT_FORMAT_STRING,i+1,n[i],n[i+npLC],n[i+2*npLC],v->Values[i],n[i+3*npLC],n[i+4*npLC]);
             else
-            fprintf(fid,"%i\t0\t0\t0\t%f\t1.0\t0.0\n",i+1,v->Values[i]);
+            //fprintf(fid,"%i\t0\t0\t0\t%f\t1.0\t0.0\n",i+1,v->Values[i]);
+                fprintf(fid,LCVIEW_TEXT_FORMAT_STRING,i+1,0,0,0,v->Values[i],0,0);
         }
 	
         fclose(fid);
@@ -191,12 +199,143 @@ void WriteLCD_B(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *
 }
 
 
+void ReadResult(Simu& simu, SolutionVector& q)
+{
+/*!
+ * Tries to figure out whether a LCView result file on disk
+ * is in text or binary format and then load the data using appropriate
+ * loading function
+ */
+    string filename = simu.getLoadQ();
+    cout << "\nReading result file: " << filename << endl;
+    FILE* fid = fopen (filename.c_str() , "rt" );
+    if (!fid)
+    {
+        cout << "error, could not open file: " << filename << " - bye!" << endl;
+        exit(1);
+    }
+
+    /// RAD SOME LINES FROM THE FILE AND TRY TO FIND OUT WHICH TYPE IT IS
+    bool isBinary = false;
+    char line[100];
+    // IF FILE CONTAINS BELOW MAGIC TEXT, IT IS IN BINARY MODE
+    const char binaryMarker[] = "RAW FLOAT TRI";
+    for (int i = 0 ; i < 5 ; i++)
+    {
+        fgets(line, 100, fid); // returns null pointer if fails to read
+
+        string sline = line;
+        if (sline.find(binaryMarker) < std::string::npos )
+        {
+            //cout << "on line " << i << " detected key-word " <<binaryMarker << endl;
+            isBinary = true;
+            break;
+        }
+    }
+
+    fclose(fid);
+
+    if (isBinary)
+    {
+        cout << "Result file format is binary" << endl;
+        WriteResults::ReadLCD_B(&simu,&q);
+    }
+    else
+    {
+        cout << "Result file format is text" << endl;
+        WriteResults::ReadLCD_T(simu,q);
+    }
+
+
+
+}
+
+void ReadLCD_T(Simu &simu, SolutionVector &q)
+{
+    /*!
+     * loads Q-tensor from a result file, assuming the file is written as a text file
+     */
+
+    string filename = simu.getLoadQ();
+    FILE* fid = fopen( filename.c_str(), "rt");
+    if (!fid)
+    {
+        cout << "error, could not open " << filename << " - bye!" << endl;
+        exit(1);
+    }
+    const int lineLen = 256;
+    char line[lineLen];
+
+    // READ 3  LINES OF HEADER DATA
+    fgets(line, lineLen, fid);
+    fgets(line, lineLen, fid);
+    fgets(line, lineLen, fid);
+
+    int id;
+    float n[3], S[2], v;
+
+    //fgets(line, lineLen, fid);
+    std::vector<float> q1;
+    std::vector<float> q2;
+    std::vector<float> q3;
+    std::vector<float> q4;
+    std::vector<float> q5;
+
+    double rt6 = sqrt(6.0);
+    double rt2 = sqrt(2.0);
+
+    // READ FROM FILE UNTIL EOF OR END OF LC REGION (|n| < 1)
+    while ( fscanf(fid, LCVIEW_TEXT_FORMAT_STRING,
+                   &id, &n[0], &n[1], &n[2], &v, &S[0], &S[1]) != EOF )
+    {
+        //cout << id << " n " << n[0]<< "," << n[1]<<"," << n[2] << endl;
+
+        // MAKE SURE DIRECTOR LENGTH ~= 1.
+        // ALL ZERO DIRECTOR MEANS DIELECTRIC REGION, WHICH WE DONT WANT TO READ
+        float dirLen = n[0]*n[0] + n[1]*n[1] + n[2]*n[2];
+        if (dirLen < 0.95 )
+            break;
+
+
+        // CONVERT DIRECTOR TO Q-TENSOR
+        double a1, a2, a3, a4, a5; // "NORMAL" Q-TENSOR COMPONENTS
+        a1 = S[0]*(3*n[0]*n[0]-1) / 2.0; // Qxx
+        a2 = S[0]*(3*n[1]*n[1]-1) / 2.0; // Qyy
+        a3 = S[0]*(3*n[0]*n[1]) / 2.0;   // Qxy
+        a4 = S[0]*(3*n[1]*n[2]) / 2.0;   // Qyz
+        a5 = S[0]*(3*n[0]*n[2]) / 2.0;   // Qxz
+
+        // CONVERT TO TRACELESS BASIS
+        q1.push_back( 0.5*(a1+a2) *rt6 );
+        q2.push_back( (a1+(a1+a2)/2.0)*rt2 );
+        q3.push_back( a3*rt2 );
+        q4.push_back( a4*rt2 );
+        q5.push_back( a5*rt2 );
+    }
+    fclose(fid);
+
+    if ( (idx) q1.size() != q.getnDoF() )
+    {
+        cout << "error, the loaded result file does not math the mesh size - bye!" << endl;
+        exit(1);
+    }
+
+    for (idx i = 0 ; i < q.getnDoF() ; ++i)
+    {
+        q.setValue(i,0,q1[i]);
+        q.setValue(i,1,q2[i]);
+        q.setValue(i,2,q3[i]);
+        q.setValue(i,3,q4[i]);
+        q.setValue(i,4,q5[i]);
+    }
+
+}
 
 void ReadLCD_B(Simu* simu, SolutionVector *q)
 {
 // READS BINARY FORMATED RESULT FILE
     string filename = simu->getLoadQ();
-    printf( "Loading Q-tensor from: %s\n",filename.c_str());
+   // printf( "Loading Q-tensor from: %s\n",filename.c_str());
     FILE* fid = fopen( filename.c_str() , "rb" );
 		
     char str[100];
@@ -215,10 +354,11 @@ void ReadLCD_B(Simu* simu, SolutionVector *q)
         int i = fscanf (fid, "%f %i %i\n",&S0,&np,&nsol);
         i = 0; // no warnings...
 		
-        printf("S0 = %f, np = %i, nsol = %i \n", S0, np, nsol);
+       // printf("S0 = %f, np = %i, nsol = %i \n", S0, np, nsol);
         if (np < q->getnDoF() )
         {
-			printf("The file you're trying to load (\"%s\") doesn't seem to match the mesh - bye!\n",filename.c_str() );
+            cout << "error, the loaded result file does not math the mesh size - bye!" << endl;
+            //printf("The file you're trying to load (\"%s\") doesn't seem to match the mesh - bye!\n",filename.c_str() );
 			fclose(fid);
 			exit(1);
         }
@@ -283,7 +423,9 @@ void WriteResult(
         SolutionVector* q,
         MeshRefinement* meshref)
 {
-
+/*!
+ *   Writes result file(s) in LCView format to disk.
+ */
     switch( simu->getOutputFormat() )
     {
         case SIMU_OUTPUT_FORMAT_BINARY:
