@@ -34,13 +34,14 @@ void problem(std::string& name, int ret){
         exit(1);
     }
 }
-void problemo(std::string& name, int ret){
+void problemo(std::string& name, int ret)
+{
    /*! Checks reader return value. If it is an error, prints warning message but does not quit.
        Use this for optional settings.*/
     Reader temp;
-	if ( (ret!= READER_SUCCESS) ){
+    if ( (ret!= READER_SUCCESS) )
+    {
         cout << "Problem reading " << name << " , computer says: " << temp.getErrorString(ret) << endl;
-
     }
 }
 // end problemo (optional parameter problem)
@@ -130,7 +131,8 @@ void readLC(LC& lc,Reader& reader)
 	ret = reader.readNumber(name , val);
 	if(ret == READER_SUCCESS)
         lc.p0 = val;
-    problem(name, ret);
+    problem_format(name, ret);
+    //problemo(name, ret);
 // THERMOTROPIC COEFFS
 	name = "A";
 	ret = reader.readNumber(name , val);
@@ -1143,8 +1145,9 @@ void ReadSolverSettings(const char* filename, Settings* settings)
     }
     else
     {
-        cout<< "error - could not read solver settings file:" << fn << " - bye!"<< endl;
-        exit(1);
+        cout << "Did not read solver settings. Using defaults" << endl;
+        //cout<< "Could not read solver settings file:" << fn << " - bye!"<< endl;
+        //exit(1);
     }
 
 } // end readSolverSettings

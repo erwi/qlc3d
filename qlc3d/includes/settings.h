@@ -14,6 +14,18 @@
 #define IC_PRECONDITIONER   1
 #define ILU_PRECONDITIONER  2
 
+
+enum  Select_Q_Solver {Q_Solver_PCG = 0, Q_Solver_GMRES = 1, Q_Solver_Explicit = 10 };
+enum  Select_V_Solver {V_Solver_PCG = 0, V_Solver_GMRES = 1};
+enum  Select_Matrix_Preconditioner {Diagonal = 0 , Cholinc = 1, LUinc = 2};
+const int DEFAULT_N_THREADS = 1;
+
+const int DEFAULT_Q_Newton_Panic_Iter = 10;
+const double DEFAULT_Q_Newton_Panic_Coeff = 0.1;
+
+const int DEFAULT_Matrix_Maxiter = 2000;
+const int DEFAULT_GMRES_Restart  = 100;
+const double DEFAULT_Matrix_Toler = 1e-6;
 class Settings
 {
 	private:

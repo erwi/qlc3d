@@ -86,7 +86,9 @@ public:
 
     bool ContainsAllNodes(idx elem, idx n, idx* nodes) const; // checks if element elem, contains all n nodes in array nodes
     void ContainsNodes(list <idx>* elems , list <idx>* points ); // adds element number to elemes that contain any node in list points
+
     bool ContainsCoordinate(const idx elem, const double* p, const double* coord) const; // checks whether coordinate is within element elem
+    bool ContainsCoordinate(const idx elem, const double* p, const double* coord, double& dist) const; // checks whether coordinate is within element element and also calcultes distance between coord and element centre
 
     void CompleteNodesSet(const idx elem, std::vector<idx>& nodes) const; // completes nodes vector with those from element, if nodes is empty returns all elements
     void PrintElements()const;       // prints all elements
@@ -100,8 +102,8 @@ public:
     void CopyMesh(Mesh* rhs);	// makes this a copy of Mesh* rhs - why does operator= overloading not work???
     void ScaleDeterminants( const double& s); // scales all determinants by s, e.g. to go to microns
     void CalcLocCoords(const idx elem, double* p, double* coord, double* loc); // calculates 4 local coordinates of coordinate cord in element elem
-    void CalcElemBary(const idx elem, double* p, double* bary) const; // calculates barycentre coords of element elem
-    double CalcBaryDistSqr( double *p,const idx elem, double* coord) const;
+    void CalcElemBary(const idx elem, const double* p, double* bary) const; // calculates barycentre coords of element elem
+    double CalcBaryDistSqr( const double *p,const idx elem, const double* coord) const;
     bool isOnXPlane(idx e, double X, double* p) const;	// checks if all nodes of triangle e are on x = X plane
     bool isOnYPlane(idx e, double Y, double* p) const;	// checks if all nodes of triangle e are on y = Y plane
     bool isOnZPlane(idx e, double Z, double* p) const;	// checks if all nodes of triangle e are on z = Z plane

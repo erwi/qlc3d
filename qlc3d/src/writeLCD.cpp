@@ -29,12 +29,12 @@ void WriteMesh(Simu* simu,
     if (fid!=NULL)
     {
         fputs ("MESH    dimension 3 ElemType Tetrahedra  Nnode 4\nCoordinates\n",fid);
-	for (i=0;i<np;i++)
+        for (i=0;i<np;i++)
         {
             fprintf(fid,"%i\t%f\t%f\t%f\n",i+1,p[3*i],p[3*i+1],p[3*i+2]);
         }
-	fprintf(fid,"end coordinates\n\nElements\n");
-	
+        fprintf(fid,"end coordinates\n\nElements\n");
+
         for (i = 0 ; i < t->getnElements() ; i++)
             fprintf(fid,"%i\t%i\t%i\t%i\t%i\t%i\n",i+1, t->getNode(i,0) +1, t->getNode(i,1)+1, t->getNode(i,2)+1, t->getNode(i,3)+1, t->getMaterialNumber(i));
 
@@ -58,14 +58,14 @@ void WriteMesh(Simu* simu,
 
 void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q, Simu* simu)
 {
-// First write mesh
+    // First write mesh
     int np = v->getnDoF();
     if ( simu->IsMeshModified() ){ // only output mesh file if it has changed
-		WriteMesh(simu,p,t,e,np);
+        WriteMesh(simu,p,t,e,np);
         simu->setMeshModified( false ); // no need to rewrite same mesh again
     }
 
-// MESH FILE WRITTEN - THEN WRITE RESULT
+    // MESH FILE WRITTEN - THEN WRITE RESULT
     FILE* fid;
     int i;
 
@@ -76,12 +76,12 @@ void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
         sprintf(str, "result%05i", simu->getCurrentIteration() );
     else
         sprintf(str,"result_final");
-	
+
     string resname = str;
     resname.append(".dat");
 
-	
-	
+
+
     fid = fopen(resname.c_str(),"w");
     if (fid!=NULL)
     {
@@ -103,10 +103,10 @@ void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
                 //fprintf(fid,"    %i   %f   %f   %f   %f   %f   %f\n",i+1,n[i],n[i+npLC],n[i+2*npLC],v->Values[i],n[i+3*npLC],n[i+4*npLC]);
                 fprintf(fid,LCVIEW_TEXT_FORMAT_STRING,i+1,n[i],n[i+npLC],n[i+2*npLC],v->Values[i],n[i+3*npLC],n[i+4*npLC]);
             else
-            //fprintf(fid,"%i\t0\t0\t0\t%f\t1.0\t0.0\n",i+1,v->Values[i]);
+                //fprintf(fid,"%i\t0\t0\t0\t%f\t1.0\t0.0\n",i+1,v->Values[i]);
                 fprintf(fid,LCVIEW_TEXT_FORMAT_STRING,i+1,0,0,0,v->Values[i],0,0);
         }
-	
+
         fclose(fid);
         delete [] n;
     }
@@ -131,30 +131,30 @@ void WriteLCD_B(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *
         WriteMesh(simu,p,t,e,np);
         simu->setMeshModified( false ); // no need to rewrite same mesh again
     }
-	
+
     // THEN WRITE RESULT FILE
     FILE* fid;
     int i;
     char str[15];
-	
+
     // check whether final result in simulation, if yes, use special filename
     if (simu->getCurrentIteration() != SIMU_END_SIMULATION )
         sprintf(str, "result%05i", simu->getCurrentIteration() );
     else
         sprintf(str,"result_final");
-	
+
     string resname = str;
     resname.append(".dat");
 
     fid = fopen(resname.c_str(),"wb");
 
     char time[20];
-		
+
     sprintf(time,"%1.9f\n", simu->getCurrentTime());
-		
+
     string text ="** Result Time :   ";
     text.append(time);
-		
+
     fprintf(fid,"%s\n",text.c_str());
     fprintf(fid,"** z Compression Ratio :  1.00000\n");
 
@@ -201,7 +201,7 @@ void WriteLCD_B(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *
 
 void ReadResult(Simu& simu, SolutionVector& q)
 {
-/*!
+    /*!
  * Tries to figure out whether a LCView result file on disk
  * is in text or binary format and then load the data using appropriate
  * loading function
@@ -333,38 +333,38 @@ void ReadLCD_T(Simu &simu, SolutionVector &q)
 
 void ReadLCD_B(Simu* simu, SolutionVector *q)
 {
-// READS BINARY FORMATED RESULT FILE
+    // READS BINARY FORMATED RESULT FILE
     string filename = simu->getLoadQ();
-   // printf( "Loading Q-tensor from: %s\n",filename.c_str());
+    // printf( "Loading Q-tensor from: %s\n",filename.c_str());
     FILE* fid = fopen( filename.c_str() , "rb" );
-		
+
     char str[100];
     if (fid)
     {
         float S0;
         idx np, nsol;
-        char* tempch;
 
-        tempch = fgets (str , 100 , fid); // READS LINE x 5
-        tempch = fgets (str , 100 , fid);
-        tempch = fgets (str , 100 , fid);
-        tempch = fgets (str , 100 , fid);
-        tempch = fgets (str , 100 , fid);
-		
-        int i = fscanf (fid, "%f %i %i\n",&S0,&np,&nsol);
-        i = 0; // no warnings...
-		
-       // printf("S0 = %f, np = %i, nsol = %i \n", S0, np, nsol);
+        // READS 5 LINES DISCARIDING DATA
+        fgets (str , 100 , fid);
+        fgets (str , 100 , fid);
+        fgets (str , 100 , fid);
+        fgets (str , 100 , fid);
+        fgets (str , 100 , fid);
+
+        fscanf (fid, "%f %i %i\n",&S0,&np,&nsol);
+        //i = 0; // no warnings...
+
+        // printf("S0 = %f, np = %i, nsol = %i \n", S0, np, nsol);
         if (np < q->getnDoF() )
         {
             cout << "error, the loaded result file does not math the mesh size - bye!" << endl;
             //printf("The file you're trying to load (\"%s\") doesn't seem to match the mesh - bye!\n",filename.c_str() );
-			fclose(fid);
-			exit(1);
+            fclose(fid);
+            exit(1);
         }
-		
+
         float q1,q2,q3,q4,q5,temp;
-		
+
         for (idx i = 0 ; i < q->getnDoF() ; i ++)
         {
             fread ( &q1, sizeof(float), 1 , fid );
@@ -384,10 +384,10 @@ void ReadLCD_B(Simu* simu, SolutionVector *q)
         fclose(fid);
     }
     else
-	{
-		printf("could not open file: %s. It probably doesn't exist, but I could be wrong...\n", filename.c_str());
-		exit(1);
-	}
+    {
+        printf("could not open file: %s. It probably doesn't exist, but I could be wrong...\n", filename.c_str());
+        exit(1);
+    }
 }
 
 void WriteSettings(Simu* simu , LC* lc, Boxes* box, Alignment* alignment, Electrodes* electrodes){
@@ -423,27 +423,27 @@ void WriteResult(
         SolutionVector* q,
         MeshRefinement* meshref)
 {
-/*!
+    /*!
  *   Writes result file(s) in LCView format to disk.
  */
     switch( simu->getOutputFormat() )
     {
-        case SIMU_OUTPUT_FORMAT_BINARY:
-        {
-            WriteLCD_B(geom->getPtrTop(), geom->t, geom->e, v, q, simu, lc); // WRITES BINARY FILE
-            break;
-        }
-        case SIMU_OUTPUT_FORMAT_TEXT:
-        {
-            WriteLCD(geom->getPtrTop(), geom->t, geom->e, v, q, simu); // WRITES TEXT FILE
-            break;
-        }
-        default:
-        {
-            printf("error in WriteResult, Simu.OutputFormat is not recognised - bye!\n");
-            fflush(stdout);
-            exit(1);
-        }
+    case SIMU_OUTPUT_FORMAT_BINARY:
+    {
+        WriteLCD_B(geom->getPtrTop(), geom->t, geom->e, v, q, simu, lc); // WRITES BINARY FILE
+        break;
+    }
+    case SIMU_OUTPUT_FORMAT_TEXT:
+    {
+        WriteLCD(geom->getPtrTop(), geom->t, geom->e, v, q, simu); // WRITES TEXT FILE
+        break;
+    }
+    default:
+    {
+        printf("error in WriteResult, Simu.OutputFormat is not recognised - bye!\n");
+        fflush(stdout);
+        exit(1);
+    }
     } // end switch
 }
 // end void WriteREsult
@@ -455,17 +455,17 @@ void CreateSaveDir(Simu& simu)
     // ALREADY EXIST
 
 
-// first check if savedit already exists
+    // first check if savedit already exists
     if ( FilesysFun::dirExists( simu.getSaveDir() ) )
         return;             // if yes, can leave
 
-// try to create savedir.
+    // try to create savedir.
     if ( FilesysFun::createDirectory(simu.getSaveDir() ) )
         return;             // if succesful, can leave
     else
 
-    // if not succesful:
-    cout << "error - cold not create SaveDir:\n"<< simu.getSaveDir() <<"\nbye!"<<endl;
+        // if not succesful:
+        cout << "error - cold not create SaveDir:\n"<< simu.getSaveDir() <<"\nbye!"<<endl;
     exit(1);
 
 }

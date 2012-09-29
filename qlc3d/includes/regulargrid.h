@@ -11,6 +11,7 @@
 #include <vtkiofun.h>
 #include <matlabiofun.h>
 #include <globals.h>
+#include <assert.h>
 
 class Geometry; // NEED TO DECLARE EXISTENCE OF Geometry CLASS HERE TO AVOID CIRCULAR #includes
 
@@ -62,6 +63,13 @@ private:
 
 
     void printLookup(const lookup& lu) const;
+    void validateLookupVector();    // CHECKS THAT A VALID LOOKUP VECTOR EXISTS
+
+    // CONVERSION FROM LINEAR INDEXING WHICH IS USED TO STORE ALL LOOKUP STRUCTS
+    // IN A VECTOR TO POSITIONAL INDEXING GINVING THE GRID POINT POSITION IN
+    // X,Y,Z DIMENSIONS
+    void linearToGridIndex(const idx li, idx &xi, idx &yi, idx &zi);
+
 
 public:
 

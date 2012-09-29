@@ -101,9 +101,9 @@ idx Mesh::getConnectedVolume(const idx e) const
 {
     // RETURNS INDEX TO CONNECTED LC TETRAHEDRON, WHEN e IS INDEX TO A TRIANGLE
 #ifdef DEBUG
-    assert(ConnectedVolume);
-    assert(e<getnElements() );
-    assert(getDimension() == 3);
+    assert(ConnectedVolume);    // CONNECTIONS HAVE BEEN INITIALISED
+    assert(e<getnElements() );  // IN BOUNDS
+    //assert(getDimension() == 3);
 #endif
     return ConnectedVolume[e];
 }
@@ -396,13 +396,25 @@ void Mesh::ContainsNodes(list <idx>* elems, list <idx>* points)
     elems->sort();
     elems->unique();
 }
-bool Mesh::ContainsCoordinate(const idx elem, const double *p, const double *coord) const
+
+bool Mesh::ContainsCoordinate(const idx elem, const double *p, const double *coord, double &dist) const
+{
+    // A DEBUG VERSION OF CONTAINS COORDINATE THAT ALSO CALCULATES DISTANCE BETWEEN TESTED COORDINATE
+    // AND ELEMENT CETRE
+
+    bool cc = ContainsCoordinate( elem, p, coord );
+
+    dist = sqrt( CalcBaryDistSqr(p, elem, coord) );
+}
+
+bool Mesh::ContainsCoordinate(const idx elem, const double *p, const double *coord ) const
 {
     // CHECKS TO SEE WHETHER ELEMENT elem CONTAINS COORDINATE coord. THAT IS, COORD
     // CAN BE ANYWHERE INSIDE elem, NOT JUST CORNER NODES
     // coord is expected to be of length 3 [x,y,z]. is most likely a pointer to somewhere in array *p
 #ifdef DEBUG
-    if (this->Dimension == 2){
+    if (this->Dimension == 2)
+    {
 	printf("Mesh::ContainsCoordinate only works on tets - bye!\n");
 	exit(1);
     }
@@ -411,7 +423,7 @@ bool Mesh::ContainsCoordinate(const idx elem, const double *p, const double *coo
     // CALCULATE 4 DETERMINANTS FOR TETS FORMED USING NODES FROM THIS ELEMENT
     // AND THE TESTED COORDINATE AND ONE USING THIS TET ONLY. IF SUM OF DETS OF TETS FORMED USING coord
     // EQUALS THAT OF FOR THIS ELEMENT ONLY, THEN THE COORDINATE IS WITHIN THIS TET
-    const double eps = 1e-15; // accuracy used for coordinate comparions
+    const double eps = qlc3d_GLOBALS::GLOBAL_COORD_EPS; // accuracy used for coordinate comparions
     double x[4] , y[4] , z[4];
     idx *n = &Elem[elem*nNodes]; // shortcut to all node numbers in this tet
     double Det = 0.0;    // cumulative determinant for tets formed using coord
@@ -423,6 +435,7 @@ bool Mesh::ContainsCoordinate(const idx elem, const double *p, const double *coo
     x[1] = p[3*n[1]];   y[1] = p[3*n[1]+1]; z[1] = p[3*n[1]+2];
     x[2] = p[3*n[2]];   y[2] = p[3*n[2]+1]; z[2] = p[3*n[2]+2];
     x[3] = p[3*n[3]];   y[3] = p[3*n[3]+1]; z[3] = p[3*n[3]+2];
+
 
     if  ( (	  ( fabs( coord[0]- x[0]) < eps ) && (fabs(coord[1] - y[0]) < eps) && (fabs(coord[2] - z[0])<eps) )|| // node 1
           ( ( fabs( coord[0]- x[1]) < eps ) && (fabs(coord[1] - y[1]) < eps) && (fabs(coord[2] - z[1])<eps) )|| // node 2
@@ -618,7 +631,7 @@ void Mesh::CalculateSurfaceNormals(double *p, Mesh* tets)
     for ( idx i = 0 ; i < getnElements() ; i ++)
     {
         if (  i%fraction  == 0 ) // progress dots printing
-            printf(".");
+        {printf(".");fflush(stdout);}
 
         Ax = p[getNode(i,1)*3+0] - p[getNode(i,0)*3 + 0];
         Ay = p[getNode(i,1)*3+1] - p[getNode(i,0)*3 + 1];
@@ -737,7 +750,7 @@ void Mesh::CalcLocCoords(const idx elem, double *p, double *coord, double *loc)
 
 }
 
-void Mesh::CalcElemBary(const idx elem, double *p, double *bary)const
+void Mesh::CalcElemBary(const idx elem, const double *p, double *bary)const
 {
 #ifdef DEBUG
     if (Dimension == 2)
@@ -748,7 +761,7 @@ void Mesh::CalcElemBary(const idx elem, double *p, double *bary)const
 #endif
     idx* n = Elem + elem*4; // shortcut
 
-    double* p1 , *p2, *p3, *p4;
+    const double *p1 , *p2, *p3, *p4;
     p1 = p + n[0]*3;
     p2 = p + n[1]*3;
     p3 = p + n[2]*3;
@@ -760,7 +773,7 @@ void Mesh::CalcElemBary(const idx elem, double *p, double *bary)const
 
 }
 
-double Mesh::CalcBaryDistSqr(double *p, const idx elem, double *coord) const
+double Mesh::CalcBaryDistSqr(const double *p, const idx elem, const double *coord) const
 {
 // returns the squared distance between coordinate coord[3] and the barycentre of
 // element elem. p is pointer to all node coordinates.
@@ -871,7 +884,7 @@ void Mesh::CopySurfaceNormal(idx i, double* norm)
 #ifdef DEBUG
     assert(i<nElements);
     assert(SurfaceNormal);
-    assert(Dimension == 3);
+    //assert(Dimension == 3); // ONLY USE WITH TETS?
 #endif
 
     norm[0] = SurfaceNormal[i*3+0];

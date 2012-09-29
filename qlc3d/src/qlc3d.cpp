@@ -1,4 +1,4 @@
-	
+
 #include <iostream>
 #include <stdio.h>
 #include <time.h>
@@ -21,15 +21,18 @@
 #include <resultoutput.h>
 
 
+double qlc3d_GLOBALS::GLOBAL_COORD_EPS =1e-10; // TODO: MAKE THIS USED DEFINABLE IN A SETTINGS FILE
+
+
 int minnode(int *t, int dim1, int dim2){ // what does this do?
-	int min = (int)1e9;
-	for (int i =0 ; i < dim1 * dim2 ; i++ )
-		if (t[i]<min) min = t[i];
-	return min;
+    int min = (int)1e9;
+    for (int i =0 ; i < dim1 * dim2 ; i++ )
+        if (t[i]<min) min = t[i];
+    return min;
 }
 void adjustTimeStepSize(Simu& simu, const double& maxdq){
 
-      //simu.IncrementCurrentIteration();
+    //simu.IncrementCurrentIteration();
 
     // if electrode switching etc. has just happened, dont adapt time step this time
     // but set switch to false to allow adjutment starting next step
@@ -68,28 +71,28 @@ void adjustTimeStepSize(Simu& simu, const double& maxdq){
             S = R;
         }
         else
-        // BELOW LINEAR
-        if( R <= RLmin){
-            double  k = RLmin / (RLmin - Rmin);
-            double  dR = (RLmin - R);
-            S = RLmin - k * dR;
-        }
-        else
-        // above LINEAR
-        if ( R >= RLmax){
-            double k = (Smax - RLmax) / (Rmax - RLmax);
-            double dr = R - RLmax;
-            S = RLmax + k * dr;
-            if (S>Smax) S = Smax;
-        }
+            // BELOW LINEAR
+            if( R <= RLmin){
+                double  k = RLmin / (RLmin - Rmin);
+                double  dR = (RLmin - R);
+                S = RLmin - k * dR;
+            }
+            else
+                // above LINEAR
+                if ( R >= RLmax){
+                    double k = (Smax - RLmax) / (Rmax - RLmax);
+                    double dr = R - RLmax;
+                    S = RLmax + k * dr;
+                    if (S>Smax) S = Smax;
+                }
 
         cout << " scaling dt by: " << S << endl;
         double newdt = simu.getdt()* S;
         if ( newdt < simu.getMindt() ) newdt = simu.getMindt();
-            simu.setdt(newdt); // min/max limits taken care of here
-	}
+        simu.setdt(newdt); // min/max limits taken care of here
+    }
 
-	simu.setCurrentChange(maxdq); // updates maximum change value for this iteration
+    simu.setCurrentChange(maxdq); // updates maximum change value for this iteration
 
 }
 
@@ -107,13 +110,13 @@ void copyTo(double* arr, const SolutionVector& sv){ // copies all values from so
 
 // THESE SHOULD NOT BE HERE!!
 double maxDiff(const double* arr, const SolutionVector& sv){// finds the maximum difference between array and solutionvector 
-	unsigned int n = sv.getnDoF() * sv.getnDimensions();
-	double md = 0;
-	for (unsigned int i = 0 ; i < n ; i++){
-		double diff = fabs( arr[i] - sv.getValue(i) );
-		if (diff>md)
-			md = diff;
-	}
+    unsigned int n = sv.getnDoF() * sv.getnDimensions();
+    double md = 0;
+    for (unsigned int i = 0 ; i < n ; i++){
+        double diff = fabs( arr[i] - sv.getValue(i) );
+        if (diff>md)
+            md = diff;
+    }
 
     return md;
 }
@@ -154,8 +157,8 @@ int main(int argc, char* argv[]){
 
 
 
-//*
-// Simulation settings (material parameters etc.)
+    //*
+    // Simulation settings (material parameters etc.)
     Simu	simu;
     Electrodes	electrodes;
     LC		lc;
@@ -238,11 +241,11 @@ int main(int argc, char* argv[]){
     geometries.geom_orig = &geom_orig;
     //geometries.geom_prev = &geom_prev;
 
-// ==============================================
-//
-//	POTENTIAL SOLUTION DATA
-//
-//================================================
+    // ==============================================
+    //
+    //	POTENTIAL SOLUTION DATA
+    //
+    //================================================
 
     cout << "Creating V...";
     SolutionVector v( (idx) geom1.getnp() );
@@ -251,11 +254,11 @@ int main(int argc, char* argv[]){
 
     cout << "OK"<<endl;
 
-// =============================================================
-//
-// 	SET LC INITIAL CONDITIONS
-//
-//==============================================================
+    // =============================================================
+    //
+    // 	SET LC INITIAL CONDITIONS
+    //
+    //==============================================================
     // create vector for 5 * npLC Q-tensor components
     cout << "Creating Q..." ;
     SolutionVector q(geom1.getnpLC(),5);    //  Q-tensor for current time step
@@ -283,7 +286,7 @@ int main(int argc, char* argv[]){
     solutionvectors.qn = &qn;
     solutionvectors.v = &v;
 
-// Make matrices for potential and Q-tensor..
+    // Make matrices for potential and Q-tensor..
     cout << "Creating sparse matrix for potential...";
 
     SparseMatrix* Kpot = createSparseMatrix(geom1 , v);
@@ -294,25 +297,25 @@ int main(int argc, char* argv[]){
     cout << "Q-tensor matrix OK" << endl;
 
 
-//********************************************************************
-//*
-//*		Save Initial configuration and potential
-//*
-//********************************************************************
+    //********************************************************************
+    //*
+    //*		Save Initial configuration and potential
+    //*
+    //********************************************************************
     printf("\nSaving starting configuration (iteration -1)...\n");
     WriteResults::CreateSaveDir(simu);
     Energy_fid = createOutputEnergyFile(simu); // done in inits
     handleInitialEvents(eventlist,
-                 electrodes,
-                 alignment,
-                 simu,
-                 geometries,
-                 solutionvectors,
-                 lc,
-                 settings,
-                 *Kpot,
-                 *Kq
-                 );
+                        electrodes,
+                        alignment,
+                        simu,
+                        geometries,
+                        solutionvectors,
+                        lc,
+                        settings,
+                        *Kpot,
+                        *Kq
+                        );
     printf("OK\n");
 
 
@@ -328,18 +331,18 @@ int main(int argc, char* argv[]){
         qn_cons = (double*) malloc(q.getnDoF() * q.getnDimensions() * sizeof(double) );
     }
 
-//===============================================
-//	 Start simulation
-//
-//===============================================
+    //===============================================
+    //	 Start simulation
+    //
+    //===============================================
 
 
-        simu.setCurrentIteration( 1 );
-	time_t t1, t2;
-	time(&t1);
-	time(&t2);
-	double maxdq = 0;
-	// MAIN LOOP - while simulation is running
+    simu.setCurrentIteration( 1 );
+    time_t t1, t2;
+    time(&t1);
+    time(&t2);
+    double maxdq = 0;
+    // MAIN LOOP - while simulation is running
 
     do{
         time(&t2);
@@ -352,9 +355,9 @@ int main(int argc, char* argv[]){
 
         // CALCULATES Q-TENSOR AND POTENTIAL
         maxdq = updateSolutions(v,q,qn,v_cons,q_cons,qn_cons,
-                                    geom1, simu, lc, settings,
-                                    alignment, electrodes,
-                                    Kq, Kpot);
+                                geom1, simu, lc, settings,
+                                alignment, electrodes,
+                                Kq, Kpot);
         /// UPDATE CURRENT TIME
         simu.setCurrentTime( simu.getCurrentTime() + simu.getdt() );
         /// CALCULATE NEW TIME STEP SIZE BASED ON maxdq
@@ -375,15 +378,15 @@ int main(int argc, char* argv[]){
         /// INCREMENT ITERATION COUNTER
         simu.IncrementCurrentIteration();
 
-	// if need end-refinement
+        // if need end-refinement
         /*
     if ( (!simu.IsRunning() ) && (needsEndRefinement( geom1, q , meshrefinement ) ) )
-	{
+    {
         printf("End refinement\n");
 
         delete Kpot;
         delete Kq;
-                    
+
         autoref(geom_orig, geom_prev, geom1, q, qn, v,  meshrefinement, simu,alignment, electrodes, lc);
         Kpot = createSparseMatrix(geom1, v );
         Kq   = createSparseMatrix(geom1, q, MAT_DOMAIN1);
@@ -399,7 +402,7 @@ int main(int argc, char* argv[]){
         }
     }// end if need end-refinement
     */
-}while ( simu.IsRunning() ); // end MAIN LOOP - while simulation is runnning
+    }while ( simu.IsRunning() ); // end MAIN LOOP - while simulation is runnning
 
     printf("\nSaving final result file...\n");
     printf("\nNO FINAL REGULAR GRID RESULT WRITTEN. FIXME!!\n");

@@ -291,7 +291,7 @@ void Geometry::PrintNodeNormals()
     fflush(stdout);
     for (size_t i = 0 ; i < np ; i ++)
     {
-        printf("NodeNormals[%i] = [%f,%f,%f]\n", i, NodeNormals[i*3], NodeNormals[i*3+1], NodeNormals[i*3+2]);
+        printf("NodeNormals[%u] = [%f,%f,%f]\n",(idx) i, NodeNormals[i*3], NodeNormals[i*3+1], NodeNormals[i*3+2]);
         fflush(stdout);
     }
 
@@ -938,6 +938,7 @@ void Geometry::makeRegularGrid(const size_t &nx,
         return;
 
     regularGrid->createFromTetMesh(nx, ny, nz, this );
+
     printf("OK\n"); fflush(stdout);
 }
 
@@ -950,7 +951,7 @@ bool Geometry::brute_force_search( unsigned int &ind,            // return index
     // BRUTE FORCE DEBUG SEARCH FOR TETRAHEFRON THAN CONTAINS POINT WITH COORDINATES IN coord
     // coord IS ASSUMED TO BE OF LENGTH 3, FOR x, y, z
     // loop over each element
-    for (unsigned int i = 0 ; i < (unsigned int) t->getnElements() ; i++)
+    for (idx i = 0 ; i < t->getnElements() ; i++)
     {
         if  ( t->ContainsCoordinate( i , getPtrTop(), coord ) ) // If coord is in tet i
         {
@@ -1209,21 +1210,20 @@ is only properly defined in the LC element.
     for ( n = 0 ; n < nc ; n++) // for each coord
     {
 
-        std::set<size_t> searchHistory;
+        std::set<size_t> searchHistory; // keeps track of tested tets to avoid repeating work
         double crd[3];
         //crd = coord + n*3; // n'th coordinate
         crd[0] = *(coord + n*3 + 0);
         crd[1] = *(coord + n*3 + 1);
         crd[2] = *(coord + n*3 + 2);
         // nearest neigbour search
-        //if ( getContainingTet( p_to_t, crd, t0) )
+
         size_t t0 = recursive_neighbour_search( crd,
                                                 p_to_t,
                                                 mt,
                                                 searchHistory,
                                                 requireLCElement    // WHETHER TO ONLY ACCEPT LC ELEMENTS ARE RETURN VALUE
                                                 );
-
 
         if (t0 != NOT_AN_INDEX )
         {
@@ -1232,6 +1232,11 @@ is only properly defined in the LC element.
         // if neares neighbour search fails, use brute force
         else
         {
+            if (n==152)
+            {
+                int debug = 9;
+            }
+
             unsigned int bfind = 0;
             // TRY BRUTE FORCE. THIS MAY TERMINATE APP., DEPENDING ON BOOL FLAG
             if ( brute_force_search( bfind,
@@ -1246,14 +1251,12 @@ is only properly defined in the LC element.
             else    // BRUTE FORCE FAIL IS ALLOWED (NODE MAY BE OUTSIDE MESH)
             {
                 ind[n] = Geometry::NOT_AN_INDEX; // MARK INDEX AS INVALID
-                //printf("FAIL!\n");
+                cout << "could not find regular grid point " << n << "in tetrahedral mesh. Continuing" << endl;
+                cout << crd[0] << ", " << crd[1] << ", " << crd[2] << endl;
             }
         }
 
     }// end for each coord
-
-
-
 
 }
 

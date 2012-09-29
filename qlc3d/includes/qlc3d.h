@@ -25,13 +25,14 @@
 using std::vector;
 using std::string;
 
-//#define N_THREADS 4
+
 #ifndef PI
     #define PI 3.14159265358979323846264338327950288419716939937510
 #endif
 
 #define eps0 8.8541878176e-12
 #define COMPLEX std::complex<double>
+
 
 void ReadGiDMesh3D(Simu *simu,
                    double **p,

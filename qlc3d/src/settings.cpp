@@ -1,27 +1,50 @@
 #include "../includes/settings.h"
 
 
-Settings::Settings()
+Settings::Settings():
+    nThreads(DEFAULT_N_THREADS),
+    Q_Solver(Q_Solver_GMRES),
+    V_Solver(V_Solver_GMRES),
+    Q_Newton_Panic_Iter(DEFAULT_Q_Newton_Panic_Iter),
+    Q_Newton_Panic_Coeff(DEFAULT_Q_Newton_Panic_Coeff),
+
+    Q_PCG_Preconditioner(Diagonal),
+    Q_PCG_Maxiter(DEFAULT_Matrix_Maxiter),
+    Q_PCG_Toler(DEFAULT_Matrix_Toler),
+
+    Q_GMRES_Preconditioner(LUinc),
+    Q_GMRES_Maxiter(DEFAULT_Matrix_Maxiter),
+    Q_GMRES_Restart(DEFAULT_GMRES_Restart),
+    Q_GMRES_Toler(DEFAULT_Matrix_Toler),
+
+    V_PCG_Preconditioner(Cholinc),
+    V_PCG_Maxiter(DEFAULT_Matrix_Maxiter),
+    V_PCG_Toler(DEFAULT_Matrix_Toler),
+
+    V_GMRES_Preconditioner(LUinc),
+    V_GMRES_Maxiter(DEFAULT_Matrix_Maxiter),
+    V_GMRES_Restart(DEFAULT_GMRES_Restart),
+    V_GMRES_Toler(DEFAULT_Matrix_Toler)
 {
 // Set some default values for the solver settings	
 	
-	nThreads	 				= 4;
-	Q_Solver					= 0;
-	V_Solver					= 0;
+    //nThreads	 				= 4;
+    //Q_Solver					= 0;
+    //V_Solver					= 0;
 	
 	
 // Q-tensor solver defaults	
-	Q_Newton_Panic_Iter			= 10;
-	Q_Newton_Panic_Coeff		= 0.5;
+    //Q_Newton_Panic_Iter			= 10;
+    //Q_Newton_Panic_Coeff		= 0.5;
 	
-	Q_PCG_Maxiter 				= 1000;
-	Q_PCG_Toler					= 1e-6;
-	Q_PCG_Preconditioner		= 0;
+    //Q_PCG_Maxiter 				= 1000;
+    //Q_PCG_Toler					= 1e-6;
+    //Q_PCG_Preconditioner		= 0;
 	
-	Q_GMRES_Preconditioner		=	0;
-	Q_GMRES_Maxiter				=	1000;
-	Q_GMRES_Restart				=	32;
-	Q_GMRES_Toler				= 	1e-6;
+    //Q_GMRES_Preconditioner		=	0;
+    //Q_GMRES_Maxiter				=	1000;
+    //Q_GMRES_Restart				=	32;
+    //Q_GMRES_Toler				= 	1e-6;
 	
 // Potential solver defaults
 	V_PCG_Maxiter 				= 1000;
