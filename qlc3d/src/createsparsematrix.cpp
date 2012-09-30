@@ -1,8 +1,10 @@
 //#include "qlc3d.h"
 #include <time.h>
 #include <geometry.h>
+#include <material_numbers.h>
 #include <solutionvector.h>
 #include <sparsematrix.h>
+#include <settings.h>
 #include <list>
 #include <vector>
 #include <set>
@@ -35,7 +37,8 @@ void print_dangly_set( vector < set <unsigned int> > dl){
 
 // CREATES DANGLY FROM LINES
 void create_dangly_matrix(vector <Line>& lines,
-                          vector< list <unsigned int> >& dangly){
+                          vector< list <unsigned int> >& dangly)
+{
 /*! Creates a dangly sparse matrix of node pairs (i.e. lines)*/
 
 
@@ -79,8 +82,8 @@ void create_dangly_matrix(vector <Line>& lines,
 
 // CREATES DANGLY FROM GEOMETRY
 void create_dangly_matrix(vector< list <idx> > & dangly,
-                            Geometry& geom,
-                            SolutionVector& sol,
+                            const Geometry& geom,
+                            const SolutionVector& sol,
                             const idx& MatNum)
 {
     /* Creates a dangly sparse matrix of a Geometry, SolutionVector and material number */
@@ -144,7 +147,8 @@ void create_dangly_matrix(vector< list <idx> > & dangly,
 
 void convert_sets_to_arrays( vector<list <unsigned int> > &ds,
                              const unsigned int dim,
-                             SparseMatrix& K){
+                             SparseMatrix& K)
+{
     /*! Converts dangly matrix linked lists to a proper column copressed sparse matrix. The
         Sparse matrix is expanded by the factor 'dim'. i.e., the row and column count are multiplied
         by it and the sparsity pattern is copied to fill the new rows/cols.*/
@@ -196,9 +200,10 @@ void convert_sets_to_arrays( vector<list <unsigned int> > &ds,
 
 
 
-SparseMatrix* createSparseMatrix(Geometry& geom,
-                                 SolutionVector& sol,
-                                 const int& MatNum){
+SparseMatrix* createSparseMatrix(const Geometry& geom,
+                                 const SolutionVector& sol,
+                                 const int& MatNum)
+{
 /*! Creates a SparseMatrix object based on the input geometry and number of dimensions in sol (i.e. is
 sol is for Q, matrix size is [5*np X 5*np], and for V [npXnp].
  \param geom = input geometry
@@ -219,9 +224,54 @@ sol is for Q, matrix size is [5*np X 5*np], and for V [npXnp].
     return K;
 }
 
+SparseMatrix *createMassMatrix(const Geometry &geom,
+                               const SolutionVector &sol,
+                               const int &MatNum)
+{
+    /*!
+      Creates a simple Mass matrix for the Q-tensor
+      */
+
+    vector <list <idx> > dangly_mat;
+    create_dangly_matrix( dangly_mat,   // CREATES DANGLY MATRIX FOR FIRS Q-TENSOR COMPONENT q1
+                          geom,
+                          sol,
+                          MatNum);
 
 
-SparseMatrix* createSparseMatrix(vector <Line>& lines){
+    // MUST EXPAND DANGLY MATRIX FOR q2 ... q5
+    idx np = (idx) dangly_mat.size();
+    // EXPAND 4 TIMES FOR q2 -> q5
+    for (idx i = 0 ; i < 4 ; ++ i)
+    {
+        // APPEND COPIES OF COLUMNS
+        for (idx c = 0 ; c < np ; ++c)
+        {
+            dangly_mat.push_back(std::list<idx>() ); // ADD EMPTY LIST TO LAST POSITION
+
+            // FILL LIST IN LAST POSITION WITH MODIFIED COPIES FROM COLUMN c
+            list<idx>::const_iterator iter = dangly_mat[c].begin();
+            for ( ; iter != dangly_mat[c].end() ; ++iter)
+            {
+                const idx new_row_idx = *iter + (i+1)*np;
+                dangly_mat.back().push_back(new_row_idx);
+            }
+        }
+    }
+
+    SparseMatrix *K = new SparseMatrix();
+    convert_sets_to_arrays(dangly_mat, 1, *K);
+
+//    K->SPY();
+//    K->PrintDiagonal();
+//    exit(1);
+    return K;
+}
+
+
+
+SparseMatrix* createSparseMatrix(vector <Line>& lines)
+{
 /*! Crates a SparseMatrix object where non-zeros are determined by the node indexes in the input parameter lines*/
 
     vector <list <idx> > dangly;
@@ -230,4 +280,36 @@ SparseMatrix* createSparseMatrix(vector <Line>& lines){
     SparseMatrix* K = new SparseMatrix();
     convert_sets_to_arrays( dangly, 1, *K );
     return K;
+}
+
+SparseMatrix* createSparseMatrixQ(const Geometry &geom,
+                                  const SolutionVector &q,
+                                  const Settings &set)
+{
+/*!
+  Creates right type of sparse matrix for solution of Q-tensor depending on
+  solver method selected in settings files.
+  */
+
+    int QSolver = set.getQ_Solver();
+    switch (QSolver)
+    {
+        case Q_Solver_GMRES:
+            return createSparseMatrix(geom, q, MAT_DOMAIN1);
+            break;
+        case Q_SOLVER_PCG:
+            return createSparseMatrix(geom, q, MAT_DOMAIN1);
+            break;
+        case Q_Solver_Explicit:
+            return createMassMatrix(geom, q, MAT_DOMAIN1);
+            break;
+            // CREATE MASS MATRIX
+
+    default:
+        cout << "error in " <<__func__<< " unknown Q_Solver type : " << QSolver << " - bye !"<< endl;
+        exit(1);
+    }
+
+
+
 }

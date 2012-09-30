@@ -1,5 +1,5 @@
 	nThreads 	= 8;
-	Q_Solver	= 1;	# 0 = PCG, 1 = GMRES
+	Q_Solver	= 1;	# 0 = PCG, 1 = GMRES, 5 = EXPLICIT
 	V_Solver	= 1;	# 0 = PCG, 1 = GMRES
 	
 

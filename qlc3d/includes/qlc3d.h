@@ -76,6 +76,7 @@ void assembleQ(SparseMatrix* K,
 	       Alignment* alignment,
 	       double* NodeNormals);
 
+// UPDATE Q-TENSOR USING IMPLICIT METHODS
 double calcQ3d(SolutionVector *q,
                SolutionVector* qn,
                SolutionVector *v,
@@ -87,6 +88,15 @@ double calcQ3d(SolutionVector *q,
                Alignment* alignment);//
                //double* NodeNormals);
 
+double calcQExplicit(SolutionVector &q,
+                     SolutionVector &v,
+                     SparseMatrix &K,
+                     Geometry &geom,
+                     LC &lc,
+                     Alignment &alignment,
+                     Simu &simu,
+                     Settings &settings
+                     );
 
 void ReadSettings(
         string settings_filename,
@@ -138,10 +148,15 @@ void tensorToEigs(double* a,		// input Q-tensor, traceless basis
 				  double* eigVal,	// result eigenvalues
 				  double* eigVec    // result eigenvectors
 				  );
+
 // THESE SHOULD BE DEFINED AS FRIEND FUNCTIONS TO CLASS SparseMatrix ?
-//SparseMatrix* createSparseMatrix(Geometry* geom, SolutionVector* u); // sparse matrix for all domains
-SparseMatrix* createSparseMatrix(Geometry& geom, SolutionVector& sol, const int& MatNum = 0); // sparse matrix for selected domain = LC only
-//SparseMatrix* createSparseMatrix(Mesh* m);
+SparseMatrix* createSparseMatrix(const Geometry& geom, const SolutionVector& sol, const int& MatNum = 0); // sparse matrix for selected domain = LC only
 SparseMatrix* createSparseMatrix( vector<Line>& lines);
+// CREATES SPARSE MATRIX OF CORRECT TYPE FOR SOLUTION OF Q-TENSOR
+// DEPENDING ON SOLVER METHOD USED (IMPLICIT / EXPLICIT)
+SparseMatrix* createSparseMatrixQ(const Geometry &geom,
+                                 const SolutionVector &q,
+                                 const Settings &set);
+
 #endif
 

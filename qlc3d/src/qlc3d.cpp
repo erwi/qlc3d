@@ -129,13 +129,28 @@ double updateSolutions(SolutionVector& v, SolutionVector& q , SolutionVector& qn
     //double consistency = 1e99; // arb. bignumber!
     double maxdq = 0;
 
-    // in some cases Pot Cons loops are not needed (if gong for steady state or PotCons == Off)
-    //bool isPotCons = ( simu.getdt() > 0 ) && ( simu.getPotCons() != Off );
-    //    isPotCons = false; // turn of consisteny loop
     calcpot3d(Kpot,&v, &q, &lc, geom1, &settings, &electrodes);
 
     printf("Q");
-    maxdq = calcQ3d(&q,&qn,&v,geom1,&lc, &simu, Kq, &settings, &alignment );
+    int QSolver = settings.getQ_Solver();
+    switch (QSolver)
+    {
+        case Q_Solver_PCG:
+            maxdq = calcQ3d(&q,&qn,&v,geom1,&lc, &simu, Kq, &settings, &alignment );
+            break;
+        case Q_Solver_GMRES:
+            maxdq = calcQ3d(&q,&qn,&v,geom1,&lc, &simu, Kq, &settings, &alignment );
+            break;
+        case Q_Solver_Explicit:
+            maxdq = calcQExplicit(q, v, *Kq, geom1, lc, alignment, simu, settings );
+            break;
+        default:
+            cout << "error in " << __func__ << " unknown Q_Solver value : " << QSolver << " - bye!" << endl;
+            exit(1);
+    }
+
+
+    //maxdq = calcQ3d(&q,&qn,&v,geom1,&lc, &simu, Kq, &settings, &alignment );
     printf("OK\n");
     return maxdq;
 
@@ -292,9 +307,15 @@ int main(int argc, char* argv[]){
     SparseMatrix* Kpot = createSparseMatrix(geom1 , v);
     cout << "potential matrix OK"<< endl;
 
-    cout << "Creating matrix for Q-tensor..." << endl;
-    SparseMatrix* Kq = createSparseMatrix(geom1, q, MAT_DOMAIN1);
-    cout << "Q-tensor matrix OK" << endl;
+    SparseMatrix* Kq = createSparseMatrixQ(geom1, q, settings);
+    //if ( (settings.getQ_Solver() == Q_Solver_GMRES ) ||
+   //      (settings.getQ_Solver() == Q_Solver_PCG) )
+    //{
+    //    cout << "Creating matrix for Q-tensor..." << endl;
+    //    Kq = createSparseMatrix(geom1, q, MAT_DOMAIN1);
+    //    cout << "Q-tensor matrix OK" << endl;
+    //}
+    //else if ()
 
 
     //********************************************************************
