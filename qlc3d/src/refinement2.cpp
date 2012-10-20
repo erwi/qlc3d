@@ -10,8 +10,8 @@
 void create_node_number_matrix(SparseMatrix*& nnumbers,
 			       Geometry& geom,
 			       vector <Line>& lines){
-
-    nnumbers = createSparseMatrix( lines ); // this creates a matrix for the mesh. should make one for the lines, but this will do for now
+// COMMENTED DURING SPAMTRIX MIGRATION
+//    nnumbers = createSparseMatrix( lines ); // this creates a matrix for the mesh. should make one for the lines, but this will do for now
 
 
     // LOOP OVER ALL LINES AND ADD INDEXES TO NEW NODES

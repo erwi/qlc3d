@@ -105,7 +105,7 @@ assert( n<getnDoF() );
     }
 
 
-    inline double getValue(size_t n , size_t dim) const // gets the nth value of dimension dim;
+    inline double getValue(const idx n , const idx dim) const // gets the nth value of dimension dim;
     {
 #ifdef DEBUG
         assert(n<getnDoF() );

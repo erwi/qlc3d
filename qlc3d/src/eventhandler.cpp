@@ -107,8 +107,8 @@ void handleInitialEvents(EventList& evel,          // EVENT LIST
                          SolutionVectors& solutionvectors, // PTRS TO SOLUTIONS
                          LC& lc,                   // MATERIAL PARAMS.
                          Settings& settings,       // SPARSE SOLVER SETTINGS
-                         SparseMatrix& Kpot,
-                         SparseMatrix& Kq
+                         IRCMatrix& Kpot,
+                         IRCMatrix& Kq
                          )
 {
 // THIS IS ONLY CALLED BEFORE SIMULATION STARTS, DOES NOT
@@ -153,6 +153,7 @@ void handleInitialEvents(EventList& evel,          // EVENT LIST
     }
     if (refineMesh)
     {
+        /*
         handlePreRefinement(refEvents,
                             geometries,
                             solutionvectors,
@@ -162,9 +163,10 @@ void handleInitialEvents(EventList& evel,          // EVENT LIST
                             lc,
                             Kpot,
                             Kq); // defined in refinementhandler.cpp
+                            */
     }
 // ALWAYS CALCULATE INITIAL POTENTIAL
-    calcpot3d( &Kpot,
+    calcpot3d( Kpot,
                solutionvectors.v,
                solutionvectors.q,
                &lc,
@@ -217,8 +219,8 @@ void handleEvents(EventList& evel,          // EVENT LIST
                   SolutionVectors& solutionvectors, // PTRS TO SOLUTIONS
                   LC& lc,                   // MATERIAL PARAMS.
                   Settings& settings,       // SPARSE SOLVER SETTINGS
-                  SparseMatrix& Kpot,
-                  SparseMatrix& Kq
+                  IRCMatrix &Kpot,
+                  IRCMatrix &Kq
                   )
 {
 
@@ -287,6 +289,7 @@ void handleEvents(EventList& evel,          // EVENT LIST
 // IF MESH REFINEMENT
     if (refineMesh)
     {
+       /*
         handleMeshRefinement(refEvents,
                              geometries,
                              solutionvectors,
@@ -296,11 +299,12 @@ void handleEvents(EventList& evel,          // EVENT LIST
                              lc,
                              Kpot,
                              Kq); // defined in refinementhandler.cpp
-    }
+    */
+}
 
 // IF ELECTRODE POTENTIALS HAVE CHANGED, POTENTIALS MUST BE RECALCULATED
     if ( recalculatePotential )
-        calcpot3d( &Kpot,
+        calcpot3d( Kpot,
                    solutionvectors.v,
                    solutionvectors.q,
                    &lc,

@@ -22,36 +22,43 @@ SPARSELIBINCS = -I$(SPARSELIB_INCLUDE_DIR) -I$(SPARSELIB_MV_INCLUDE_DIR)
 #
 UNAME = $(shell uname)
 ifeq ($(UNAME), Linux)
-	QLC3D_PATH  = $(CURDIR)/..
+#	QLC3D_PATH  = $(CURDIR)
+#/..
 # DEBUG	
 	#SPARSELIB_DIR			= /home/eero/Projects/libs/SparseLib++/debug/1.7
 	
 # RELEASE
-	SPARSELIB_DIR			= /home/eero/Projects/libs/SparseLib++/1.7 
+	SPARSELIB_DIR			= /home/eero/Projects/libs/SparseLib++/1.7
 	SPARSELIB_INCLUDE_DIR		= $(SPARSELIB_DIR)/include/
 	SPARSELIB_MV_INCLUDE_DIR	= $(SPARSELIB_DIR)/mv/include/
 	D_OF = -DLinux
+
+
+	SPAMTRIX_DIR			= /home/eero/Projects/SpaMtrix
+	SPAMTRIX_INCLUDES		= $(SPAMTRIX_DIR)/include
+	SPAMTRIX_LIB			= $(SPAMTRIX_DIR)/lib
 		
 endif
 
 QLC3D_INCS		= -I$(QLC3D_PATH)/includes
 
 
-INCLUDES 		= $(SPARSELIBINCS) $(QLC3D_INCS)
+INCLUDES 		= $(SPARSELIBINCS) $(QLC3D_INCS) -I$(SPAMTRIX_INCLUDES)
 
 CCCFLAGS =    '-DCOMPLEX=std::complex<double>'
 
 # THIS SET OF FLAGS (WITH -O3) RESULTED IN UNEXPLAINED RUNTIME CRASH. 
-#CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -fopenmp -funroll-loops 
+CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -fopenmp -funroll-loops 
 #CFLAGS = -g
 
 #-std=c++0x
 
 # BELOW FLAGS IS EQUIVALENT TO -O3, BUT TREE VECTORIZE IS DISABLED
-CFLAGS+= -Wall -Wextra -fopenmp -march=native -mtune=native -O3 -ffast-math -fno-tree-vectorize \
+#CFLAGS+= -Wall -Wextra -fopenmp -march=native -mtune=native -O3 -ffast-math -fno-tree-#vectorize \
 		
 
 
 LDFLAGS	 = $(SPARSELIB_DIR)/lib/libsparse.a \
            $(SPARSELIB_DIR)/lib/libspblas.a \
-           $(SPARSELIB_DIR)/lib/libmv.a -lm
+           $(SPARSELIB_DIR)/lib/libmv.a -lm \
+	   $(SPAMTRIX_DIR)/lib/libspamtrix.a

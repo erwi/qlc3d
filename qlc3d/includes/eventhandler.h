@@ -6,12 +6,17 @@
 #include <eventlist.h>
 #include <simu.h>
 #include <meshrefinement.h>
-#include <sparsematrix.h>
+//#include <sparsematrix.h>
 #include <lc.h>
 #include <settings.h>
 #include <calcpot3d.h>
 #include <resultoutput.h>
 #include <refinfo.h>
+
+
+// SPAMTRIX INCLUDES
+#include <ircmatrix.h>
+
 
 // CONVENIENCE STRUCT WITH POINTERS TO THE DIFFERENT GEOMETRY OBJECTS
 // NEEDED IN MESH REFINEMENT.
@@ -47,8 +52,8 @@ void handleInitialEvents(EventList& evel,      // EVENT LIST
                          SolutionVectors& solutionvectors, // POINTERS TO SOLUTIONS
                          LC& lc,               // MATERIAL PARAMS.
                          Settings& settings,   // SPARSE SOLVER SETTINGS
-                         SparseMatrix& Kpot,   // MATRIX FOR POTENTIAL CALCULATION
-                         SparseMatrix& Kq      // MATRIX FOR Q-TENSOR CALCULATION
+                         IRCMatrix &Kpot,   // MATRIX FOR POTENTIAL CALCULATION
+                         IRCMatrix &Kq      // MATRIX FOR Q-TENSOR CALCULATION
                          );
 
 
@@ -60,8 +65,8 @@ void handleEvents(EventList& evel,      // EVENT LIST
                   SolutionVectors& solutionvectors, // POINTERS TO SOLUTIONS
                   LC& lc,               // MATERIAL PARAMS.
                   Settings& settings,   // SPARSE SOLVER SETTINGS
-                  SparseMatrix& Kpot,   // MATRIX FOR POTENTIAL CALCULATION
-                  SparseMatrix& Kq      // MATRIX FOR Q-TENSOR CALCULATION
+                  IRCMatrix& Kpot,   // MATRIX FOR POTENTIAL CALCULATION
+                  IRCMatrix& Kq      // MATRIX FOR Q-TENSOR CALCULATION
                   );
 
 void handleMeshRefinement(std::list<Event*>& refEvents,

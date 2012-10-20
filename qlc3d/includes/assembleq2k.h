@@ -1,6 +1,6 @@
 #ifndef ASSEMBLEQ2K_H
 #define ASSEMBLEQ2K_H
-#include <sparsematrix.h>
+#include <ircmatrix.h>
 #include <solutionvector.h>
 #include <geometry.h>
 #include <lc.h>
@@ -8,7 +8,7 @@
 #include <alignment.h>
 
 
-void assemble_volumes2K(SparseMatrix& K,
+void assemble_volumes2K(IRCMatrix &K,
                         double* L,
                         const SolutionVector& q,
                         const SolutionVector& v,
