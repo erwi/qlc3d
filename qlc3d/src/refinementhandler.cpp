@@ -52,6 +52,7 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
     // FOR Q-TENSOR AND POTENTIAL
     if (isRefined)
     {
+      /*// DISABLED DURING SPAMTRIX MIGRATION
         Kpot.PrintInfo();
 
         printf("recreating matrixes for: "); fflush(stdout);
@@ -67,6 +68,7 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
        Kpot.PrintInfo();
 
         printf("OK\n"); fflush(stdout);
+        */
     }
 }
 

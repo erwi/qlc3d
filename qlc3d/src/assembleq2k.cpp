@@ -3,6 +3,7 @@
 #include <shapefunction3d.h>
 #include <material_numbers.h>
 #include <qassembly_macros.h>
+#include <ircmatrix.h>
 #define	BIGNUM 2e16
 
 // LOCAL ELEMENT MATRIX ASSEMBLY
@@ -302,7 +303,7 @@ inline void localKL_2K( double* p,                      // COORINDATES
     // printf("elem %u done\n", it);
 }
 
-void assemble_volumes2K(SparseMatrix& K,
+void assemble_volumes2K(IRCMatrix &K,
                         double* L,
                         const SolutionVector& q,
                         const SolutionVector& v,

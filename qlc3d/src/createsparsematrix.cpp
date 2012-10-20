@@ -7,6 +7,10 @@
 #include <vector>
 #include <set>
 #include <line.h>
+
+// SPAMTRIX INCLUDES
+#include <ircmatrix.h>
+#include <matrixmaker.h>
 using namespace std;
 
 void print_dangly_list( vector < list <unsigned int> > dl){
@@ -36,42 +40,42 @@ void print_dangly_set( vector < set <unsigned int> > dl){
 // CREATES DANGLY FROM LINES
 void create_dangly_matrix(vector <Line>& lines,
                           vector< list <unsigned int> >& dangly){
-/*! Creates a dangly sparse matrix of node pairs (i.e. lines)*/
+    /*! Creates a dangly sparse matrix of node pairs (i.e. lines)*/
 
 
-	// FIND MAXIMUM NODE NUMBER IN lines
-	size_t MaxNode = 0;
-	for (size_t ind = 0 ; ind < lines.size() ; ind++ ){
-		MaxNode = MaxNode > (size_t)lines[ind].L[1] ?  MaxNode: (size_t)lines[ind].L[1] ;
-	}
+    // FIND MAXIMUM NODE NUMBER IN lines
+    size_t MaxNode = 0;
+    for (size_t ind = 0 ; ind < lines.size() ; ind++ ){
+        MaxNode = MaxNode > (size_t)lines[ind].L[1] ?  MaxNode: (size_t)lines[ind].L[1] ;
+    }
 
-	// PRE-ALLOCATE
-        list <unsigned int> empty;
-	dangly.clear();
-	dangly.assign( MaxNode+1 , empty);
+    // PRE-ALLOCATE
+    list <unsigned int> empty;
+    dangly.clear();
+    dangly.assign( MaxNode+1 , empty);
 
-	// CREATE DIAGONAL 0->MaxNode
-	for (size_t diag = 0 ; diag < MaxNode+1 ; diag++){
-                dangly[diag].push_back( (unsigned int) diag);
-	}
+    // CREATE DIAGONAL 0->MaxNode
+    for (size_t diag = 0 ; diag < MaxNode+1 ; diag++){
+        dangly[diag].push_back( (unsigned int) diag);
+    }
 
-	// CREATE ACTUAL NNZ's
-	for( size_t ind = 0 ; ind < lines.size() ; ind++){
-                dangly[ lines[ind].L[0] ].push_back( lines[ind].L[1] );
-                dangly[ lines[ind].L[1] ].push_back( lines[ind].L[0] );
+    // CREATE ACTUAL NNZ's
+    for( size_t ind = 0 ; ind < lines.size() ; ind++){
+        dangly[ lines[ind].L[0] ].push_back( lines[ind].L[1] );
+        dangly[ lines[ind].L[1] ].push_back( lines[ind].L[0] );
 
-	}
+    }
 
-        // Remove repeated node indexes from columns. This step could be avoided if
-        // sets was used instead of lists. However, sets (a tree data structure) tend
-        // to (maybe) consume more memory...
+    // Remove repeated node indexes from columns. This step could be avoided if
+    // sets was used instead of lists. However, sets (a tree data structure) tend
+    // to (maybe) consume more memory...
 #ifndef DEBUG
 #pragma omp parallel for
 #endif
-        for( size_t ind = 0 ; ind < dangly.size() ; ind++){
-            dangly[ind].sort();
-            dangly[ind].unique();
-        }
+    for( size_t ind = 0 ; ind < dangly.size() ; ind++){
+        dangly[ind].sort();
+        dangly[ind].unique();
+    }
 
 
 
@@ -79,9 +83,9 @@ void create_dangly_matrix(vector <Line>& lines,
 
 // CREATES DANGLY FROM GEOMETRY
 void create_dangly_matrix(vector< list <idx> > & dangly,
-                            Geometry& geom,
-                            SolutionVector& sol,
-                            const idx& MatNum)
+                          Geometry& geom,
+                          SolutionVector& sol,
+                          const idx& MatNum)
 {
     /* Creates a dangly sparse matrix of a Geometry, SolutionVector and material number */
 
@@ -98,7 +102,7 @@ void create_dangly_matrix(vector< list <idx> > & dangly,
     for (idx it = 0 ; it < geom.t->getnElements() ; it++) // LOOP OVER EACH ELEMENT
     {
         if ( (!MatNum) ||    // if ignore material numebr OR
-           ( MatNum == geom.t->getMaterialNumber(it))  )// if correct material
+             ( MatNum == geom.t->getMaterialNumber(it))  )// if correct material
         {
             idx* nn = geom.t->getPtrToElement( it );    // shrotcut to element node indexes
 
@@ -114,15 +118,15 @@ void create_dangly_matrix(vector< list <idx> > & dangly,
                 {
                     dangly[eqn[i]].push_back( eqn[i] ); // DIAGONAL ENTRY
 
-                for (unsigned int j = i+1 ; j < npt ; j++)
-                {
-                    // IF NODE IS NOT FIXED, CAN INSERT OFF DIAGONAL TOO
-                    if (eqn[j] != NOT_AN_INDEX)
+                    for (unsigned int j = i+1 ; j < npt ; j++)
                     {
-                        dangly[eqn[i]].push_back( eqn[j] );
-                        dangly[eqn[j]].push_back( eqn[i] );
-                    }// end if j not fixed
-                }// end for node j
+                        // IF NODE IS NOT FIXED, CAN INSERT OFF DIAGONAL TOO
+                        if (eqn[j] != NOT_AN_INDEX)
+                        {
+                            dangly[eqn[i]].push_back( eqn[j] );
+                            dangly[eqn[j]].push_back( eqn[i] );
+                        }// end if j not fixed
+                    }// end for node j
                 }// end if i not fixed
             }// end for node i
         }// end if correct material
@@ -192,14 +196,14 @@ void convert_sets_to_arrays( vector<list <unsigned int> > &ds,
 
     K.MakeSparseMatrix(ncols_f,ncols_f, nnz, Ir, Jc);
 
- }
+}
 
 
 
 SparseMatrix* createSparseMatrix(Geometry& geom,
                                  SolutionVector& sol,
                                  const int& MatNum){
-/*! Creates a SparseMatrix object based on the input geometry and number of dimensions in sol (i.e. is
+    /*! Creates a SparseMatrix object based on the input geometry and number of dimensions in sol (i.e. is
 sol is for Q, matrix size is [5*np X 5*np], and for V [npXnp].
  \param geom = input geometry
  \param sol = solution vector for which the sparse matrix is generated
@@ -219,10 +223,132 @@ sol is for Q, matrix size is [5*np X 5*np], and for V [npXnp].
     return K;
 }
 
+IRCMatrix createPotentialMatrix(Geometry &geom,
+                                SolutionVector &sol,
+                                const int &MatNum)
+{
+    // MATRIX SIZE
+    const idx N = sol.getnFreeNodes();
+    MatrixMaker mm(N,N);
+    cout << "Matrix size : " << N <<"x"<<N; fflush(stdout);
+    // BOOK-KEEPING OF EQU-NODES
+    const idx npt = geom.t->getnNodes(); // 4 FOR LINEAR TETS
+    vector<idx> eqn(npt,0);              // KEEPS EQU NODES FOR ELEMENT
 
+    for (idx it = 0 ; it < geom.t->getnElements() ; it++)
+    {
+        idx* nn = geom.t->getPtrToElement(it); // SHORTCUT TO ELEMENT NODES
+
+        // CONVERT TO EQU NODES FOR THIS ELEMENT
+        for (idx i = 0 ; i < npt ;++i)
+            eqn[i] = sol.getEquNode( nn[i] );
+
+        // ADD EQU NODES TO MATRIX
+        for (idx i = 0 ; i < npt ; ++i)
+        {
+            // IGNORE FIXED NODES
+            if ( eqn[i] == NOT_AN_INDEX )
+                continue;
+
+            mm.addNonZero(eqn[i],eqn[i]); // DIAGONAL
+            for (idx j = i+1 ; j < npt ; ++j )
+            {
+                if (eqn[j] == NOT_AN_INDEX)
+                    continue;
+                mm.addNonZero(eqn[i], eqn[j]);
+                mm.addNonZero(eqn[j], eqn[i]);
+            }
+        }
+    }
+    //IRCMatrix K = mm.getIRCMatrix();
+    idx nnz = mm.calcNumNonZeros();
+    cout << " nnz = " << nnz << endl;
+    return mm.getIRCMatrix();
+
+
+}
+
+
+IRCMatrix createQMatrix(Geometry &geom,
+                        SolutionVector &q,
+                        const int &MatNum)
+{
+
+    // MATRIX SIZE
+    const idx N = q.getnFreeNodes() * 5;
+    MatrixMaker mm(N,N);
+    cout << "Matrix Size : " << N <<"x" << N; fflush(stdout);
+    //const idx nFree = q.getnFreeNodes(); // NUMBER OF FREE NODES
+    const idx npLC  = q.getnDoF();
+    // BOOK-KEEPING OF EQU-NODES
+    const idx npt = geom.t->getnNodes() ; // 4 FOR LINEAR TETS
+    vector<idx> eqn(npt,0);              // KEEPS EQU NODES FOR ELEMENT
+
+    for (idx it = 0 ; it < geom.t->getnElements() ; it++)
+    {
+        if (geom.t->getMaterialNumber(it) != MatNum)
+            continue;
+
+        idx* nn = geom.t->getPtrToElement(it); // SHORTCUT TO ELEMENT NODES
+
+        // CONVERT TO EQU NODES FOR THIS ELEMENT
+        for (idx i = 0 ; i < npt ;++i)
+            eqn[i] = q.getEquNode( nn[i] );
+
+        for (idx i = 0 ; i < npt ; ++i)
+        {
+            if (eqn[i] == NOT_AN_INDEX)
+                continue;
+
+
+
+            // ADD DIAGONAL ENTRIES
+#pragma omp parallel for
+            for (idx rb = 0 ; rb < 5 ; ++rb)        // FOR ROW BLOCK
+            {
+                const idx eqr = q.getEquNode( nn[i] + rb*npLC);
+                for (idx cb = 0 ; cb < 5 ; ++cb)    // FOR COL BLOCK
+                {
+                    const idx eqc = q.getEquNode(nn[i] + cb*npLC);
+                    mm.addNonZero(eqr, eqc);
+                }
+            }
+            for (idx j = i+1 ; j < npt ; ++j)
+            {
+                if (eqn[j] == NOT_AN_INDEX)
+                    continue;
+//#pragma omp parallel for
+                for (idx rb = 0 ; rb < 5 ; ++rb)        // FOR ROW BLOCK
+                {
+                    const idx eqr = q.getEquNode( nn[i] + rb*npLC);
+                    for (idx cb = 0 ; cb < 5 ; ++cb)    // FOR COL BLOCK
+                    {
+                        const idx eqc = q.getEquNode(nn[j] + cb*npLC);
+                        mm.addNonZero(eqr, eqc);
+                        mm.addNonZero(eqc, eqr);
+                    }
+                }// end for row block rb
+            }// end for j
+        }// end for i
+
+
+
+    }// end for elements
+    idx nnz = mm.calcNumNonZeros();
+    cout << " nnz = " << nnz << endl;
+    return mm.getIRCMatrix();
+
+
+
+
+
+
+
+
+}
 
 SparseMatrix* createSparseMatrix(vector <Line>& lines){
-/*! Crates a SparseMatrix object where non-zeros are determined by the node indexes in the input parameter lines*/
+    /*! Crates a SparseMatrix object where non-zeros are determined by the node indexes in the input parameter lines*/
 
     vector <list <idx> > dangly;
     create_dangly_matrix( lines , dangly); // CREATE DANGLY SET MATRIX OF NODE PAIRS

@@ -8,7 +8,10 @@
 #include <settings.h>
 #include <electrodes.h>
 
-void calcpot3d(SparseMatrix* Kpot,
+// SPAMTRIX INCLUDES
+#include <ircmatrix.h>
+
+void calcpot3d(IRCMatrix &Kpot,
                SolutionVector *v,
                SolutionVector *q,
                LC* lc,

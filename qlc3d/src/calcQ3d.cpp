@@ -5,13 +5,16 @@
 #include <qlc3d.h>
 #include <cstdio>
 #include <assembleq2k.h>
+
+#include <ircmatrix.h>
+
 double calcQ3d(SolutionVector *q,   // current Q-tensor
                SolutionVector *qn,  // previous Q-tensor
                SolutionVector *v,   // potential
                Geometry& geom,
                LC *mat_par,
                Simu* simu,
-               SparseMatrix* K,
+               IRCMatrix &K,
                Settings* settings,
                Alignment* alignment)
 //double* NodeNormals)
@@ -24,7 +27,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
     idx npLC = q->getnDoF();
     double* RHS(NULL);		// right hand side vector for Crank-Nicholson.
 
-    idx numCols = (idx) K->cols;
+    idx numCols = K.getNumCols();
     double* dq = (double*) malloc( numCols * sizeof(double) );
     double*  L = (double*) malloc( numCols * sizeof(double) );
     if ( simu->getdt() > 0 )
@@ -65,7 +68,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 
 
         // CLEAR MATRIX, RHS AND dq
-        K->setAllValuesTo(0);
+        K = 0; //->setAllValuesTo(0);
         memset(L  , 0 , numCols * sizeof(double) );
         memset(dq , 0 , numCols * sizeof(double) );
 
@@ -73,9 +76,9 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         // ASSEMBLE MATRIX AND RHS
         assembleQ(K, L, q, v, geom.t, geom.e, geom.getPtrTop(), mat_par, simu, settings, alignment, geom.getPtrToNodeNormals());
 
-#ifdef DEBUG
-        K->DetectZeroDiagonals();
-#endif
+//#ifdef DEBUG
+//        K->DetectZeroDiagonals();
+//#endif
 
 
         float elapsed  = 0;

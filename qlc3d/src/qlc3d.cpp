@@ -20,6 +20,8 @@
 #include <calcpot3d.h>
 #include <resultoutput.h>
 
+#include <ircmatrix.h>
+
 
 double qlc3d_GLOBALS::GLOBAL_COORD_EPS =1e-10; // TODO: MAKE THIS USED DEFINABLE IN A SETTINGS FILE
 
@@ -125,7 +127,7 @@ double updateSolutions(SolutionVector& v, SolutionVector& q , SolutionVector& qn
                        Geometry& geom1,
                        Simu& simu, LC& lc, Settings& settings,
                        Alignment& alignment, Electrodes& electrodes,
-                       SparseMatrix* Kq, SparseMatrix* Kpot ){
+                       IRCMatrix &Kq, IRCMatrix &Kpot ){
     //double consistency = 1e99; // arb. bignumber!
     double maxdq = 0;
 
@@ -289,12 +291,19 @@ int main(int argc, char* argv[]){
     // Make matrices for potential and Q-tensor..
     cout << "Creating sparse matrix for potential...";
 
-    SparseMatrix* Kpot = createSparseMatrix(geom1 , v);
+    //SparseMatrix* Kpot = createSparseMatrix(geom1 , v);
+    IRCMatrix Kpot = createPotentialMatrix(geom1,v);
     cout << "potential matrix OK"<< endl;
 
     cout << "Creating matrix for Q-tensor..." << endl;
-    SparseMatrix* Kq = createSparseMatrix(geom1, q, MAT_DOMAIN1);
+    IRCMatrix Kq = createQMatrix(geom1, q, MAT_DOMAIN1);
     cout << "Q-tensor matrix OK" << endl;
+
+    //Kq.spy();
+
+    //Kpot.spy();
+
+
 
 
     //********************************************************************
@@ -305,6 +314,7 @@ int main(int argc, char* argv[]){
     printf("\nSaving starting configuration (iteration -1)...\n");
     WriteResults::CreateSaveDir(simu);
     Energy_fid = createOutputEnergyFile(simu); // done in inits
+
     handleInitialEvents(eventlist,
                         electrodes,
                         alignment,
@@ -313,10 +323,11 @@ int main(int argc, char* argv[]){
                         solutionvectors,
                         lc,
                         settings,
-                        *Kpot,
-                        *Kq
+                        Kpot,
+                        Kq
                         );
     printf("OK\n");
+
 
 
     // TEMPORARY ARRAYS, USED IN POTENTIAL CONSISTENCY CALCULATIONS
@@ -358,11 +369,13 @@ int main(int argc, char* argv[]){
                                 geom1, simu, lc, settings,
                                 alignment, electrodes,
                                 Kq, Kpot);
+
         /// UPDATE CURRENT TIME
         simu.setCurrentTime( simu.getCurrentTime() + simu.getdt() );
         /// CALCULATE NEW TIME STEP SIZE BASED ON maxdq
         adjustTimeStepSize( simu, maxdq );
         //EVENTS (ELECTRODES SWITCHING ETC.)
+
         handleEvents(eventlist,
                      electrodes,
                      alignment,
@@ -371,8 +384,8 @@ int main(int argc, char* argv[]){
                      solutionvectors,
                      lc,
                      settings,
-                     *Kpot,
-                     *Kq);
+                     Kpot,
+                     Kq);
 
 
         /// INCREMENT ITERATION COUNTER
@@ -417,8 +430,8 @@ int main(int argc, char* argv[]){
 
 
 
-    delete Kpot;
-    delete Kq;
+    //delete Kpot;
+    //delete Kq;
 
     if (v_cons) free(v_cons);
     if (q_cons) free(q_cons);

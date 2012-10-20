@@ -797,7 +797,7 @@ void wk_localKL(
 
 
 void assemble_volumes(
-        SparseMatrix* K,
+        IRCMatrix &K,
         double* L,
         SolutionVector* q,
         SolutionVector* v,
@@ -851,7 +851,7 @@ void assemble_volumes(
 
                     if ( eqc != NOT_AN_INDEX ) // IF NOT FIXED
                     {
-                        K->sparse_add(eqr,eqc,lK[i][j]*BIGNUM);
+                        K.sparse_add(eqr,eqc,lK[i][j]*BIGNUM);
                     }
                 }
             }// end NON-FIXED NODE
@@ -933,7 +933,7 @@ void assemble_Neumann_surfaces(
 
 // ASSEMBLE WEAK ANCHORING SURFACES
 void assemble_surfaces(
-        SparseMatrix* K ,
+        IRCMatrix &K ,
         double* L ,
         SolutionVector* q ,
         Mesh* e ,
@@ -983,7 +983,7 @@ void assemble_surfaces(
                                 jj = i;
                             }
 
-                            K->sparse_add(eqr, eqc, lK[ii][jj]*BIGNUM);
+                            K.sparse_add(eqr, eqc, lK[ii][jj]*BIGNUM);
                         } // end if j not fixed
                     }// end for j
                 }// end if i not fixed
@@ -993,7 +993,7 @@ void assemble_surfaces(
 }
 //*/
 void assembleQ(
-        SparseMatrix* K,
+        IRCMatrix &K,
         double* L,  // current RHS
         SolutionVector *q,  // current Q-Tensor
         SolutionVector* v,
@@ -1040,7 +1040,7 @@ void assembleQ(
         //exit( 1 );
         printf("2K formulation\n");
 
-        assemble_volumes2K(*K, L, *q, *v, *mat_par, *simu, *t, p);
+        assemble_volumes2K(K, L, *q, *v, *mat_par, *simu, *t, p);
 
         if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
             assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);

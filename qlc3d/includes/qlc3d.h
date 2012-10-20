@@ -11,7 +11,7 @@
 
 #include <solutionvector.h>
 #include <material_numbers.h>
-#include <sparsematrix.h>
+//#include <sparsematrix.h>
 #include <eventlist.h>
 #include <settings.h>
 #include <geometry.h>
@@ -22,6 +22,10 @@
 #include <vector>
 #include <list>
 #include <iostream>
+
+// SPAMTRIX INCLUDES
+#include <ircmatrix.h>
+
 using std::vector;
 using std::string;
 
@@ -52,8 +56,8 @@ void readBinaryMesh(std::string filename ,  // same as above
                     idx *&e, idx *&emat,
                     idx *np, idx *nt, idx *ne);
 
-void solve_pcg(SparseMatrix *K, double *b, double *x ,Settings* settings);
-void solve_gmres(SparseMatrix *K, double *b, double *x ,Settings* settings);
+void solve_pcg(IRCMatrix &K, double *b, double *x ,Settings* settings);
+void solve_gmres(IRCMatrix &K, double *b, double *x ,Settings* settings);
 
 // Assembles previous time step part of RHS when doing non-linear Crank-Nicholson
 void assemble_prev_rhs(double* Ln,
@@ -63,7 +67,7 @@ void assemble_prev_rhs(double* Ln,
                        Simu& simu,
                        Geometry& geom);
 
-void assembleQ(SparseMatrix* K,
+void assembleQ(IRCMatrix &K,
 	       double* L,	// current RHS
            SolutionVector *q,
            SolutionVector* v,
@@ -82,7 +86,7 @@ double calcQ3d(SolutionVector *q,
                Geometry& geom,
                LC* mat_par,
                Simu* simu,
-               SparseMatrix* Kq,
+               IRCMatrix &Kq,
                Settings* settings,
                Alignment* alignment);//
                //double* NodeNormals);
@@ -94,7 +98,7 @@ void ReadSettings(
         LC& lc,
         Boxes* boxes,
         Alignment* alignment,
-	Electrodes* electrodes,
+        Electrodes* electrodes,
         MeshRefinement* meshrefinement,
         EventList& eventlist
 	);
@@ -140,8 +144,23 @@ void tensorToEigs(double* a,		// input Q-tensor, traceless basis
 				  );
 // THESE SHOULD BE DEFINED AS FRIEND FUNCTIONS TO CLASS SparseMatrix ?
 //SparseMatrix* createSparseMatrix(Geometry* geom, SolutionVector* u); // sparse matrix for all domains
-SparseMatrix* createSparseMatrix(Geometry& geom, SolutionVector& sol, const int& MatNum = 0); // sparse matrix for selected domain = LC only
+//SparseMatrix* createSparseMatrix(Geometry& geom,
+//                                 SolutionVector& sol,
+//                                 const int& MatNum = 0); // sparse matrix for selected domain = LC only
+
+
+
+// CREATES SPAMTRIX SPARSE MATRIC FOR POTENTIAL
+IRCMatrix createPotentialMatrix(Geometry &geom,
+                              SolutionVector &sol,
+                              const int &MatNum = 0);
+// CREATES SPAMTRIX SPARSE MATRIX FOR Q-TENSOR
+IRCMatrix createQMatrix(Geometry &geom,
+                        SolutionVector &q,
+                        const int& MatNum = MAT_DOMAIN1);
+
+
 //SparseMatrix* createSparseMatrix(Mesh* m);
-SparseMatrix* createSparseMatrix( vector<Line>& lines);
+//SparseMatrix* createSparseMatrix( vector<Line>& lines);
 #endif
 

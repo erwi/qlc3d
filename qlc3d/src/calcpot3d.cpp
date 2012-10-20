@@ -13,14 +13,23 @@
 #ifndef COMPLEX
 #define COMPLEX std::complex<double>
 #endif
-#include <compcol_double.h>	// compressed column matrix
-#include <cg.h>
-#include <gmres.h>
-#include <icpre_double.h>
-#include <diagpre_double.h>
-#include <ilupre_double.h>
+//#include <compcol_double.h>	// compressed column matrix
+//#include <cg.h>
+//#include <gmres.h>
+//#include <icpre_double.h>
+//#include <diagpre_double.h>
+//#include <ilupre_double.h>
 
-#include MATRIX_H
+//#include MATRIX_H
+
+// SPAMTRIX INCLUDES
+//#include <setup.h>
+#include <ircmatrix.h>
+#include <vector.h>
+#include <iterativesolvers.h>
+#include <luincpreconditioner.h>
+
+
 
 
 
@@ -34,13 +43,13 @@ double rt6 = sqrt(6.0);
 void potasm(SolutionVector *v, SolutionVector* q, LC* lc,Mesh *mesh, double *p, SparseMatrix *K, double* L);
 
 
-void assemble_volume(double *p,SolutionVector *v,SolutionVector* q, LC* lc, Mesh *mesh, SparseMatrix *K, double* L, Electrodes* electrodes);
-void assemble_Neumann(double *p,SolutionVector *v, SolutionVector* q, LC* lc,Mesh *mesh, Mesh* surf_mesh, SparseMatrix *K, double* L);
+void assemble_volume(double *p,SolutionVector *v,SolutionVector* q, LC* lc, Mesh *mesh, IRCMatrix &K, double* L, Electrodes* electrodes);
+void assemble_Neumann(double *p,SolutionVector *v, SolutionVector* q, LC* lc,Mesh *mesh, Mesh* surf_mesh, IRCMatrix &K, double* L);
 
 //void Pot_PCG(SparseMatrix *K, double *b, SolutionVector* sv, Settings* settings );
-void Pot_PCG(SparseMatrix *K, double *b, double* V, Settings* settings );
-void Pot_GMRES(SparseMatrix *K, double *b, double* V, Settings* settings );
-void Pot_SuperLU(SparseMatrix *K, double *b, SolutionVector* sv, Settings* settings );
+void Pot_PCG(IRCMatrix &K, double *b, double* V, Settings* settings );
+void Pot_GMRES(IRCMatrix &K, double *b, double* V, Settings* settings );
+//void Pot_SuperLU(SparseMatrix *K, double *b, SolutionVector* sv, Settings* settings );
 
 
 
@@ -166,7 +175,7 @@ void init_shapes_surf() // surface integral shape functions
 void setUniformEField( Electrodes& electrodes, SolutionVector& v, double* p);
 
 void calcpot3d(
-        SparseMatrix* K,
+        IRCMatrix &K,
         SolutionVector *v,
         SolutionVector* q,
         LC* lc,
@@ -187,8 +196,7 @@ void calcpot3d(
         }
         return;
     }
-
-    K->setAllValuesTo(0); // clears values but keeps sparsity structure
+    K = 0.0; // clears values but keeps sparsity structure
 
     double* L = (double*) malloc(v->getnFreeNodes()*sizeof(double) );
     double* V = (double*) malloc(v->getnFreeNodes()*sizeof(double) );
@@ -205,9 +213,9 @@ void calcpot3d(
     assemble_volume(geom.getPtrTop(),v,q,lc,geom.t, K , L, electrodes);
     assemble_Neumann(geom.getPtrTop() , v , q , lc , geom.t , geom.e , K , L);
 
-#ifdef DEBUG
-    K->DetectZeroDiagonals();
-#endif
+//#ifdef DEBUG
+//    K->DetectZeroDiagonals();
+//#endif
 
     // Solve System
     if (settings->getV_Solver() == V_SOLVER_PCG)
@@ -499,7 +507,7 @@ void assemble_volume(
     SolutionVector* q,
     LC* lc,
     Mesh *mesh,
-    SparseMatrix *K,
+    IRCMatrix &K,
     double* L,
     Electrodes* electrodes)
 {
@@ -547,7 +555,7 @@ void assemble_volume(
                     idx rj=v->getEquNode(t[j]);
                     if (rj != NOT_AN_INDEX )
                     {
-                        K->sparse_add(rj,ri,lK[j][i]);
+                        K.sparse_add(rj,ri,lK[j][i]);
                     }
                 }//end for j
         }//end for i
@@ -563,7 +571,7 @@ void assemble_Neumann(
     LC* lc,
     Mesh *mesh,
     Mesh* surf_mesh,
-    SparseMatrix *K,
+    IRCMatrix &K,
     double* L)
 {
     idx it = 0;
@@ -626,7 +634,7 @@ void assemble_Neumann(
                         idx rj=v->getEquNode(ti[j]);
                         if (rj != NOT_AN_INDEX )// NON-FIXED NODE
                         {
-                            K->sparse_add( rj,ri,lK[j][i] );
+                            K.sparse_add( rj,ri,lK[j][i] );
                         }
                     }//end for j
                 }// END HANDLE FREE NODES
@@ -686,29 +694,37 @@ void setUniformEField(Electrodes &electrodes, SolutionVector &v, double *p)
 
 }
 
-void Pot_PCG(SparseMatrix *K, double *b, double *V, Settings* settings )
+void Pot_PCG(IRCMatrix &K, double *b, double *V, Settings* settings )
 {
-    int nnz = K->nnz;
-    int size = K->rows;
+
+    idx size = K.getNumRows();
 
     //for (int ee = 0 ; ee < size; ee++)
     //	printf("b[%i] =%f\n", ee, b[ee]*1e18);
 
     // Create SparseLib++ data structures
-    CompCol_Mat_double A;
-    A.point_to(size, nnz, K->P, K->I, K->J);
+    //CompCol_Mat_double A;
+    //A.point_to(size, nnz, K->P, K->I, K->J);
 
 
     //convert solution vector and RHS vector to SparseLib++
-    VECTOR_double X;// = VECTOR_double(V,A.dim(0));// cannot use "point_to" with potential due to reoredring of values.
-    X.point_to(V, size);
-    VECTOR_double B;// = VECTOR_double(b,A.dim(0));
-    B.point_to(b , size );
+    //VECTOR_double X;// = VECTOR_double(V,A.dim(0));// cannot use "point_to" with potential due to reoredring of values.
+    //X.point_to(V, size);
+    //VECTOR_double B;// = VECTOR_double(b,A.dim(0));
+    //B.point_to(b , size );
     // PCG settings...
-    int return_flag =10;
-    int maxiter =settings->getV_PCG_Maxiter();
 
-    double toler = settings->getV_PCG_Toler();
+    // CREATE x AND b VECTORS OF Ax = b;
+    Vector X(V, size);
+    Vector B(b, size);
+
+ //   int return_flag =10;
+ //   int maxiter =settings->getV_PCG_Maxiter();
+ //   double toler = settings->getV_PCG_Toler();
+
+    cout << "unimplemented functionality in " << __func__ << endl;
+    exit(1);
+/*
 
     // Solves with different preconditioners...
     if (settings->getV_PCG_Preconditioner() == DIAG_PRECONDITIONER )
@@ -734,56 +750,38 @@ void Pot_PCG(SparseMatrix *K, double *b, double *V, Settings* settings )
     //copy solution back to solution vector
     //for (int i = 0; i < sv->getnDoF() ; i++)
     //	       sv->setValue(i , 0 , -X(sv->getEquNode(i)));
-
+*/
 }
-void Pot_GMRES(SparseMatrix *K, double *b, double* V, Settings* settings ){
-    /*! Solves the Linear simulatenous equation Ax=b using the GMRES method*/
+void Pot_GMRES(IRCMatrix &K, double *b, double* V, Settings* settings )
+{
+    /*!
+        Solves the Linear simulatenous equation Ax=b using the GMRES method
+    */
 
-    int nnz = K->nnz;
-    int size = K->rows;
-    // Create SparseLib++ data structures
-    CompCol_Mat_double A;
-    A.point_to(size , nnz, K->P, K->I, K->J);
+    //idx nnz = K.getnnz();
+    idx size = K.getNumRows();
 
-    //Convert solution vector and RHS vector to SparseLib++
-    VECTOR_double X; //=  VECTOR_double(sv->Values,A.dim(0)); // cannot use "point_to" with potential values because reoredring is done after calculation
-    VECTOR_double B;
-    X.point_to( V , size );
-    B.point_to( b , size );
+    Vector X(V, size);  // THESE SHOULD BE USED IN ASSEMBLY. NO NEED TO CREATE COPIES!
+    Vector B(b, size);
 
     // GMRES settings...
-    int return_flag =10;
-    int maxiter 	= settings->getV_GMRES_Maxiter();
-    int restart 	= settings->getV_GMRES_Restart();
+
+    idx maxiter 	= settings->getV_GMRES_Maxiter();
+    idx restart 	= settings->getV_GMRES_Restart();
+
+    maxiter = maxiter < size ? maxiter:size;
+    restart = restart < maxiter ? restart :maxiter;
     double toler 	= settings->getV_GMRES_Toler();
 
-    MATRIX_double H(restart+1, restart, 0.0);	// storage for upper Hessenberg H
+    LUIncPreconditioner LU(K);
 
-    // Solves with different preconditioners...
-    if (settings->getV_GMRES_Preconditioner() == DIAG_PRECONDITIONER )
-    {
-        DiagPreconditioner_double D(A);
-        return_flag = GMRES(A,X,B,D,H,restart,maxiter,toler);
-    }
-    else if (settings->getV_GMRES_Preconditioner() == IC_PRECONDITIONER )
-    {
-        ICPreconditioner_double D(A);
-        return_flag = GMRES(A,X,B,D,H,restart,maxiter,toler);
-    }
-    else if (settings->getV_GMRES_Preconditioner() == ILU_PRECONDITIONER )
-    {
-        CompCol_ILUPreconditioner_double D(A); // compressed column format ILU
-        return_flag = GMRES(A,X,B,D,H,restart,maxiter,toler);
-    }
-
-    if (return_flag == 1)
+    if (!IterativeSolvers::gmres(K, X, B, LU, maxiter, restart, toler))
         printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",maxiter,toler);
 
 
-    //copy solution back to solution vector
-    //#pragma omp parallel for
-    //    for (int i = 0; i < sv->getnDoF() ; i++)
-    //        sv->setValue(i , 0 , -X(sv->getEquNode(i)) );
+    //copy solution back to solution vector  THIS IS A WASTE
+    for (idx i = 0; i < X.getLength() ; ++i)
+        V[i] = X[i];
 
 }
 
