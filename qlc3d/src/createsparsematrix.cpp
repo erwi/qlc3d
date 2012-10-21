@@ -214,6 +214,7 @@ void convert_sets_to_arrays( vector<list <unsigned int> > &ds,
 }
 
 
+<<<<<<< HEAD
 
 <<<<<<< HEAD
 SparseMatrix* createSparseMatrix(const Geometry& geom,
@@ -295,17 +296,25 @@ SparseMatrix *createMassMatrix(const Geometry &geom,
 IRCMatrix createPotentialMatrix(Geometry &geom,
                                 SolutionVector &sol,
                                 const int &MatNum)
+=======
+void setupSingleBlock(Geometry &geom,
+                      SolutionVector &sol,
+                      const idx &MatNum,
+                      MatrixMaker &mm)
+>>>>>>> c258e782b85fd2f734622070ef3a1083664e7b7c
 {
-    // MATRIX SIZE
-    const idx N = sol.getnFreeNodes();
-    MatrixMaker mm(N,N);
-    cout << "Matrix size : " << N <<"x"<<N; fflush(stdout);
     // BOOK-KEEPING OF EQU-NODES
     const idx npt = geom.t->getnNodes(); // 4 FOR LINEAR TETS
     vector<idx> eqn(npt,0);              // KEEPS EQU NODES FOR ELEMENT
 
     for (idx it = 0 ; it < geom.t->getnElements() ; it++)
     {
+        // MAKE SURE ONLY ELEMENTS WITH MATERIAL NUMBER MatNum ARE USED
+        // IF MatNum HAS BEEN DEFINED
+        if (MatNum)
+            if ( MatNum != geom.t->getMaterialNumber(it)  )
+                continue;
+
         idx* nn = geom.t->getPtrToElement(it); // SHORTCUT TO ELEMENT NODES
 
         // CONVERT TO EQU NODES FOR THIS ELEMENT
@@ -329,12 +338,24 @@ IRCMatrix createPotentialMatrix(Geometry &geom,
             }
         }
     }
-    //IRCMatrix K = mm.getIRCMatrix();
+
+
+
+
+}
+
+
+IRCMatrix createPotentialMatrix(Geometry &geom,
+                                SolutionVector &sol,
+                                const int &MatNum)
+{
+    const idx N = sol.getnFreeNodes();
+    cout << "Matrix size : " << N <<"x"<<N; fflush(stdout);
+    MatrixMaker mm(N,N);
+    setupSingleBlock(geom, sol, MatNum, mm);
     idx nnz = mm.calcNumNonZeros();
     cout << " nnz = " << nnz << endl;
     return mm.getIRCMatrix();
-
-
 }
 
 
@@ -342,79 +363,20 @@ IRCMatrix createQMatrix(Geometry &geom,
                         SolutionVector &q,
                         const int &MatNum)
 {
+<<<<<<< HEAD
 >>>>>>> d97c5ecd7883abf7be939e60e7723ae8af81f46b
 
     // MATRIX SIZE
+=======
+    MatrixMaker mm(q.getnFreeNodes(),q.getnFreeNodes());
+>>>>>>> c258e782b85fd2f734622070ef3a1083664e7b7c
     const idx N = q.getnFreeNodes() * 5;
-    MatrixMaker mm(N,N);
     cout << "Matrix Size : " << N <<"x" << N; fflush(stdout);
-    //const idx nFree = q.getnFreeNodes(); // NUMBER OF FREE NODES
-    const idx npLC  = q.getnDoF();
-    // BOOK-KEEPING OF EQU-NODES
-    const idx npt = geom.t->getnNodes() ; // 4 FOR LINEAR TETS
-    vector<idx> eqn(npt,0);              // KEEPS EQU NODES FOR ELEMENT
-
-    for (idx it = 0 ; it < geom.t->getnElements() ; it++)
-    {
-        if (geom.t->getMaterialNumber(it) != MatNum)
-            continue;
-
-        idx* nn = geom.t->getPtrToElement(it); // SHORTCUT TO ELEMENT NODES
-
-        // CONVERT TO EQU NODES FOR THIS ELEMENT
-        for (idx i = 0 ; i < npt ;++i)
-            eqn[i] = q.getEquNode( nn[i] );
-
-        for (idx i = 0 ; i < npt ; ++i)
-        {
-            if (eqn[i] == NOT_AN_INDEX)
-                continue;
-
-
-
-            // ADD DIAGONAL ENTRIES
-#pragma omp parallel for
-            for (idx rb = 0 ; rb < 5 ; ++rb)        // FOR ROW BLOCK
-            {
-                const idx eqr = q.getEquNode( nn[i] + rb*npLC);
-                for (idx cb = 0 ; cb < 5 ; ++cb)    // FOR COL BLOCK
-                {
-                    const idx eqc = q.getEquNode(nn[i] + cb*npLC);
-                    mm.addNonZero(eqr, eqc);
-                }
-            }
-            for (idx j = i+1 ; j < npt ; ++j)
-            {
-                if (eqn[j] == NOT_AN_INDEX)
-                    continue;
-//#pragma omp parallel for
-                for (idx rb = 0 ; rb < 5 ; ++rb)        // FOR ROW BLOCK
-                {
-                    const idx eqr = q.getEquNode( nn[i] + rb*npLC);
-                    for (idx cb = 0 ; cb < 5 ; ++cb)    // FOR COL BLOCK
-                    {
-                        const idx eqc = q.getEquNode(nn[j] + cb*npLC);
-                        mm.addNonZero(eqr, eqc);
-                        mm.addNonZero(eqc, eqr);
-                    }
-                }// end for row block rb
-            }// end for j
-        }// end for i
-
-
-
-    }// end for elements
+    setupSingleBlock(geom, q, MatNum, mm);  // CREATE SPARSITY PATTERN FOR COMPONENT q1
+    mm.expandBlocks(4);                     // EXPAND SPARSITY PATTERN FOR q2->q5 COMPONENTS
     idx nnz = mm.calcNumNonZeros();
     cout << " nnz = " << nnz << endl;
     return mm.getIRCMatrix();
-
-
-
-
-
-
-
-
 }
 
 <<<<<<< HEAD

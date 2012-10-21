@@ -7,12 +7,12 @@
 #include <qlc3d.h>
 #include <globals.h>
 
-void create_node_number_matrix(SparseMatrix*& nnumbers,
+
+IRCMatrix create_node_number_matrix(SparseMatrix*& nnumbers,
 			       Geometry& geom,
 			       vector <Line>& lines){
 // COMMENTED DURING SPAMTRIX MIGRATION
-//    nnumbers = createSparseMatrix( lines ); // this creates a matrix for the mesh. should make one for the lines, but this will do for now
-
+    nnumbers = createSparseMatrix( lines ); // this creates a matrix for the mesh. should make one for the lines, but this will do for now
 
     // LOOP OVER ALL LINES AND ADD INDEXES TO NEW NODES
     unsigned int nold = geom.getnp(); // number of old nodes
@@ -512,6 +512,7 @@ void create_new_elements(Geometry& geom,
     // MAKE NEW NODES FIRST. A SPARSE MATRIX IS USED TO MAP TWO
     // OLD NODES TO A NEW ONE
     SparseMatrix* nnumbers;
+
     create_node_number_matrix(nnumbers, geom, lines);
 
     create_new_coordinates( geom, lines, new_p);

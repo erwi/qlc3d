@@ -273,20 +273,7 @@ bool autoref(   Geometry& geom_orig, Geometry& geom,
             continue;
         }
 
-
-
         Refine( geom_temp  , i_tet);
-
-        //geom_temp.ReorderDielectricNodes();
-        //geom_temp.setMaxNodeNumber( (unsigned int) geom_temp.getnp() );
-        //geom_temp.e->setConnectedVolume( geom_temp.t );
-        //geom_temp.t->CalculateDeterminants3D( geom_temp.getPtrTop() );
-        //geom_temp.t->ScaleDeterminants( 1e-18);// scale to microns cubed
-        //geom_temp.e->CalculateSurfaceNormals( geom_temp.getPtrTop(), geom_temp.t);
-        //geom_temp.e->ScaleDeterminants( 1e-12); // scale to microns squared
-        //geom_temp.checkForPeriodicGeometry();
-        //geom_temp.makePeriEquNodes();
-
         bRefined = true;                        // YES, MESH HAS BEEN CHANGED
         printf("New node count: %i\n", geom_temp.getnp());
         printf("Done refinement iteration = %i of %i \n", refiter, maxrefiter);
