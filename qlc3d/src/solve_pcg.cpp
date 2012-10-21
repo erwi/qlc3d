@@ -105,14 +105,18 @@ void solve_gmres(IRCMatrix &K, double *b, double* x, Settings* settings ){
         idx restart 	= settings->getQ_GMRES_Restart();
         real toler      = settings->getQ_GMRES_Toler();
 
-
+        Preconditioner *M;
         //LUIncPreconditioner LU(K);
-        DiagPreconditioner M(K);
+        M = new DiagPreconditioner(K);
+
+        //M = new LUIncPreconditioner(K);
+
 
         omp_set_num_threads(settings->getnThreads());
-        if (!IterativeSolvers::gmres(K,X,B,M,maxiter,restart, toler))
+        if (!IterativeSolvers::gmres(K,X,B,*M,maxiter,restart, toler))
             printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",maxiter,toler);
 
+        delete [] M;
         //MATRIX_double H(restart+1, restart, 0.0);	// storage for upper Hessenberg H
 
 		// Solves with different preconditioners...

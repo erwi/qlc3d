@@ -11,7 +11,7 @@
 
 #include <solutionvector.h>
 #include <material_numbers.h>
-//#include <sparsematrix.h>
+#include <sparsematrix.h>
 #include <eventlist.h>
 #include <settings.h>
 #include <geometry.h>
@@ -161,6 +161,6 @@ IRCMatrix createQMatrix(Geometry &geom,
 
 
 //SparseMatrix* createSparseMatrix(Mesh* m);
-//SparseMatrix* createSparseMatrix( vector<Line>& lines);
+SparseMatrix* createSparseMatrix( vector<Line>& lines);
 #endif
 
