@@ -154,20 +154,15 @@ void tensorToEigs(double* a,		// input Q-tensor, traceless basis
 				  );
 
 // THESE SHOULD BE DEFINED AS FRIEND FUNCTIONS TO CLASS SparseMatrix ?
-<<<<<<< HEAD
 SparseMatrix* createSparseMatrix(const Geometry& geom, const SolutionVector& sol, const int& MatNum = 0); // sparse matrix for selected domain = LC only
 SparseMatrix* createSparseMatrix( vector<Line>& lines);
 // CREATES SPARSE MATRIX OF CORRECT TYPE FOR SOLUTION OF Q-TENSOR
 // DEPENDING ON SOLVER METHOD USED (IMPLICIT / EXPLICIT)
-SparseMatrix* createSparseMatrixQ(const Geometry &geom,
-                                 const SolutionVector &q,
-                                 const Settings &set);
+//SparseMatrix* createSparseMatrixQ(const Geometry &geom,
+//                                 const SolutionVector &q,
+//                                 const Settings &set);
 
-=======
-//SparseMatrix* createSparseMatrix(Geometry* geom, SolutionVector* u); // sparse matrix for all domains
-//SparseMatrix* createSparseMatrix(Geometry& geom,
-//                                 SolutionVector& sol,
-//                                 const int& MatNum = 0); // sparse matrix for selected domain = LC only
+
 
 
 
@@ -181,12 +176,5 @@ IRCMatrix createQMatrix(Geometry &geom,
                         const int& MatNum = MAT_DOMAIN1);
 
 
-//SparseMatrix* createSparseMatrix(Mesh* m);
-<<<<<<< HEAD
-//SparseMatrix* createSparseMatrix( vector<Line>& lines);
->>>>>>> d97c5ecd7883abf7be939e60e7723ae8af81f46b
-=======
-SparseMatrix* createSparseMatrix( vector<Line>& lines);
->>>>>>> c258e782b85fd2f734622070ef3a1083664e7b7c
 #endif
 

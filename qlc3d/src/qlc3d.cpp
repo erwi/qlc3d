@@ -144,7 +144,7 @@ double updateSolutions(SolutionVector& v, SolutionVector& q , SolutionVector& qn
             maxdq = calcQ3d(&q,&qn,&v,geom1,&lc, &simu, Kq, &settings, &alignment );
             break;
         case Q_Solver_Explicit:
-            maxdq = calcQExplicit(q, v, *Kq, geom1, lc, alignment, simu, settings );
+            //maxdq = calcQExplicit(q, v, *Kq, geom1, lc, alignment, simu, settings );
             break;
         default:
             cout << "error in " << __func__ << " unknown Q_Solver value : " << QSolver << " - bye!" << endl;
@@ -310,26 +310,9 @@ int main(int argc, char* argv[]){
     IRCMatrix Kpot = createPotentialMatrix(geom1,v);
     cout << "potential matrix OK"<< endl;
 
-<<<<<<< HEAD
-    SparseMatrix* Kq = createSparseMatrixQ(geom1, q, settings);
-    //if ( (settings.getQ_Solver() == Q_Solver_GMRES ) ||
-   //      (settings.getQ_Solver() == Q_Solver_PCG) )
-    //{
-    //    cout << "Creating matrix for Q-tensor..." << endl;
-    //    Kq = createSparseMatrix(geom1, q, MAT_DOMAIN1);
-    //    cout << "Q-tensor matrix OK" << endl;
-    //}
-    //else if ()
-=======
     cout << "Creating matrix for Q-tensor..." << endl;
     IRCMatrix Kq = createQMatrix(geom1, q, MAT_DOMAIN1);
     cout << "Q-tensor matrix OK" << endl;
->>>>>>> d97c5ecd7883abf7be939e60e7723ae8af81f46b
-
-    //Kq.spy();
-
-    //Kpot.spy();
-
 
 
 

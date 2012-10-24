@@ -10,6 +10,12 @@ SPARSELIB_INCLUDE_DIR		= $(SPARSELIB_DIR)/include
 SPARSELIB_MV_INCLUDE_DIR	= $(SPARSELIB_DIR)/mv/include
 SPARSELIBINCS = -I$(SPARSELIB_INCLUDE_DIR) -I$(SPARSELIB_MV_INCLUDE_DIR)
 
+
+SPAMTRIX_DIR			= c:/eero/SpaMtrix
+SPAMTRIX_INCLUDES		= $(SPAMTRIX_DIR)/include
+SPAMTRIX_LIB			= $(SPAMTRIX_DIR)/lib
+
+
 # not needed anymore. inlcudes are defined in ./src/makefile
 #QLC3D_PATH      = c:/users/eero/programming/qlc3d_git/qlc3d
 
@@ -48,13 +54,13 @@ INCLUDES 		= $(SPARSELIBINCS) $(QLC3D_INCS) -I$(SPAMTRIX_INCLUDES)
 CCCFLAGS =    '-DCOMPLEX=std::complex<double>'
 
 # THIS SET OF FLAGS (WITH -O3) RESULTED IN UNEXPLAINED RUNTIME CRASH. 
-CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -fopenmp -funroll-loops 
+#CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -fopenmp -funroll-loops 
 #CFLAGS = -g
 
 #-std=c++0x
 
 # BELOW FLAGS IS EQUIVALENT TO -O3, BUT TREE VECTORIZE IS DISABLED
-#CFLAGS+= -Wall -Wextra -fopenmp -march=native -mtune=native -O3 -ffast-math -fno-tree-#vectorize \
+CFLAGS+= -Wall -Wextra -fopenmp -march=native -mtune=native -O3 -ffast-math -fno-tree-vectorize \
 		
 
 
