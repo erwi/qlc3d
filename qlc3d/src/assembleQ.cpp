@@ -798,7 +798,7 @@ void wk_localKL(
 
 void assemble_volumes(
         IRCMatrix &K,
-        double* L,
+        Vector &L,
         SolutionVector* q,
         SolutionVector* v,
         Mesh* t, double* p,
@@ -864,7 +864,7 @@ void assemble_volumes(
 // end void assemble_volumes
 
 void assemble_Neumann_surfaces(
-        double* L,
+        Vector &L,
         SolutionVector* q,
         SolutionVector* v,
         Mesh* mesh,
@@ -934,7 +934,7 @@ void assemble_Neumann_surfaces(
 // ASSEMBLE WEAK ANCHORING SURFACES
 void assemble_surfaces(
         IRCMatrix &K ,
-        double* L ,
+        Vector &L ,
         SolutionVector* q ,
         Mesh* e ,
         LC* lc ,
@@ -994,7 +994,7 @@ void assemble_surfaces(
 //*/
 void assembleQ(
         IRCMatrix &K,
-        double* L,  // current RHS
+        Vector &L,  // current RHS
         SolutionVector *q,  // current Q-Tensor
         SolutionVector* v,
         Mesh* t,

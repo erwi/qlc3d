@@ -9,7 +9,7 @@
 
 
 void assemble_volumes2K(IRCMatrix &K,
-                        double* L,
+                        Vector &L,
                         const SolutionVector& q,
                         const SolutionVector& v,
                         const LC& mat_par,

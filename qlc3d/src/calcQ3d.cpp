@@ -10,6 +10,12 @@
 // SpaMtrix INCLUDES
 #include <ircmatrix.h>
 #include <vector.h>
+
+
+// THESE TWO ARE DEFINED IN solve_pcg.cpp
+void solve_pcg(IRCMatrix &K, Vector &b, Vector &x ,Settings* settings);
+void solve_gmres(IRCMatrix &K, Vector &b, Vector &x ,Settings* settings);
+
 double calcQ3d(SolutionVector *q,   // current Q-tensor
                SolutionVector *qn,  // previous Q-tensor
                SolutionVector *v,   // potential
@@ -33,8 +39,10 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
     Vector RHS(isTimeStepping*numCols);
 
 
-    double* dq = (double*) malloc( numCols * sizeof(double) );
-    double*  L = (double*) malloc( numCols * sizeof(double) );
+    //double* dq = (double*) malloc( numCols * sizeof(double) );
+    //double*  L = (double*) malloc( numCols * sizeof(double) );
+    Vector dq(numCols);
+    Vector L(numCols);
     //if ( simu->getdt() > 0 )
     //    RHS =  (double*) malloc( numCols * sizeof(double) ); // ONLY NEEDED IF TIME-STEPPING
 
@@ -64,27 +72,29 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
                 assemble_prev_rhs(RHS, *qn, *v, *mat_par, *simu, geom );
             }
             else
-            if (mat_par->PhysicsFormulation == LC::BluePhase )
-            {
-                //printf(" BLUE PAHSE FORMULATION DISABLED IN %s\n",__func__);
-                //exit(1);
-                assemble_prev_rhs_K2(RHS, *qn, *v, *mat_par, *simu, geom);
-            }
+                if (mat_par->PhysicsFormulation == LC::BluePhase )
+                {
+                    //printf(" BLUE PAHSE FORMULATION DISABLED IN %s\n",__func__);
+                    //exit(1);
+                    assemble_prev_rhs_K2(RHS, *qn, *v, *mat_par, *simu, geom);
+                }
         }
 
 
         // CLEAR MATRIX, RHS AND dq
         K = 0; //->setAllValuesTo(0);
-        memset(L  , 0 , numCols * sizeof(double) );
-        memset(dq , 0 , numCols * sizeof(double) );
+        L = 0;
+        dq = 0;
+        // memset(L  , 0 , numCols * sizeof(double) );
+       // memset(dq , 0 , numCols * sizeof(double) );
 
         std::cout << " " <<newton_iter << " Assembly..."; fflush(stdout);
         // ASSEMBLE MATRIX AND RHS
         assembleQ(K, L, q, v, geom.t, geom.e, geom.getPtrTop(), mat_par, simu, settings, alignment, geom.getPtrToNodeNormals());
 
-//#ifdef DEBUG
-//        K->DetectZeroDiagonals();
-//#endif
+        //#ifdef DEBUG
+        //        K->DetectZeroDiagonals();
+        //#endif
 
 
         float elapsed  = 0;
@@ -93,11 +103,11 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 
         printf("OK %1.3es. ", elapsed ); fflush(stdout);
 
-        if (simu->getdt() > 0) // make Non-linear Crank-Nicholson RHS
+        if (isTimeStepping) // make Non-linear Crank-Nicholson RHS
         {
-            #ifndef DEBUG
-            #pragma omp parallel for
-            #endif
+#ifndef DEBUG
+#pragma omp parallel for
+#endif
             for (size_t i = 0 ; i < numCols ; i++)
                 L[i] += RHS[i];
         }
@@ -129,7 +139,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
                 if (effDoF < NOT_AN_INDEX )
                 {
                     double dqj = dq[ effDoF ];
-                    q->Values[n] += dqj ;
+                    q->Values[n] -= dqj ;
                     if (fabs( dqj ) > fabs(maxdq) ) // KEEP TRACK OF LARGEST CHANGE IN Q-TENSOR
                         maxdq = dqj;
                 }
@@ -160,20 +170,19 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 
 
         // DETERMINE WHETHER NEWTON LOOP IS DONE
-        if (simu->getdt() == 0) // IF dt == 0, GOING FOR STEADY STATE AND ONLY DOING ONE ITERATION -> NO LOOPS
+        if (!isTimeStepping) // IF dt == 0, GOING FOR STEADY STATE AND ONLY DOING ONE ITERATION -> NO LOOPS
         {
             LOOP = false;
         }
-        else
-            if ( fabs(maxdq) < simu->getMaxError() ) // EXIT IF ACCURATE ENOUGH
-            {
-                LOOP = false;
-            }// end if
+        else if ( fabs(maxdq) < simu->getMaxError() ) // EXIT IF ACCURATE ENOUGH
+        {
+            LOOP = false;
+        }// end if
     }//end while dq > MaxError  ---- ENDS NEWTON LOOP
 
 
-    free(dq);
-    free(L);
+    //free(dq);
+    //free(L);
     //if (RHS) free(RHS); // free if using time stepping
     return maxdq_initial;
 }

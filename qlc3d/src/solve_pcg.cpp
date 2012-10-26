@@ -26,7 +26,7 @@
 using namespace std;
 
 // solves Kb=x, using preconditioned conjugate gradient method
-void solve_pcg(IRCMatrix &K, double *b, double* x, Settings* settings )
+void solve_pcg(IRCMatrix &K, Vector &b, Vector &x, Settings* settings )
 {
 
     idx size = K.getNumRows();
@@ -83,7 +83,7 @@ void solve_pcg(IRCMatrix &K, double *b, double* x, Settings* settings )
 
 }
 
-void solve_gmres(IRCMatrix &K, double *b, double* x, Settings* settings ){
+void solve_gmres(IRCMatrix &K, Vector &b, Vector &x, Settings* settings ){
 
     idx nnz = K.getnnz();
     idx size = K.getNumRows();
@@ -96,8 +96,8 @@ void solve_gmres(IRCMatrix &K, double *b, double* x, Settings* settings ){
         //VECTOR_double B;// = VECTOR_double(b,A.dim(0));
         //X.point_to(x, A.dim(0));
         //B.point_to(b, A.dim(0));
-    Vector X(x, size);
-    Vector B(b, size);
+    //Vector X(x, size);
+    //Vector B(b, size);
 
 	// GMRES settings...
         idx return_flag =10;
@@ -113,10 +113,10 @@ void solve_gmres(IRCMatrix &K, double *b, double* x, Settings* settings ){
 
 
         omp_set_num_threads(settings->getnThreads());
-        if (!IterativeSolvers::gmres(K,X,B,*M,maxiter,restart, toler))
+        if (!IterativeSolvers::gmres(K,x,b,*M,maxiter,restart, toler))
             printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",maxiter,toler);
 
-        delete [] M;
+        delete M;
         //MATRIX_double H(restart+1, restart, 0.0);	// storage for upper Hessenberg H
 
 		// Solves with different preconditioners...
@@ -142,10 +142,10 @@ void solve_gmres(IRCMatrix &K, double *b, double* x, Settings* settings ){
     */
 
 	//copy solution back to solution vector
-#ifndef DEBUG
-    #pragma omp parallel for
-#endif
-    for (int i = 0; i < size ; i++)
-        x[i] = -1*X[i];//X(i);
+//#ifndef DEBUG
+//    #pragma omp parallel for
+//#endif
+    //for (int i = 0; i < size ; i++)
+    //    x[i] *= -1.0;//X(i);
 
 }
