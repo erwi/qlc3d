@@ -16,7 +16,7 @@
 	Q_PCG_Toler				= 1e-3;
 		
 	# GMRES Q-tensor solver settings	
-	Q_GMRES_Preconditioner	= 2;		# 0 = Diagonal, 1 = Incomplete Cholesky, 2 = Incoplete LU
+	Q_GMRES_Preconditioner	= 0;		# 0 = Diagonal, 1 = Incomplete Cholesky, 2 = Incoplete LU
 	Q_GMRES_Maxiter			= 2000;
 	Q_GMRES_Restart			= 100;
 	Q_GMRES_Toler			= 1e-6;

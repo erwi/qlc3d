@@ -567,7 +567,7 @@ void assemble_volumes2K_previous(double lL[20],
 
 
 
-void assemble_prev_rhs_K2(double* Ln,
+void assemble_prev_rhs_K2(Vector &Ln,
                           SolutionVector& qn,
                           SolutionVector& v,
                           LC& mat_par,

@@ -1292,7 +1292,7 @@ inline void assemble_local_prev_volumes(   double lL[20],
 /*  ASSEMBLES RHS CONTRIBUTION FROM PREVIOUS TIME-STEP */
 /*=====================================================*/
 
-void assemble_prev_rhs(double* Ln,
+void assemble_prev_rhs(Vector &Ln,
                        SolutionVector& qn,
                        SolutionVector& v,
                        LC& mat_par,

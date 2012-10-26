@@ -6,8 +6,10 @@
 #include <cstdio>
 #include <assembleq2k.h>
 
-#include <ircmatrix.h>
 
+// SpaMtrix INCLUDES
+#include <ircmatrix.h>
+#include <vector.h>
 double calcQ3d(SolutionVector *q,   // current Q-tensor
                SolutionVector *qn,  // previous Q-tensor
                SolutionVector *v,   // potential
@@ -19,19 +21,22 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
                Alignment* alignment)
 //double* NodeNormals)
 {
-
+    idx numCols = K.getNumCols();
     double maxdq = 10;
     double maxdq_previous = 10;
     double maxdq_initial = 0;
 
     idx npLC = q->getnDoF();
-    double* RHS(NULL);		// right hand side vector for Crank-Nicholson.
 
-    idx numCols = K.getNumCols();
+    idx isTimeStepping = simu->getdt() > 0 ? 1:0;
+    //double* RHS(NULL);		// right hand side vector for Crank-Nicholson.
+    Vector RHS(isTimeStepping*numCols);
+
+
     double* dq = (double*) malloc( numCols * sizeof(double) );
     double*  L = (double*) malloc( numCols * sizeof(double) );
-    if ( simu->getdt() > 0 )
-        RHS =  (double*) malloc( numCols * sizeof(double) ); // ONLY NEEDED IF TIME-STEPPING
+    //if ( simu->getdt() > 0 )
+    //    RHS =  (double*) malloc( numCols * sizeof(double) ); // ONLY NEEDED IF TIME-STEPPING
 
     int newton_iter = 0;    // COUNTER FOR NEWTON ITERATIONS
 
@@ -48,9 +53,10 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         clock_t time1 = clock();
 
         // ASSEMBLE RHS CONTRIBUTION FROM PREVIOUS TIME-STEP, IF NEEDED
-        if ( (newton_iter == 1) && (simu->getdt() > 0 ) )
+        if ( (isTimeStepping) && (newton_iter == 1) )
         {
-            memset(RHS, 0, numCols*sizeof( double ) );
+            //memset(RHS, 0, numCols*sizeof( double ) );
+            RHS = 0;
 
             // CHOOSE WHICH VERSION TO CALL DEPENDING ON FORMULATION USED
             if (mat_par->PhysicsFormulation == LC::Nematic )
@@ -168,7 +174,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 
     free(dq);
     free(L);
-    if (RHS) free(RHS); // free if using time stepping
+    //if (RHS) free(RHS); // free if using time stepping
     return maxdq_initial;
 }
 

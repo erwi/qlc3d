@@ -18,7 +18,7 @@ void assemble_volumes2K(IRCMatrix &K,
                         double* p
                         );
 
-void assemble_prev_rhs_K2(double* RHS,
+void assemble_prev_rhs_K2(Vector &RHS,
                          SolutionVector& qn,
                          SolutionVector& v,
                          LC& mat_par,

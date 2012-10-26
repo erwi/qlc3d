@@ -60,7 +60,7 @@ void solve_pcg(IRCMatrix &K, double *b, double *x ,Settings* settings);
 void solve_gmres(IRCMatrix &K, double *b, double *x ,Settings* settings);
 
 // Assembles previous time step part of RHS when doing non-linear Crank-Nicholson
-void assemble_prev_rhs(double* Ln,
+void assemble_prev_rhs(Vector &Ln,
 		       SolutionVector& qn,
 		       SolutionVector& v,
                        LC&mat_par,
