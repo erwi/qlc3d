@@ -10,7 +10,7 @@
 // SpaMtrix INCLUDES
 #include <ircmatrix.h>
 #include <vector.h>
-
+#include <tickcounter.h>
 
 // THESE TWO ARE DEFINED IN solve_pcg.cpp
 void solve_pcg(IRCMatrix &K, Vector &b, Vector &x ,Settings* settings);
@@ -27,24 +27,18 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
                Alignment* alignment)
 //double* NodeNormals)
 {
-    idx numCols = K.getNumCols();
+    const idx numCols = K.getNumCols();
     double maxdq = 10;
     double maxdq_previous = 10;
     double maxdq_initial = 0;
 
-    idx npLC = q->getnDoF();
+    const idx npLC = q->getnDoF();
 
-    idx isTimeStepping = simu->getdt() > 0 ? 1:0;
-    //double* RHS(NULL);		// right hand side vector for Crank-Nicholson.
-    Vector RHS(isTimeStepping*numCols);
+    const idx isTimeStepping = simu->getdt() > 0 ? 1:0;
 
-
-    //double* dq = (double*) malloc( numCols * sizeof(double) );
-    //double*  L = (double*) malloc( numCols * sizeof(double) );
+    Vector RHS(isTimeStepping*numCols); // THIS IS ZERO SIZED IF NOT TIME STEPPING
     Vector dq(numCols);
     Vector L(numCols);
-    //if ( simu->getdt() > 0 )
-    //    RHS =  (double*) malloc( numCols * sizeof(double) ); // ONLY NEEDED IF TIME-STEPPING
 
     int newton_iter = 0;    // COUNTER FOR NEWTON ITERATIONS
 
@@ -53,17 +47,18 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         qn->setValuesTo(*q);
     }
 
-    bool LOOP = true;
+    // CREATE MILLISECOND ACCURACY TIMER
+    TickCounter <std::chrono::milliseconds> timer;
+    timer.start();
 
+    bool LOOP = true;
     while ( LOOP ) // Q-TENSOR SOLUTION LOOP
     {
         newton_iter++;
-        clock_t time1 = clock();
-
+        timer.reset();
         // ASSEMBLE RHS CONTRIBUTION FROM PREVIOUS TIME-STEP, IF NEEDED
         if ( (isTimeStepping) && (newton_iter == 1) )
         {
-            //memset(RHS, 0, numCols*sizeof( double ) );
             RHS = 0;
 
             // CHOOSE WHICH VERSION TO CALL DEPENDING ON FORMULATION USED
@@ -71,37 +66,26 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
             {
                 assemble_prev_rhs(RHS, *qn, *v, *mat_par, *simu, geom );
             }
-            else
-                if (mat_par->PhysicsFormulation == LC::BluePhase )
-                {
-                    //printf(" BLUE PAHSE FORMULATION DISABLED IN %s\n",__func__);
-                    //exit(1);
-                    assemble_prev_rhs_K2(RHS, *qn, *v, *mat_par, *simu, geom);
-                }
+            else if (mat_par->PhysicsFormulation == LC::BluePhase )
+            {
+                //printf(" BLUE PAHSE FORMULATION DISABLED IN %s\n",__func__);
+                //exit(1);
+                assemble_prev_rhs_K2(RHS, *qn, *v, *mat_par, *simu, geom);
+            }
         }
 
 
-        // CLEAR MATRIX, RHS AND dq
+        // CLEAR MATRIX, L AND dq
         K = 0; //->setAllValuesTo(0);
         L = 0;
         dq = 0;
-        // memset(L  , 0 , numCols * sizeof(double) );
-       // memset(dq , 0 , numCols * sizeof(double) );
 
         std::cout << " " <<newton_iter << " Assembly..."; fflush(stdout);
-        // ASSEMBLE MATRIX AND RHS
+        // ASSEMBLE MATRIX AND RHS (L)
         assembleQ(K, L, q, v, geom.t, geom.e, geom.getPtrTop(), mat_par, simu, settings, alignment, geom.getPtrToNodeNormals());
 
-        //#ifdef DEBUG
-        //        K->DetectZeroDiagonals();
-        //#endif
-
-
-        float elapsed  = 0;
-        elapsed = ( (float) clock() - (float) time1 ) / (float) CLOCKS_PER_SEC; // get assembly time
-        time1 = clock(); // used for solver timing next.
-
-        printf("OK %1.3es. ", elapsed ); fflush(stdout);
+        printf("OK %1.3es.", (float) timer.getElapsed() / 1000.0 );
+        timer.reset();
 
         if (isTimeStepping) // make Non-linear Crank-Nicholson RHS
         {
@@ -132,30 +116,25 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         {
             for (idx j = 0; j < npLC ; j++) // LOOP OVER EACH NODE IN DIMENSION i
             {
-                idx n = j + i*npLC;
-                idx effDoF = q->getEquNode(n);
+                const idx n = j + i*npLC;
+                const idx effDoF = q->getEquNode(n);
 
                 // EQUIVALENT DOF OF FIXED NODES ARE LABELLED AS "NOT_AN_INDEX"
                 if (effDoF < NOT_AN_INDEX )
                 {
-                    double dqj = dq[ effDoF ];
+                    const double dqj = dq[ effDoF ];
                     q->Values[n] -= dqj ;
-                    if (fabs( dqj ) > fabs(maxdq) ) // KEEP TRACK OF LARGEST CHANGE IN Q-TENSOR
-                        maxdq = dqj;
+
+                    // KEEP TRACK OF LARGEST CHANGE IN Q-TENSOR
+                    maxdq = fabs(dqj) > fabs(maxdq) ? dqj:maxdq;
                 }
             }// end for j
         }// end for i
 
-
-
         if (newton_iter==1) maxdq_initial = maxdq; // maxdq_initial is needed elsewhere to adjust time-step size
 
         // PRINT SOLUTION TIME
-        elapsed = ( (float) clock() - (float) time1 ) / (float) CLOCKS_PER_SEC ;
-
-
-        //elapsed = 0; maxdq = 0; //valgrind
-        printf("OK %1.3es.\tdQ = %1.3e\n", elapsed, maxdq);
+        printf("OK %1.3es.\tdQ = %1.3e\n", (float) timer.getElapsed() / 1000.0, maxdq);
         fflush( stdout );
 
         // PANIC!! if looks like no convergence
@@ -168,22 +147,13 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
             q->setValuesTo(*qn);
         }// end if PANIC!!!
 
-
         // DETERMINE WHETHER NEWTON LOOP IS DONE
         if (!isTimeStepping) // IF dt == 0, GOING FOR STEADY STATE AND ONLY DOING ONE ITERATION -> NO LOOPS
-        {
             LOOP = false;
-        }
         else if ( fabs(maxdq) < simu->getMaxError() ) // EXIT IF ACCURATE ENOUGH
-        {
             LOOP = false;
-        }// end if
-    }//end while dq > MaxError  ---- ENDS NEWTON LOOP
 
-
-    //free(dq);
-    //free(L);
-    //if (RHS) free(RHS); // free if using time stepping
+    }//end while LOOP
     return maxdq_initial;
 }
 
