@@ -153,7 +153,8 @@ void tensorToEigs(double* a,		// input Q-tensor, traceless basis
 // CREATES SPAMTRIX SPARSE MATRIC FOR POTENTIAL
 SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
                               SolutionVector &sol,
-                              const int &MatNum = 0);
+                              const int &MatNum,
+                              const Electrodes &electrodes);
 // CREATES SPAMTRIX SPARSE MATRIX FOR Q-TENSOR
 SpaMtrix::IRCMatrix createQMatrix(Geometry &geom,
                         SolutionVector &q,

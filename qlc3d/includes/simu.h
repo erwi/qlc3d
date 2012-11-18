@@ -55,6 +55,7 @@ private:
     double  EnergyRegion[3]; // x,y,z coordinates for determining regions above/below which to calculate energy
     int CurrentIteration;
     bool AssembleMatrix;
+
     bool MeshModified;
     int MeshNumber;     // counts number of modifications. This number is appended to the end of mesh name
     int	OutputEnergy;	// boolean whether or not to calculate energy

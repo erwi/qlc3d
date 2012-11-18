@@ -54,33 +54,11 @@ Electrodes::Electrodes():
     EField[2] = 0.0;
 
 }
-Electrodes::~Electrodes(){
-
-    //std::vector<Electrode*>::iterator itr;
-
-//	for(itr = E.begin() ; itr!=E.end() ; itr++)
-//		delete (*itr);
-
-}
-
-/*
-void Electrodes::AddElectrode()
+Electrodes::~Electrodes()
 {
-	// Adds new empty electrode
-	nElectrodes++;
-	E.push_back(new Electrode);
+
 }
-*/
-//void Electrodes::AddElectrode(Electrode* El)
-//{
-    // adds non-empty electrode
-//	nElectrodes++;
-//    E.push_back( El );
-//}
- 
-/*
-void Electrodes::AddDielectricPermittivity(double eps){	eps_dielectric.push_back(eps); }
-*/
+
 
 double Electrodes:: getDielectricPermittivity(int i)const
 {
@@ -111,7 +89,7 @@ void Electrodes::printElectrodes()const
     std::cout << "EField = [" << EField[0] <<"," <<EField[1] << "," << EField[2] <<"] V/um" << std::endl;
     */
 }
-void Electrodes::setCalcPot(bool yn)	{	CalcPot = yn;}
+//void Electrodes::setCalcPot(bool yn)	{	CalcPot = yn;}
 bool Electrodes::getCalcPot()const		{	return CalcPot;}
 //int Electrodes::getnElectrodes()const	{   return nElectrodes;}
 bool Electrodes::isEField()const
@@ -127,11 +105,6 @@ bool Electrodes::isEField()const
 
 
 }
-
-//void Electrodes::WriteElectrodes(FILE* fid) const
-//{
-//
-//}
 
 void Electrodes::setElectrodePotential(const size_t &eNum, const double &pot)
 {
@@ -166,4 +139,22 @@ double Electrodes::getCurrentElectrodePotential(const size_t &eNum) const
         exit(1);
     }
     return potentials_[eNum];
+}
+
+void Electrodes::setImplicitVariables()
+{
+    /*!
+      SETS FLAGS THAT DEPEND ON EXPLICITLY DEFINED VALUES.
+      THIS SHOULD BE CALLED AFTER OTHER VALUES HAVE BEEN SET.
+    */
+
+    // SET CalcPot FLAG THAT INDICATES WHETHER POTENTIAL
+    // NEEDS TO BE CALCULATED AND REQUIRES A MATRIX
+    if ( getnElectrodes() && !isEField() )
+        CalcPot = true;
+    else
+        CalcPot = false;
+
+
+
 }

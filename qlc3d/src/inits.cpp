@@ -84,15 +84,15 @@ void prepareGeometry(Geometry& geom,
 
 FILE* createOutputEnergyFile(Simu& simu){
 
-	FILE* fid = NULL;
+    FILE* fid = NULL;
 
-	if (simu.getOutputEnergy() == 1){
-            string energy_fn = simu.getSaveDir() + "/" + "energy.m";
-		fid = fopen( energy_fn.c_str() , "w");
-		if (fid == NULL)	{
-			printf("error - could not open output file for free energy- bye ! \n");
-			exit(0);
-		}
-	}
-	return fid;
+    if (simu.getOutputEnergy() == 1){
+        string energy_fn = simu.getSaveDir() + "/" + "energy.m";
+        fid = fopen( energy_fn.c_str() , "w");
+        if (fid == NULL)	{
+            printf("error - could not open output file for free energy- bye ! \n");
+            exit(0);
+        }
+    }
+    return fid;
 }

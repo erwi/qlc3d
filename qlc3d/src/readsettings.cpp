@@ -691,7 +691,7 @@ void readElectrodes(Electrodes* electrodes,
         evli.insertTimeEvent( swEvent );
     }
 
-
+    electrodes->setImplicitVariables();
 }
 // end readElectrodes
 

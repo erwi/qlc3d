@@ -289,10 +289,8 @@ int main(int argc, char* argv[]){
     solutionvectors.v = &v;
 
     // Make matrices for potential and Q-tensor..
-    cout << "Creating sparse matrix for potential...";
-
-    //SparseMatrix* Kpot = createSparseMatrix(geom1 , v);
-    SpaMtrix::IRCMatrix Kpot = createPotentialMatrix(geom1,v);
+    cout << "Creating sparse matrix for potential..." << endl;
+    SpaMtrix::IRCMatrix Kpot = createPotentialMatrix(geom1,v,0,electrodes);
     cout << "potential matrix OK"<< endl;
 
     cout << "Creating matrix for Q-tensor..." << endl;

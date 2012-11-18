@@ -32,7 +32,6 @@ class Electrodes
 
     public:
         int nElectrodes;
-  //      vector<Electrode> E;       // THIS USED TO BE VECTOR OF POINTERS - CHECK ERRORS
         std::vector <double> eps_dielectric;
         double EField[3];       // Contains the x,y,z components of a uniform E-field
 
@@ -40,15 +39,12 @@ class Electrodes
         ~Electrodes();
         void printElectrodes()const;
         void AddElectrode();
-        //void AddElectrode(Electrode* El);
         double getDielectricPermittivity(int i) const; 	// gets relative dielectric permittivity of dielectric#i
-        void setCalcPot(bool yn);
         bool getCalcPot()const ;
         bool isEField()const ;    // returns true if uniform E-field has been defined
-        //int getnElectrodes() const;
         void WriteElectrodes(FILE* fid)const;			// writes electrode settings to file fid
 
-// NEW METHODS
+
         double getCurrentElectrodePotential(const size_t& eln) const; // get current potential for electrode eln
         size_t getnElectrodes()const {return nElectrodes;}
         void setnElectrodes(const size_t& numE)
@@ -57,5 +53,7 @@ class Electrodes
             nElectrodes = numE;
         }
         void setElectrodePotential( const size_t& eNum, const double& pot );
+        void setImplicitVariables(); // SETS FLAGS THAT DEPEND ON EXPLICITLY DEFINED VALUES
+
 };
 #endif

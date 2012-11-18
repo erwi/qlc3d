@@ -12,15 +12,21 @@
 14. Creation of regular grid interpolation table is slow and may not work
 	in cases where LC regions are disconnected.
 
-10. Potential calculation is done even when not needed.
-    Also, dont make a potential matrix when not needed.
-
-7.  Integrate SparseLib so that the modified SparseLib class files are kept with qlc3d.
 
 4.  Interpolation is simplified -> uniaxial interpolation. should
     interpolate each eigenvector/eigenvalue istead
 
 ============ DONE ==============================
+10. Potential calculation is done even when not needed.
+    Also, dont make a potential matrix when not needed.
+      DONE (18/11/12). When Electrodes.CalcPot flag is false, an empty
+      potential matrix is constructed and potential values are either 
+      all 0 or as specified by constant E-field. This requires removing
+      all Electrodes from the settings file.
+
+7.  Integrate SparseLib so that the modified SparseLib class files are 
+    kept with qlc3d.
+    Using SpaMtrix instead if SpearseLib now.
 
 17. Reading of material parameters - when p0 is not defined its value should be assumed 	    to be 0, not causing an error
     fixed (29/09/12)
