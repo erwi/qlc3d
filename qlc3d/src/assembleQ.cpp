@@ -797,7 +797,7 @@ void wk_localKL(
 
 
 void assemble_volumes(
-        IRCMatrix &K,
+        SpaMtrix::IRCMatrix &K,
         double* L,
         SolutionVector* q,
         SolutionVector* v,
@@ -933,7 +933,7 @@ void assemble_Neumann_surfaces(
 
 // ASSEMBLE WEAK ANCHORING SURFACES
 void assemble_surfaces(
-        IRCMatrix &K ,
+        SpaMtrix::IRCMatrix &K ,
         double* L ,
         SolutionVector* q ,
         Mesh* e ,
@@ -993,7 +993,7 @@ void assemble_surfaces(
 }
 //*/
 void assembleQ(
-        IRCMatrix &K,
+        SpaMtrix::IRCMatrix &K,
         double* L,  // current RHS
         SolutionVector *q,  // current Q-Tensor
         SolutionVector* v,

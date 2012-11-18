@@ -43,12 +43,12 @@ double rt6 = sqrt(6.0);
 void potasm(SolutionVector *v, SolutionVector* q, LC* lc,Mesh *mesh, double *p, SparseMatrix *K, double* L);
 
 
-void assemble_volume(double *p,SolutionVector *v,SolutionVector* q, LC* lc, Mesh *mesh, IRCMatrix &K, double* L, Electrodes* electrodes);
-void assemble_Neumann(double *p,SolutionVector *v, SolutionVector* q, LC* lc,Mesh *mesh, Mesh* surf_mesh, IRCMatrix &K, double* L);
+void assemble_volume(double *p,SolutionVector *v,SolutionVector* q, LC* lc, Mesh *mesh, SpaMtrix::IRCMatrix &K, double* L, Electrodes* electrodes);
+void assemble_Neumann(double *p,SolutionVector *v, SolutionVector* q, LC* lc,Mesh *mesh, Mesh* surf_mesh, SpaMtrix::IRCMatrix &K, double* L);
 
 //void Pot_PCG(SparseMatrix *K, double *b, SolutionVector* sv, Settings* settings );
-void Pot_PCG(IRCMatrix &K, double *b, double* V, Settings* settings );
-void Pot_GMRES(IRCMatrix &K, double *b, double* V, Settings* settings );
+void Pot_PCG(SpaMtrix::IRCMatrix &K, double *b, double* V, Settings* settings );
+void Pot_GMRES(SpaMtrix::IRCMatrix &K, double *b, double* V, Settings* settings );
 //void Pot_SuperLU(SparseMatrix *K, double *b, SolutionVector* sv, Settings* settings );
 
 
@@ -175,7 +175,7 @@ void init_shapes_surf() // surface integral shape functions
 void setUniformEField( Electrodes& electrodes, SolutionVector& v, double* p);
 
 void calcpot3d(
-        IRCMatrix &K,
+        SpaMtrix::IRCMatrix &K,
         SolutionVector *v,
         SolutionVector* q,
         LC* lc,
@@ -507,7 +507,7 @@ void assemble_volume(
     SolutionVector* q,
     LC* lc,
     Mesh *mesh,
-    IRCMatrix &K,
+    SpaMtrix::IRCMatrix &K,
     double* L,
     Electrodes* electrodes)
 {
@@ -571,7 +571,7 @@ void assemble_Neumann(
     LC* lc,
     Mesh *mesh,
     Mesh* surf_mesh,
-    IRCMatrix &K,
+    SpaMtrix::IRCMatrix &K,
     double* L)
 {
     idx it = 0;
@@ -694,7 +694,7 @@ void setUniformEField(Electrodes &electrodes, SolutionVector &v, double *p)
 
 }
 
-void Pot_PCG(IRCMatrix &K, double *b, double *V, Settings* settings )
+void Pot_PCG(SpaMtrix::IRCMatrix &K, double *b, double *V, Settings* settings )
 {
 
     idx size = K.getNumRows();
@@ -715,8 +715,8 @@ void Pot_PCG(IRCMatrix &K, double *b, double *V, Settings* settings )
     // PCG settings...
 
     // CREATE x AND b VECTORS OF Ax = b;
-    Vector X(V, size);
-    Vector B(b, size);
+    SpaMtrix::Vector X(V, size);
+    SpaMtrix::Vector B(b, size);
 
  //   int return_flag =10;
  //   int maxiter =settings->getV_PCG_Maxiter();
@@ -752,7 +752,7 @@ void Pot_PCG(IRCMatrix &K, double *b, double *V, Settings* settings )
     //	       sv->setValue(i , 0 , -X(sv->getEquNode(i)));
 */
 }
-void Pot_GMRES(IRCMatrix &K, double *b, double* V, Settings* settings )
+void Pot_GMRES(SpaMtrix::IRCMatrix &K, double *b, double* V, Settings* settings )
 {
     /*!
         Solves the Linear simulatenous equation Ax=b using the GMRES method
@@ -761,8 +761,8 @@ void Pot_GMRES(IRCMatrix &K, double *b, double* V, Settings* settings )
     //idx nnz = K.getnnz();
     idx size = K.getNumRows();
 
-    Vector X(V, size);  // THESE SHOULD BE USED IN ASSEMBLY. NO NEED TO CREATE COPIES!
-    Vector B(b, size);
+    SpaMtrix::Vector X(V, size);  // THESE SHOULD BE USED IN ASSEMBLY. NO NEED TO CREATE COPIES!
+    SpaMtrix::Vector B(b, size);
 
     // GMRES settings...
 
@@ -773,10 +773,11 @@ void Pot_GMRES(IRCMatrix &K, double *b, double* V, Settings* settings )
     restart = restart < maxiter ? restart :maxiter;
     double toler 	= settings->getV_GMRES_Toler();
 
-    LUIncPreconditioner LU(K);
+    SpaMtrix::LUIncPreconditioner LU(K);
 
-    if (!IterativeSolvers::gmres(K, X, B, LU, maxiter, restart, toler))
-        printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",maxiter,toler);
+    SpaMtrix::IterativeSolvers solver(maxiter, restart, toler);
+    if (!solver.gmres(K, X, B, LU) )//, maxiter, restart, toler))
+        printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",solver.maxIter,solver.toler);
 
 
     //copy solution back to solution vector  THIS IS A WASTE

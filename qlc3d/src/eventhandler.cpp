@@ -107,8 +107,8 @@ void handleInitialEvents(EventList& evel,          // EVENT LIST
                          SolutionVectors& solutionvectors, // PTRS TO SOLUTIONS
                          LC& lc,                   // MATERIAL PARAMS.
                          Settings& settings,       // SPARSE SOLVER SETTINGS
-                         IRCMatrix& Kpot,
-                         IRCMatrix& Kq
+                         SpaMtrix::IRCMatrix& Kpot,
+                         SpaMtrix::IRCMatrix& Kq
                          )
 {
 // THIS IS ONLY CALLED BEFORE SIMULATION STARTS, DOES NOT
@@ -219,8 +219,8 @@ void handleEvents(EventList& evel,          // EVENT LIST
                   SolutionVectors& solutionvectors, // PTRS TO SOLUTIONS
                   LC& lc,                   // MATERIAL PARAMS.
                   Settings& settings,       // SPARSE SOLVER SETTINGS
-                  IRCMatrix &Kpot,
-                  IRCMatrix &Kq
+                  SpaMtrix::IRCMatrix &Kpot,
+                  SpaMtrix::IRCMatrix &Kq
                   )
 {
 

@@ -56,8 +56,8 @@ void readBinaryMesh(std::string filename ,  // same as above
                     idx *&e, idx *&emat,
                     idx *np, idx *nt, idx *ne);
 
-void solve_pcg(IRCMatrix &K, double *b, double *x ,Settings* settings);
-void solve_gmres(IRCMatrix &K, double *b, double *x ,Settings* settings);
+void solve_pcg(SpaMtrix::IRCMatrix &K, double *b, double *x ,Settings* settings);
+void solve_gmres(SpaMtrix::IRCMatrix &K, double *b, double *x ,Settings* settings);
 
 // Assembles previous time step part of RHS when doing non-linear Crank-Nicholson
 void assemble_prev_rhs(double* Ln,
@@ -67,7 +67,7 @@ void assemble_prev_rhs(double* Ln,
                        Simu& simu,
                        Geometry& geom);
 
-void assembleQ(IRCMatrix &K,
+void assembleQ(SpaMtrix::IRCMatrix &K,
 	       double* L,	// current RHS
            SolutionVector *q,
            SolutionVector* v,
@@ -86,7 +86,7 @@ double calcQ3d(SolutionVector *q,
                Geometry& geom,
                LC* mat_par,
                Simu* simu,
-               IRCMatrix &Kq,
+               SpaMtrix::IRCMatrix &Kq,
                Settings* settings,
                Alignment* alignment);//
                //double* NodeNormals);
@@ -151,11 +151,11 @@ void tensorToEigs(double* a,		// input Q-tensor, traceless basis
 
 
 // CREATES SPAMTRIX SPARSE MATRIC FOR POTENTIAL
-IRCMatrix createPotentialMatrix(Geometry &geom,
+SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
                               SolutionVector &sol,
                               const int &MatNum = 0);
 // CREATES SPAMTRIX SPARSE MATRIX FOR Q-TENSOR
-IRCMatrix createQMatrix(Geometry &geom,
+SpaMtrix::IRCMatrix createQMatrix(Geometry &geom,
                         SolutionVector &q,
                         const int& MatNum = MAT_DOMAIN1);
 

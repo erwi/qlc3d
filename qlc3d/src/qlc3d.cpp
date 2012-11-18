@@ -127,7 +127,7 @@ double updateSolutions(SolutionVector& v, SolutionVector& q , SolutionVector& qn
                        Geometry& geom1,
                        Simu& simu, LC& lc, Settings& settings,
                        Alignment& alignment, Electrodes& electrodes,
-                       IRCMatrix &Kq, IRCMatrix &Kpot ){
+                       SpaMtrix::IRCMatrix &Kq, SpaMtrix::IRCMatrix &Kpot ){
     //double consistency = 1e99; // arb. bignumber!
     double maxdq = 0;
 
@@ -292,11 +292,11 @@ int main(int argc, char* argv[]){
     cout << "Creating sparse matrix for potential...";
 
     //SparseMatrix* Kpot = createSparseMatrix(geom1 , v);
-    IRCMatrix Kpot = createPotentialMatrix(geom1,v);
+    SpaMtrix::IRCMatrix Kpot = createPotentialMatrix(geom1,v);
     cout << "potential matrix OK"<< endl;
 
     cout << "Creating matrix for Q-tensor..." << endl;
-    IRCMatrix Kq = createQMatrix(geom1, q, MAT_DOMAIN1);
+    SpaMtrix::IRCMatrix Kq = createQMatrix(geom1, q, MAT_DOMAIN1);
     cout << "Q-tensor matrix OK" << endl;
 
     //Kq.spy();

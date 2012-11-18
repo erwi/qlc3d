@@ -202,7 +202,7 @@ void convert_sets_to_arrays( vector<list <unsigned int> > &ds,
 void setupSingleBlock(Geometry &geom,
                       SolutionVector &sol,
                       const idx &MatNum,
-                      MatrixMaker &mm)
+                      SpaMtrix::MatrixMaker &mm)
 {
     // BOOK-KEEPING OF EQU-NODES
     const idx npt = geom.t->getnNodes(); // 4 FOR LINEAR TETS
@@ -246,13 +246,13 @@ void setupSingleBlock(Geometry &geom,
 }
 
 
-IRCMatrix createPotentialMatrix(Geometry &geom,
+SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
                                 SolutionVector &sol,
                                 const int &MatNum)
 {
     const idx N = sol.getnFreeNodes();
     cout << "Matrix size : " << N <<"x"<<N; fflush(stdout);
-    MatrixMaker mm(N,N);
+    SpaMtrix::MatrixMaker mm(N,N);
     setupSingleBlock(geom, sol, MatNum, mm);
     idx nnz = mm.calcNumNonZeros();
     cout << " nnz = " << nnz << endl;
@@ -260,11 +260,11 @@ IRCMatrix createPotentialMatrix(Geometry &geom,
 }
 
 
-IRCMatrix createQMatrix(Geometry &geom,
+SpaMtrix::IRCMatrix createQMatrix(Geometry &geom,
                         SolutionVector &q,
                         const int &MatNum)
 {
-    MatrixMaker mm(q.getnFreeNodes(),q.getnFreeNodes());
+    SpaMtrix::MatrixMaker mm(q.getnFreeNodes(),q.getnFreeNodes());
     const idx N = q.getnFreeNodes() * 5;
     cout << "Matrix Size : " << N <<"x" << N; fflush(stdout);
     setupSingleBlock(geom, q, MatNum, mm);  // CREATE SPARSITY PATTERN FOR COMPONENT q1

@@ -8,7 +8,7 @@
 #include <globals.h>
 
 
-IRCMatrix create_node_number_matrix(SparseMatrix*& nnumbers,
+void create_node_number_matrix(SparseMatrix*& nnumbers,
 			       Geometry& geom,
 			       vector <Line>& lines){
 // COMMENTED DURING SPAMTRIX MIGRATION

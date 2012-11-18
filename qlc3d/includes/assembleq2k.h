@@ -8,7 +8,7 @@
 #include <alignment.h>
 
 
-void assemble_volumes2K(IRCMatrix &K,
+void assemble_volumes2K(SpaMtrix::IRCMatrix &K,
                         double* L,
                         const SolutionVector& q,
                         const SolutionVector& v,

@@ -26,7 +26,7 @@
 using namespace std;
 
 // solves Kb=x, using preconditioned conjugate gradient method
-void solve_pcg(IRCMatrix &K, double *b, double* x, Settings* settings )
+void solve_pcg(SpaMtrix::IRCMatrix &K, double *b, double* x, Settings* settings )
 {
 
     idx size = K.getNumRows();
@@ -83,7 +83,7 @@ void solve_pcg(IRCMatrix &K, double *b, double* x, Settings* settings )
 
 }
 
-void solve_gmres(IRCMatrix &K, double *b, double* x, Settings* settings ){
+void solve_gmres(SpaMtrix::IRCMatrix &K, double *b, double* x, Settings* settings ){
 
     idx nnz = K.getnnz();
     idx size = K.getNumRows();
@@ -96,8 +96,8 @@ void solve_gmres(IRCMatrix &K, double *b, double* x, Settings* settings ){
         //VECTOR_double B;// = VECTOR_double(b,A.dim(0));
         //X.point_to(x, A.dim(0));
         //B.point_to(b, A.dim(0));
-    Vector X(x, size);
-    Vector B(b, size);
+    SpaMtrix::Vector X(x, size);
+    SpaMtrix::Vector B(b, size);
 
 	// GMRES settings...
         idx return_flag =10;
@@ -105,18 +105,19 @@ void solve_gmres(IRCMatrix &K, double *b, double* x, Settings* settings ){
         idx restart 	= settings->getQ_GMRES_Restart();
         real toler      = settings->getQ_GMRES_Toler();
 
-        Preconditioner *M;
+        SpaMtrix::Preconditioner *M;
         //LUIncPreconditioner LU(K);
-        M = new DiagPreconditioner(K);
+        M = new SpaMtrix::DiagPreconditioner(K);
 
         //M = new LUIncPreconditioner(K);
 
 
         omp_set_num_threads(settings->getnThreads());
-        if (!IterativeSolvers::gmres(K,X,B,*M,maxiter,restart, toler))
-            printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",maxiter,toler);
+        SpaMtrix::IterativeSolvers solver(maxiter, restart, toler);
+        if (!solver.gmres(K,X,B,*M))//*M,maxiter,restart, toler))
+            printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",solver.maxIter,solver.toler);
 
-        delete [] M;
+        delete M;
         //MATRIX_double H(restart+1, restart, 0.0);	// storage for upper Hessenberg H
 
 		// Solves with different preconditioners...

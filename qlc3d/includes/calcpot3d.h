@@ -11,7 +11,7 @@
 // SPAMTRIX INCLUDES
 #include <ircmatrix.h>
 
-void calcpot3d(IRCMatrix &Kpot,
+void calcpot3d(SpaMtrix::IRCMatrix &Kpot,
                SolutionVector *v,
                SolutionVector *q,
                LC* lc,

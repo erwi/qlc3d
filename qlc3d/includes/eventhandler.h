@@ -52,8 +52,8 @@ void handleInitialEvents(EventList& evel,      // EVENT LIST
                          SolutionVectors& solutionvectors, // POINTERS TO SOLUTIONS
                          LC& lc,               // MATERIAL PARAMS.
                          Settings& settings,   // SPARSE SOLVER SETTINGS
-                         IRCMatrix &Kpot,   // MATRIX FOR POTENTIAL CALCULATION
-                         IRCMatrix &Kq      // MATRIX FOR Q-TENSOR CALCULATION
+                         SpaMtrix::IRCMatrix &Kpot,   // MATRIX FOR POTENTIAL CALCULATION
+                         SpaMtrix::IRCMatrix &Kq      // MATRIX FOR Q-TENSOR CALCULATION
                          );
 
 
@@ -65,8 +65,8 @@ void handleEvents(EventList& evel,      // EVENT LIST
                   SolutionVectors& solutionvectors, // POINTERS TO SOLUTIONS
                   LC& lc,               // MATERIAL PARAMS.
                   Settings& settings,   // SPARSE SOLVER SETTINGS
-                  IRCMatrix& Kpot,   // MATRIX FOR POTENTIAL CALCULATION
-                  IRCMatrix& Kq      // MATRIX FOR Q-TENSOR CALCULATION
+                  SpaMtrix::IRCMatrix& Kpot,   // MATRIX FOR POTENTIAL CALCULATION
+                  SpaMtrix::IRCMatrix& Kq      // MATRIX FOR Q-TENSOR CALCULATION
                   );
 
 void handleMeshRefinement(std::list<Event*>& refEvents,

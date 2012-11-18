@@ -14,7 +14,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
                Geometry& geom,
                LC *mat_par,
                Simu* simu,
-               IRCMatrix &K,
+               SpaMtrix::IRCMatrix &K,
                Settings* settings,
                Alignment* alignment)
 //double* NodeNormals)
