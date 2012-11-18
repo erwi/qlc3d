@@ -43,14 +43,28 @@ double rt6 = sqrt(6.0);
 void potasm(SolutionVector *v, SolutionVector* q, LC* lc,Mesh *mesh, double *p, SparseMatrix *K, double* L);
 
 
-void assemble_volume(double *p,SolutionVector *v,SolutionVector* q, LC* lc, Mesh *mesh, SpaMtrix::IRCMatrix &K, double* L, Electrodes* electrodes);
-void assemble_Neumann(double *p,SolutionVector *v, SolutionVector* q, LC* lc,Mesh *mesh, Mesh* surf_mesh, SpaMtrix::IRCMatrix &K, double* L);
+void assemble_volume(double *p,
+                     SolutionVector *v,
+                     SolutionVector* q,
+                     LC* lc,
+                     Mesh *mesh,
+                     SpaMtrix::IRCMatrix &K,
+                     SpaMtrix::Vector &L,
+                     Electrodes* electrodes);
+void assemble_Neumann(double *p,
+                      SolutionVector *v,
+                      SolutionVector* q,
+                      LC* lc,
+                      Mesh *mesh,
+                      Mesh* surf_mesh,
+                      SpaMtrix::IRCMatrix &K,
+                      SpaMtrix::Vector &L);
 
-//void Pot_PCG(SparseMatrix *K, double *b, SolutionVector* sv, Settings* settings );
-void Pot_PCG(SpaMtrix::IRCMatrix &K, double *b, double* V, Settings* settings );
-void Pot_GMRES(SpaMtrix::IRCMatrix &K, double *b, double* V, Settings* settings );
-//void Pot_SuperLU(SparseMatrix *K, double *b, SolutionVector* sv, Settings* settings );
 
+void Pot_GMRES(SpaMtrix::IRCMatrix &K,
+               SpaMtrix::Vector &B,
+               SpaMtrix::Vector &X,
+               Settings* settings );
 
 
 // DEBUG FUNCTION FOR PRINTING VALUES OF LOCAL MATRIX
@@ -63,114 +77,7 @@ void printlK(double* lK , int size){
     } //end for r
 }
 
-// Gauss integration
-// ---------------------------------------------------------
-//     3D Gauss-Legendre weights for N = 11, D = 4
-// ---------------------------------------------------------
-/*
-const int ngp=11;
-const double a=(1+sqrt(5.0/14.0))/4.0;
-const double b=(1-sqrt(5.0/14.0))/4.0;
 
-const double gp[ngp][4]={
-    {0.25	  , 0.25	,	0.25	,0.25},
-    {11.0/14.0     ,	1.0/14.0	,	1.0/14.0	,1.0/14.0},
-    {1.0/14.0      ,	11.0/14.0	,	1.0/14.0	,1.0/14.0},
-    {1.0/14.0	  ,	1.0/14.0	,	11.0/14.0   ,1.0/14.0},
-    {1.0/14.0	  , 1.0/14.0	,	1.0/14.0	,11.0/14.0},
-    {a		  ,	a		,	b       ,b},
-    {a		  , b		,   a       ,b},
-    {a        , b       ,   b	    ,a},
-    {b		  , a       ,   a       ,b},
-    {b		  , a      	,   b		,a},
-    {b		  , b		,   a		,a}};
-const double w11 = -74.0/5625.0;
-const double w12 = 343.0/45000.0;
-const double w13 = 56.0/2250.0;
-static double w[ngp]={w11,w12,w12,w12,w12,w13,w13,w13,w13,w13,w13};
-
-// shape functions used to be 'static', but this caused run-time error when compiled with MinGW g++ 4.4
-// and -march=native flag.
-double sh1[ngp][4]; // P1 Shape functions
-double sh1r[ngp][4]; // P1 Shape functions r-derivatives
-double sh1s[ngp][4]; // P1 Shape functions s-derivatives
-double sh1t[ngp][4]; //P1 shape functions t-derivative
-
-void init_shapes()
-{
-    // TERAHEDRA SHAPE FUCNTIONS AND ITS DERIVATIVES
-    for (int i=0; i<ngp; i++) {
-        // P1 Shape functions
-        sh1[i][0]=1-gp[i][0]-gp[i][1]-gp[i][2];
-        sh1[i][1]=gp[i][0];
-        sh1[i][2]=gp[i][1];
-        sh1[i][3]=gp[i][2];
-        // P1 Shape functions r-derivatives
-        sh1r[i][0]=-1.0;
-        sh1r[i][1]=1.0;
-        sh1r[i][2]=0.0;
-        sh1r[i][3]=0.0;
-        // P1 Shape functions s-derivatives
-        sh1s[i][0]=-1.0;
-        sh1s[i][1]=0.0;
-        sh1s[i][2]=1.0;
-        sh1s[i][3]=0.0;
-        // P1 Shape functions t-derivatives
-        sh1t[i][0]=-1.0;
-        sh1t[i][1]=0.0;
-        sh1t[i][2]=0.0;
-        sh1t[i][3]=1.0;
-        //   cout << i << endl;
-    }
-}
-*/
-
-// ---------------------------------------------------------
-//     2D Gauss-Legendre weights for Neumann Boundary integrals N = 6, D = 4
-// ---------------------------------------------------------
-
-/*
-const int ngps=6;
-const double gps[ngps][2] ={
-    {0.8168476, 0.09157621},
-    {0.09157621,0.8168476},
-    {0.09157621,0.09157621},
-    {0.1081030, 0.4459485},
-    {0.4459485, 0.1081030},
-    {0.4459485, 0.4459485}};
-static double wsurf[ngps]={ 0.05497587, 0.05497587, 0.05497587, 0.1116908, 0.1116908, 0.1116908};
-
-void init_shapes_surf() // surface integral shape functions
-{
-    memset(sh1,0,ngps*4*sizeof(double));
-    memset(sh1r,0,ngps*4*sizeof(double));
-    memset(sh1s,0,ngps*4*sizeof(double));
-    memset(sh1t,0,ngps*4*sizeof(double));
-    for (int i=0; i<ngps; i++) {
-        //cout << "shapes_surf" << i << endl;
-        // P1 Shape functions
-        sh1[i][0]=1-gps[i][0]-gps[i][1];
-        sh1[i][1]=gps[i][0];
-        sh1[i][2]=gps[i][1];
-        sh1[i][3]=0;//gps[i][2];
-        // P1 Shape functions r-derivatives
-        sh1r[i][0]=-1;
-        sh1r[i][1]=1;
-        sh1r[i][2]=0;
-        sh1r[i][3]=0;
-        // P1 Shape functions s-derivatives
-        sh1s[i][0]=-1;
-        sh1s[i][1]=0;
-        sh1s[i][2]=1;
-        sh1s[i][3]=0;
-        //P1 Shape functions t-derivatives
-        sh1t[i][0]=-1;
-        sh1t[i][1]=0;
-        sh1t[i][2]=0;
-        sh1t[i][3]=1;
-    }
-}
-*/
 // DECLARATION ONLY
 void setUniformEField( Electrodes& electrodes, SolutionVector& v, double* p);
 
@@ -198,54 +105,26 @@ void calcpot3d(
     }
     K = 0.0; // clears values but keeps sparsity structure
 
-    double* L = (double*) malloc(v->getnFreeNodes()*sizeof(double) );
-    double* V = (double*) malloc(v->getnFreeNodes()*sizeof(double) );
-    if ( (L == NULL) || (V == NULL) )
-    {
-        printf("error in %s, malloc returned NULL - bye!\n", __func__);
-        exit(1);
-    }
-
-    memset(L,0,v->getnFreeNodes()*sizeof(double) );
-    memset(V,0,v->getnFreeNodes()*sizeof(double) );
+    SpaMtrix::Vector L(v->getnFreeNodes());
+    SpaMtrix::Vector V(v->getnFreeNodes());
     // Assemble system
-
     assemble_volume(geom.getPtrTop(),v,q,lc,geom.t, K , L, electrodes);
     assemble_Neumann(geom.getPtrTop() , v , q , lc , geom.t , geom.e , K , L);
 
 //#ifdef DEBUG
 //    K->DetectZeroDiagonals();
 //#endif
+    // GMRES SOLVER
+    Pot_GMRES(K,L,V, settings);
 
-    // Solve System
-    //if (settings->getV_Solver() == V_SOLVER_PCG)
-    //    Pot_PCG(K,L,V, settings);
-    //else if (settings->getV_Solver() == V_SOLVER_GMRES)
-        Pot_GMRES(K,L,V, settings);
-    //else
-    //{
-    //    printf("error - potential solver is set to %i\n", settings->getV_Solver());
-    //    exit(1);
-    //}
-    free(L);
-
+    // COPY NON-FIXED VALUES BACK TO SOLUTIONVECTOR
     for (idx i = 0 ; i < v->getnDoF() ; i++)
     {
         idx ind = v->getEquNode(i);
-
         // EQU NODES OF FIXED DOFS ARE ALL "NOT_AN_INDEX"
         if (ind != NOT_AN_INDEX)
-        {
             v->setValue(i,0, V[ind] );
-        }
-    }
-
-    free(V);
-
-    // UNIFORM FIELD
-    if ( electrodes->isEField() )
-        setUniformEField( *electrodes, *v, geom.getPtrTop() );
-
+    }// end for i
 }
 //end calcpot3d
 
@@ -508,7 +387,7 @@ void assemble_volume(
     LC* lc,
     Mesh *mesh,
     SpaMtrix::IRCMatrix &K,
-    double* L,
+    SpaMtrix::Vector &L,
     Electrodes* electrodes)
 {
     idx it;
@@ -572,7 +451,7 @@ void assemble_Neumann(
     Mesh *mesh,
     Mesh* surf_mesh,
     SpaMtrix::IRCMatrix &K,
-    double* L)
+    SpaMtrix::Vector &L)
 {
     idx it = 0;
     ShapeSurf4thOrder shapes;
@@ -694,78 +573,14 @@ void setUniformEField(Electrodes &electrodes, SolutionVector &v, double *p)
 
 }
 
-void Pot_PCG(SpaMtrix::IRCMatrix &K, double *b, double *V, Settings* settings )
-{
-
-    idx size = K.getNumRows();
-
-    //for (int ee = 0 ; ee < size; ee++)
-    //	printf("b[%i] =%f\n", ee, b[ee]*1e18);
-
-    // Create SparseLib++ data structures
-    //CompCol_Mat_double A;
-    //A.point_to(size, nnz, K->P, K->I, K->J);
-
-
-    //convert solution vector and RHS vector to SparseLib++
-    //VECTOR_double X;// = VECTOR_double(V,A.dim(0));// cannot use "point_to" with potential due to reoredring of values.
-    //X.point_to(V, size);
-    //VECTOR_double B;// = VECTOR_double(b,A.dim(0));
-    //B.point_to(b , size );
-    // PCG settings...
-
-    // CREATE x AND b VECTORS OF Ax = b;
-    SpaMtrix::Vector X(V, size);
-    SpaMtrix::Vector B(b, size);
-
- //   int return_flag =10;
- //   int maxiter =settings->getV_PCG_Maxiter();
- //   double toler = settings->getV_PCG_Toler();
-
-    cout << "unimplemented functionality in " << __func__ << endl;
-    exit(1);
-/*
-
-    // Solves with different preconditioners...
-    if (settings->getV_PCG_Preconditioner() == DIAG_PRECONDITIONER )
-    {
-        DiagPreconditioner_double D(A); // diagonal preconditioning, ~+3 times faster than cholesky
-        return_flag = CG(A,X,B,D,maxiter,toler);
-    }
-    else if (settings->getV_PCG_Preconditioner() == IC_PRECONDITIONER )
-    {
-        ICPreconditioner_double D(A);
-        return_flag = CG(A,X,B,D,maxiter,toler);
-    }
-    else if (settings->getV_PCG_Preconditioner() == ILU_PRECONDITIONER )
-    {
-        CompCol_ILUPreconditioner_double D(A); // compressed column format ILU
-        return_flag = CG(A,X,B,D,maxiter,toler);
-    }
-
-    if (return_flag == 1) // if no convergence, print warni
-        printf("PCG did not converge in %i iterations \nTolerance achieved is %f\n",maxiter,toler);
-
-
-    //copy solution back to solution vector
-    //for (int i = 0; i < sv->getnDoF() ; i++)
-    //	       sv->setValue(i , 0 , -X(sv->getEquNode(i)));
-*/
-}
-void Pot_GMRES(SpaMtrix::IRCMatrix &K, double *b, double* V, Settings* settings )
+void Pot_GMRES(SpaMtrix::IRCMatrix &K, SpaMtrix::Vector &B, SpaMtrix::Vector &X, Settings* settings )
 {
     /*!
         Solves the Linear simulatenous equation Ax=b using the GMRES method
     */
 
-    //idx nnz = K.getnnz();
+
     idx size = K.getNumRows();
-
-    SpaMtrix::Vector X(V, size);  // THESE SHOULD BE USED IN ASSEMBLY. NO NEED TO CREATE COPIES!
-    SpaMtrix::Vector B(b, size);
-
-    // GMRES settings...
-
     idx maxiter 	= settings->getV_GMRES_Maxiter();
     idx restart 	= settings->getV_GMRES_Restart();
 
@@ -773,16 +588,10 @@ void Pot_GMRES(SpaMtrix::IRCMatrix &K, double *b, double* V, Settings* settings 
     restart = restart < maxiter ? restart :maxiter;
     double toler 	= settings->getV_GMRES_Toler();
 
-    SpaMtrix::LUIncPreconditioner LU(K);
-
+    SpaMtrix::LUIncPreconditioner LU(K); // DOES THIS HAVE TO BE RECOMPUTED EACH TIME??
     SpaMtrix::IterativeSolvers solver(maxiter, restart, toler);
-    if (!solver.gmres(K, X, B, LU) )//, maxiter, restart, toler))
+    if (!solver.gmres(K, X, B, LU) )
         printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",solver.maxIter,solver.toler);
-
-
-    //copy solution back to solution vector  THIS IS A WASTE
-    for (idx i = 0; i < X.getLength() ; ++i)
-        V[i] = X[i];
 
 }
 
