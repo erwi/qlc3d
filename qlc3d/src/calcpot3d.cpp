@@ -218,15 +218,15 @@ void calcpot3d(
 //#endif
 
     // Solve System
-    if (settings->getV_Solver() == V_SOLVER_PCG)
-        Pot_PCG(K,L,V, settings);
-    else if (settings->getV_Solver() == V_SOLVER_GMRES)
+    //if (settings->getV_Solver() == V_SOLVER_PCG)
+    //    Pot_PCG(K,L,V, settings);
+    //else if (settings->getV_Solver() == V_SOLVER_GMRES)
         Pot_GMRES(K,L,V, settings);
-    else
-    {
-        printf("error - potential solver is set to %i\n", settings->getV_Solver());
-        exit(1);
-    }
+    //else
+    //{
+    //    printf("error - potential solver is set to %i\n", settings->getV_Solver());
+    //    exit(1);
+    //}
     free(L);
 
     for (idx i = 0 ; i < v->getnDoF() ; i++)

@@ -1,36 +1,28 @@
 
 
 
-#
+#==============================================
 #	DEFAULT OS IS WINDOWS 
-#
+#==============================================
 D_OF = -DWindows
-SPARSELIB_DIR			= c:/SparseLib++/1.7
-SPARSELIB_INCLUDE_DIR		= $(SPARSELIB_DIR)/include
-SPARSELIB_MV_INCLUDE_DIR	= $(SPARSELIB_DIR)/mv/include
-SPARSELIBINCS = -I$(SPARSELIB_INCLUDE_DIR) -I$(SPARSELIB_MV_INCLUDE_DIR)
 
-# not needed anymore. inlcudes are defined in ./src/makefile
-#QLC3D_PATH      = c:/users/eero/programming/qlc3d_git/qlc3d
+SPAMTRIX_DIR			= c:/eero/SpaMtrix
+SPAMTRIX_INCLUDES		= $(SPAMTRIX_DIR)/include
+SPAMTRIX_LIB			= $(SPAMTRIX_DIR)/lib
 
 
 
-#
-#
+#==============================================
 #	DETECT IF LINUX
-#
-#
+#==============================================
+
 UNAME = $(shell uname)
 ifeq ($(UNAME), Linux)
 #	QLC3D_PATH  = $(CURDIR)
 #/..
 # DEBUG	
-	#SPARSELIB_DIR			= /home/eero/Projects/libs/SparseLib++/debug/1.7
+
 	
-# RELEASE
-	SPARSELIB_DIR			= /home/eero/Projects/libs/SparseLib++/1.7
-	SPARSELIB_INCLUDE_DIR		= $(SPARSELIB_DIR)/include/
-	SPARSELIB_MV_INCLUDE_DIR	= $(SPARSELIB_DIR)/mv/include/
 	D_OF = -DLinux
 
 
@@ -42,23 +34,19 @@ endif
 
 QLC3D_INCS		= -I$(QLC3D_PATH)/includes
 
+INCLUDES = $(QLC3D_INCS) -I$(SPAMTRIX_INCLUDES)
 
-INCLUDES 		= $(SPARSELIBINCS) $(QLC3D_INCS) -I$(SPAMTRIX_INCLUDES)
-
-CCCFLAGS =    '-DCOMPLEX=std::complex<double>'
-
+CCCFLAGS = -std=c++0x
 # THIS SET OF FLAGS (WITH -O3) RESULTED IN UNEXPLAINED RUNTIME CRASH. 
-CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -fopenmp -funroll-loops 
+#CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -fopenmp -funroll-loops 
 #CFLAGS = -g
 
 #-std=c++0x
 
 # BELOW FLAGS IS EQUIVALENT TO -O3, BUT TREE VECTORIZE IS DISABLED
-#CFLAGS+= -Wall -Wextra -fopenmp -march=native -mtune=native -O3 -ffast-math -fno-tree-#vectorize \
+CFLAGS+= -Wall -Wextra -fopenmp -march=native -mtune=native -O3 -ffast-math -fno-tree-vectorize \
 		
 
 
-LDFLAGS	 = $(SPARSELIB_DIR)/lib/libsparse.a \
-           $(SPARSELIB_DIR)/lib/libspblas.a \
-           $(SPARSELIB_DIR)/lib/libmv.a -lm \
-	   $(SPAMTRIX_DIR)/lib/libspamtrix.a
+LDFLAGS	 = $(SPAMTRIX_DIR)/lib/libspamtrix.a
+	   

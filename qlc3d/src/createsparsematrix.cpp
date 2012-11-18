@@ -1,8 +1,10 @@
 //#include "qlc3d.h"
 #include <time.h>
 #include <geometry.h>
+#include <material_numbers.h>
 #include <solutionvector.h>
 #include <sparsematrix.h>
+#include <settings.h>
 #include <list>
 #include <vector>
 #include <set>
@@ -39,9 +41,9 @@ void print_dangly_set( vector < set <unsigned int> > dl){
 
 // CREATES DANGLY FROM LINES
 void create_dangly_matrix(vector <Line>& lines,
-                          vector< list <unsigned int> >& dangly){
-    /*! Creates a dangly sparse matrix of node pairs (i.e. lines)*/
-
+                          vector< list <unsigned int> >& dangly)
+{
+/*! Creates a dangly sparse matrix of node pairs (i.e. lines)*/
 
     // FIND MAXIMUM NODE NUMBER IN lines
     size_t MaxNode = 0;
@@ -83,9 +85,10 @@ void create_dangly_matrix(vector <Line>& lines,
 
 // CREATES DANGLY FROM GEOMETRY
 void create_dangly_matrix(vector< list <idx> > & dangly,
-                          Geometry& geom,
-                          SolutionVector& sol,
-                          const idx& MatNum)
+
+                            const Geometry& geom,
+                            const SolutionVector& sol,
+                            const idx& MatNum)
 {
     /* Creates a dangly sparse matrix of a Geometry, SolutionVector and material number */
 
@@ -148,7 +151,8 @@ void create_dangly_matrix(vector< list <idx> > & dangly,
 
 void convert_sets_to_arrays( vector<list <unsigned int> > &ds,
                              const unsigned int dim,
-                             SparseMatrix& K){
+                             SparseMatrix& K)
+{
     /*! Converts dangly matrix linked lists to a proper column copressed sparse matrix. The
         Sparse matrix is expanded by the factor 'dim'. i.e., the row and column count are multiplied
         by it and the sparsity pattern is copied to fill the new rows/cols.*/
@@ -197,6 +201,9 @@ void convert_sets_to_arrays( vector<list <unsigned int> > &ds,
     K.MakeSparseMatrix(ncols_f,ncols_f, nnz, Ir, Jc);
 
 }
+
+
+
 
 
 void setupSingleBlock(Geometry &geom,
@@ -272,6 +279,7 @@ SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
 }
 
 
+
     SpaMtrix::IRCMatrix createQMatrix(Geometry &geom,
                                       SolutionVector &q,
                                       const int &MatNum)
@@ -288,6 +296,7 @@ SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
 
     SparseMatrix* createSparseMatrix(vector <Line>& lines){
         /*! Crates a SparseMatrix object where non-zeros are determined by the node indexes in the input parameter lines*/
+
 
         vector <list <idx> > dangly;
         create_dangly_matrix( lines , dangly); // CREATE DANGLY SET MATRIX OF NODE PAIRS

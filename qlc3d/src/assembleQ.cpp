@@ -798,7 +798,7 @@ void wk_localKL(
 
 void assemble_volumes(
         SpaMtrix::IRCMatrix &K,
-        double* L,
+        SpaMtrix::Vector &L,
         SolutionVector* q,
         SolutionVector* v,
         Mesh* t, double* p,
@@ -864,7 +864,7 @@ void assemble_volumes(
 // end void assemble_volumes
 
 void assemble_Neumann_surfaces(
-        double* L,
+        SpaMtrix::Vector &L,
         SolutionVector* q,
         SolutionVector* v,
         Mesh* mesh,
@@ -934,7 +934,7 @@ void assemble_Neumann_surfaces(
 // ASSEMBLE WEAK ANCHORING SURFACES
 void assemble_surfaces(
         SpaMtrix::IRCMatrix &K ,
-        double* L ,
+        SpaMtrix::Vector &L ,
         SolutionVector* q ,
         Mesh* e ,
         LC* lc ,
@@ -994,7 +994,7 @@ void assemble_surfaces(
 //*/
 void assembleQ(
         SpaMtrix::IRCMatrix &K,
-        double* L,  // current RHS
+        SpaMtrix::Vector &L,  // current RHS
         SolutionVector *q,  // current Q-Tensor
         SolutionVector* v,
         Mesh* t,
@@ -1292,7 +1292,7 @@ inline void assemble_local_prev_volumes(   double lL[20],
 /*  ASSEMBLES RHS CONTRIBUTION FROM PREVIOUS TIME-STEP */
 /*=====================================================*/
 
-void assemble_prev_rhs(double* Ln,
+void assemble_prev_rhs(SpaMtrix::Vector &Ln,
                        SolutionVector& qn,
                        SolutionVector& v,
                        LC& mat_par,

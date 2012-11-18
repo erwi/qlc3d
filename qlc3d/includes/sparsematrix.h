@@ -59,6 +59,8 @@ public:
 	void PrintMatlab();
 	void PrintDiagonal();
 	void DetectZeroDiagonals();
+
+    void lump(std::vector<double>  &M); // lumps all values to single array
 	//void sparse_reset(int row, int column ,double val);
 	//double sparse_get(int row, int column);
 

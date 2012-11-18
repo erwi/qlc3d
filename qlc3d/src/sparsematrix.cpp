@@ -154,13 +154,6 @@ int SparseMatrix::sparse_lfind_index(const int &row, const int &column)
         }
     }//end for
     return index;
-
-
-
-
-
-
-
 }
 int SparseMatrix::sparse_find_index(const int &row, const int &column)
 {
@@ -598,5 +591,28 @@ void SparseMatrix::DetectZeroDiagonals()
         }
 	
     }
+
+}
+void SparseMatrix::lump(std::vector<double> &M)
+{
+
+    for (idx c = 0 ; c < cols ; ++c)
+    {
+        idx c1 = J[c];
+        idx c2 = J[c+1];
+        double s(0.0);
+        idx nnz = c2 - c1;
+
+        //idx i = I[c1];
+
+        for(idx i = I[c1] ; i < I[c1]+nnz ; ++i) // SUM OVER ALL NONZEROS IN COLUMN c
+           s+= P[i];
+
+        M[c] = s;
+
+
+
+    }
+
 
 }

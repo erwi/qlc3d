@@ -26,7 +26,7 @@
 using namespace std;
 
 // solves Kb=x, using preconditioned conjugate gradient method
-void solve_pcg(SpaMtrix::IRCMatrix &K, double *b, double* x, Settings* settings )
+void solve_pcg(SpaMtrix::IRCMatrix &K, SpaMtrix::Vector &b, SpaMtrix::Vector &x, Settings* settings )
 {
 
     idx size = K.getNumRows();
@@ -83,21 +83,11 @@ void solve_pcg(SpaMtrix::IRCMatrix &K, double *b, double* x, Settings* settings 
 
 }
 
-void solve_gmres(SpaMtrix::IRCMatrix &K, double *b, double* x, Settings* settings ){
+
+void solve_gmres(SpaMtrix::IRCMatrix &K, SpaMtrix::Vector &b, SpaMtrix::Vector &x, Settings* settings ){
 
     idx nnz = K.getnnz();
     idx size = K.getNumRows();
-	// Create SparseLib++ data structures
-        //CompCol_Mat_double A;
-        //A.point_to( size, nnz, K->P, K->I, K->J);
-        //A = CompCol_Mat_double(size,size,nnz,K->P,K->I,K->J);
-	//convert solution vector and RHS vector to SparseLib++
-        //VECTOR_double X;// = VECTOR_double(x,A.dim(0));
-        //VECTOR_double B;// = VECTOR_double(b,A.dim(0));
-        //X.point_to(x, A.dim(0));
-        //B.point_to(b, A.dim(0));
-    SpaMtrix::Vector X(x, size);
-    SpaMtrix::Vector B(b, size);
 
 	// GMRES settings...
         idx return_flag =10;
@@ -113,40 +103,11 @@ void solve_gmres(SpaMtrix::IRCMatrix &K, double *b, double* x, Settings* setting
 
 
         omp_set_num_threads(settings->getnThreads());
+
         SpaMtrix::IterativeSolvers solver(maxiter, restart, toler);
-        if (!solver.gmres(K,X,B,*M))//*M,maxiter,restart, toler))
+        if (!solver.gmres(K,x,b,*M))//*M,maxiter,restart, toler))
             printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",solver.maxIter,solver.toler);
 
         delete M;
-        //MATRIX_double H(restart+1, restart, 0.0);	// storage for upper Hessenberg H
-
-		// Solves with different preconditioners...
-        /*
-        if (settings->getQ_GMRES_Preconditioner() == DIAG_PRECONDITIONER )
-		{
-			DiagPreconditioner_double D(A); // diagonal preconditioning, ~+3 times faster than cholesky
-			return_flag = GMRES(A,X,B,D,H,restart,maxiter,toler);
-		}
-		else if (settings->getQ_GMRES_Preconditioner() == IC_PRECONDITIONER )
-		{
-			ICPreconditioner_double D(A);
-			return_flag = GMRES(A,X,B,D,H,restart,maxiter,toler);
-		}
-		else if (settings->getQ_GMRES_Preconditioner() == ILU_PRECONDITIONER )
-		{
-			CompCol_ILUPreconditioner_double D(A); // compressed column format ILU
-			return_flag = GMRES(A,X,B,D,H,restart,maxiter,toler);
-		}
-
-		if (return_flag == 1)
-			printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",maxiter,toler);
-    */
-
-	//copy solution back to solution vector
-#ifndef DEBUG
-    #pragma omp parallel for
-#endif
-    for (int i = 0; i < size ; i++)
-        x[i] = -1*X[i];//X(i);
 
 }

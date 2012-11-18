@@ -9,7 +9,7 @@
 
 
 void assemble_volumes2K(SpaMtrix::IRCMatrix &K,
-                        double* L,
+                        SpaMtrix::Vector &L,
                         const SolutionVector& q,
                         const SolutionVector& v,
                         const LC& mat_par,
@@ -18,7 +18,7 @@ void assemble_volumes2K(SpaMtrix::IRCMatrix &K,
                         double* p
                         );
 
-void assemble_prev_rhs_K2(double* RHS,
+void assemble_prev_rhs_K2(SpaMtrix::Vector &RHS,
                          SolutionVector& qn,
                          SolutionVector& v,
                          LC& mat_par,
