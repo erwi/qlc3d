@@ -52,7 +52,7 @@ void handleResultOutput(Simu& simu,
     if ( simu.getSaveFormat() & Simu::LCview )
     {
        // printf("LCview \n");
-        WriteResults::WriteResult(&simu, &lc, &geom, &v, &q);
+        WriteResults::WriteLCViewResult(&simu, &lc, &geom, &v, &q);
     }
     if ( simu.getSaveFormat() & Simu::RegularVTK )
     {
@@ -181,9 +181,6 @@ void handleInitialEvents(EventList& evel,          // EVENT LIST
                         *geometries.geom,
                         *solutionvectors.v,
                         *solutionvectors.q);
-    //FilesysFun::setCurrentDirectory( simu.getSaveDir() );
-    //WriteResults::WriteResult(&simu, &lc, geometries.geom, solutionvectors.v, solutionvectors.q );
-    //FilesysFun::setCurrentDirectory( simu.getCurrentDir() );
 
 // ADD REOCCURRING EVENTS
     evel.manageReoccurringEvents(simu);

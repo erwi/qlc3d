@@ -390,42 +390,19 @@ void ReadLCD_B(Simu* simu, SolutionVector *q)
     }
 }
 
-void WriteSettings(Simu* simu , LC* lc, Boxes* box, Alignment* alignment, Electrodes* electrodes){
-    string fname = "settings.qfg";
 
-    FilesysFun::setCurrentDirectory( simu->getSaveDir() ); // go to save directory
 
-    FILE *fid = fopen(fname.c_str(),"wt");
-    if (fid!=NULL)
-    {
-        simu->WriteSimu(fid);
-        lc->WriteLC(fid);
-        box->WriteBoxes(fid);
-        alignment->WriteAlignment(fid);
-        electrodes->WriteElectrodes(fid);
-
-        fclose(fid);
-    }
-    else
-    {
-        printf("error in WriteSettings - could not open settings file %s - bye!\n",fname.c_str());
-        exit(1);
-    }
-
-    FilesysFun::setCurrentDirectory( simu->getCurrentDir() ); // go back to working directory
-}
-
-void WriteResult(
+void WriteLCViewResult(
         Simu* simu,
         LC* lc,
         Geometry* geom,
         SolutionVector* v,
-        SolutionVector* q,
-        MeshRefinement* meshref)
+        SolutionVector* q)
+
 {
-    /*!
- *   Writes result file(s) in LCView format to disk.
- */
+ ///
+ //  Writes LCView result file(s) to disk.
+ //
     switch( simu->getOutputFormat() )
     {
     case SIMU_OUTPUT_FORMAT_BINARY:

@@ -405,6 +405,7 @@ bool Mesh::ContainsCoordinate(const idx elem, const double *p, const double *coo
     bool cc = ContainsCoordinate( elem, p, coord );
 
     dist = sqrt( CalcBaryDistSqr(p, elem, coord) );
+    return cc;
 }
 
 bool Mesh::ContainsCoordinate(const idx elem, const double *p, const double *coord ) const

@@ -128,10 +128,10 @@ bool Electrodes::isEField()const
 
 }
 
-void Electrodes::WriteElectrodes(FILE* fid) const
-{
-
-}
+//void Electrodes::WriteElectrodes(FILE* fid) const
+//{
+//
+//}
 
 void Electrodes::setElectrodePotential(const size_t &eNum, const double &pot)
 {
@@ -139,8 +139,8 @@ void Electrodes::setElectrodePotential(const size_t &eNum, const double &pot)
 
     if ( eNum >= getnElectrodes() )
     {
-        printf("error in %s, cant set potential of electrode %u.\n" , __func__ , eNum + 1);
-        printf("Total number of electrodes is %u\n", getnElectrodes() );
+        printf("error in %s, cant set potential of electrode %u.\n" , __func__ , (unsigned int) eNum + 1);
+        printf("Total number of electrodes is %u\n", (unsigned int) getnElectrodes() );
         exit(1);
     }
     potentials_[eNum] = pot;
@@ -160,8 +160,8 @@ double Electrodes::getCurrentElectrodePotential(const size_t &eNum) const
 // RETURNS THE CURRENT POTENTIAL OF ELECTRODE eln
     if ( eNum >= getnElectrodes() )
     {
-        printf("\nerror in %s, can't find potential for electrode %u.\n",__func__, eNum + 1 );
-        printf("Potentials have been specified for only %u electrodes.\n", getnElectrodes());
+        printf("\nerror in %s, can't find potential for electrode %u.\n",__func__, (unsigned int) eNum + 1 );
+        printf("Potentials have been specified for only %u electrodes.\n", (unsigned int) getnElectrodes());
         printf("Check your settings file - bye!\n");
         exit(1);
     }

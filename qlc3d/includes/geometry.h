@@ -147,7 +147,7 @@ public:
      double getNodeNormalsZ(int i);
      void PrintNodeNormals();
      void PrintNodes();
-     void PrintNode(int i);
+     void PrintNode(unsigned int i);
      void PrintPeriodicNodes();
 
      bool checkForOverlapingNodes(); // Debug function that chaecks makes sure not nodes are overlapping. Returns TRUE if some are, false if everyting is OK

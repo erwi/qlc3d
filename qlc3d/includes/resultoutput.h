@@ -17,12 +17,12 @@ namespace WriteResults
 static const char LCVIEW_TEXT_FORMAT_STRING[] = "%i %f %f %f %f %f %f\n";
 // FOLLOWING FUNCTIONS ARE DEFINED IN WriteLCD.cpp
 
-void WriteResult(Simu* simu, 		// Simulation settings
+void WriteLCViewResult(Simu* simu, 		// Simulation settings
                 LC* lc,				// LC material paramters
                 Geometry* geom,		// mesh geometry data
                 SolutionVector* v,  // potential solution
-                SolutionVector* q,  // Q-tensor solution
-                MeshRefinement* meshref = NULL); // meshrefinement info. including whether a new mesh has been generated
+                SolutionVector* q); // Q-tensor solution
+                //MeshRefinement* meshref = NULL); // meshrefinement info. including whether a new mesh has been generated
 
 void ReadResult(Simu& simu,         // READS AND LOADS Q-TENSOR VALUES FROM AN EXISTING RESULT FILE
                 SolutionVector& q); // TRIES TO FIGURE OUT WHETHER RESULT FILE IS IN TEXT OR BINARY FORMAT

@@ -471,10 +471,10 @@ void Geometry::setFacePeriNodes(list<size_t> &face0,
             double* c1 = getPtrTop() + ind_n;  // face 1 coords
 
             printf("error - in file %s, function %s.\n", __FILE__, __func__);
-            printf("normal = %i\n", norm);
-            printf("coordinate %i FACE0: %f, %f, %f\n", *F0, *c0 , *(c0+1), *(c0+2) );
-            printf("nearest match in FACE1: index %i, dist = %f\n",ind_n, dist);
-            printf("coordinate: %f, %f, %f\n", *c1, *(c1+1), *(c1+2) );
+            cout << "normal = " << norm << endl;
+            cout << "coordinate "<< *F0 <<" FACE0: "<< *c0 <<","<< *(c0+1) <<","<< *(c0+2) << endl;
+            cout << "nearest match in FACE1: index "<<ind_n<<" , dist = " <<dist << endl;
+            cout << "coordinate: "<< *c1 << "," << *(c1+1) << "," << *(c1+2) << endl;
 #endif
 
 
@@ -530,8 +530,8 @@ void Geometry::setEdgePeriNodes(list<size_t> &edge0,
         {
 
             printf("error - edge node 1 not found - bye\n");
-            printf("edge node 0 = %i,\tat [%e,%e,%e]\n", *e0, p[*e0*3 + 0], p[*e0*3 + 1], p[*e0*3 + 2] );
-            printf("nearest node  = %i,\tat [%e,%e,%e]\n", iNearest, p[iNearest*3 + 0], p[iNearest*3 + 1], p[iNearest*3 + 2]);
+            printf("edge node 0 = %u,\tat [%e,%e,%e]\n", (unsigned int)*e0, p[*e0*3 + 0], p[*e0*3 + 1], p[*e0*3 + 2] );
+            printf("nearest node  = %u,\tat [%e,%e,%e]\n", (unsigned int)iNearest, p[iNearest*3 + 0], p[iNearest*3 + 1], p[iNearest*3 + 2]);
             printf("distance = %e\n", minDist);
             exit(1);
         }
@@ -802,7 +802,7 @@ void Geometry::makePeriEquNodes()
             if (top.size() != bottom.size() )
             {
                 printf("error - top and bottom surfaces do not match - bye!\n");
-                printf("sizes are top,bottom = %i,%i\n", top.size(), bottom.size() );
+                printf("sizes are top,bottom = %i,%i\n", (int) top.size(), (int) bottom.size() );
                 exit(1);
             }
             if (left.size() != right.size() )
@@ -1356,23 +1356,23 @@ double Geometry::getZmax() 	{return Zmax;}
 void Geometry::PrintNodes()
 {
     printf("printting %i nodes:\n",getnp());
-    for (size_t i = 0 ; i < getnp() ; i ++)
+    for (unsigned int i = 0 ; i < getnp() ; i ++)
     {
-        printf("\t%i = [%f,%f,%f]\n", i , getpX(i) , getpY(i) , getpZ(i) );
+        printf("\t%u = [%f,%f,%f]\n", i , getpX(i) , getpY(i) , getpZ(i) );
     }
 
 
 }
-void Geometry::PrintNode(int i )
+void Geometry::PrintNode(unsigned int i )
 {
-    printf("node %i = [%f,%f,%f]\n",i , getpX(i) , getpY(i) , getpZ(i));
+    printf("node %u = [%f,%f,%f]\n",i , getpX(i) , getpY(i) , getpZ(i));
 
 }
 void Geometry::PrintPeriodicNodes()
 {
 
-    for (size_t i = 0 ; i < periNodes_.size() ; i++)
-        printf("periNodes_[%u] = %u\n", i, periNodes_[i]);
+    for (unsigned int i = 0 ; i < periNodes_.size() ; i++)
+        cout <<"periNodes_["<<i<<"] = " << periNodes_[i] << endl;
 
 }
 

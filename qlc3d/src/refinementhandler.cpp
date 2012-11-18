@@ -15,8 +15,8 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
                           SparseMatrix& Kq
                           )
 {
-    printf("%u REFINEMENT EVENTS NOW\n", refEvents.size() );
 
+    cout << refEvents.size() << " REFINEMENTS NOW\n" << endl;
     // MAKE LIST OF ALL REFINFO OBJECTS THAT ARE HANDLES NOW
     std::list<RefInfo> refInfos;
     std::list<Event*>::iterator evitr = refEvents.begin();
@@ -25,8 +25,8 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
         RefInfo* ref = static_cast<RefInfo*>( (*evitr)->getEventDataPtr() );
         refInfos.push_back( *ref );
     }
-    printf("%u RefInfo objects\n", refInfos.size() );
 
+    cout << refInfos.size() << "Refinement objects" << endl;
     // TRY TO DO REFINEMENT
     bool isRefined(false);
     isRefined = autoref(*geometries.geom_orig,

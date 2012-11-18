@@ -382,8 +382,8 @@ void EventList::prependReoccurringIterEvent(Event *iEvent)
     {
         printf("error in %s. Trying to add event with iteration number %u to front of queue when first existing event has number %u - bye!\n",
                __func__,
-               iEvent->iteration,
-               nextIterEvent_ );
+               (unsigned int) iEvent->iteration,
+               (unsigned int) nextIterEvent_ );
         exit(1);
     }
 
@@ -408,7 +408,7 @@ void EventList::printEventList()const
 {
 // DEBUG PRINTING
 
-    printf(" %u TimeEvents:\n", timeEvents_.size() );
+    printf(" %u TimeEvents:\n", (unsigned int) timeEvents_.size() );
     std::list<Event*>::const_iterator tei = timeEvents_.begin();
     for (tei = timeEvents_.begin(); tei != timeEvents_.end() ; ++tei)
     {
@@ -419,7 +419,7 @@ void EventList::printEventList()const
 
 
     // ADD LOOP OVER ITER EVENTS
-    printf(" %u IterEvent:\n", iterationEvents_.size() );
+    printf(" %u IterEvent:\n", (unsigned int) iterationEvents_.size() );
     std::list<Event*>::const_iterator iei = iterationEvents_.begin();
     for(; iei != iterationEvents_.end() ; ++iei)
     {
