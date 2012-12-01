@@ -1,10 +1,10 @@
 #include <simu.h>
+#include <algorithm>
 
-
-const char* Simu::SF_LCVIEW = "LCview";
-const char* Simu::SF_REGULAR_VTK = "RegularVTK";
-const char* Simu::SF_REGULAR_VECTOR_MATLAB = "RegularVecMat";
-const char* Simu::SF_LCVIEW_TXT = "LCviewTXT";
+const char* Simu::SF_LCVIEW = "lcview";
+const char* Simu::SF_REGULAR_VTK = "regularvtk";
+const char* Simu::SF_REGULAR_VECTOR_MATLAB = "regularvecmat";
+const char* Simu::SF_LCVIEW_TXT = "lcviewtxt";
 Simu::Simu():
 PotCons(Off),
     TargetPotCons(1e-3),
@@ -313,6 +313,10 @@ bool Simu::IsRunning()const{
 
 void Simu::addSaveFormat(std::string format)
 {
+    // MAKE format ALL LOWER CASE
+    std::transform(format.begin(), format.end(),
+                   format.begin() , ::tolower );
+
 // SETS BIT FOR EACH FORMAT TO TRUE
     if ( !format.compare( SF_LCVIEW ) )
     {
@@ -337,7 +341,16 @@ void Simu::addSaveFormat(std::string format)
     }
     else
     {
-        printf("error in %s, unknown SaveFormat:%s - bye!\n", __func__, format.c_str() );
+        //printf("error in %s, unknown SaveFormat:%s\n", __func__, format.c_str() );
+        cout << "error specifying SaveFormat as \"" << format <<"\""
+                " check settings file for typos" << endl;
+
+        cout << "supported values are:\n" <<"\t"<< SF_LCVIEW << "\n"
+                                          <<"\t"<< SF_REGULAR_VTK << "\n"
+                                          <<"\t"<< SF_REGULAR_VECTOR_MATLAB <<"\n"
+                                          <<"\t"<< SF_LCVIEW_TXT << endl;
+
+
         exit(1);
     }
 
