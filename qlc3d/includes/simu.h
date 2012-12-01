@@ -31,6 +31,8 @@ public:
                      };
 private:
 
+    enum EndCriteria {Iterations, Time, Change};
+
     PotentialConsistency PotCons;
     double TargetPotCons; // minimum potential consistency when PotCons == Loop
     double MaxError;
@@ -42,7 +44,8 @@ private:
     double  dtLimits[2];
     double  dtFunction[4];
     double  Maxdt;
-    string  EndCriterion;
+    //string  EndCriterion;   // THIS SHOULD BE CHANGED TO AN ENUMERATOR!!
+    EndCriteria EndCriterion;
     string  LoadQ;
 
     string  CurrentDir;      // working directory of qlc3d.exe
@@ -79,7 +82,6 @@ public:
 
     Simu();
     void PrintSimu();
-    void WriteSimu(FILE* fid); // writes simu settings structure to file
 
     void setMeshName(string meshname);
     void setCurrentDir( const string& curdir){CurrentDir = curdir;}
@@ -123,7 +125,7 @@ public:
     string  getCurrentDir()const {return CurrentDir; }
     string  getLoadDir()const {return LoadDir;}
     string  getSaveDir()const {return SaveDir;}
-    string  getEndCriterion()const {return EndCriterion;}
+    EndCriteria  getEndCriterion()const {return EndCriterion;}
     string  getMeshName()const;  // returns mesh filename, with MeshNumber appended
     string  getMeshFileNameOnly(); // returns mesh filename, without directory
 

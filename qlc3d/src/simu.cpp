@@ -13,7 +13,7 @@ PotCons(Off),
     CurrentChange(0),
     TargetdQ(1e-3),
     Maxdt(1e-4),
-    EndCriterion("Time"),
+    EndCriterion(Time),
     LoadQ(""),
     CurrentDir(""),
     SaveDir("res"),
@@ -31,8 +31,9 @@ PotCons(Off),
     SaveFormat( LCview ),
 
     MeshName(""),
-    dt(1e-9),
-    restrictedTimeStep(false) // !! CHECK IF THIS IS STILL USED ANYWHERE !!
+    dt(1e-9)
+
+    //restrictedTimeStep(false) // !! CHECK IF THIS IS STILL USED ANYWHERE !!
 
 
 {
@@ -56,49 +57,6 @@ PotCons(Off),
 }
 void Simu::PrintSimu(){}
 
-void Simu::WriteSimu(FILE* fid)
-{
-    if (fid != NULL)
-    {
-        fprintf(fid,"\tMeshName =  %s\n",MeshName.c_str());				// MESHNAME
-        fprintf(fid,"\tEndCriterion = %s\n",EndCriterion.c_str());		// ENDCRITERION
-        fprintf(fid,"\tEndValue = %2.4e\n",EndValue);							// ENDVALUE
-
-        fprintf(fid,"\tdt = %2.4e\n",dt);					// DT
-        fprintf(fid,"\tdtLimits = [%2.4e,%2.4e]\n" , dtLimits[0], dtLimits[1] );
-        fprintf(fid,"\tTargetdQ = %2.4e\n",TargetdQ);
-        fprintf(fid,"\tMaxdt = %2.4e\n",Maxdt);					// MAXDT
-        fprintf(fid,"\tMaxError = %2.4e\n",MaxError);				// MAXERROR
-        printf("\tdtFunction = [%f,%f,%f,%f]\n", dtFunction[0], dtFunction[1], dtFunction[2], dtFunction[3]);
-
-       	if ( !LoadQ.empty() )
-	    fprintf(fid,"\tLoadQ = %s;\n",LoadQ.c_str());				// LOADQ
-        if ( !getSaveDir().empty() )
-            fprintf(fid,"\tSaveDir = %s\n", getSaveDir().c_str() );		// SAVEDIR
-
-        fprintf(fid,"\tSaveIter = %i\n", getSaveIter() );
-        fprintf(fid,"\tOuputFormat = %i\n", getOutputFormat() );				// OUTPUT FORMAT
-        fprintf(fid,"\tOutputEnergy = %i\n",getOutputEnergy());			// OUTPUTENERGY
-        fprintf(fid,"\tEnergyRegion = [%f, %f, %f]\n", EnergyRegion[0] , EnergyRegion[1] , EnergyRegion[2]); // ENERGY REGION VECTOR
-        fprintf(fid,"\tStretchVector = [%f, %f, %f]\n", StretchVector[0] , StretchVector[1] , StretchVector[2] ); // MESH SCALING
-
-        // POTENTIAL CONSISTENCY
-        fprintf(fid,"\tPotCons = ");
-        switch(PotCons){
-            case(Off):
-                fprintf(fid,"Off\n");
-                break;
-            case(Loop):
-                fprintf(fid,"Loop\n");
-                break;
-            default:
-                fprintf(fid,"error - Simu::PrintSimu, unknown PotCons\n");
-        }
-
-        fprintf(fid, "\tTargetPotCons = %e\n",TargetPotCons);
-
-	} // end if fid != NULL
-}
 void Simu::setSaveDir(string savedir) {SaveDir = savedir;}
 void Simu::setLoadDir(string loaddir) {LoadDir = loaddir;}
 void Simu::setMaxError(double me){
@@ -179,18 +137,20 @@ void Simu::setMaxdt(double maxdt)	{		Maxdt=maxdt;		}
 void Simu::setEndCriterion(string ec)
 {
 	//std::cout << "ec :" << ec << std::endl;
-	if (ec.compare("Iterations") == 0){
-
-		EndCriterion = ec;
+    if (ec.compare("iterations") == 0)
+    {
+        EndCriterion = Iterations;
 	}
-	else if (ec.compare("Time") == 0){
-		EndCriterion = ec;
+    else if (ec.compare("time") == 0)
+    {
+        EndCriterion = Time;
 	}
-	else if (ec.compare("Change") == 0){
-		EndCriterion = ec;
+    else if (ec.compare("change") == 0)
+    {
+        EndCriterion = Change;
 	}
 	else{
-		printf("error - Simu::setEndCriterion - %s is an unknown EndCriterion, bye!\n",ec.c_str());
+        printf("error %s is an unknown EndCriterion, check your settings file for typos - bye!\n",ec.c_str());
 		exit(1);
 	}
 }
@@ -212,16 +172,16 @@ at least one more step.
 For example, is end criterion is MaxChange, Current chancge is
 set to something large so that simlation is effectively restarted
 */
-    if ( this->EndCriterion.compare("Change") == 0 )
+    if ( EndCriterion == Change )
     {
         // Force more iterations by multiplying current change by 1000.
         this->setCurrentChange( this->getEndValue()*1000.f );
     }
-    else if (this->EndCriterion.compare("Iterations") == 0 )
+    else if (EndCriterion == Iterations )
     {
         this->setEndValue( this->getEndValue() + this->EndValue_orig ); // end counter by original value defined i nsettings file
     }
-	else if (this->EndCriterion.compare("Time") == 0 )
+    else if (EndCriterion == Time )
 	{
 		this->setEndValue( this->EndValue + this->EndValue_orig );
 	}
@@ -323,15 +283,15 @@ string Simu::getMeshFileNameOnly(){
 void Simu::IncrementCurrentTime(){	CurrentTime+=dt;}
 void Simu::IncrementCurrentIteration()		{	CurrentIteration ++;}
 bool Simu::IsRunning()const{
-    if ( EndCriterion.compare("Iterations") == 0 )
+    if ( EndCriterion == Iterations)
     {
         if (CurrentIteration > (int) EndValue) return false;
     }
-    else if ( EndCriterion.compare("Time") == 0)
+    else if ( EndCriterion == Time )
     {
         if (CurrentTime > EndValue) return false;
     }
-    else if (EndCriterion.compare("Change") == 0)
+    else if (EndCriterion == Change)
     {
         if (dt >0)
         {
@@ -345,7 +305,7 @@ bool Simu::IsRunning()const{
 	}
     else
     {
-        printf("error - Simu::IsRunning() - unknowns EndCriterion %s , bye!\n",EndCriterion.c_str());
+        printf("error - Simu::IsRunning() - unknowns EndCriterion - bye!\n");
         exit(1);
     }
     return true;

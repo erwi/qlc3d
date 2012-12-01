@@ -992,6 +992,7 @@ void ReadSettings(
 {
 
     Reader reader;
+    reader.isIgnoreCase = true;
     using namespace std;
     if ( reader.openFile(settings_filename) ){
         cout << "reading: "<< settings_filename << endl;
