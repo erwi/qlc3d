@@ -33,16 +33,15 @@ class Surface
 		bool UsesSurfaceNormal; // whether to use local surface normal vector or v1 and v2
         bool isFixed;   // whether this surface is fixed or not
 	public:
-		//string Anchoring;
 
+        int FixLCNumber;
 
-
-		Surface();
+        Surface(int fxlcnum);
 		void printSurface();
 		void WriteSurface(FILE* fid, int surfnum);
 
 
-		void setAnchoringType(string atype);
+        void setAnchoringType(std::string &atype);
 		void setStrength(double str);
 		void setK1(double k1);
 		void setK2(double k2);
@@ -80,7 +79,7 @@ class Alignment
 	Alignment();
 	~Alignment();
 
-	void addSurface();
+
 	void addSurface(Surface* s);
 	void printAlignment();
 	void WriteAlignment(FILE* fid); // writes alignment settings to textfile

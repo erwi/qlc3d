@@ -109,7 +109,7 @@ bool Box::isInBox(double *coords){
 void Box::setBoxType(std::string &bt)
 {
     this->TypeString = bt;
-    std::transform(bt.begin(), bt.end(), bt.begin(), tolower);
+    std::transform(bt.begin(), bt.end(), bt.begin(), ::tolower);
     if (bt.compare("normal") == 0)
         Type = Normal;
     else if (bt.compare("random") == 0)
@@ -146,12 +146,6 @@ Boxes::~Boxes(){
 
 }
 
-//void Boxes::addBox()
-//{
-//	box.push_back(new Box);
-//	n_Boxes++;
-//
-//}
 
 void Boxes::addBox(Box* b){
     box.push_back(b);
@@ -170,32 +164,4 @@ void Boxes::printBoxes()
 	}
 
 }
-/*
-void Boxes::WriteBoxes(FILE* fid)
-{
-	if (fid != NULL)
-	{
-		fprintf(fid, "#===============================\n");
-		fprintf(fid, "#     INITIAL LC ORIENTATION\n");
-		fprintf(fid, "#===============================\n\n");
 
-		char str[50];
-		for (int i = 0 ; i < n_Boxes ; i ++ )
-		{
-			sprintf(str,"BOX%i",i+1);
-
-
-			fprintf(fid,"\t%s.Type = %s\n",str,   box[i]->Type.c_str() );
-			fprintf(fid,"\t%s.Params = [%2.4f , %2.4f ]\n",str,    box[i]->Params[0] , box[i]->Params[1] );//Params
-			fprintf(fid,"\t%s.X = [%2.4f, %2.4f]\n", str, box[i]->X[0] , box[i]->X[1]); //X
-			fprintf(fid,"\t%s.Y = [%2.4f, %2.4f]\n", str, box[i]->Y[0] , box[i]->Y[1]); //Y
-			fprintf(fid,"\t%s.Z = [%2.4f, %2.4f]\n", str, box[i]->Z[0] , box[i]->Z[1]); //Z
-			fprintf(fid,"\t%s.Tilt  = [%2.4f, %2.4f]\n",str, box[i]->Tilt[0] , box[i]->Tilt[1]); //Tilt
-			fprintf(fid,"\t%s.Twist = [%2.4f, %2.4f]\n\n", str, box[i]->Twist[0] , box[i]->Twist[1]);//Twist
-		}
-
-
-
-	}
-}
-*/

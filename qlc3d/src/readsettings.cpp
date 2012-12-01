@@ -526,7 +526,7 @@ void readAlignment(Alignment* alignment, Reader& reader)
         ret = reader.readString(name , str_val);
 
         if ( ret == READER_SUCCESS){
-            Surface* s = new Surface();
+            Surface* s = new Surface(i);
             s->setAnchoringType(str_val);
 
             double dbl_val;

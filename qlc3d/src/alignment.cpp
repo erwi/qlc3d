@@ -1,10 +1,12 @@
 #include <alignment.h>
-
-
-Surface::Surface()
+#include <algorithm>
+#include <iostream>
+Surface::Surface(int fxlcnum)
 {
+
     Anchoring = "Strong";
     AnchoringNum = ANCHORING_STRONG;
+    FixLCNumber = fxlcnum;
     Strength = 1e-4;
     K1 = 1;
     K2 = 1;
@@ -53,35 +55,40 @@ void Surface::WriteSurface(FILE* fid, int surfnum)
 
 }
 
-void Surface::setAnchoringType(string atype)
+void Surface::setAnchoringType(std::string &atype)
 {
+    Anchoring = atype;
 
-    if (atype.compare("Strong") == 0)
+    // MAKE SURE LOWERCASE
+    std::transform(atype.begin(), atype.end() , atype.begin(), ::tolower);
+
+
+    if (atype.compare("strong") == 0)
     {
         Anchoring = atype;
         AnchoringNum = ANCHORING_STRONG;
         isFixed = true;
     }
-    else if (atype.compare("Homeotropic") == 0)
+    else if (atype.compare("homeotropic") == 0)
     {
         Anchoring = atype;
         AnchoringNum = ANCHORING_HOMEOTROPIC;
         isFixed = true;
     }
-    else if (atype.compare("Weak") == 0)
+    else if (atype.compare("weak") == 0)
     {
         Anchoring = atype;
         AnchoringNum = ANCHORING_WEAK;
         isFixed = false;
     }
-    else if (atype.compare("Degenerate") == 0)
+    else if (atype.compare("degenerate") == 0)
     {
         Anchoring = atype;
         AnchoringNum = ANCHORING_DEGENERATE;
         setUsesSurfaceNormal(true);
         isFixed = false;
     }
-    else if (atype.compare("Freeze") == 0 )
+    else if (atype.compare("freeze") == 0 )
     {
         printf("Surface::setAnchoringType - freeze\n" );
         Anchoring = atype;
@@ -89,7 +96,7 @@ void Surface::setAnchoringType(string atype)
         isFixed = true;
         setUsesSurfaceNormal(false);
     }
-    else if (atype.compare("Polymerise") == 0 )
+    else if (atype.compare("polymerise") == 0 )
     {
         printf("Surface::setAnchoringType - Polymerise\n");
         Anchoring = atype;
@@ -99,7 +106,18 @@ void Surface::setAnchoringType(string atype)
     }
     else
     {
-        printf("error - Surface::setAnchoring - \"%s\" is not a known anchoring type, bye!\n",atype.c_str());
+        using std::cout;
+        using std::endl;
+        //printf("error - Surface::setAnchoring - \"%s\" is not a known anchoring type, bye!\n",atype.c_str());
+        cout << "error specifying FIXLC"<< FixLCNumber<<".Type, ";
+        cout << "\""<<Anchoring << "\" is not a valid anchoring type." << endl;
+        cout << "valid types are:\n" <<
+                "\tstrong\n"<<
+                "\tweak\n"<<
+                "\tdegenerate\n"<<
+                "\tfreeze\n"<<
+                "\tpolymerise\n" <<
+                "Check your settings file for typos - bye!\n " <<endl;
         exit(1);
     }
 }// end setAnchoringType
@@ -189,14 +207,6 @@ Alignment::~Alignment(){
 }
 
 void Alignment::setnSurfaces(int n){	n_surfaces = n;}
-void Alignment::addSurface()
-{// assumes surfaces are added in order FixLC1, 2, 3... ?
-    int n = getnSurfaces();
-    n++;
-    setnSurfaces(n);
-    surface.push_back(new Surface);
-
-}
 
 void Alignment::addSurface(Surface* s)
 {
