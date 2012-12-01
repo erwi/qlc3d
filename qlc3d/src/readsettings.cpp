@@ -423,11 +423,8 @@ void readBoxes(Boxes* boxes, Reader& reader) //config_t* cfg)
 	    string str_val;
 
 	    int ret;
-
-            box << "BOX" << i <<".Type";
+        box << "BOX" << i <<".Type";
 	    box >> name;
-
-
 		reader.file.seekg(0);
 		reader.file.clear();
 		if (!reader.file.good()){
@@ -441,12 +438,11 @@ void readBoxes(Boxes* boxes, Reader& reader) //config_t* cfg)
         //=============================
         if (ret == READER_SUCCESS){ // if Boxi exists
            // cout << "reading box " << i << endl;
-            Box* b = new Box();     // CREATE EMPTY BOX OBJECT
-            b->Type = str_val;
+            Box* b = new Box(i);     // CREATE EMPTY BOX OBJECT
+            b->setBoxType(str_val);
+            //b->Type = str_val;
 
             vector <double> par;
-
-
             box.clear();
             name.clear();
             box << "BOX" << i <<".Params";

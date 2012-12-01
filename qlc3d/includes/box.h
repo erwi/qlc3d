@@ -7,9 +7,13 @@
 class Box
 {
 	public:
-	std::string Type;
-	double Params[2];
 
+    enum BoxTypes {Normal, Random, Hedgehog};
+    BoxTypes Type;
+    std::string TypeString;
+    int BoxNumber;
+
+    double Params[2];
 	double X[2];
 	double Y[2];
 	double Z[2];
@@ -17,7 +21,7 @@ class Box
 	double Tilt[2];
 	double Twist[2];
 
-	Box();
+    Box(int boxnum);
 	void printBox();
 
     void setParams(std::vector<double> p);
@@ -27,6 +31,7 @@ class Box
     void setTilt(std::vector<double> tlt);
     void setTwist(std::vector<double> twt);
     bool isInBox(double* coords);           // checks whether [x,y,z] coordinates in array of size 3 are inside the box
+    void setBoxType(std::string &bt);
 };
 
 
@@ -38,10 +43,10 @@ class Boxes
 		int n_Boxes;
 	Boxes();
 	~Boxes();
-	void addBox();
+
 	void addBox(Box* b);
 	void printBoxes();
-	void WriteBoxes(FILE* fid);
+
 };
 
 

@@ -1,9 +1,13 @@
 #include <box.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <algorithm>
 //default constructor
-Box::Box(){
-	Type = "Normal";
+Box::Box(int boxnum)
+{
+    Type = Normal;
+    BoxNumber = boxnum;
+
 
 	Params[0] = 1;
 	Params[1] = 0;
@@ -19,7 +23,7 @@ Box::Box(){
 
 void Box::printBox(){
 	printf("\tType: ");
-	printf("\t%s",Type.c_str());
+//	printf("\t%s",Type.c_str());
 	printf("\n\tparams : %f, %f\n",Params[0],Params[1]);
 	printf("\tX\t= [%1.1f, %1.1f]\n\tY\t= [%1.1f, %1.1f]\n\tZ\t= [%1.1f, %1.1f]\n",X[0],X[1],Y[0],Y[1],Z[0],Z[1]);
 	printf("\tTilt\t= [%1.1f, %1.1f]\n",Tilt[0],Tilt[1]);
@@ -102,6 +106,30 @@ bool Box::isInBox(double *coords){
     return true;
 }
 
+void Box::setBoxType(std::string &bt)
+{
+    this->TypeString = bt;
+    std::transform(bt.begin(), bt.end(), bt.begin(), tolower);
+    if (bt.compare("normal") == 0)
+        Type = Normal;
+    else if (bt.compare("random") == 0)
+        Type = Random;
+    else if (bt.compare("hedgehog") == 0)
+         Type = Hedgehog;
+    else
+    {
+        using std::cout;
+        using std::endl;
+        cout << "error specyfying Box"<<BoxNumber<<".Type as :\"" << TypeString <<"\""<< endl;
+        cout << "possible types are: \n" << "\tnormal\n" << "\trandom\n"
+             <<"\thedgehog" << endl;
+        exit(1);
+    }
+
+
+}
+
+//===================================================================
 
 Boxes::Boxes(){
 		n_Boxes = 0;
@@ -118,12 +146,12 @@ Boxes::~Boxes(){
 
 }
 
-void Boxes::addBox()
-{
-	box.push_back(new Box);
-	n_Boxes++;
-
-}
+//void Boxes::addBox()
+//{
+//	box.push_back(new Box);
+//	n_Boxes++;
+//
+//}
 
 void Boxes::addBox(Box* b){
     box.push_back(b);
@@ -142,7 +170,7 @@ void Boxes::printBoxes()
 	}
 
 }
-
+/*
 void Boxes::WriteBoxes(FILE* fid)
 {
 	if (fid != NULL)
@@ -170,3 +198,4 @@ void Boxes::WriteBoxes(FILE* fid)
 
 	}
 }
+*/

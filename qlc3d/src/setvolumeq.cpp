@@ -145,10 +145,30 @@ void SetVolumeQ(
 	nz[i] = 0.0;
     }
     // SET EACH BOX SEPARATELY
-    for (int i = 0; i < boxes->n_Boxes; i++){
-	if (boxes->box[i]->Type.compare("Normal") == 0)
+    for (int i = 0; i < boxes->n_Boxes; i++)
+    {
+        Box *b = boxes->box[i];
+        switch (b->Type)
+        {
+            case Box::Normal:
+                setNormalBox(b, nx, ny, nz, p, npLC);
+                break;
+            case Box::Random:
+                setRandomBox(b, nx, ny, nz, p, npLC);
+                break;
+            case Box::Hedgehog:
+                setHedgehogBox(b, nx, ny, nz, p, npLC);
+                break;
+            default:
+            cout << "error unsuported box type " <<b->TypeString
+                 << "in " << __func__ <<" bye!" << endl;
+            exit(1);
+        }
+
+        /*
+        if (boxes->box[i]->Type == Normal)
 	    setNormalBox(boxes->box[i], nx,ny,nz ,p, npLC);
-	else if (boxes->box[i]->Type.compare("Random") == 0)
+        else if (boxes->box[i]->Type.compare("Random") == 0)
 	    setRandomBox(boxes->box[i], nx,ny,nz, p , npLC);
         else if (boxes->box[i]->Type.compare("Hedgehog") == 0){
             setHedgehogBox(boxes->box[i], nx,ny,nz,p,npLC);
@@ -157,7 +177,9 @@ void SetVolumeQ(
 
             std::string type = boxes->box[i]->Type;
             printf("error in SetVolumeQ - box type %s is not supported - bye!\n", type.c_str() );
+            exit(1);
         }
+        */
     }
 	
     // CONVERT VECTOR TO TENSOR
