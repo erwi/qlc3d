@@ -320,6 +320,17 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
     if(ret == READER_SUCCESS)
         simu->setOutputFormat(int_var);
 
+    name = "numAssemblyThreads";
+    ret = reader.readNumber(name, int_var);
+    if (ret == READER_SUCCESS)
+        simu->setAsseblyThreadCount( (unsigned int) int_var);
+
+    name = "numMatrixSolverThreads";
+    ret = reader.readNumber(name, int_var);
+    if (ret == READER_SUCCESS)
+        simu->setMatrixSolverThreadCount( (unsigned int) int_var);
+
+
     name = "SaveFormat";
     std::vector < std::string > vec_str;
     ret = reader.readStringArray( name , vec_str );

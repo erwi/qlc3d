@@ -67,6 +67,10 @@ private:
     size_t SaveFormat;  // bit field with different save formats
     size_t RegularGridSize[3];  // NUMBER OF NODES IN X,Y AND Z-DIRECTIONS
 
+    //===================================================
+    // SOLVER AND ASSEMBLY (METHOD) SPECIFIC VARIABLES
+    unsigned int numAsseblyThreads;
+    unsigned int numMatrixSolverThreads;
 
 public:
 
@@ -104,6 +108,11 @@ public:
     void setMaxdt(double maxdt);
     void setTargetdQ(const double& dq);
 
+    // METHOD VARIABLE ACCESS
+    void setAsseblyThreadCount(unsigned int numT);
+    void setMatrixSolverThreadCount(unsigned int numT);
+    unsigned int getAssemblyThreadCount()const {return numAsseblyThreads;}
+    unsigned int getMatrixSolverThreadCount()const {return numMatrixSolverThreads;}
 
     void setOutputEnergy(int ope);
     void setOutputFormat(int opf);

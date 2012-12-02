@@ -1,6 +1,6 @@
 #include <simu.h>
 #include <algorithm>
-
+#include <omp.h>
 const char* Simu::SF_LCVIEW = "lcview";
 const char* Simu::SF_REGULAR_VTK = "regularvtk";
 const char* Simu::SF_REGULAR_VECTOR_MATLAB = "regularvecmat";
@@ -29,13 +29,10 @@ PotCons(Off),
     OutputFormat(SIMU_OUTPUT_FORMAT_BINARY),
     SaveIter(0),
     SaveFormat( LCview ),
-
+    numAsseblyThreads(0),       // 0 MEANS USE ALL AVAILABLE, AND IS DEFAULT
+    numMatrixSolverThreads(0),
     MeshName(""),
     dt(1e-9)
-
-    //restrictedTimeStep(false) // !! CHECK IF THIS IS STILL USED ANYWHERE !!
-
-
 {
 
     dtLimits[0]         = 1e-9;
@@ -53,7 +50,14 @@ PotCons(Off),
     OutputFormat		= SIMU_OUTPUT_FORMAT_BINARY;
 
     RegularGridSize[0] = 0; RegularGridSize[1] = 0; RegularGridSize[2] = 0;
-    //OutputEnergy_fid	= NULL;
+
+    // SET THREAD COUNTS TO MAXIMUM DETECTED BY OPENMP
+#ifndef DEBUG
+    numAsseblyThreads = omp_get_max_threads();
+    numMatrixSolverThreads = omp_get_max_threads();
+#endif
+
+
 }
 void Simu::PrintSimu(){}
 
@@ -221,6 +225,25 @@ void Simu::setOutputFormat(int opf){
 				exit(1);
 			}
 }// end setOutputFormat
+
+void Simu::setAsseblyThreadCount(unsigned int numT)
+{
+    numAsseblyThreads = numT;
+#ifndef DEBUG
+    if (numT == 0 )
+        numAsseblyThreads = omp_get_max_threads();
+#endif
+}
+
+void Simu::setMatrixSolverThreadCount(unsigned int numT)
+{
+    numMatrixSolverThreads = numT;
+#ifndef DEBUG
+    if (numT == 0)
+        numMatrixSolverThreads = omp_get_max_threads();
+#endif
+}
+
 void Simu::setStretchVectorX(double sx)
 {
 	if (sx>0)

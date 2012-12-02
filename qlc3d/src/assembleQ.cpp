@@ -811,8 +811,7 @@ void assemble_volumes(
     //init_shape();
     Shape4thOrder shapes;
 #ifndef DEBUG
-    omp_set_num_threads( settings->getnThreads() ); // number of threads used
-#pragma omp parallel for
+    #pragma omp parallel for
 #endif
     // LOOP OVER EACH ELEMENT  it
     for (idx it= 0 ; it < t->getnElements () ;it++)
@@ -869,14 +868,13 @@ void assemble_Neumann_surfaces(
         SolutionVector* v,
         Mesh* mesh,
         Mesh* surf_mesh,
-        double* p){
-
+        double* p)
+{
     int npLC = q->getnDoF();
     init_shape_N();
 #ifndef DEBUG
 #pragma omp parallel for
 #endif
-
     for (idx it=0; it< surf_mesh->getnElements(); it++) // LOOP OVER EVERY SURFACE ELEMENT
     {
         // ONLY TRIS CONNECTED TO LC TETS ARE ASSEMBLED

@@ -16,6 +16,15 @@
 void solve_pcg(SpaMtrix::IRCMatrix &K, SpaMtrix::Vector &b, SpaMtrix::Vector &x ,Settings* settings);
 void solve_gmres(SpaMtrix::IRCMatrix &K, SpaMtrix::Vector &b, SpaMtrix::Vector &x ,Settings* settings);
 
+void setThreadCount(unsigned int nt)
+{
+#ifndef DEBUG
+    omp_set_num_threads(nt);
+    cout << "\nthread count set to " << nt << endl;
+#endif
+}
+
+
 double calcQ3d(SolutionVector *q,   // current Q-tensor
                SolutionVector *qn,  // previous Q-tensor
                SolutionVector *v,   // potential
@@ -47,6 +56,8 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         qn->setValuesTo(*q);
     }
 
+
+
     // CREATE MILLISECOND ACCURACY TIMER
     TickCounter <std::chrono::milliseconds> timer;
     timer.start();
@@ -56,6 +67,9 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
     {
         newton_iter++;
         timer.reset();
+        // SET NUMBER OF THREADS USED IN ASSEMBLY
+        setThreadCount(simu->getAssemblyThreadCount() );
+
         // ASSEMBLE RHS CONTRIBUTION FROM PREVIOUS TIME-STEP, IF NEEDED
         if ( (isTimeStepping) && (newton_iter == 1) )
         {
@@ -89,12 +103,16 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 
         if (isTimeStepping) // make Non-linear Crank-Nicholson RHS
         {
-#ifndef DEBUG
-#pragma omp parallel for
-#endif
+            #ifndef DEBUG
+                #pragma omp parallel for
+            #endif
             for (size_t i = 0 ; i < numCols ; i++)
                 L[i] += RHS[i];
         }
+
+
+        // SET SOLVER THREAD COUNT
+        setThreadCount(simu->getMatrixSolverThreadCount());
 
         // SOLUTION
         if (settings->getQ_Solver() == Q_SOLVER_PCG)// use PCG for Q solution
