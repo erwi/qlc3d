@@ -12,17 +12,50 @@
 #include <vector.h>
 #include <tickcounter.h>
 
-// THESE TWO ARE DEFINED IN solve_pcg.cpp
-void solve_pcg(SpaMtrix::IRCMatrix &K, SpaMtrix::Vector &b, SpaMtrix::Vector &x ,Settings* settings);
-void solve_gmres(SpaMtrix::IRCMatrix &K, SpaMtrix::Vector &b, SpaMtrix::Vector &x ,Settings* settings);
+// SOLVER FUNCTION DEFINED IN solve_pcg.cpp
+void solve_QTensor(SpaMtrix::IRCMatrix &K,
+                   SpaMtrix::Vector &b,
+                   SpaMtrix::Vector &x,
+                   const Simu &simu,
+                   const Settings &settings);
+
+
 
 void setThreadCount(unsigned int nt)
 {
 #ifndef DEBUG
     omp_set_num_threads(nt);
-    cout << "\nthread count set to " << nt << endl;
 #endif
 }
+
+void updateSolutionVector(SolutionVector &q,
+                          const SpaMtrix::Vector &dq,
+                          double &maxdq)
+{
+    // UPDATE SOLUTION VECTOR - USES getEquNode REDIRECTION FOR PERIODIC NODES
+    maxdq = 0;
+    const idx npLC = q.getnDoF();
+    for (unsigned int i = 0 ; i < 5 ; i++)   // LOOP OVER DIMENSIONS
+    {
+        for (idx j = 0; j < npLC ; j++) // LOOP OVER EACH NODE IN DIMENSION i
+        {
+            const idx n = j + i*npLC;
+            const idx effDoF = q.getEquNode(n);
+
+            // EQUIVALENT DOF OF FIXED NODES ARE LABELLED AS "NOT_AN_INDEX"
+            if (effDoF < NOT_AN_INDEX )
+            {
+                const double dqj = dq[ effDoF ];
+                q.Values[n] -= dqj ;
+
+                // KEEP TRACK OF LARGEST CHANGE IN Q-TENSOR
+                maxdq = fabs(dqj) > fabs(maxdq) ? dqj:maxdq;
+            }
+        }// end for j
+    }// end for i
+}
+
+
 
 
 double calcQ3d(SolutionVector *q,   // current Q-tensor
@@ -34,14 +67,10 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
                SpaMtrix::IRCMatrix &K,
                Settings* settings,
                Alignment* alignment)
-//double* NodeNormals)
 {
     const idx numCols = K.getNumCols();
     double maxdq = 10;
-    double maxdq_previous = 10;
     double maxdq_initial = 0;
-
-    const idx npLC = q->getnDoF();
 
     const idx isTimeStepping = simu->getdt() > 0 ? 1:0;
 
@@ -90,66 +119,37 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 
 
         // CLEAR MATRIX, L AND dq
-        K = 0; //->setAllValuesTo(0);
+        K = 0;
         L = 0;
         dq = 0;
+
+        //======================================
+        //  MATRIX ASSEMBLY
+        //======================================
 
         std::cout << " " <<newton_iter << " Assembly..."; fflush(stdout);
         // ASSEMBLE MATRIX AND RHS (L)
         assembleQ(K, L, q, v, geom.t, geom.e, geom.getPtrTop(), mat_par, simu, settings, alignment, geom.getPtrToNodeNormals());
 
+        if (isTimeStepping) // make Non-linear Crank-Nicholson RHS
+            for (size_t i = 0 ; i < numCols ; i++)
+                L[i] += RHS[i];
+
         printf("OK %1.3es.", (float) timer.getElapsed() / 1000.0 );
         timer.reset();
 
-        if (isTimeStepping) // make Non-linear Crank-Nicholson RHS
-        {
-            #ifndef DEBUG
-                #pragma omp parallel for
-            #endif
-            for (size_t i = 0 ; i < numCols ; i++)
-                L[i] += RHS[i];
-        }
-
-
+        //======================================
+        //  MATRIX SOLUTION
+        //======================================
         // SET SOLVER THREAD COUNT
         setThreadCount(simu->getMatrixSolverThreadCount());
+        // SOLVES Ax = b MATRIX PROBLEM
+        solve_QTensor(K, L, dq, *simu, *settings);
 
-        // SOLUTION
-        if (settings->getQ_Solver() == Q_SOLVER_PCG)// use PCG for Q solution
-        {
-            printf("PCG..."); fflush( stdout );
-            solve_pcg(K,L,dq,settings);
-        }
-        else if (settings->getQ_Solver() == Q_SOLVER_GMRES)// use GMRES for Q solution
-        {
-            printf("GMRES..."); fflush( stdout );
-            solve_gmres(K,L,dq,settings);
-        }
+        updateSolutionVector(*q, dq, maxdq); // q += dq , taking into account periodic and fixed nodes
 
-        maxdq = 0;
-
-        // UPDATE SOLUTION VECTOR - USES getEquNode REDIRECTION FOR PERIODIC NODES
-        maxdq_previous = maxdq;
-        for (unsigned int i = 0 ; i < 5 ; i++)   // LOOP OVER DIMENSIONS
-        {
-            for (idx j = 0; j < npLC ; j++) // LOOP OVER EACH NODE IN DIMENSION i
-            {
-                const idx n = j + i*npLC;
-                const idx effDoF = q->getEquNode(n);
-
-                // EQUIVALENT DOF OF FIXED NODES ARE LABELLED AS "NOT_AN_INDEX"
-                if (effDoF < NOT_AN_INDEX )
-                {
-                    const double dqj = dq[ effDoF ];
-                    q->Values[n] -= dqj ;
-
-                    // KEEP TRACK OF LARGEST CHANGE IN Q-TENSOR
-                    maxdq = fabs(dqj) > fabs(maxdq) ? dqj:maxdq;
-                }
-            }// end for j
-        }// end for i
-
-        if (newton_iter==1) maxdq_initial = maxdq; // maxdq_initial is needed elsewhere to adjust time-step size
+        if (newton_iter==1)
+            maxdq_initial = maxdq; // maxdq_initial is needed elsewhere to adjust time-step size
 
         // PRINT SOLUTION TIME
         printf("OK %1.3es.\tdQ = %1.3e\n", (float) timer.getElapsed() / 1000.0, maxdq);

@@ -29,9 +29,14 @@ public:
                       RegularVTK    = 2,
                       RegularVecMat = 4     // REGULAR GRID, VECTORS, MATLAB FILE
                      };
+    // POSSIBLE MATRIX SOLVERS FOR Q-TENSOR
+    enum QMatrixSolvers { Auto  = 0,
+                          PCG   = 1,
+                          GMRES = 2};
 private:
 
     enum EndCriteria {Iterations, Time, Change};
+    QMatrixSolvers QMatrixSolver;
 
     PotentialConsistency PotCons;
     double TargetPotCons; // minimum potential consistency when PotCons == Loop
@@ -113,6 +118,10 @@ public:
     void setMatrixSolverThreadCount(unsigned int numT);
     unsigned int getAssemblyThreadCount()const {return numAsseblyThreads;}
     unsigned int getMatrixSolverThreadCount()const {return numMatrixSolverThreads;}
+    QMatrixSolvers getQMatrixSolver()const {return QMatrixSolver;}
+    void setQMatrixSolver(QMatrixSolvers solver) {QMatrixSolver = solver;}
+    void setQMatrixSolver(std::string &solver);
+
 
     void setOutputEnergy(int ope);
     void setOutputFormat(int opf);

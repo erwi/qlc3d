@@ -166,7 +166,7 @@ int main(int argc, char* argv[]){
     printf("\n\n\n");
     printf("=============================================================\n");
     printf("=                                                           =\n");
-    printf("=                           QLC3D                           =\n");
+    printf("=                           qlc3d                           =\n");
     printf("=                        %s                        =\n",__DATE__);
     printf("= E. J. Willman, R. L. James, S. E. Day, F. A. Fernandez    =\n");
     printf("=============================================================\n");
@@ -218,9 +218,6 @@ int main(int argc, char* argv[]){
                  &meshrefinement,
                  eventlist);
 
-    //eventlist.printEventList();
-    //exit(1);
-
 
     // CREATE A BACKUP OF SETTINGS FILE INTO RESULT SAVE DIRECTORY
     if (! FilesysFun::copyFile( settings_filename, simu.getSaveDir(), "settings.qfg") )
@@ -235,6 +232,7 @@ int main(int argc, char* argv[]){
     Settings settings = Settings();
     ReadSolverSettings("solver.qfg", &settings);
 
+    selectQMatrixSolver(simu, lc);
 
     // ================================================================
     //	CREATE GEOMETRY
@@ -293,7 +291,7 @@ int main(int argc, char* argv[]){
     }
     q.setFixedNodesQ(&alignment, geom1.e);  // set fixed surface anchoring
     q.setPeriodicEquNodes(&geom1);          // periodic nodes
-    q.EnforceEquNodes(geom1);		    // makes sure values at periodic boundaies match
+    q.EnforceEquNodes(geom1);		        // makes sure values at periodic boundaies match
     qn=q;                                   // q-previous = q-current in first iteration
     cout << "OK" << endl;                   // Q-TENSOR CREATED OK
 
@@ -436,10 +434,6 @@ int main(int argc, char* argv[]){
     printf("OK\n");
     closeEnergyFile(Energy_fid , simu);
 
-
-
-    //delete Kpot;
-    //delete Kq;
 
     if (v_cons) free(v_cons);
     if (q_cons) free(q_cons);

@@ -256,7 +256,12 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
     {
         simu->setSaveDir( simu->getCurrentDir() + "/" + simu->getSaveDir() );
     }
-    //problemo(name , ret);
+
+    name = "QMatrixSolver";
+    ret = reader.readString(name, str_var);
+    if (ret == READER_SUCCESS)
+        simu->setQMatrixSolver(str_var);
+
 //========================
 // SCALAR VALUES
 //========================
@@ -329,6 +334,7 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
     ret = reader.readNumber(name, int_var);
     if (ret == READER_SUCCESS)
         simu->setMatrixSolverThreadCount( (unsigned int) int_var);
+
 
 
     name = "SaveFormat";

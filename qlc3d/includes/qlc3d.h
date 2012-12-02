@@ -56,11 +56,6 @@ void readBinaryMesh(std::string filename ,  // same as above
                     idx *&e, idx *&emat,
                     idx *np, idx *nt, idx *ne);
 
-
-void solve_pcg(SpaMtrix::IRCMatrix &K, double *b, double *x ,Settings* settings);
-void solve_gmres(SpaMtrix::IRCMatrix &K, double *b, double *x ,Settings* settings);
-
-
 // Assembles previous time step part of RHS when doing non-linear Crank-Nicholson
 void assemble_prev_rhs(SpaMtrix::Vector &Ln,
 		       SolutionVector& qn,
@@ -129,6 +124,8 @@ void prepareGeometry(Geometry& geom,    // defined in inits.cpp
                      Simu& simu,
                      Alignment& ali);
 FILE* createOutputEnergyFile(Simu& simu); // defined in inits.cpp
+void selectQMatrixSolver(Simu &simu, const LC &lc); // defined in ints.cpp
+
 
 
 void SetVolumeQ(SolutionVector *q, LC* lc, Boxes* boxes, double* p);

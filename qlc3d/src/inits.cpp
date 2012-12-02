@@ -1,7 +1,9 @@
-
 #include <qlc3d.h>
 #include <simu.h>
 #include <globals.h>
+
+// ALL FUNCTIONS DECALRED IN qlc3d.h
+
 void prepareGeometry(Geometry& geom,
                      Simu& simu,
                      Alignment& alignment)
@@ -95,4 +97,34 @@ FILE* createOutputEnergyFile(Simu& simu){
         }
     }
     return fid;
+}
+
+
+void selectQMatrixSolver(Simu &simu, const LC &lc)
+{
+    // SELECTS WHICH MATRIX SOLVER TO USE FOR Q-TENSOR
+    // EQUATIONS. IF MATRIX IS SYMMETRIC USE PCG, ELSE
+    // GMRES
+
+    // IF SOLVER HAS ALREADY BEEN CHOSEN IN SETTINGS
+    // FILE, DON'T DO ANYTHING
+    if (simu.getQMatrixSolver()!=Simu::Auto)
+        return;
+
+    bool isSymmetric = true;
+
+    // SINGLE ELASTIC COEFF. EQUATIONS -> SYMMETRIC
+    if (lc.K11 != lc.K22 )
+        isSymmetric = false;
+    if (lc.K11 != lc.K33 )
+        isSymmetric = false;
+
+    // CHIRALITY -> NON-SYMMETRIC
+    if (lc.p0 != 0.0)
+        isSymmetric = false;
+
+    if (isSymmetric)
+        simu.setQMatrixSolver(Simu::PCG);
+    else
+        simu.setQMatrixSolver(Simu::GMRES);
 }

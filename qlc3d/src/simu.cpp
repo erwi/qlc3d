@@ -57,6 +57,10 @@ PotCons(Off),
     numMatrixSolverThreads = omp_get_max_threads();
 #endif
 
+    // SET MATRIX SOLVER TO AUTO. THIS WILL BE CHANGED LATER
+    // IN THE PROGRAM, DEPENDING ON THE PROPERTIES OF THE MATRIX
+    // OR AS SPECIFIED IN THE SETTINGS FILE
+    QMatrixSolver = Auto;
 
 }
 void Simu::PrintSimu(){}
@@ -243,6 +247,30 @@ void Simu::setMatrixSolverThreadCount(unsigned int numT)
         numMatrixSolverThreads = omp_get_max_threads();
 #endif
 }
+
+void Simu::setQMatrixSolver(string &solver)
+{
+    std::string temp = solver;
+    std::transform(solver.begin(), solver.end(), solver.begin(), ::tolower );
+
+    if (solver.compare("auto")==0)
+        QMatrixSolver = Simu::Auto;
+    else if (solver.compare("pcg") == 0)
+        QMatrixSolver = Simu::PCG;
+    else if (solver.compare("gmres") == 0)
+        QMatrixSolver = Simu::GMRES;
+    else
+    {
+        cout << "error setting QMatrixSolver as : \"" << temp <<"\"" << endl;
+        cout << "valid options are :\n"
+             << "\tAuto\n"
+             << "\tPCG\n"
+             << "\tGMRES\n"
+             << "Check your settings file for typos - bye !\n" << endl;
+        exit(1);
+    }
+}
+
 
 void Simu::setStretchVectorX(double sx)
 {
