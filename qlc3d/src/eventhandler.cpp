@@ -90,6 +90,22 @@ void handleResultOutput(Simu& simu,
                            geom.getnpLC(),
                            simu.getCurrentTime());
     }
+    if ( simu.getSaveFormat() & Simu::DirStackZ)
+    {
+        cout << "REGULAR DIR STACKZ" << endl;
+        std::stringstream ss;
+        std::string filename;
+        ss << "dirstackz"<<simu.getCurrentIteration() <<".csv";
+        ss >> filename;
+        if (!director)
+            director = tensortovector(q.Values, geom.getnpLC() );
+        RegularGrid &rGrid = *geom.regularGrid;
+        rGrid.writeDirStackZ(filename.c_str(),
+                             director,
+                             geom.getnpLC(),
+                             simu.getCurrentTime() );
+
+    }
 
 // CLEANUP AFTER ALL SAVING HAS BEEN DONE
     if (director) delete [] director;

@@ -32,7 +32,9 @@ void updateSolutionVector(SolutionVector &q,
                           const SpaMtrix::Vector &dq,
                           double &maxdq)
 {
-    // UPDATE SOLUTION VECTOR - USES getEquNode REDIRECTION FOR PERIODIC NODES
+    // UPDATES SOLUTION VECTOR - USES getEquNode REDIRECTION
+    // FOR PERIODIC AND FIXED NODES
+
     maxdq = 0;
     const idx npLC = q.getnDoF();
     for (unsigned int i = 0 ; i < 5 ; i++)   // LOOP OVER DIMENSIONS
@@ -145,7 +147,6 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         setThreadCount(simu->getMatrixSolverThreadCount());
         // SOLVES Ax = b MATRIX PROBLEM
         solve_QTensor(K, L, dq, *simu, *settings);
-
         updateSolutionVector(*q, dq, maxdq); // q += dq , taking into account periodic and fixed nodes
 
         if (newton_iter==1)

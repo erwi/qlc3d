@@ -13,7 +13,7 @@
 #include <globals.h>
 #include <assert.h>
 
-class Geometry; // NEED TO DECLARE EXISTENCE OF Geometry CLASS HERE TO AVOID CIRCULAR #includes
+class Geometry; // FORWARD DECLARATION
 
 class RegularGrid {
 public:
@@ -69,7 +69,8 @@ private:
     // IN A VECTOR TO POSITIONAL INDEXING GINVING THE GRID POINT POSITION IN
     // X,Y,Z DIMENSIONS
     void linearToGridIndex(const idx li, idx &xi, idx &yi, idx &zi);
-
+    // CALCULATE ARRAY POSITION FROM GRID X,Y AND Z INDEXES
+    idx gridToLinearIndex(const idx xi, const idx yi, const idx zi);
 
 public:
 
@@ -107,6 +108,10 @@ public:
                      const double* n,
                      const idx npLC,
                      const double time = 0 );
+    bool writeDirStackZ(const char* filename,
+                        const double* n,    // DIRECTOR INCLUDING S (S WILL BE IGNORED)
+                        const idx nplC,
+                        const double time = 0);
 };
 
 #endif // REGULARGRID_H

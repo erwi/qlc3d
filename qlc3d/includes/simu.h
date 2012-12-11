@@ -23,12 +23,19 @@ class Simu
 {
 
 public:
-    // SAVE FORMATS OPTIONS BITFIELDS
+    // SAVE FORMATS OPTIONS BITFIELDS - MUST BE POWERS OF 2!!!
     enum SaveFormats {None          = 0,
                       LCview        = 1,
                       RegularVTK    = 2,
-                      RegularVecMat = 4     // REGULAR GRID, VECTORS, MATLAB FILE
+                      RegularVecMat = 4,     // REGULAR GRID, VECTORS, MATLAB FILE
+                      DirStackZ     = 8   // REGULAR GRID, CSV-FILE WHERE EA
                      };
+    // RegularDirStackZ is written in a CommaSeparatedValue (CSV) text file where each
+    // Row is a stack of directors along the z-axis.
+    // The director components in each stack are interleaved in order nx,ny,nz, nx,ny,nz, ... as z-increases
+    // The stacks are ordered in rows along the x-axis.
+
+
     // POSSIBLE MATRIX SOLVERS FOR Q-TENSOR
     enum QMatrixSolvers { Auto  = 0,
                           PCG   = 1,
@@ -84,7 +91,7 @@ public:
     static const char* SF_REGULAR_VTK;
     static const char* SF_REGULAR_VECTOR_MATLAB;
     static const char* SF_LCVIEW_TXT;
-
+    static const char* SF_DIR_STACK_Z;
     string MeshName;
     double dt;
     bool restrictedTimeStep; // flag to allow/disallow adapting time step size (e.g. just after potential switching)

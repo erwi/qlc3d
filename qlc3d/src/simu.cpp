@@ -5,6 +5,7 @@ const char* Simu::SF_LCVIEW = "lcview";
 const char* Simu::SF_REGULAR_VTK = "regularvtk";
 const char* Simu::SF_REGULAR_VECTOR_MATLAB = "regularvecmat";
 const char* Simu::SF_LCVIEW_TXT = "lcviewtxt";
+const char* Simu::SF_DIR_STACK_Z = "dirstackz";
 Simu::Simu():
 PotCons(Off),
     TargetPotCons(1e-3),
@@ -364,6 +365,8 @@ bool Simu::IsRunning()const{
 
 void Simu::addSaveFormat(std::string format)
 {
+    /*! Add output file firmat to write*/
+
     // MAKE format ALL LOWER CASE
     std::transform(format.begin(), format.end(),
                    format.begin() , ::tolower );
@@ -391,6 +394,11 @@ void Simu::addSaveFormat(std::string format)
        OutputFormat = SIMU_OUTPUT_FORMAT_TEXT;
     }
     else
+    if (!format.compare(SF_DIR_STACK_Z) )
+    {
+        SaveFormat = SaveFormat | Simu::DirStackZ;
+    }
+    else
     {
         //printf("error in %s, unknown SaveFormat:%s\n", __func__, format.c_str() );
         cout << "error specifying SaveFormat as \"" << format <<"\""
@@ -399,6 +407,7 @@ void Simu::addSaveFormat(std::string format)
         cout << "supported values are:\n" <<"\t"<< SF_LCVIEW << "\n"
                                           <<"\t"<< SF_REGULAR_VTK << "\n"
                                           <<"\t"<< SF_REGULAR_VECTOR_MATLAB <<"\n"
+                                          <<"\t"<< SF_DIR_STACK_Z << "\n"
                                           <<"\t"<< SF_LCVIEW_TXT << endl;
 
 

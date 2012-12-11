@@ -82,6 +82,20 @@ void RegularGrid::linearToGridIndex(const idx li, idx &xi, idx &yi, idx &zi)
 
 }
 
+//void RegularGrid::gridToLinearIndex(const idx xi, const idx yi, const idx zi)
+idx RegularGrid::gridToLinearIndex(const idx xi, const idx yi, const idx zi)
+{
+    // CALCULATE ARRAY POSITION FROM GRID X,Y AND Z INDEXES xi, yi, zi
+#ifdef DEBUG
+    assert(xi < nx_);
+    assert(yi < ny_);
+    assert(zi < nz_);
+#endif
+    const idx nxyp = nx_*ny_; // NUMBER OF NODES IN X-Y PLANE
+
+    return xi + yi*nx_ + zi*nxyp;
+}
+
 
 bool RegularGrid::createFromTetMesh(const unsigned int &nx,
                                     const unsigned int &ny,
@@ -331,7 +345,7 @@ void RegularGrid::interpolateDirToRegular(const double *vecIn,
     // DOES DIRECTOR SWAPPING WITHIN ELEMENT TO MAKE SURE THAT
     // ALL ELEMENT ARE ORIENTED IN SAME(ISH) DIRECTION.
     // THIS IS NECESSARY TO MAINTAIN UNIT LENGTH OF DIRECTOR
-
+    // DIRECTOR COMPONENTS ARE ORDERED AS nx,nx,nx..., ny,ny,ny... nz,nz,nz...
     if (!npr_)
     {
         printf("error in %s, Regular grid doesn't seem to be initialised.\n", __func__);
@@ -562,4 +576,61 @@ bool RegularGrid::writeVecMat(const char *filename,
 
     return true;
 
+}
+
+bool RegularGrid::writeDirStackZ(const char *filename,
+                                 const double *n,
+                                 const idx npLC,
+                                 const double time)
+{
+    /*!
+  Writes output in a comma separated values text file. Only the Director
+  component values will be written.
+  Each row in file corresponds to a column along the z-axis, where the
+  director components are interleaved in order nx,ny,nz, nx,ny,nz ...
+  The positions of the columns within the structure increase in rows along
+  the x-axis, then incrementing the y-position at the end of each row.
+  Additionally, on the first row, the number of points in x,y,and z
+  directions and current simulation time
+  are printed, with director data starting on second row.
+  */
+
+    std::ofstream fid(filename);
+    if( !fid.good() )
+        return false;
+
+    // FIRST WRITE GRID SIZE AND CURRENT TIME
+    fid << nx_ <<','<< ny_<<',' << nz_ <<','<< time << std::endl;
+
+    // INTEPOLATE DIRECTOR TO REGULAR GRID
+    double *regN = new double[3*npr_];
+    interpolateDirToRegular(n, regN, npLC);
+
+    for (idx y = 0 ; y < ny_ ; y++)
+    {
+        for (idx x = 0 ; x < nx_ ; x++)
+        {
+            //double os = x*nz_ + n*nx_*nz_; // OFFSET TO START OF THIS COLUMN
+            for (idx z = 0 ; z < nz_ ; z++)
+            {
+                idx i = gridToLinearIndex(x, y, z);
+                double nx = regN[i];
+                double ny = regN[i+npr_];
+                double nz = regN[i+2*npr_];
+
+                if (z > 0) fid <<",";
+
+                // DIRECTO IN DIELECTRICS IS NaN
+                if (nx==nx)
+                   fid << nx<<","<<ny<<","<<nz;
+                else
+                    fid <<"NaN,NaN,NaN";
+            }// end for zcolumn
+            fid <<std::endl;
+        }// end for x
+    }// end for y
+
+    fid.close();
+    delete [] regN;
+    return true;
 }
