@@ -124,15 +124,25 @@ void ReadTetrahedra(ifstream* fin, idx nt, idx* dt, idx* dmatt)
 {
     printf("\tReading %i tetrahedra...", nt); fflush(stdout);
     forwardToLine(fin, "elements");
+    char cbuff[256];
     for (idx i = 0 ; i < nt ; i++ )
     {
-        idx temp;
-        *fin >> temp; //tetrahedra number - not needed
-        *fin  >> dt[i*4+0];
-        *fin  >> dt[i*4+1];
-        *fin  >> dt[i*4+2];
-        *fin  >> dt[i*4+3];
-        *fin  >> dmatt[i];
+        fin->getline(cbuff,256);
+        std::stringstream ss(cbuff);
+
+        idx tmp=0;
+        bool err = !( ss >> tmp >> dt[i*4] >> dt[i*4+1] >> dt[i*4+2] >> dt[i*4+3] >> dmatt[i]);
+
+        if (err)
+        {
+            std::cout << "\nerror reading tetrahedra, bad format"<< std::endl;
+            std::cout << "expected 6 numbers per line in the following format :" << std::endl;
+            std::cout << "<tet number> <node 1> <node 2> <node 3> <node 4> <tet material>" << std::endl;
+            std::cout << "found:\"" << cbuff << "\" instead" <<std::endl;
+            std::cout << "Bye!" << std::endl;
+            fin->close();
+            exit(1);
+         }
     }
 
     printf("OK\n"); fflush(stdout);
@@ -275,40 +285,16 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
                 error = true;
             }
             if (error)
-                exit(1);
-
-        }
-
-
-        printf("Tets = %u , Tris = %u , nodes = %u\n", nt[0], ne[0] , np[0]);
-
-
-        //ALLOCATE MEMORY FOR MESH DATA ---- use of double pointers
-        // ERROR CHECKING BLOCK
-        {
-            bool error = false;
-            if (*np == 0 )
-            {
-                printf("\nerror in reading GiD mesh.\nYour mesh seems to be missing points. Bye!\n");
-                error = true;
-            }
-            if (*ne == 0)
-            {
-                printf("\nerror in reading GiD mesh.\nYour mesh seems to be missing triangles. Bye!\n");
-                error = true;
-            }
-            if (*nt==0)
-            {
-                printf("\nerror in reading GiD mesh.\nYour mesh seems to be missing tetrahedra. Bye!\n");
-                error = true;
-            }
-
-            if (error)
             {
                 fflush(stdout);
                 exit(1);
             }
-        }   // END ERROR CHECKING BLOCK
+
+        }
+
+
+        printf("Tets = %u , Tris = %u , Peri = %u, nodes = %u\n", nt[0], ne[0] , nperi, np[0]);
+
 
         double *dp 		= (double*) malloc(3*np[0]*sizeof(double));
 
