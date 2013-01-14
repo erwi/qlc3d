@@ -2,7 +2,7 @@
 #ifndef QLC3D_H
 #define QLC3D_H
 
-#include <electrodes.h>
+//#include <electrodes.h>
 #include <lc.h>
 #include <box.h>
 #include <alignment.h>
@@ -11,7 +11,7 @@
 
 #include <solutionvector.h>
 #include <material_numbers.h>
-#include <sparsematrix.h>
+//#include <sparsematrix.h>
 #include <eventlist.h>
 #include <settings.h>
 #include <geometry.h>
@@ -90,6 +90,7 @@ double calcQ3d(SolutionVector *q,
                Alignment* alignment);//
                //double* NodeNormals);
 
+class SparseMatrix;
 double calcQExplicit(SolutionVector &q,
                      SolutionVector &v,
                      SparseMatrix &K,
@@ -99,7 +100,8 @@ double calcQExplicit(SolutionVector &q,
                      Simu &simu,
                      Settings &settings
                      );
-
+class Electrodes;
+class EventList;
 void ReadSettings(
         string settings_filename,
         Simu* simu,

@@ -1,6 +1,7 @@
 #include <eventlist.h>
 #include <math.h>
 #include <refinfo.h>
+#include <simu.h>
 const char* Event::getEventString(const EventType e)
 {
     switch(e)

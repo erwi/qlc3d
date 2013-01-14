@@ -5,7 +5,8 @@
 #include <vector>
 #include <list>
 #include <electrodes.h>
-#include <simu.h>
+//#include <simu.h>
+class Simu;
 #include <limits>
 #include <refinfo.h>
 using namespace std;

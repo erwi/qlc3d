@@ -6,6 +6,8 @@ const char* Simu::SF_REGULAR_VTK = "regularvtk";
 const char* Simu::SF_REGULAR_VECTOR_MATLAB = "regularvecmat";
 const char* Simu::SF_LCVIEW_TXT = "lcviewtxt";
 const char* Simu::SF_DIR_STACK_Z = "dirstackz";
+const StringEnum Simu::validEndCriterionStrings("EndCriterion","Iterations,Time,Change" );
+const StringEnum Simu::validSaveFormatStrings("SaveFormat","LCView,RegularVTK,RegularVecMat,LCViewTXT,DirStackZ");
 Simu::Simu():
 PotCons(Off),
     TargetPotCons(1e-3),
@@ -62,6 +64,11 @@ PotCons(Off),
     // IN THE PROGRAM, DEPENDING ON THE PROPERTIES OF THE MATRIX
     // OR AS SPECIFIED IN THE SETTINGS FILE
     QMatrixSolver = Auto;
+
+
+    //validEndCriterionStrings.printValues();
+    //exit(1);
+
 
 }
 void Simu::PrintSimu(){}
@@ -145,23 +152,14 @@ void Simu::setCurrentIteration(int i)
 void Simu::setMaxdt(double maxdt)	{		Maxdt=maxdt;		}
 void Simu::setEndCriterion(string ec)
 {
-	//std::cout << "ec :" << ec << std::endl;
-    if (ec.compare("iterations") == 0)
+    int validIdx = validEndCriterionStrings.getValueIndex(ec);
+    if (validIdx>=0)
+        EndCriterion =static_cast<EndCriteria>(validIdx);
+    else
     {
-        EndCriterion = Iterations;
-	}
-    else if (ec.compare("time") == 0)
-    {
-        EndCriterion = Time;
-	}
-    else if (ec.compare("change") == 0)
-    {
-        EndCriterion = Change;
-	}
-	else{
-        printf("error %s is an unknown EndCriterion, check your settings file for typos - bye!\n",ec.c_str());
-		exit(1);
-	}
+        validEndCriterionStrings.printErrorMessage(ec);
+        exit(1);
+    }
 }
 void Simu::setEndValue(double ev)
 {
@@ -366,6 +364,14 @@ bool Simu::IsRunning()const{
 void Simu::addSaveFormat(std::string format)
 {
     /*! Add output file firmat to write*/
+
+
+    if (!validSaveFormatStrings.containsValue(format))
+    {
+        validSaveFormatStrings.printErrorMessage(format);
+        exit(1);
+    }
+
 
     // MAKE format ALL LOWER CASE
     std::transform(format.begin(), format.end(),

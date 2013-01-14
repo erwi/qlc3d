@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-
+#include <stringenum.h>
 
 #define SIMU_N  0
 #define SIMU_END_SIMULATION -20000000 // magig minus bignum
@@ -42,7 +42,9 @@ public:
                           GMRES = 2};
 private:
 
-    enum EndCriteria {Iterations, Time, Change};
+    enum EndCriteria {Iterations=0, Time=1, Change=2};
+    static const StringEnum validEndCriterionStrings;
+    static const StringEnum validSaveFormatStrings;
     QMatrixSolvers QMatrixSolver;
 
     PotentialConsistency PotCons;
