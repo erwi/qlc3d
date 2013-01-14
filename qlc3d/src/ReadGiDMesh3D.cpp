@@ -188,13 +188,30 @@ void ReadTriangles(ifstream* fin, idx ne, idx* e, idx* emat)
         *fin >> e[i*3+1];
         *fin >> e[i*3+2];
 
-        if (fin->peek() == 10)
+        if (fin->peek() == 10) // 10 is ASCII FOR NEW LINE
             emat[i] = 0; // if newline character ( = no material number assigned), convert to 0
         else
             *fin >> emat[i];
     }
     printf("OK\n"); fflush(stdout);
 
+}
+
+bool isTextFile(std::ifstream &fin)
+{
+    // CHECKS UP TO 100 BYTES OF THE FILE TO TRY TO CHECK WHETHER
+    // IT IS A TEXT OR BINARY FILE. IF NONPRINTABLE CHARACTERS
+    // ARE FOUND, THE FILE IS ASSUMED TO BE BINARY -> RETURN FALSE
+    char someBytes[100];
+    idx numRead = fin.readsome(someBytes, 100);
+
+    for (idx i = 0 ; i < numRead ; ++i)
+        if ( not std::isprint(someBytes[0]) )
+            return false;
+
+    // MUST REWIND TO START OF FILE.
+    fin.seekg(0, ios::beg);
+    return true;
 }
 
 void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
@@ -218,17 +235,24 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
     else // FILE OPENED OK
     {
         printf("Reading GID mesh file: %s \n", filename.c_str()); fflush(stdout);
+
+        // STUDENTS ARE BAD AT EXPORTING GID MESHES. CHECH WHETHER IT IS TEXT/BINARY FORMAT
+        if ( !isTextFile(fin) )
+        {
+            std::cout << "Error, mesh file contains invalid characters."<< std::endl;
+            std::cout << "This usually happens when mesh is not properly exported from GiD." << std::endl;
+            std::cout << "Bye!" << std::endl;
+            exit(1);
+        }
         //printf("a");
         np[0] = 0;
         nt[0] = 0;
         ne[0] = 0;
         bool tets_first = false;
 
-        string Tets 	= "Nnode 4"; //MESH    dimension 3 ElemType Tetrahedra  Nnode 4";
+        string Tets 	= "Nnode 4";//MESH    dimension 3 ElemType Tetrahedra  Nnode 4";
         string Prisms  	= "Nnode 6";//MESH    dimension 3 ElemType Prisma  Nnode 6";
         string Tris 	= "Nnode 3";//MESH    dimension 3 ElemType Triangle  Nnode 3";
-
-
 
         while(!fin.eof()) // count  - while loop
         {
