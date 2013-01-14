@@ -14,10 +14,10 @@ using namespace std;
 void problem(const char *error)
 {
     /*! Prints warning message for a bad setting and exits*/
-	printf("WARNING - problem reading setting for : ");
-	printf("%s\n",error);
-	printf("\n");
-	exit(1);
+    printf("WARNING - problem reading setting for : ");
+    printf("%s\n",error);
+    printf("\n");
+    exit(1);
 }
 void problem(std::string& name, int ret){
     /*! Checks reader return value. If it is an error, prints error message and quits.
@@ -36,7 +36,7 @@ void problem(std::string& name, int ret){
 }
 void problemo(std::string& name, int ret)
 {
-   /*! Checks reader return value. If it is an error, prints warning message but does not quit.
+    /*! Checks reader return value. If it is an error, prints warning message but does not quit.
        Use this for optional settings.*/
     Reader temp;
     if ( (ret!= READER_SUCCESS) )
@@ -64,8 +64,8 @@ void problem_format(std::string &name, int ret)
 
 bool isOK(const std::string& name, int ret)
 {
-// EXITS AND PRINTS ERROR IF PROBLEM READING A VALUE THAT IS FOUND.
-// USE THIS TO CHECK THE SYNTAX OF OPTIONAL VALUE DEFINITIONS
+    // EXITS AND PRINTS ERROR IF PROBLEM READING A VALUE THAT IS FOUND.
+    // USE THIS TO CHECK THE SYNTAX OF OPTIONAL VALUE DEFINITIONS
 
     // ALL OK.
     if ( ret == READER_SUCCESS ) return true;
@@ -99,98 +99,98 @@ void readLC(LC& lc,Reader& reader)
 {
 
     /// THIS CHECKING SHOULD BE DONE IN THE READER CLASS
-//	reader.file.seekg(0);
-//	reader.file.clear();
-	if ( ! reader.file.good() ){
-	cout << "error reading LC - bye!" <<endl;
-	exit(1);
+    //	reader.file.seekg(0);
+    //	reader.file.clear();
+    if ( ! reader.file.good() ){
+        cout << "error reading LC - bye!" <<endl;
+        exit(1);
     }
-	string name = "";
-	int ret     = 0;
-	double val  = 0;
-// ELASTIC COEFFS
-	name = "K11";
-	ret = reader.readNumber(name , val);
-	if (ret == READER_SUCCESS)
+    string name = "";
+    int ret     = 0;
+    double val  = 0;
+    // ELASTIC COEFFS
+    name = "K11";
+    ret = reader.readNumber(name , val);
+    if (ret == READER_SUCCESS)
         lc.K11 = val;
-	problem(name, ret);
+    problem(name, ret);
 
-	name = "K22";
-	ret = reader.readNumber(name , val);
-	if (ret == READER_SUCCESS)
+    name = "K22";
+    ret = reader.readNumber(name , val);
+    if (ret == READER_SUCCESS)
         lc.K22 = val;
     problem(name, ret);
 
-	name = "K33";
-	ret = reader.readNumber(name , val);
-	if (ret == READER_SUCCESS)
+    name = "K33";
+    ret = reader.readNumber(name , val);
+    if (ret == READER_SUCCESS)
         lc.K33 = val;
     problem(name, ret);
 
-	name = "p0";
-	ret = reader.readNumber(name , val);
-	if(ret == READER_SUCCESS)
+    name = "p0";
+    ret = reader.readNumber(name , val);
+    if(ret == READER_SUCCESS)
         lc.p0 = val;
     problem_format(name, ret);
     //problemo(name, ret);
-// THERMOTROPIC COEFFS
-	name = "A";
-	ret = reader.readNumber(name , val);
-	if(ret == READER_SUCCESS)
+    // THERMOTROPIC COEFFS
+    name = "A";
+    ret = reader.readNumber(name , val);
+    if(ret == READER_SUCCESS)
         lc.A = val;
     problem(name,ret);
 
-	name = "B";
-	ret = reader.readNumber(name, val);
-	if(ret == READER_SUCCESS)
+    name = "B";
+    ret = reader.readNumber(name, val);
+    if(ret == READER_SUCCESS)
         lc.B = val;
     problem(name,ret);
 
-	name = "C";
-	ret = reader.readNumber(name, val);
-	if(ret == READER_SUCCESS)
+    name = "C";
+    ret = reader.readNumber(name, val);
+    if(ret == READER_SUCCESS)
         lc.C = val;
     problem(name,ret);
 
-// ELECTRIC COEFFS
-	name = "eps_par";
-	ret = reader.readNumber(name, val);
-	if(ret == READER_SUCCESS)
+    // ELECTRIC COEFFS
+    name = "eps_par";
+    ret = reader.readNumber(name, val);
+    if(ret == READER_SUCCESS)
         lc.eps_par = val;
     problem(name, ret);
 
-	name = "eps_per";
-	ret = reader.readNumber(name, val);
-	if(ret == READER_SUCCESS)
+    name = "eps_per";
+    ret = reader.readNumber(name, val);
+    if(ret == READER_SUCCESS)
         lc.eps_per = val;
     problem(name, ret);
 
-	name = "e11";
-	ret = reader.readNumber(name, val);
-	if(ret == READER_SUCCESS)
+    name = "e11";
+    ret = reader.readNumber(name, val);
+    if(ret == READER_SUCCESS)
         lc.e11 = val;
     problem(name,ret);
 
-	name = "e33";
-	ret = reader.readNumber(name, val);
-	if(ret == READER_SUCCESS)
+    name = "e33";
+    ret = reader.readNumber(name, val);
+    if(ret == READER_SUCCESS)
         lc.e33 = val;
     problem(name, ret);
 
-// VISCOUS COEFFICIENTS
+    // VISCOUS COEFFICIENTS
     name = "gamma1";
     ret = reader.readNumber(name, val);
     if(ret == READER_SUCCESS)
         lc.gamma1 = val;
-	problem(name, ret);
+    problem(name, ret);
 
     name = "gamma2";
     ret = reader.readNumber(name, val);
     if(ret == READER_SUCCESS)
         lc.gamma2 = val;
-	problem(name, ret);
+    problem(name, ret);
 
-// SELECT PHYSICS FORMULATION SWITCH
+    // SELECT PHYSICS FORMULATION SWITCH
     name = "Formulation";
     std::string str_val;
     ret = reader.readString(name, str_val );
@@ -201,32 +201,32 @@ void readLC(LC& lc,Reader& reader)
     }
 
 
-// DO THIS LATER IF NEEDED
-   // name = "alpha1";
-   // name = "aplha2";
-   // name = "alpha4";
-   // name = "alpha5";
-   // name = "alpha6";
+    // DO THIS LATER IF NEEDED
+    // name = "alpha1";
+    // name = "aplha2";
+    // name = "alpha4";
+    // name = "alpha5";
+    // name = "alpha6";
 
 }//end void readLC
 
 
 void readSimu(Simu* simu, Reader& reader, EventList& evel)
 {
-	std::string name;
-	std::string str_var;
-	int         int_var = 0;
-	double      dbl_var = 0;
-	int         ret;
+    std::string name;
+    std::string str_var;
+    int         int_var = 0;
+    double      dbl_var = 0;
+    int         ret;
 
-//  READ STRING SETTINGS
-//  MANDATORY STRING SETTINGS
+    //  READ STRING SETTINGS
+    //  MANDATORY STRING SETTINGS
 
     ret = 0;
     name = "EndCriterion";
     ret = reader.readString(name , str_var);
     
-	
+
     if ( ret== READER_SUCCESS)
         simu->setEndCriterion(str_var);
 
@@ -239,7 +239,7 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
 
     problem(name, ret);
 
-// OPTIONAL STRING SETTINGS
+    // OPTIONAL STRING SETTINGS
     name = "LoadQ";
     ret = reader.readString(name , str_var);
     if (ret == READER_SUCCESS)
@@ -262,9 +262,9 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
     if (ret == READER_SUCCESS)
         simu->setQMatrixSolver(str_var);
 
-//========================
-// SCALAR VALUES
-//========================
+    //========================
+    // SCALAR VALUES
+    //========================
     name = "SaveIter";
     ret = reader.readNumber(name, int_var);
     if (ret == READER_SUCCESS)
@@ -291,14 +291,14 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
     ret = reader.readNumber(name , dbl_var);
     if (ret == READER_SUCCESS)
         simu->setdt(dbl_var);
-//    problemo(name, ret);
+    //    problemo(name, ret);
 
     name = "TargetdQ";
     ret = reader.readNumber(name , dbl_var);
     if (ret == READER_SUCCESS)
-	simu->setTargetdQ(dbl_var);
+        simu->setTargetdQ(dbl_var);
     else{
-	exit(1);
+        exit(1);
     }
     //problemo(name, ret);
 
@@ -343,39 +343,23 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
 
     if ( ret == READER_SUCCESS )
     {
-        if (vec_str.empty() )   // DEFAULT IS LCVIEW
+
+        simu->clearSaveFormat(); // REMOVES DEFAULT
+        for (size_t i = 0 ; i < vec_str.size() ; i++)
         {
-            simu->addSaveFormat( Simu::SF_LCVIEW );
+            simu->addSaveFormat( vec_str[i] );  // SAVE FORMATS ARE DEFINED IN Simu
         }
-        else    // IF OTHERS HAVE BEEN DEFINED, SET THEM
-        {
-            simu->clearSaveFormat(); // REMOVES DEFAULT
-            for (size_t i = 0 ; i < vec_str.size() ; i++)
-            {
-                simu->addSaveFormat( vec_str[i] );  // SAVE FORMATS ARE DEFINED IN Simu
-            }
-        }
-
     }
-    else if (ret == READER_NOT_FOUND)   // IF NOT SPECIFIED, BY DEFAULT USE LCview
-    {
-        simu->addSaveFormat( Simu::SF_LCVIEW );
-    }
-    else
-        problem(name, ret);
 
-
-
-
-//------------------------------------------
-//
-// READ VECTOR VALUES
-//
-//------------------------------------------
+    //------------------------------------------
+    //
+    // READ VECTOR VALUES
+    //
+    //------------------------------------------
     name = "StretchVector";
     vector <double> vec;
 
-	ret = reader.readNumberArray(name , vec );
+    ret = reader.readNumberArray(name , vec );
     if (ret == READER_SUCCESS){
         if (vec.size() != 3){
             cout << "error - invalid StretchVector length - bye!\n"<<endl;
@@ -384,77 +368,77 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
         //cout << "stretch :"<< vec[0] <<","<< vec[1] <<"," << vec[2] << endl;
         simu->setStretchVectorX(vec[0]);
         simu->setStretchVectorY(vec[1]);
-	simu->setStretchVectorZ(vec[2]);
+        simu->setStretchVectorZ(vec[2]);
         //cout << "stretch" << simu->getStretchVectorX() << "," << simu->getStretchVectorY() << "," << simu->getStretchVectorZ() << endl;
     }
     //problemo(name, ret);
 
-	name = "EnergyRegion";
-	ret = reader.readNumberArray(name , vec);
+    name = "EnergyRegion";
+    ret = reader.readNumberArray(name , vec);
 
-	if ((ret == READER_SUCCESS) && (vec.size() == 3)){
+    if ((ret == READER_SUCCESS) && (vec.size() == 3)){
 
-		simu->setEnergyRegionX(vec[0]);
-		simu->setEnergyRegionY(vec[1]);
-		simu->setEnergyRegionZ(vec[2]);
-	}
-        //problemo(name , ret);
+        simu->setEnergyRegionX(vec[0]);
+        simu->setEnergyRegionY(vec[1]);
+        simu->setEnergyRegionZ(vec[2]);
+    }
+    //problemo(name , ret);
 
-	name = "dtLimits";
-	ret = reader.readNumberArray(name , vec);
-	if ( (ret == READER_SUCCESS) && (vec.size() == 2)){
-	    simu->setdtLimits(vec[0], vec[1]);
-	}
-        //problemo (name , ret );
+    name = "dtLimits";
+    ret = reader.readNumberArray(name , vec);
+    if ( (ret == READER_SUCCESS) && (vec.size() == 2)){
+        simu->setdtLimits(vec[0], vec[1]);
+    }
+    //problemo (name , ret );
 
 
-	name = "dtFunction";
-	ret = reader.readNumberArray(name , vec );
-	if ((ret == READER_SUCCESS) && (vec.size() == 4) ){
-	    double F[4] ={vec[0] , vec[1] , vec[2], vec[3]};
-	    simu->setdtFunction(F);
-	}
-        //problemo(name , ret);
+    name = "dtFunction";
+    ret = reader.readNumberArray(name , vec );
+    if ((ret == READER_SUCCESS) && (vec.size() == 4) ){
+        double F[4] ={vec[0] , vec[1] , vec[2], vec[3]};
+        simu->setdtFunction(F);
+    }
+    //problemo(name , ret);
 
-        name = "RegularGridSize";
-        ret = reader.readNumberArray( name, vec);
-        if (ret == READER_SUCCESS )
-        {
-            if (vec.size()!= 3)
-                problem(name, READER_BAD_FORMAT );
+    name = "RegularGridSize";
+    ret = reader.readNumberArray( name, vec);
+    if (ret == READER_SUCCESS )
+    {
+        if (vec.size()!= 3)
+            problem(name, READER_BAD_FORMAT );
 
-            simu->setRegularGridSize( (size_t) vec[0], (size_t) vec[1], (size_t) vec[2] );
+        simu->setRegularGridSize( (size_t) vec[0], (size_t) vec[1], (size_t) vec[2] );
 
-        }
+    }
 
 
 }//end void readSimu
 
 void readBoxes(Boxes* boxes, Reader& reader) //config_t* cfg)
 {
-	int maxbox = 100; // maximum number of supported boxes...
-	for (int i = 1 ; i < maxbox ; i++){ // for boxes 1-99
-	   // cout << i << endl;
-	    stringstream box;
-	    string name;
-	    string str_val;
+    int maxbox = 100; // maximum number of supported boxes...
+    for (int i = 1 ; i < maxbox ; i++){ // for boxes 1-99
+        // cout << i << endl;
+        stringstream box;
+        string name;
+        string str_val;
 
-	    int ret;
+        int ret;
         box << "BOX" << i <<".Type";
-	    box >> name;
-		reader.file.seekg(0);
-		reader.file.clear();
-		if (!reader.file.good()){
+        box >> name;
+        reader.file.seekg(0);
+        reader.file.clear();
+        if (!reader.file.good()){
             cout << "error reading Boxes, file pointer is bad - bye!" << endl;
             exit(1);
         }
 
-	    ret = reader.readString(name , str_val);
+        ret = reader.readString(name , str_val);
         //=============================
         // ADD BOXES IF THEY EXIST
         //=============================
         if (ret == READER_SUCCESS){ // if Boxi exists
-           // cout << "reading box " << i << endl;
+            // cout << "reading box " << i << endl;
             Box* b = new Box(i);     // CREATE EMPTY BOX OBJECT
             b->setBoxType(str_val);
             //b->Type = str_val;
@@ -470,19 +454,19 @@ void readBoxes(Boxes* boxes, Reader& reader) //config_t* cfg)
             problem(name, ret);
             b->setParams(par);
 
-    // BOX X
+            // BOX X
             box.clear();
             name.clear();
             box << "BOX" << i <<".X";
             box >> name;
             ret = reader.readNumberArray(name , par);
 
-	    //cout << "X :" << par[0] << "," << par[1] << endl;
-	    problem(name, ret);
+            //cout << "X :" << par[0] << "," << par[1] << endl;
+            problem(name, ret);
             b->setX(par);
 
 
-	// BOX Y
+            // BOX Y
             box.clear();
             name.clear();
             box << "BOX" << i <<".Y";
@@ -490,7 +474,7 @@ void readBoxes(Boxes* boxes, Reader& reader) //config_t* cfg)
             ret = reader.readNumberArray(name, par);
             problem(name, ret);
             b->setY(par);
-	// BOX Z
+            // BOX Z
             box.clear();
             name.clear();
             box << "BOX" << i <<".Z";
@@ -498,15 +482,15 @@ void readBoxes(Boxes* boxes, Reader& reader) //config_t* cfg)
             ret = reader.readNumberArray(name , par);
             problem(name , ret);
             b->setZ(par);
-	// BOX TILT
+            // BOX TILT
             box.clear();
             name.clear();
             box << "BOX" << i <<".Tilt";
             box >> name;
             ret = reader.readNumberArray(name, par);
-	    problem(name , ret);
+            problem(name , ret);
             b->setTilt(par);
-	// BOX TWIST
+            // BOX TWIST
             box.clear();
             name.clear();
             box << "BOX" << i <<".Twist";
@@ -515,11 +499,11 @@ void readBoxes(Boxes* boxes, Reader& reader) //config_t* cfg)
             problem(name, ret);
             b->setTwist(par);
 
-	// ADD TO LIST OF BOXES
+            // ADD TO LIST OF BOXES
             boxes->addBox(b);
 
         }// end if box exists
-	}
+    }
     //end for i = 1:maxbox
 
 }// end void readBoxes
@@ -527,12 +511,12 @@ void readBoxes(Boxes* boxes, Reader& reader) //config_t* cfg)
 void readAlignment(Alignment* alignment, Reader& reader)
 {
 
-	int num_surfaces = 99; // limit surfaces to 0-99
-	std::string surface_name;
-	std::string surface_setting_name;
+    int num_surfaces = 99; // limit surfaces to 0-99
+    std::string surface_name;
+    std::string surface_setting_name;
 
 
-	for ( int i = 0; i < num_surfaces; i++)	{
+    for ( int i = 0; i < num_surfaces; i++)	{
         stringstream ss;
         string name;
         string str_val;
@@ -662,8 +646,8 @@ void readElectrodes(Electrodes* electrodes,
         {
             Event* swEvent = new Event(EVENT_SWITCHING, times[j]);
             SwitchingInstance* si = new SwitchingInstance(times[j],  // WHEN
-                                                         pots[j],   // NEW POTENTIAL VALUE
-                                                         i-1);      // WHICH ELECTRODE
+                                                          pots[j],   // NEW POTENTIAL VALUE
+                                                          i-1);      // WHICH ELECTRODE
             swEvent->setEventDataPtr( static_cast<void*>(si) );
             evli.insertTimeEvent( swEvent );
         }
@@ -719,50 +703,50 @@ void readMeshrefinement( MeshRefinement* meshrefinement, Reader& reader){
 
     // READS REFREG STRUCTURES
     for ( int i = 0 ; i < num_refreg ; i++){
-	ss.clear(); name.clear();
-	ss << "REFREG" << i << ".Type";
-	ss >> name;
+        ss.clear(); name.clear();
+        ss << "REFREG" << i << ".Type";
+        ss >> name;
 
-	ret = reader.readString(name , str_val);
+        ret = reader.readString(name , str_val);
 
         if (ret == READER_SUCCESS ){ // if this REFREG was found
-	    cout << " reading REFREG" << i << endl;
-	    RefReg rr;
-	    rr.setType(str_val);
+            cout << " reading REFREG" << i << endl;
+            RefReg rr;
+            rr.setType(str_val);
 
-	    // READ REGION COORDINATES
-	    // READ X
-	    ss.clear(); name.clear();
-	    ss << "REFREG" << i <<".X";
-	    ss >> name;
-	    ret = reader.readNumberArray(name, vec);
-	    problem(name, ret);
-	    rr.addX( vec );
-	    // READ Y
-	    ss.clear(); name.clear();
-	    ss << "REFREG" << i <<".Y";
-	    ss >> name;
-	    ret = reader.readNumberArray(name, vec);
-	    problem(name, ret);
-	    rr.addY( vec );
-	    // READ Z
-	    ss.clear(); name.clear();
-	    ss << "REFREG" << i <<".Z";
-	    ss >> name;
-	    ret = reader.readNumberArray(name, vec);
-	    problem(name, ret);
-	    rr.addZ( vec );
-	    // READ DISTANCE
-	    ss.clear(); name.clear();
-	    ss << "REFREG" << i <<".Distance";
-	    ss >> name;
-	    ret = reader.readNumberArray(name, vec);
-	    cout << name << " " << ret << "length vec = " << vec.size() << endl;
-	    problem(name, ret);
-	    rr.addDistance( vec );
-	    //rr.PrintRefinementRegion();
-	    meshrefinement->addRefinementRegion( rr );
-	}
+            // READ REGION COORDINATES
+            // READ X
+            ss.clear(); name.clear();
+            ss << "REFREG" << i <<".X";
+            ss >> name;
+            ret = reader.readNumberArray(name, vec);
+            problem(name, ret);
+            rr.addX( vec );
+            // READ Y
+            ss.clear(); name.clear();
+            ss << "REFREG" << i <<".Y";
+            ss >> name;
+            ret = reader.readNumberArray(name, vec);
+            problem(name, ret);
+            rr.addY( vec );
+            // READ Z
+            ss.clear(); name.clear();
+            ss << "REFREG" << i <<".Z";
+            ss >> name;
+            ret = reader.readNumberArray(name, vec);
+            problem(name, ret);
+            rr.addZ( vec );
+            // READ DISTANCE
+            ss.clear(); name.clear();
+            ss << "REFREG" << i <<".Distance";
+            ss >> name;
+            ret = reader.readNumberArray(name, vec);
+            cout << name << " " << ret << "length vec = " << vec.size() << endl;
+            problem(name, ret);
+            rr.addDistance( vec );
+            //rr.PrintRefinementRegion();
+            meshrefinement->addRefinementRegion( rr );
+        }
     }
 }//end readMeshrefinement
 void readAutorefinement( MeshRefinement* meshrefinement, Reader& reader){
@@ -877,7 +861,7 @@ void readEndrefinement( MeshRefinement* meshrefinement, Reader& reader){
 void readRefinement(Reader& reader,
                     EventList& evli)
 {
-// READS SETINGS FOR MESH REFINEMENT AND ADDS REFINEMENT EVENT TO EVENT QUEUE
+    // READS SETINGS FOR MESH REFINEMENT AND ADDS REFINEMENT EVENT TO EVENT QUEUE
 
     // FIRST READ "GLOBAL" REPEATED REFINMENT SETTINGS
     string key = "RepRefIter";
@@ -924,7 +908,7 @@ void readRefinement(Reader& reader,
                 problem( msg );
             }
 
-        // START READING ALL POSSIBLE RefInfo DATA FIELDS
+            // START READING ALL POSSIBLE RefInfo DATA FIELDS
             key = setStructureKey("REFINEMENT", i , "Values");
             vector<double> values;
             ret = reader.readNumberArray(key, values);
@@ -941,8 +925,8 @@ void readRefinement(Reader& reader,
             ret = reader.readNumberArray( key, Z );
             problem_format( key, ret );
 
-        // DATA HAS BEEN COLLECTED. DEPENDING ON WHETHER EXPLICIT REFINEMENT
-        // EVENTS HAVE BEEN DEFINED ADD EVENT(s) TO EVENT LIST
+            // DATA HAS BEEN COLLECTED. DEPENDING ON WHETHER EXPLICIT REFINEMENT
+            // EVENTS HAVE BEEN DEFINED ADD EVENT(s) TO EVENT LIST
 
             // IF EXPLICIT ITERATIOSN ARE DEFINED, BREAK THEM TO SEPARATE EVENT
             if (iterations.empty() )
@@ -994,12 +978,12 @@ void readRefinement(Reader& reader,
 }
 
 void ReadSettings(
-	string settings_filename,
-	Simu* simu,
+        string settings_filename,
+        Simu* simu,
         LC& lc,
-	Boxes* boxes,
-	Alignment* alignment,
-	Electrodes* electrodes,
+        Boxes* boxes,
+        Alignment* alignment,
+        Electrodes* electrodes,
         MeshRefinement* meshrefinement,
         EventList& eventlist)
 {
@@ -1009,37 +993,37 @@ void ReadSettings(
     using namespace std;
     if ( reader.openFile(settings_filename) ){
         cout << "reading: "<< settings_filename << endl;
-    // READ SIMU
-    readSimu(simu , reader, eventlist);
+        // READ SIMU
+        readSimu(simu , reader, eventlist);
 
-    // READ LC
-    readLC(lc , reader);
-    lc.convert_params_n2Q();
+        // READ LC
+        readLC(lc , reader);
+        lc.convert_params_n2Q();
 
-    // READ BOXES
-    readBoxes(boxes , reader);
+        // READ BOXES
+        readBoxes(boxes , reader);
 
-    // READ ALIGNMENT SURFACES
-    readAlignment(alignment, reader);
+        // READ ALIGNMENT SURFACES
+        readAlignment(alignment, reader);
 
-    // READ ELECTRODES
-    readElectrodes(electrodes , reader, eventlist);
-    // READ MESH REFINEMENT
-    //readMeshrefinement(meshrefinement, reader);
-    // READ AUTOREFINEMENT
-    //readAutorefinement(meshrefinement, reader);
-    // READ ENDREFINEMENT
-    //readEndrefinement(meshrefinement, reader);
+        // READ ELECTRODES
+        readElectrodes(electrodes , reader, eventlist);
+        // READ MESH REFINEMENT
+        //readMeshrefinement(meshrefinement, reader);
+        // READ AUTOREFINEMENT
+        //readAutorefinement(meshrefinement, reader);
+        // READ ENDREFINEMENT
+        //readEndrefinement(meshrefinement, reader);
 
-// ----------------------------------
-//    NEW STUFF TO REPLACE MeshRefinemnt, AutoRefinment, EndRefinemnt
-// ----------------------------------
-    // READ REFINEMENT
-    readRefinement( reader, eventlist );
+        // ----------------------------------
+        //    NEW STUFF TO REPLACE MeshRefinemnt, AutoRefinment, EndRefinemnt
+        // ----------------------------------
+        // READ REFINEMENT
+        readRefinement( reader, eventlist );
 
-   // exit(0);
+        // exit(0);
 
-    reader.closeFile();
+        reader.closeFile();
     }
     else{
         cout << "error - could not open " << settings_filename <<" - bye!" << endl;

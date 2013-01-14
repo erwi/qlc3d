@@ -1,13 +1,37 @@
 #include <stringenum.h>
 #include <iostream>
 #include <algorithm>
-
-StringEnum::StringEnum(const char *key_in, const char* val_in)
+/*
+StringEnum::StringEnum(const char *key_in, const char* val_in, const int *ints_in)
 {
+    // CONSTRUCTOR WITH CUSTOM INTEGER VALUE LIST
+    //val_in MUST BE A COMMA DELIMITED LIST WITH NO SPACES
+
+    key = key_in;
+    parseValues(val_in);
+
+
+    for (int i = 0 ; i < this->values.size() ; i++)
+        int_values.push_back( ints_in[i] );
+}
+*/
+
+StringEnum::StringEnum(const char *key_in, const char *val_in)
+{
+    // CONSTRUCTOR WITH DEFAULT INTEGER VALUE LIST
     //val_in MUST BE A COMMA DELIMITED LIST WITH NO SPACES
     key = key_in;
     parseValues(val_in);
+    for (int i = 0 ; i < (int) this->values.size() ; i++)
+        int_values.push_back(i);
 }
+
+void StringEnum::setIntValues(std::vector<int> &ivals)
+{
+    this->int_values = ivals;
+}
+
+
 
 bool StringEnum::parseValues(const std::string &values_in)
 {
@@ -61,7 +85,7 @@ int StringEnum::getValueIndex(const std::string &testval) const
 
         if (tval2.compare(tval) == 0 )
         {
-             return retVal;
+             return int_values[retVal];
         }
     }
     return -1; // Value not found, return negative index
@@ -98,6 +122,5 @@ void StringEnum::printErrorMessage(const std::string &s_in)const
     }
 
     std::cout << "Found \"" << s_in << "\" instead. Bye!" << std::endl;
-
 
 }

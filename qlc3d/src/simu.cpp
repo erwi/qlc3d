@@ -1,13 +1,11 @@
 #include <simu.h>
 #include <algorithm>
 #include <omp.h>
-const char* Simu::SF_LCVIEW = "lcview";
-const char* Simu::SF_REGULAR_VTK = "regularvtk";
-const char* Simu::SF_REGULAR_VECTOR_MATLAB = "regularvecmat";
-const char* Simu::SF_LCVIEW_TXT = "lcviewtxt";
-const char* Simu::SF_DIR_STACK_Z = "dirstackz";
-const StringEnum Simu::validEndCriterionStrings("EndCriterion","Iterations,Time,Change" );
-const StringEnum Simu::validSaveFormatStrings("SaveFormat","LCView,RegularVTK,RegularVecMat,LCViewTXT,DirStackZ");
+
+const StringEnum Simu::validEndCriterionStrings("EndCriterion",
+                                                "Iterations,Time,Change");
+StringEnum Simu::validSaveFormatStrings("SaveFormat",
+                                        "LCView,RegularVTK,RegularVecMat,LCViewTXT,DirStackZ");
 Simu::Simu():
 PotCons(Off),
     TargetPotCons(1e-3),
@@ -65,10 +63,13 @@ PotCons(Off),
     // OR AS SPECIFIED IN THE SETTINGS FILE
     QMatrixSolver = Auto;
 
-
-    //validEndCriterionStrings.printValues();
-    //exit(1);
-
+    std::vector<int> temp;
+    temp.push_back(Simu::None);
+    temp.push_back(Simu::LCview);
+    temp.push_back(Simu::RegularVTK);
+    temp.push_back(Simu::RegularVecMat);
+    temp.push_back(Simu::DirStackZ);
+    validSaveFormatStrings.setIntValues(temp);
 
 }
 void Simu::PrintSimu(){}
@@ -365,60 +366,14 @@ void Simu::addSaveFormat(std::string format)
 {
     /*! Add output file firmat to write*/
 
-
-    if (!validSaveFormatStrings.containsValue(format))
+    // IF NEGATIVE SAVE FORMAT INDEX -> ERROR
+    int sf = validSaveFormatStrings.getValueIndex(format);
+    if (sf < 0)
     {
         validSaveFormatStrings.printErrorMessage(format);
         exit(1);
     }
 
-
-    // MAKE format ALL LOWER CASE
-    std::transform(format.begin(), format.end(),
-                   format.begin() , ::tolower );
-
-// SETS BIT FOR EACH FORMAT TO TRUE
-    if ( !format.compare( SF_LCVIEW ) )
-    {
-        SaveFormat = SaveFormat | Simu::LCview;
-        OutputFormat = SIMU_OUTPUT_FORMAT_BINARY;
-    }
-    else
-    if ( !format.compare( SF_REGULAR_VTK ) )
-    {
-        SaveFormat = SaveFormat | Simu::RegularVTK;
-    }
-    else
-    if ( !format.compare( SF_REGULAR_VECTOR_MATLAB) )
-    {
-        SaveFormat = SaveFormat | Simu::RegularVecMat;
-    }
-    else
-    if ( !format.compare(SF_LCVIEW_TXT) )
-    {
-       SaveFormat = SaveFormat | Simu::LCview;
-       OutputFormat = SIMU_OUTPUT_FORMAT_TEXT;
-    }
-    else
-    if (!format.compare(SF_DIR_STACK_Z) )
-    {
-        SaveFormat = SaveFormat | Simu::DirStackZ;
-    }
-    else
-    {
-        //printf("error in %s, unknown SaveFormat:%s\n", __func__, format.c_str() );
-        cout << "error specifying SaveFormat as \"" << format <<"\""
-                " check settings file for typos" << endl;
-
-        cout << "supported values are:\n" <<"\t"<< SF_LCVIEW << "\n"
-                                          <<"\t"<< SF_REGULAR_VTK << "\n"
-                                          <<"\t"<< SF_REGULAR_VECTOR_MATLAB <<"\n"
-                                          <<"\t"<< SF_DIR_STACK_Z << "\n"
-                                          <<"\t"<< SF_LCVIEW_TXT << endl;
-
-
-        exit(1);
-    }
-
+    SaveFormat = SaveFormat | static_cast<SaveFormats>(sf);
 
 }

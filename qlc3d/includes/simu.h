@@ -24,6 +24,8 @@ class Simu
 
 public:
     // SAVE FORMATS OPTIONS BITFIELDS - MUST BE POWERS OF 2!!!
+    // REMEMBER TO ADD to "validSaveFormatStrings" IN CONSTRUCTOR
+    // IF/WHEN ADDING NEW SAVE FORMATS!
     enum SaveFormats {None          = 0,
                       LCview        = 1,
                       RegularVTK    = 2,
@@ -44,7 +46,7 @@ private:
 
     enum EndCriteria {Iterations=0, Time=1, Change=2};
     static const StringEnum validEndCriterionStrings;
-    static const StringEnum validSaveFormatStrings;
+    static StringEnum validSaveFormatStrings;
     QMatrixSolvers QMatrixSolver;
 
     PotentialConsistency PotCons;
