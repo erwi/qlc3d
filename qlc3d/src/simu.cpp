@@ -1,11 +1,7 @@
 #include <simu.h>
 #include <algorithm>
 #include <omp.h>
-
-const StringEnum Simu::validEndCriterionStrings("EndCriterion",
-                                                "Iterations,Time,Change");
-StringEnum Simu::validSaveFormatStrings("SaveFormat",
-                                        "LCView,RegularVTK,RegularVecMat,LCViewTXT,DirStackZ");
+#include "stringenum.h"
 Simu::Simu():
 PotCons(Off),
     TargetPotCons(1e-3),
@@ -69,7 +65,7 @@ PotCons(Off),
     temp.push_back(Simu::RegularVTK);
     temp.push_back(Simu::RegularVecMat);
     temp.push_back(Simu::DirStackZ);
-    validSaveFormatStrings.setIntValues(temp);
+    //validSaveFormatStrings.setIntValues(temp);
 
 }
 void Simu::PrintSimu(){}
@@ -153,14 +149,15 @@ void Simu::setCurrentIteration(int i)
 void Simu::setMaxdt(double maxdt)	{		Maxdt=maxdt;		}
 void Simu::setEndCriterion(string ec)
 {
-    int validIdx = validEndCriterionStrings.getValueIndex(ec);
-    if (validIdx>=0)
-        EndCriterion =static_cast<EndCriteria>(validIdx);
-    else
-    {
-        validEndCriterionStrings.printErrorMessage(ec);
-        exit(1);
-    }
+
+    StringEnum<Simu::EndCriteria> validator("EndCriterion","Iterations,Time,Change" );
+   try {
+       EndCriterion = validator.getEnumValue(ec);
+   }
+   catch (...){
+       validator.printErrorMessage(ec);
+       exit(1);
+   }
 }
 void Simu::setEndValue(double ev)
 {
@@ -168,7 +165,6 @@ void Simu::setEndValue(double ev)
 	// when resetEndCriterion is called
 	if (EndValue == 0 ) 
 		EndValue_orig = ev;
-		
 	EndValue = ev;
 }
 void Simu::resetEndCriterion()
@@ -193,8 +189,6 @@ set to something large so that simlation is effectively restarted
 	{
 		this->setEndValue( this->EndValue + this->EndValue_orig );
 	}
-    
-
 }
 
 void Simu::setCurrentTime(double ct)		{   CurrentTime = ct;}
@@ -205,16 +199,6 @@ void Simu::setMeshName(string meshname)     {	MeshName = meshname;}
 void Simu::setOutputEnergy(int ope)
 {
 	OutputEnergy = ope;
-	if (ope == 1) // if output energy == true, open file pointer
-	{
-		//string filename = "res/energy.txt";
-		//OutputEnergy_fid = fopen(filename.c_str(),"wt");
-		//if (OutputEnergy_fid == NULL)
-		//{
-		//	printf("error - Simu:setOutputEnergy(int) - could not open %s - bye!\n",filename.c_str());
-		//	exit(1);
-		//}
-	}
 }
 void Simu::setOutputFormat(int opf){
 	if ( 	(opf == SIMU_OUTPUT_FORMAT_BINARY) ||
@@ -250,23 +234,14 @@ void Simu::setMatrixSolverThreadCount(unsigned int numT)
 
 void Simu::setQMatrixSolver(string &solver)
 {
-    std::string temp = solver;
-    std::transform(solver.begin(), solver.end(), solver.begin(), ::tolower );
+    StringEnum<Simu::QMatrixSolvers> validator("QMatrixSolver","Auto,PCG,GMRES");
 
-    if (solver.compare("auto")==0)
-        QMatrixSolver = Simu::Auto;
-    else if (solver.compare("pcg") == 0)
-        QMatrixSolver = Simu::PCG;
-    else if (solver.compare("gmres") == 0)
-        QMatrixSolver = Simu::GMRES;
-    else
+    try{
+        QMatrixSolver = validator.getEnumValue(solver);
+    }
+    catch(...)
     {
-        cout << "error setting QMatrixSolver as : \"" << temp <<"\"" << endl;
-        cout << "valid options are :\n"
-             << "\tAuto\n"
-             << "\tPCG\n"
-             << "\tGMRES\n"
-             << "Check your settings file for typos - bye !\n" << endl;
+        validator.printErrorMessage(solver);
         exit(1);
     }
 }
@@ -365,15 +340,15 @@ bool Simu::IsRunning()const{
 void Simu::addSaveFormat(std::string format)
 {
     /*! Add output file firmat to write*/
-
-    // IF NEGATIVE SAVE FORMAT INDEX -> ERROR
-    int sf = validSaveFormatStrings.getValueIndex(format);
-    if (sf < 0)
-    {
-        validSaveFormatStrings.printErrorMessage(format);
+    int SaveFormatValues[5] = {None,LCview,RegularVTK,RegularVecMat,DirStackZ};
+    StringEnum<Simu::SaveFormats> validator("SaveFormat",
+                                            "None,LCView,RegularVTK,RegularVecMat,DirStackZ",
+                                            SaveFormatValues);
+    try{
+        SaveFormat = SaveFormat | validator.getEnumValue(format);
+    }
+    catch(...){
+        validator.printErrorMessage(format);
         exit(1);
     }
-
-    SaveFormat = SaveFormat | static_cast<SaveFormats>(sf);
-
 }

@@ -7,10 +7,10 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include <stringenum.h>
+//#include <stringenum.h>
 
 #define SIMU_N  0
-#define SIMU_END_SIMULATION -20000000 // magig minus bignum
+#define SIMU_END_SIMULATION -20000000 // magic minus bignum
 
 #define SIMU_OUTPUT_FORMAT_BINARY 	0
 #define SIMU_OUTPUT_FORMAT_TEXT		1
@@ -45,8 +45,6 @@ public:
 private:
 
     enum EndCriteria {Iterations=0, Time=1, Change=2};
-    static const StringEnum validEndCriterionStrings;
-    static StringEnum validSaveFormatStrings;
     QMatrixSolvers QMatrixSolver;
 
     PotentialConsistency PotCons;
@@ -90,12 +88,6 @@ private:
 
 public:
 
-    // SAVE FORMAT ID STRINGS
-    static const char* SF_LCVIEW;
-    static const char* SF_REGULAR_VTK;
-    static const char* SF_REGULAR_VECTOR_MATLAB;
-    static const char* SF_LCVIEW_TXT;
-    static const char* SF_DIR_STACK_Z;
     string MeshName;
     double dt;
     bool restrictedTimeStep; // flag to allow/disallow adapting time step size (e.g. just after potential switching)

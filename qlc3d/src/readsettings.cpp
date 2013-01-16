@@ -325,12 +325,12 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
     if(ret == READER_SUCCESS)
         simu->setOutputFormat(int_var);
 
-    name = "numAssemblyThreads";
+    name = "NumAssemblyThreads";
     ret = reader.readNumber(name, int_var);
     if (ret == READER_SUCCESS)
         simu->setAsseblyThreadCount( (unsigned int) int_var);
 
-    name = "numMatrixSolverThreads";
+    name = "NumMatrixSolverThreads";
     ret = reader.readNumber(name, int_var);
     if (ret == READER_SUCCESS)
         simu->setMatrixSolverThreadCount( (unsigned int) int_var);

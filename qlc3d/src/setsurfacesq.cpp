@@ -74,6 +74,8 @@ void setFrozenSurfaces(SolutionVector* q, vector<idx>* ind_nodes)
 {
     // Freezes Q-tensor to current values at this surface
     // frozen surfaces don't need anything done
+    q = q; // SUPPRESS WARNINGS
+    ind_nodes = ind_nodes;
     printf("frozen surface\n");
 
 }
@@ -83,21 +85,8 @@ void setPolymeriseSurfaces(SolutionVector*q, double Sth)
 // FIXES Q-TENSOR ON ALL NODES WHERE ORDER PARAMETER IS BELOW DEFINED VALUE Sth
 // NOTHING NEEDS TO BE DONE HERE. SEE SolutionVector::setFixedNodesQ WHERE NODES
 // ARE SELECTED
-    /*
-    // CONVERT QURRENT Q-TENSOR TO DIRECTOR AND ORDER PARAMETERS
-    idx npLC = q->getnDoF();
-    double *n = tensortovector(q->Values,npLC); // get vector data
-
-    // FIND INDEX TO ALL NODES WHERE ORDER IS LESS OR EQUAL TO Sth
-    vector<idx> indn;
-    for (idx i = 3*npLC ; i < 4*npLC; i++) // FOR EACH ORDER PARAMETER
-    {
-        if ( n[i] <= Sth )
-            indn.push_back(i);
-    }
-    delete [] n;
-
-*/
+   q=q;         // SUPPRESS WARNINGS
+   Sth = Sth;
 
 }
 
