@@ -78,6 +78,18 @@ public:
         }
         throw std::exception();
     }
+    bool containsKey(const std::string &sval) const {
+        std::string tval = sval; // working copy
+        std::transform(tval.begin(), tval.end(), tval.begin(), ::tolower);
+        std::list<std::string>::const_iterator itr = values.begin();
+        for( ; itr != values.end() ; itr++){
+            std::string tval2 = *itr;
+            std::transform(tval2.begin(), tval2.end() , tval2.begin(), ::tolower);
+            if (tval2.compare(tval) == 0)
+                return true;
+        }
+        return false; // IF NOT FOUND
+    }
     void printErrorMessage(const std::string &s_in)const{
         std::cout << "Error specifying value for key : \"" << this->key <<"\""<< std::endl;
         std::cout << "Valid options are: " << std::endl;

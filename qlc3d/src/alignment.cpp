@@ -1,6 +1,7 @@
 #include <alignment.h>
 #include <algorithm>
 #include <iostream>
+
 Surface::Surface(int fxlcnum)
 {
 
@@ -61,54 +62,44 @@ void Surface::setAnchoringType(std::string &atype)
 
     // MAKE SURE LOWERCASE
     std::transform(atype.begin(), atype.end() , atype.begin(), ::tolower);
-
-
-    if (atype.compare("strong") == 0)
-    {
+    if (atype.compare("strong") == 0){
         Anchoring = atype;
         AnchoringNum = ANCHORING_STRONG;
         isFixed = true;
     }
-    else if (atype.compare("homeotropic") == 0)
-    {
+    else if (atype.compare("homeotropic") == 0){
         Anchoring = atype;
         AnchoringNum = ANCHORING_HOMEOTROPIC;
         isFixed = true;
     }
-    else if (atype.compare("weak") == 0)
-    {
+    else if (atype.compare("weak") == 0){
         Anchoring = atype;
         AnchoringNum = ANCHORING_WEAK;
         isFixed = false;
     }
-    else if (atype.compare("degenerate") == 0)
-    {
+    else if (atype.compare("degenerate") == 0){
         Anchoring = atype;
         AnchoringNum = ANCHORING_DEGENERATE;
         setUsesSurfaceNormal(true);
         isFixed = false;
     }
-    else if (atype.compare("freeze") == 0 )
-    {
+    else if (atype.compare("freeze") == 0 ){
         printf("Surface::setAnchoringType - freeze\n" );
         Anchoring = atype;
         AnchoringNum = ANCHORING_FREEZE;
         isFixed = true;
         setUsesSurfaceNormal(false);
     }
-    else if (atype.compare("polymerise") == 0 )
-    {
+    else if (atype.compare("polymerise") == 0 ){
         printf("Surface::setAnchoringType - Polymerise\n");
         Anchoring = atype;
         AnchoringNum = ANCHORING_POLYMERISE;
         isFixed = true;
         setUsesSurfaceNormal(false);
     }
-    else
-    {
+    else{
         using std::cout;
         using std::endl;
-        //printf("error - Surface::setAnchoring - \"%s\" is not a known anchoring type, bye!\n",atype.c_str());
         cout << "error specifying FIXLC"<< FixLCNumber<<".Type, ";
         cout << "\""<<Anchoring << "\" is not a valid anchoring type." << endl;
         cout << "valid types are:\n" <<
@@ -120,6 +111,7 @@ void Surface::setAnchoringType(std::string &atype)
                 "Check your settings file for typos - bye!\n " <<endl;
         exit(1);
     }
+
 }// end setAnchoringType
 void Surface::setStrength(double str){	Strength = str;}
 void Surface::setK1(double k1){			K1 = k1;}
@@ -242,8 +234,7 @@ void Alignment::WriteAlignment(FILE* fid){
 }
 
 bool Alignment::IsStrong(int i){
-    if (i >= (int) surface.size() )
-    {
+    if (i >= (int) surface.size() ){
         printf("error - Alignment::IsStrong - surface %i does not exist\n", i+1 );
         printf("number of surfaces = %i\n", (int) surface.size() );
         exit(1);
@@ -255,14 +246,14 @@ bool Alignment::IsStrong(int i){
 
 unsigned int Alignment::getAnchoringNum(const int &n)
 {// returns anchoring number of alignment surface n
+    // Anchoring number is a descriptor that maps to a type.
+    // It should be made into an enumerator
     vector <Surface*>::iterator itr;
     itr = surface.begin();
-    if ( (n < getnSurfaces() )  && (n>=0) )
-    {
+    if ( (n < getnSurfaces() )  && (n>=0) ){
         return (*(itr+n))->getAnchoringNum();
     }
-    else
-    {
+    else{
         printf("error - Alignment::getAnchoringNum(%i) - %i is an invalid surface number, bye!\n", n ,n);
         exit(1);
     }
@@ -270,8 +261,7 @@ unsigned int Alignment::getAnchoringNum(const int &n)
 }
 
 
-bool Alignment::WeakSurfacesExist()
-{
+bool Alignment::WeakSurfacesExist(){
     for(int n = 0 ; n < getnSurfaces() ; n++ )
         if ( !IsStrong(n) )
             return true;
