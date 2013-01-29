@@ -146,31 +146,41 @@ void setSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* ge
 
             string AnchoringType = alignment->surface[i]->getAnchoringType();
             //unsigned int AnchoringNum = alignment->surface[i]->getAnchoringNum(); // <--- SHOULD USE THIS
-            if ((AnchoringType.compare("Strong") == 0) ||
-                    (AnchoringType.compare("Weak") == 0))
-            {
+            if ((AnchoringType.compare("strong") == 0) ||
+                    (AnchoringType.compare("weak") == 0)||
+					(AnchoringType.compare("degenerate") == 0 ) ){
                 double tilt = alignment->surface[i]->getEasyTilt();
                 double twist= alignment->surface[i]->getEasyTwist();
                 setGlobalAngles(q,lc,tilt,twist,&ind_nodes);
             }
 
             // if homeotropic OR degenerate with negative strength
-            else if ( (AnchoringType.compare("Homeotropic")==0)  ||
-                      (AnchoringType.compare("Degenerate") ==0 &&
+            else if ( (AnchoringType.compare("homeotropic")==0)  ||
+                      (AnchoringType.compare("degenerate") ==0 &&
                        (alignment->surface[i]->getStrength() < 0) ) )
             {
                 setHomeotropic(q,lc,&ind_nodes,geom);
             }
-            else if ( AnchoringType.compare("Freeze") == 0 )
+            else if ( AnchoringType.compare("freeze") == 0 )
             {
                 setFrozenSurfaces(q, &ind_nodes);
             }
-            else if ( AnchoringType.compare("Polymerise") ) // FREEZES ALL NODES WHOSE ORDER IS BELOW VALUE DEFINED IN STRENGTH
+            else if ( AnchoringType.compare("polymerise") ==0 ) // FREEZES ALL NODES WHOSE ORDER IS BELOW VALUE DEFINED IN STRENGTH
             {
                 double Sth = alignment->surface[i]->getStrength();
                 setPolymeriseSurfaces(q,Sth);
             }
+			else{
+				std::cout << "error in " <<__func__<< " unknonwn anchoring type: " << AnchoringType << std::endl;
+				exit(1);
+			}
+			
         }// end if alignment nodes found
+		else{
+			std::cout << "error in " <<__func__<< " no surfaces of material : " << (i+1)*MAT_FIXLC1 << " found."<<std::endl;
+			exit(1);
+		}
+		
     }// end for loop over alignment surfaces
 
 
