@@ -10,15 +10,13 @@ void validateTriangleMaterials(const idx* const mate, idx ne){
     // if problems are found, error message is printed and program aborted.
     using std::cout;
     using std::endl;
+    bool isBad = false;
+    idx m;
     for (idx i = 0 ; i < ne ; ++i){
-        const idx m = mate[i];
-
-
+        m = mate[i];
         if ( (m == MAT_PERIODIC) || (m == MAT_NEUMANN)){
             continue;
         }
-
-        bool isBad = false;
         size_t eNum = MATNUM_TO_ELECTRODE_NUMBER((size_t) m);
         size_t fNum = MATNUM_TO_FIXLC_NUMBER((size_t) m);
         if (m < MAT_ELECTRODE1){
@@ -26,20 +24,19 @@ void validateTriangleMaterials(const idx* const mate, idx ne){
             break;
         }
         else if (eNum > 9){
-            cout << "\nbad electrode number " << eNum << endl;
+            cout << "\nbad electrode number detected " << eNum << endl;
             isBad = true;
             break;
         }
         else if (fNum > 9){
-            cout << "\nerror, bad FixLC number " << fNum << endl;
+            cout << "\nerror, bad FixLC number detected " << fNum << endl;
             isBad = true;
             break;
         }
-
-        if (isBad){
-            cout << "error, bad triangle material number " << m << " found in mesh - bye!" << endl;
-            exit(1);
-        }
+    }
+    if (isBad){
+        cout << "error, bad triangle material number " << m << " found in mesh - bye!" << endl;
+        exit(1);
     }
 }// end void validateTriangleMatrials
 

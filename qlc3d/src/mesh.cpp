@@ -60,7 +60,7 @@ void Mesh::AllocateMemory()
         Elem = (idx*) malloc(nElements * nNodes * sizeof(idx) );
         Mat  = (idx*) malloc(nElements * sizeof(idx) );
         Determinant = (double*) malloc(nElements * sizeof(double) );
-	
+
     }
     else
     {
@@ -155,11 +155,11 @@ void Mesh::setAllNodes(idx *nodes) // copies all values from array nodes to this
     if ((nElements>0) && (Elem!=NULL) ) // make sure mesh is initialised
     {
         for (idx i = 0 ; i < nElements*nNodes ; i++)
-	    Elem[i] = nodes[i];
+            Elem[i] = nodes[i];
     }
     else{
-	printf("error in Mesh::SetAllNodes - mesh not initilised\n");
-	exit(1);
+        printf("error in Mesh::SetAllNodes - mesh not initilised\n");
+        exit(1);
     }
 }// end void SetAllNodes
 
@@ -237,12 +237,10 @@ void Mesh::setConnectedVolume(Mesh* vol)
     vector < set < idx> > p_to_t;
     vol->gen_p_to_elem( p_to_t);
 
-    for (idx i = 0 ; i < this->getnElements() ; i++) // loop over surface elements
-    {
-        if (( getMaterialNumber( i ) < MAT_ELECTRODE1) ||   // exclude eletrode only surfaces as
-                (  getMaterialNumber( i ) > MAT_ELECTRODE9) )    // these are fixed, and do not need to know
-            // about neighbouring LC tets
-        {
+    for (idx i = 0 ; i < this->getnElements() ; i++){ // loop over surface elements
+        if (( getMaterialNumber( i ) < MAT_ELECTRODE1) ||     // exclude eletrode only surfaces as
+            (  getMaterialNumber( i ) > MAT_ELECTRODE9) ){    // these are fixed, and do not need to know
+                                                                  // about neighbouring LC tets
             // NOW HAVE 3 LISTS OF TETS CONNECTED TO THIS SURFACE
             // ONE PER CORNER NODE. INTERSECTION OF THESE LISTS
             // SHOULD LEAVE A SINGLE INDEX TO A TET THAT HAS THIS
@@ -281,22 +279,26 @@ void Mesh::setConnectedVolume(Mesh* vol)
             // AND WHICH IS DIELECTRIC
             set <idx> ::iterator itr;
             itr = final.begin();
-            if ( final.size() == 1) // IF SINGLE TET FOUND
-            {
-                if (vol->getMaterialNumber( *itr ) <= MAT_DOMAIN7 ) // only connect to an LC element
-                {
+            if ( final.size() == 1){ // IF SINGLE TET FOUND
+                if (vol->getMaterialNumber( *itr ) <= MAT_DOMAIN7 ){ // only connect to an LC element
                     ConnectedVolume[i] = *itr;
                 }
-                else
-                    if ( ( vol->getMaterialNumber( *itr) >= MAT_DIELECTRIC1 ) &&
-                         (vol->getMaterialNumber(*itr) <= MAT_DIELECTRIC7) )
-                    {
-                        ConnectedVolume[i] = -2; // set to -2 if connected to dielectric
+                else if ( ( vol->getMaterialNumber( *itr) >= MAT_DIELECTRIC1 ) &&
+                          (vol->getMaterialNumber(*itr) <= MAT_DIELECTRIC7) ){
+                    // MAKE SURE THAT WE DONT HAVE A FIXLC SURFACE THAT IS ONLY CONNECTED TO A DIELECTRIC TET
+                    idx surfMat = this->getMaterialNumber(i);
+                    surfMat = MATNUM_TO_FIXLC_NUMBER((size_t) surfMat);
+                    if ( (surfMat >0 ) && (surfMat<10) ){
+                        cout <<"\nerror, found a FixLC"<<surfMat<< " surface only connected to a dielectric tetrahedron, but not LC. ";
+                        cout <<"This makes no sense! FixLC surfaces define boundary conditions for liquid crystals, and so must be in contact with them.\n\nYou have probably made a mistake while creating the mesh, fix it - bye!" << endl;
+                        exit(1);
                     }
+
+                    ConnectedVolume[i] = -2; // set to -2 if connected to dielectric
+                }
             }
             else
-                if ( final.size() == 2)
-                {
+                if ( final.size() == 2){
                     // CHECK BOTH FIRST AND SECOND INDICES
                     if (vol->getMaterialNumber( *itr ) <= MAT_DOMAIN7 )// only connect to an LC element
                         ConnectedVolume[i] = *itr;
@@ -350,7 +352,7 @@ double Mesh::Calculate4x4Determinant(double* M) const
 }
 bool Mesh::ContainsAllNodes(const idx elem, const idx n, idx* nodes) const
 {
-// CHECKS WHETHER ELEMENT elem CONTAINS ALL n NODES IN ARRAY nodes
+    // CHECKS WHETHER ELEMENT elem CONTAINS ALL n NODES IN ARRAY nodes
     // assumes that all values in nodes are unique,
     // i.e. elements are valid, with no repeated node numbers
 
@@ -376,7 +378,7 @@ bool Mesh::ContainsAllNodes(const idx elem, const idx n, idx* nodes) const
 }
 void Mesh::ContainsNodes(list <idx>* elems, list <idx>* points)
 {
-// CREATES INDEX OF ELEMENTS THAT CONTAIN AT LEAST ONE OF THE NODES IN LIST points
+    // CREATES INDEX OF ELEMENTS THAT CONTAIN AT LEAST ONE OF THE NODES IN LIST points
 
     list <idx>::iterator int_itr;
     for (idx i = 0 ; i < getnElements() ; i ++ ) // loop over all elements
@@ -416,8 +418,8 @@ bool Mesh::ContainsCoordinate(const idx elem, const double *p, const double *coo
 #ifdef DEBUG
     if (this->Dimension == 2)
     {
-	printf("Mesh::ContainsCoordinate only works on tets - bye!\n");
-	exit(1);
+        printf("Mesh::ContainsCoordinate only works on tets - bye!\n");
+        exit(1);
     }
 #endif
 
@@ -442,47 +444,47 @@ bool Mesh::ContainsCoordinate(const idx elem, const double *p, const double *coo
           ( ( fabs( coord[0]- x[1]) < eps ) && (fabs(coord[1] - y[1]) < eps) && (fabs(coord[2] - z[1])<eps) )|| // node 2
           ( ( fabs( coord[0]- x[2]) < eps ) && (fabs(coord[1] - y[2]) < eps) && (fabs(coord[2] - z[2])<eps) )|| // node 3
           ( ( fabs( coord[0]- x[3]) < eps ) && (fabs(coord[1] - y[3]) < eps) && (fabs(coord[2] - z[3])<eps) )){ // node 4
-	//cout << "coerner node found" << endl;
-	return true;
+        //cout << "coerner node found" << endl;
+        return true;
     }
 
 
     // THEN CHECK IF coord IS AN INTERNAL NODE. THIS IS SLOWER
     for (unsigned int i = 0 ; i < (unsigned int) getnNodes()+1 ; i++ ){
 
-	x[0] = p[3*n[0]];   y[0] = p[3*n[0]+1]; z[0] = p[3*n[0]+2];
-	x[1] = p[3*n[1]];   y[1] = p[3*n[1]+1]; z[1] = p[3*n[1]+2];
-	x[2] = p[3*n[2]];   y[2] = p[3*n[2]+1]; z[2] = p[3*n[2]+2];
-	x[3] = p[3*n[3]];   y[3] = p[3*n[3]+1]; z[3] = p[3*n[3]+2];
+        x[0] = p[3*n[0]];   y[0] = p[3*n[0]+1]; z[0] = p[3*n[0]+2];
+        x[1] = p[3*n[1]];   y[1] = p[3*n[1]+1]; z[1] = p[3*n[1]+2];
+        x[2] = p[3*n[2]];   y[2] = p[3*n[2]+1]; z[2] = p[3*n[2]+2];
+        x[3] = p[3*n[3]];   y[3] = p[3*n[3]+1]; z[3] = p[3*n[3]+2];
 
         // OVERWRITE NODE i WITH INPUT COORDINATE VALUE
-	if (i < (unsigned int) getnNodes() ){ // use coord as one of the values
-	    x[i] = coord[0] ; y[i] = coord[1] ; z[i] = coord[2];
-	}
+        if (i < (unsigned int) getnNodes() ){ // use coord as one of the values
+            x[i] = coord[0] ; y[i] = coord[1] ; z[i] = coord[2];
+        }
 
-	double A[3],B[3],C[3];
-	A[0] = x[1] - x[0]; A[1] = y[1] - y[0]; A[2] = z[1] - z[0];
-	B[0] = x[2] - x[0]; B[1] = y[2] - y[0]; B[2] = z[2] - z[0];
-	C[0] = x[3] - x[0]; C[1] = y[3] - y[0]; C[2] = z[3] - z[0];
+        double A[3],B[3],C[3];
+        A[0] = x[1] - x[0]; A[1] = y[1] - y[0]; A[2] = z[1] - z[0];
+        B[0] = x[2] - x[0]; B[1] = y[2] - y[0]; B[2] = z[2] - z[0];
+        C[0] = x[3] - x[0]; C[1] = y[3] - y[0]; C[2] = z[3] - z[0];
 
         // B x C
-	double cross[3];
-	cross[0] =   B[1]*C[2] - C[1]*B[2];
-	cross[1] = - B[0]*C[2] + C[0]*B[2];
-	cross[2] =   B[0]*C[1] - C[0]*B[1];
+        double cross[3];
+        cross[0] =   B[1]*C[2] - C[1]*B[2];
+        cross[1] = - B[0]*C[2] + C[0]*B[2];
+        cross[2] =   B[0]*C[1] - C[0]*B[1];
 
         // determinant = A . (B x C)
-	if (i < (unsigned int) getnNodes() )
-	    Det += fabs( A[0]*cross[0] + A[1]*cross[1] + A[2]*cross[2] ) ; // det for tets formed using coord
-	else
-	    Det_this = fabs( A[0]*cross[0] + A[1]*cross[1] + A[2]*cross[2] ) ; // determinant for the whole tet
+        if (i < (unsigned int) getnNodes() )
+            Det += fabs( A[0]*cross[0] + A[1]*cross[1] + A[2]*cross[2] ) ; // det for tets formed using coord
+        else
+            Det_this = fabs( A[0]*cross[0] + A[1]*cross[1] + A[2]*cross[2] ) ; // determinant for the whole tet
 
     }
 
     if ( fabs( Det_this - Det) <= eps )
-	return true;
+        return true;
     else
-	return false;
+        return false;
 
 
 
@@ -494,8 +496,8 @@ void Mesh::CompleteNodesSet(const idx elem, std::vector <idx>& nodes) const
     if (nodes.size() == 0 ){
         for (idx i = 0 ; i < this->getnNodes() ; i++)
         {
-	    nodes.push_back( this->getNode( elem, i ));
-	}
+            nodes.push_back( this->getNode( elem, i ));
+        }
     }
     // OTHERWISE ONLY ADD THOSE NODES THAT ARE MISSING FROM nodes VECTOR
     // (WHY NOT JUST ALWAYS MAKE A COPY OF ELEMENT NODES? WHERE IS THIS USED?)
@@ -503,20 +505,20 @@ void Mesh::CompleteNodesSet(const idx elem, std::vector <idx>& nodes) const
     {
         for ( idx i = 0 ; i < this->getnNodes() ; i++)
         {
-	    bool found = false;
+            bool found = false;
             idx node = this->getNode(elem, i);
             for (int j = 0 ; j < (int) nodes.size() ; j++ )
             {
                 if ( nodes[j] == (unsigned int) node )
                 {
-		    found = true;
-		    break;
-		}
-	    }
-	    if (found == false){
-		nodes.push_back( node );
-	    }
-	}
+                    found = true;
+                    break;
+                }
+            }
+            if (found == false){
+                nodes.push_back( node );
+            }
+        }
     }
 #ifdef DEBUG
     // MAKE SURE CORRECT NUMBER OF NODES IS RETURNED
@@ -637,12 +639,12 @@ void Mesh::CalculateSurfaceNormals(double *p, Mesh* tets)
         Ax = p[getNode(i,1)*3+0] - p[getNode(i,0)*3 + 0];
         Ay = p[getNode(i,1)*3+1] - p[getNode(i,0)*3 + 1];
         Az = p[getNode(i,1)*3+2] - p[getNode(i,0)*3 + 2];
-	
-	
+
+
         Bx = p[getNode(i,2)*3 + 0] - p[getNode(i,0)*3 + 0];
         By = p[getNode(i,2)*3 + 1] - p[getNode(i,0)*3 + 1];
         Bz = p[getNode(i,2)*3 + 2] - p[getNode(i,0)*3 + 2];
-	
+
         cross[0] = Ay*Bz - Az*By;
         cross[1] = Az*Bx - Ax*Bz;
         cross[2] = Ax*By - Ay*Bx;
@@ -776,16 +778,16 @@ void Mesh::CalcElemBary(const idx elem, const double *p, double *bary)const
 
 double Mesh::CalcBaryDistSqr(const double *p, const idx elem, const double *coord) const
 {
-// returns the squared distance between coordinate coord[3] and the barycentre of
-// element elem. p is pointer to all node coordinates.
+    // returns the squared distance between coordinate coord[3] and the barycentre of
+    // element elem. p is pointer to all node coordinates.
 
     double bary[3] = {0,0,0};
     CalcElemBary( elem , p, bary);
 
 
     return	( (bary[0]-coord[0])*(bary[0]-coord[0]) +
-                  (bary[1]-coord[1])*(bary[1]-coord[1]) +
-                  (bary[2]-coord[2])*(bary[2]-coord[2]) );
+              (bary[1]-coord[1])*(bary[1]-coord[1]) +
+              (bary[2]-coord[2])*(bary[2]-coord[2]) );
 }
 
 void Mesh::listElementsOfMaterial(std::vector<idx> &elems, const idx mat) const
@@ -867,11 +869,11 @@ void Mesh::FindIndexToMaterialNodes(idx mat_num, vector<idx> *index) const
                 ind_p.push_back(Elem[(*i)*nNodes + j] );
             }
         }//end loop over elements
-	
+
         //sort and remove repeated nodes
         ind_p.sort();
         ind_p.unique();
-	
+
         list <int>::iterator liter;
         for (liter = ind_p.begin(); liter != ind_p.end(); liter++)
             index->push_back(*liter);
@@ -1098,7 +1100,7 @@ void Mesh::CopyMesh(Mesh* rhs)
             memcpy(ConnectedVolume, rhs->ConnectedVolume , getnElements() * sizeof(idx) );
 
         }
-	
+
         // COPY SURFACE NORMALS
         if (rhs->getPtrToSurfaceNormal(0) != NULL)
         {
@@ -1132,7 +1134,7 @@ void Mesh::PrintElements()const
     if (nElements>0)
     {
         idx i,j;
-	
+
         for (i=0;i<nElements;i++)
         {
             printf("%u -- ",i);
@@ -1232,15 +1234,15 @@ bool Mesh::isNeighbours(const idx el1, const idx el2) const
     // make set of combined nodes of both elements.
     for (idx i = 0 ; i < getnNodes() ; i++)
     {
-	nodes.insert( getNode( el1, i) );
-	nodes.insert( getNode( el2, i) );
+        nodes.insert( getNode( el1, i) );
+        nodes.insert( getNode( el2, i) );
     }
     // COMBINED NODE NUMBERS LIST SIZE WILL BE nNodes + 1, IF
     // BOTH ELEMENTS SHARE A FACE (tets) OR A LINE (tri)
     if ( (idx) nodes.size() == getnNodes() + 1)
-	return true;
+        return true;
     else
-	return false;
+        return false;
 }
 
 void Mesh::gen_p_to_elem(vector < set < idx > > &p_to_elem) const
@@ -1280,34 +1282,34 @@ void Mesh::gen_neighbour_list( vector<vector<idx> >& neigh) const
     for (idx i = 0 ; i < this->getnElements() ; i++)
     { // pre-allocate
         vector <idx> empty;
-	neigh.push_back( empty );
+        neigh.push_back( empty );
     }
 #ifndef DEBUG
 #pragma omp parallel for
 #endif
     for (idx elem = 0 ; elem < (unsigned int) getnElements() ; elem ++)// for all elements
     {
-	// GET ALL NODE NEIGHBOURS, INCLUDIGN THOSE THAT ONLY SHARE A SINGLE NODE
+        // GET ALL NODE NEIGHBOURS, INCLUDIGN THOSE THAT ONLY SHARE A SINGLE NODE
         set <idx> tets;
         for (idx j = 0 ; j < getnNodes() ; j++) // for all nodes j
         {
             idx n = this->getNode( elem , j );
-	    tets.insert(p_to_t[n].begin() , p_to_t[n].end() );
-	}// end for all nodes j
+            tets.insert(p_to_t[n].begin() , p_to_t[n].end() );
+        }// end for all nodes j
 
 
-	// CHECK WHICK OF THE POSSIBLE ELEMENTS ARE FACE/EDGE NEIGHBOURS
+        // CHECK WHICK OF THE POSSIBLE ELEMENTS ARE FACE/EDGE NEIGHBOURS
         set <idx> ::iterator itr;
         vector <idx> neighs;
         for (itr = tets.begin() ; itr != tets.end() ; ++itr) // for all node neighbours
         {
             if (isNeighbours( elem , *itr) )
             {
-		neighs.push_back( *itr );
+                neighs.push_back( *itr );
                 if ((idx) neighs.size() == getnElements() )
-		    break;
-	    }
-	}// end for all node neighbours
+                    break;
+            }
+        }// end for all node neighbours
 
         // REORDER NEIGHBOURS SO THAT FIRST NEIGHBOUR OF TRI A IS TRI B
         //      2   AND THIRD NEIGHBOUR OF TRI B IS TRI A ( WHEN A= [1,2,3] , B=[2,3,4])
@@ -1320,24 +1322,24 @@ void Mesh::gen_neighbour_list( vector<vector<idx> >& neigh) const
         //*      3																			*/
 
         vector <idx > no; // ordered neighbours
-	no.assign(getnNodes() , getnElements() ); // initial value for all nodes is 1 too much allowing for checking of non-existent neighbours at boundaries
+        no.assign(getnNodes() , getnElements() ); // initial value for all nodes is 1 too much allowing for checking of non-existent neighbours at boundaries
 
         for (idx i = 0 ; i < getnNodes() ; i++)// loop over each node of this element
         {
             idx n = getNode(elem, i);
             for (idx i2 = 0 ; i2 < (idx) neighs.size(); i2++)
             {
-		// if neighs[i2] doesn't contain node i of this element, it is
-		// the i'th neighbour
+                // if neighs[i2] doesn't contain node i of this element, it is
+                // the i'th neighbour
                 if (!ContainsAllNodes( neighs[i2] , 1 , &n ) )
                 {
-		    no[i] = neighs[i2];
-		    break;
-		}
-	    }// end for i2
-	}// end for i, all nodes of this tet
+                    no[i] = neighs[i2];
+                    break;
+                }
+            }// end for i2
+        }// end for i, all nodes of this tet
 
-	neigh[elem] =  no ;
+        neigh[elem] =  no ;
     }// end for all elements
 
 }
