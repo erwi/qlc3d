@@ -1,9 +1,70 @@
 #include <qlc3d.h>
 #include <simu.h>
 #include <globals.h>
+#include <iostream>
 
-// ALL FUNCTIONS DECALRED IN qlc3d.h
 
+
+void validateTriangleMaterials(const idx* const mate, idx ne){
+    // goes through all triangle material numbers and tries to check that all is well.
+    // if problems are found, error message is printed and program aborted.
+    using std::cout;
+    using std::endl;
+    for (idx i = 0 ; i < ne ; ++i){
+        const idx m = mate[i];
+
+
+        if ( (m == MAT_PERIODIC) || (m == MAT_NEUMANN)){
+            continue;
+        }
+
+        bool isBad = false;
+        size_t eNum = MATNUM_TO_ELECTRODE_NUMBER((size_t) m);
+        size_t fNum = MATNUM_TO_FIXLC_NUMBER((size_t) m);
+        if (m < MAT_ELECTRODE1){
+            isBad = true;
+            break;
+        }
+        else if (eNum > 9){
+            cout << "\nbad electrode number " << eNum << endl;
+            isBad = true;
+            break;
+        }
+        else if (fNum > 9){
+            cout << "\nerror, bad FixLC number " << fNum << endl;
+            isBad = true;
+            break;
+        }
+
+        if (isBad){
+            cout << "error, bad triangle material number " << m << " found in mesh - bye!" << endl;
+            exit(1);
+        }
+    }
+}// end void validateTriangleMatrials
+
+void validateTetrahedralMaterials(const idx* const matt, idx nt){
+    // goes through each material number for tetrahedra. if bad ones are
+    // found, error is printed and program terminated
+    using std::cout;
+    using std::endl;
+    for (idx i = 0 ; i < nt ; ++i){
+        const idx m = matt[i];
+        if ((m == MAT_DOMAIN1) ||
+            (m==MAT_DIELECTRIC1) || (m==MAT_DIELECTRIC2) || (m==MAT_DIELECTRIC3) ||
+            (m==MAT_DIELECTRIC4) || (m==MAT_DIELECTRIC5) || (m==MAT_DIELECTRIC6) ||
+            (m==MAT_DIELECTRIC7) ){
+            continue;
+        }
+        else{
+            cout << "error, bad tetrahedral (volume) material number " << m <<" found in mesh." << endl;
+            cout << "valid volume material are Domain1 and Dielectrics 1-7. Goodbye!" << endl;
+            exit(1);
+        }
+    }
+}
+
+// FUNCTIONS  BELOW DECALRED IN qlc3d.h
 void prepareGeometry(Geometry& geom,
                      Simu& simu,
                      Alignment& alignment)
@@ -32,6 +93,12 @@ void prepareGeometry(Geometry& geom,
         printf(" reading .%s file\n", extension.c_str() );
         ReadGiDMesh3D(&simu,&p,&np,&t,&nt,&e,&ne,&tmat,&emat);
     }
+
+    // PEOPLE DO STUPID THINGS IN GiD. NEED TO VALIDATE MATERIAL NUMBERS
+    // IT VALIDATION FAILS, ERROR MESSAGE IS PRINTED AND PROGRAM ABORTED
+    validateTriangleMaterials(emat, ne);
+    validateTetrahedralMaterials(tmat, nt);
+
     for (idx i = 0; i < 4*nt; i++)  t[i]--;	// change GiD mesh to zero indexing
     for (idx i = 0; i < 3*ne; i++)  e[i]--;
 
