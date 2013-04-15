@@ -10,28 +10,12 @@
 #include <geometry.h>
 #include <shapefunction3d.h>
 #include <shapefunction2d.h>
-#ifndef COMPLEX
-#define COMPLEX std::complex<double>
-#endif
-//#include <compcol_double.h>	// compressed column matrix
-//#include <cg.h>
-//#include <gmres.h>
-//#include <icpre_double.h>
-//#include <diagpre_double.h>
-//#include <ilupre_double.h>
-
-//#include MATRIX_H
 
 // SPAMTRIX INCLUDES
-//#include <setup.h>
-#include <ircmatrix.h>
-#include <vector.h>
-#include <iterativesolvers.h>
-#include <luincpreconditioner.h>
-
-
-
-
+#include <spamtrix_ircmatrix.hpp>
+#include <spamtrix_vector.hpp>
+#include <spamtrix_iterativesolvers.hpp>
+#include <spamtrix_luincpreconditioner.hpp>
 
 
 const idx npt = 4; //Number of Points per Tetrahedra

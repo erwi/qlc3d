@@ -8,9 +8,9 @@
 
 
 // SpaMtrix INCLUDES
-#include <ircmatrix.h>
-#include <vector.h>
-#include <tickcounter.h>
+#include <spamtrix_ircmatrix.hpp>
+#include <spamtrix_vector.hpp>
+#include <spamtrix_tickcounter.hpp>
 
 // SOLVER FUNCTION DEFINED IN solve_pcg.cpp
 void solve_QTensor(SpaMtrix::IRCMatrix &K,

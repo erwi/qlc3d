@@ -3,7 +3,9 @@
 #include <shapefunction3d.h>
 #include <material_numbers.h>
 #include <qassembly_macros.h>
-#include <ircmatrix.h>
+
+#include <spamtrix_ircmatrix.hpp>
+#include <spamtrix_vector.hpp>
 #define	BIGNUM 2e16
 
 // LOCAL ELEMENT MATRIX ASSEMBLY
@@ -342,7 +344,7 @@ void assemble_volumes2K(SpaMtrix::IRCMatrix &K,
 
             if (ri == NOT_AN_INDEX ) // IF FIXED NODE, SKIP GLOBAL ASSEMBLY
                 continue;
-#pragma omp atomic
+            #pragma omp atomic
             L[ri] += lL[i]*BIGNUM;
 
             // FOR COLUMNS j

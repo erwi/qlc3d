@@ -1,12 +1,17 @@
 #ifndef ASSEMBLEQ2K_H
 #define ASSEMBLEQ2K_H
-#include <ircmatrix.h>
+
 #include <solutionvector.h>
 #include <geometry.h>
 #include <lc.h>
 #include <simu.h>
 #include <alignment.h>
 
+// SPAMTRIX FORWARD DECLARATIONS
+namespace SpaMtrix{
+    class IRCMatrix;
+    class Vector;
+}
 
 void assemble_volumes2K(SpaMtrix::IRCMatrix &K,
                         SpaMtrix::Vector &L,

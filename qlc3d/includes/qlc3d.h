@@ -24,12 +24,14 @@
 #include <iostream>
 
 // SPAMTRIX INCLUDES
-#include <ircmatrix.h>
+//#include <spamtrix_ircmatrix.hpp>
 
 using std::vector;
 using std::string;
-
-
+namespace SpaMtrix{
+    class IRCMatrix;
+    class Vector;
+}
 #ifndef PI
     #define PI 3.14159265358979323846264338327950288419716939937510
 #endif
@@ -63,6 +65,7 @@ void assemble_prev_rhs(SpaMtrix::Vector &Ln,
                        LC&mat_par,
                        Simu& simu,
                        Geometry& geom);
+
 
 
 void assembleQ(SpaMtrix::IRCMatrix &K,

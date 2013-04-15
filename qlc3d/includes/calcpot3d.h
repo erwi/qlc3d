@@ -9,7 +9,11 @@
 #include <electrodes.h>
 
 // SPAMTRIX INCLUDES
-#include <ircmatrix.h>
+//#include <ircmatrix.h>
+
+namespace SpaMtrix{
+    class IRCMatrix;
+}
 
 void calcpot3d(SpaMtrix::IRCMatrix &Kpot,
                SolutionVector *v,

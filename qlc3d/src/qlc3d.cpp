@@ -20,7 +20,7 @@
 #include <calcpot3d.h>
 #include <resultoutput.h>
 
-#include <ircmatrix.h>
+#include <spamtrix_ircmatrix.hpp>
 
 
 double qlc3d_GLOBALS::GLOBAL_COORD_EPS =1e-10; // TODO: MAKE THIS USED DEFINABLE IN A SETTINGS FILE

@@ -7,6 +7,10 @@
 #include <shapefunction3d.h>
 #include <qassembly_macros.h>
 #include <assembleq2k.h>
+
+#include <spamtrix_ircmatrix.hpp>
+#include <spamtrix_vector.hpp>
+
 #define	BIGNUM 2e16
 const int	npt = 4; //Number of Points per Tetrahedra
 
@@ -816,9 +820,7 @@ void assemble_volumes(
     // LOOP OVER EACH ELEMENT  it
     for (idx it= 0 ; it < t->getnElements () ;it++)
     {
-
         // IF THIS ELEMENT IS LC ELEMENT, ASSEMBLE LOCAL MATRIX
-
         if( t->getMaterialNumber(it) != MAT_DOMAIN1 ) // if LC element
             continue;
         double lK[20][20]; 	// local element matrix

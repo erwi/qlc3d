@@ -14,8 +14,10 @@
 #include <refinfo.h>
 
 
-// SPAMTRIX INCLUDES
-#include <ircmatrix.h>
+// SPAMTRIX FORWARD DECLARATIONS
+namespace SpaMtrix{
+    class IRCMatrix;
+}
 
 
 // CONVENIENCE STRUCT WITH POINTERS TO THE DIFFERENT GEOMETRY OBJECTS
