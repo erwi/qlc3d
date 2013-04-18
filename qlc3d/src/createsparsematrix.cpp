@@ -11,8 +11,8 @@
 #include <line.h>
 
 // SPAMTRIX INCLUDES
-#include <ircmatrix.h>
-#include <matrixmaker.h>
+#include <spamtrix_ircmatrix.hpp>
+#include <spamtrix_matrixmaker.hpp>
 using namespace std;
 
 void print_dangly_list( vector < list <unsigned int> > dl){
@@ -284,13 +284,16 @@ SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
                                       SolutionVector &q,
                                       const int &MatNum)
     {
+
         SpaMtrix::MatrixMaker mm(q.getnFreeNodes(),q.getnFreeNodes());
+
         const idx N = q.getnFreeNodes() * 5;
         cout << "Matrix Size : " << N <<"x" << N; fflush(stdout);
         setupSingleBlock(geom, q, MatNum, mm);  // CREATE SPARSITY PATTERN FOR COMPONENT q1
         mm.expandBlocks(4);                     // EXPAND SPARSITY PATTERN FOR q2->q5 COMPONENTS
         idx nnz = mm.calcNumNonZeros();
         cout << " nnz = " << nnz << endl;
+
         return mm.getIRCMatrix();
     }
 

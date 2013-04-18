@@ -3,12 +3,15 @@
 #include <stdlib.h>
 #include <iostream>
 
-#include <ircmatrix.h>
-#include <vector.h>
-#include <iterativesolvers.h>
-#include <luincpreconditioner.h>
-#include <diagpreconditioner.h>
 #include <simu.h>
+
+
+#include <spamtrix_ircmatrix.hpp>
+#include <spamtrix_vector.hpp>
+#include <spamtrix_iterativesolvers.hpp>
+#include <spamtrix_luincpreconditioner.hpp>
+#include <spamtrix_diagpreconditioner.hpp>
+
 
 
 void solve_QTensor(SpaMtrix::IRCMatrix &K,
