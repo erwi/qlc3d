@@ -38,7 +38,7 @@ INCLUDES = $(QLC3D_INCS) -I$(SPAMTRIX_INCLUDES)
 
 CCCFLAGS = -std=c++0x
 # THIS SET OF FLAGS (WITH -O3) RESULTED IN UNEXPLAINED RUNTIME CRASH. 
-#CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -fopenmp -funroll-loops 
+CFLAGS =  -march=native -mtune=native -O3 -ffast-math -Wall -fopenmp -funroll-loops 
 #CFLAGS = -g
 
 #-std=c++0x
