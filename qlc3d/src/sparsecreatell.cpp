@@ -16,7 +16,7 @@ void sparsecreatell(Mesh *mesh, SparseMatrix *K)//double **P, int **I, int **J ,
     idx maxp	= -10;// number of columns
 
     idx i=0,n1=0,n2=0,x=0; // counters & temporary indicies
-    idx *tt;		// temporary element
+    //idx *tt;		// temporary element
 
     idx dof_per_node =1; // assume this is same for all
     // determine matrix size -find largest node number
@@ -28,22 +28,18 @@ void sparsecreatell(Mesh *mesh, SparseMatrix *K)//double **P, int **I, int **J ,
 
     // FIND LARGEST NODE NUMBER IN INPUT MESH
     idx nNodes = mesh->getnNodes(); // nodes per element
-    for (idx element = 0; element < mesh->getnElements(); element++) //loop number of elements
-    {
-        for(idx node = 0; node < nNodes ; node ++) //loop nodes per element
-        {
-
-            if (mesh->getNode(element,node) > maxp)
+    for (idx element = 0; element < mesh->getnElements(); element++){ //loop number of elements
+        for(idx node = 0; node < nNodes ; node ++){ //loop nodes per element
+            if (mesh->getNode(element,node) > maxp){
                 maxp = mesh->getNode(element,node);
+            }
         }
     }
 
     maxp++;
     spm *col = new spm[maxp];	// allocate column of pointers
 
-    for (i=0;i<maxp;i++)
-    {
-
+    for (i=0;i<maxp;i++){
         col[i].next = NULL;  // initialize with no elements
         col[i].prev = NULL;
         col[i].row  = 0;
@@ -51,11 +47,9 @@ void sparsecreatell(Mesh *mesh, SparseMatrix *K)//double **P, int **I, int **J ,
 
     // fill in first row of blocks... column blocks are added later
     idx r,c;
-    tt = (idx*)malloc(dof_per_node * sizeof(idx));
+    idx *tt = (idx*)malloc(dof_per_node * sizeof(idx));
 
-    for (idx el = 0; el< mesh->getnElements() ; el ++ )
-    {
-
+    for (idx el = 0; el< mesh->getnElements() ; el ++ ){
         for (x=0;x<dof_per_node;x++) // this loop is redundant in potential calculation
         {
             for (n1=0 ; n1< mesh->getnNodes() ; n1++) // loop over each node in element "i" first loop
@@ -76,45 +70,7 @@ void sparsecreatell(Mesh *mesh, SparseMatrix *K)//double **P, int **I, int **J ,
             }//end for n1
         }//end  for x
     }//end for el
-    //printf("maxp = %i\n",maxp);
-    // extend linked lists, column by column to make matrix square
-    /*
- if (dof_per_node>1) // only needed if multiple variables/node
- {
-  spm *head, *tail, *temp;
-  int rows=0;
-  nnz[0] = dof_per_node*nnz[0]; // must increase number of nonzeros
-  for (i=0;i<maxp*dof_per_node;i++)
-  {
-  head = &col[i];
-  if (head->next) // if column exists
-  {
-   head = head->next; // first valid node
-   tail = head;
-   rows=1;
-   while (tail->next!=NULL) // find end of list
-   {
-    tail=tail->next;
-    rows++;
-   }
 
-   for (j=1;j<dof_per_node;j++) // create of_per_node copies of existing LL
-   {
-    temp = head;
-    for (x=0;x<rows;x++)	// make a copy of LL to the end
-    {
-     tail->next = new spm;//(spm*)malloc(sizeof(spm));
-     tail->next->prev = tail;
-     tail=tail->next;
-     tail->next = NULL;
-     tail->row = (temp->row) + j*maxp;
-     temp=temp->next;
-    }//end for x
-   }//end for j
- }//end if column exists
- }//end for i
- }//end if
-*/
     // ALLOCATE SPARSE MATRIX ARRAYS
     //printf("nnz= %i\n",nnz[0]);
     //double *Pr = (double*)malloc(nnz[0]*sizeof(double));

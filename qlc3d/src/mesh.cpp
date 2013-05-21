@@ -678,7 +678,7 @@ void Mesh::CalculateSurfaceNormals(double *p, Mesh* tets)
                                        ( p[getNode(i,0)*3+1] + p[getNode(i,1)*3+1] +p[getNode(i,2)*3+1] ) / 3.0 ,  // y
                                        ( p[getNode(i,0)*3+2] + p[getNode(i,1)*3+2] +p[getNode(i,2)*3+2] ) / 3.0 }; // z
                 // tet barycentre
-                int n[4] = { tets->getNode(t,0) , tets->getNode(t,1) , tets->getNode(t,2), tets->getNode(t,3) };
+                idx n[4] = { tets->getNode(t,0) , tets->getNode(t,1) , tets->getNode(t,2), tets->getNode(t,3) };
                 double tet_bary[3] = {  (p[n[0]*3+0] + p[n[1]*3+0] + p[n[2]*3+0] + p[n[3]*3+0] )/ 4.0 ,	// x
                                         (p[n[0]*3+1] + p[n[1]*3+1] + p[n[2]*3+1] + p[n[3]*3+1] )/ 4.0 ,	// y
                                         (p[n[0]*3+2] + p[n[1]*3+2] + p[n[2]*3+2] + p[n[3]*3+2] )/ 4.0 };	// z

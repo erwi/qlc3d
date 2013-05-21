@@ -10,6 +10,7 @@
 #include <set>
 #include <line.h>
 
+#include <omp.h>
 // SPAMTRIX INCLUDES
 #include <spamtrix_ircmatrix.hpp>
 #include <spamtrix_matrixmaker.hpp>

@@ -192,25 +192,6 @@ void readLC(LC& lc,Reader& reader)
     if(ret == READER_SUCCESS)
         lc.gamma2 = val;
 
-
-    // SELECT PHYSICS FORMULATION SWITCH
-    //name = "Formulation";
-    //std::string str_val;
-    //ret = reader.readString(name, str_val );
-    //problem_format( name , ret );
-    //if (ret == READER_SUCCESS )
-    //{
-    //    lc.setFormulation(str_val);
-    //}
-
-
-    // DO THIS LATER IF NEEDED
-    // name = "alpha1";
-    // name = "aplha2";
-    // name = "alpha4";
-    // name = "alpha5";
-    // name = "alpha6";
-
 }//end void readLC
 
 
@@ -270,36 +251,37 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
     //========================
     name = "SaveIter";
     ret = reader.readNumber(name, int_var);
-    if (ret == READER_SUCCESS)
-    {
+    if (ret == READER_SUCCESS){
         simu->setSaveIter(int_var);
         evel.setSaveIter( (size_t) int_var );
     }
 
     name = "SaveTime";
     ret = reader.readNumber(name, dbl_var );
-    if ( isOK(name, ret) )
-    {
+    if ( isOK(name, ret) ){
         evel.setSaveTime( dbl_var );
     }
 
 
     name = "EndValue";
     ret = reader.readNumber(name, dbl_var);
-    if (ret == READER_SUCCESS)
+    if (ret == READER_SUCCESS){
         simu->setEndValue(dbl_var);
+    }
     problem(name, ret);
 
     name = "dt";
     ret = reader.readNumber(name , dbl_var);
-    if (ret == READER_SUCCESS)
+    if (ret == READER_SUCCESS){
         simu->setdt(dbl_var);
-    //    problemo(name, ret);
+    }
+
 
     name = "TargetdQ";
     ret = reader.readNumber(name , dbl_var);
-    if (ret == READER_SUCCESS)
+    if (ret == READER_SUCCESS){
         simu->setTargetdQ(dbl_var);
+    }
     else{
         exit(1);
     }
@@ -344,12 +326,9 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
     std::vector < std::string > vec_str;
     ret = reader.readStringArray( name , vec_str );
 
-    if ( ret == READER_SUCCESS )
-    {
-
+    if ( ret == READER_SUCCESS ){
         simu->clearSaveFormat(); // REMOVES DEFAULT
-        for (size_t i = 0 ; i < vec_str.size() ; i++)
-        {
+        for (size_t i = 0 ; i < vec_str.size() ; i++){
             simu->addSaveFormat( vec_str[i] );  // SAVE FORMATS ARE DEFINED IN Simu
         }
     }
@@ -378,22 +357,17 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
 
     name = "EnergyRegion";
     ret = reader.readNumberArray(name , vec);
-
     if ((ret == READER_SUCCESS) && (vec.size() == 3)){
-
         simu->setEnergyRegionX(vec[0]);
         simu->setEnergyRegionY(vec[1]);
         simu->setEnergyRegionZ(vec[2]);
     }
-    //problemo(name , ret);
 
     name = "dtLimits";
     ret = reader.readNumberArray(name , vec);
     if ( (ret == READER_SUCCESS) && (vec.size() == 2)){
         simu->setdtLimits(vec[0], vec[1]);
     }
-    //problemo (name , ret );
-
 
     name = "dtFunction";
     ret = reader.readNumberArray(name , vec );
@@ -401,17 +375,14 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
         double F[4] ={vec[0] , vec[1] , vec[2], vec[3]};
         simu->setdtFunction(F);
     }
-    //problemo(name , ret);
 
     name = "RegularGridSize";
     ret = reader.readNumberArray( name, vec);
-    if (ret == READER_SUCCESS )
-    {
-        if (vec.size()!= 3)
+    if (ret == READER_SUCCESS ){
+        if (vec.size()!= 3){
             problem(name, READER_BAD_FORMAT );
-
+        }
         simu->setRegularGridSize( (size_t) vec[0], (size_t) vec[1], (size_t) vec[2] );
-
     }
 
 
@@ -543,8 +514,7 @@ void readAlignment(Alignment* alignment, Reader& reader)
                 problem(name , ret);
                 s->setStrength(dbl_val);
             }
-            else
-            {
+            else{
                 if (ret==READER_SUCCESS)    //SET OPTIONAL
                     s->setStrength(dbl_val);
                 else
@@ -584,8 +554,6 @@ void readAlignment(Alignment* alignment, Reader& reader)
                 problem(name , ret);
                 s->setK2(dbl_val);
             }
-
-
             alignment->addSurface(s);
         }
         // end if FXLCi exists
@@ -602,25 +570,22 @@ void readElectrodes(Electrodes* electrodes,
     std::stringstream ss;
     // COUNT NUMBER OF ELECTRODES
     int i = 1;
-    for ( ; i < 100 ; i++)
-    {
+    for ( ; i < 100 ; i++){
         std::vector <double> dummy;
-
         name.clear();
         ss.clear();
         ss << "E"<< i <<".Pot";
         ss >> name;
-
         int ret = reader.readNumberArray(name,dummy );
 
-        if (ret!=READER_SUCCESS)
+        if (ret!=READER_SUCCESS){
             break;
+        }
     }
     size_t numElectrodes = i - 1 ;
     electrodes->setnElectrodes( numElectrodes );
 
-    for (size_t i = 1 ; i < numElectrodes + 1 ; i++)
-    {
+    for (size_t i = 1 ; i < numElectrodes + 1 ; i++){
         std::vector<double> times;
         std::vector<double> pots;
 
@@ -637,16 +602,14 @@ void readElectrodes(Electrodes* electrodes,
         ss >> name;
         ret = reader.readNumberArray(name, pots);
 
-        if (times.size() != pots.size() )
-        {
+        if (times.size() != pots.size() ){
             cout <<" error reading E" << i <<" Time/Pot lengths do not match - bye!"<<endl;
             exit(1);
         }
 
 
-        // ADD CODE HERE TO DISTINGUISH BETWEEN TIME/ITERATION SWITCHING
-        for (size_t j = 0 ; j < times.size() ; j++)
-        {
+        // TODO: DISTINGUISH BETWEEN TIME/ITERATION SWITCHING
+        for (size_t j = 0 ; j < times.size() ; j++){
             Event* swEvent = new Event(EVENT_SWITCHING, times[j]);
             SwitchingInstance* si = new SwitchingInstance(times[j],  // WHEN
                                                           pots[j],   // NEW POTENTIAL VALUE
@@ -662,8 +625,7 @@ void readElectrodes(Electrodes* electrodes,
     std::vector<double> eps_temp;
     int ret = reader.readNumberArray(name, eps_temp );
     problem_format(name, ret );
-    if ( ret == READER_SUCCESS )
-    {
+    if ( ret == READER_SUCCESS ){
         electrodes->eps_dielectric = eps_temp;
     }
 
@@ -674,13 +636,12 @@ void readElectrodes(Electrodes* electrodes,
     ret = reader.readNumberArray(name, Efield);
     problem_format( name , ret);
     if ( ( ret == READER_SUCCESS ) &&
-         ( Efield.size() == 3 ) )
-    {
+         ( Efield.size() == 3 ) ){
         electrodes->EField[0] = Efield[0];
         electrodes->EField[1] = Efield[1];
         electrodes->EField[2] = Efield[2];
 
-        // ADD SWITCHING INSTANCE WITH SPECIAL ELECTRODE NUMBER
+        // TODO ADD SWITCHING INSTANCE WITH SPECIAL ELECTRODE NUMBER
         // INDICATING THAT A UNIFORM ELECTRC FIELD WILL BE CONSIDERED
         Event* swEvent = new Event( EVENT_SWITCHING , 0.0 );
         SwitchingInstance* si = new SwitchingInstance( 0 ,
@@ -881,15 +842,13 @@ void readRefinement(Reader& reader,
 
     // LOOP OVER POSSIBLE REFINEMENT SETTINGS VALUES
     unsigned int max_num_ref = 100;
-    for (unsigned int i = 1 ; i <= max_num_ref ; i++) // FOR REFINEMENTS
-    {
+    for (unsigned int i = 1 ; i <= max_num_ref ; i++){ // FOR REFINEMENTS
         string type = "";    // SETTING RETURN STRING VALUE
         key = setStructureKey("REFINEMENT", i , "Type");
         int ret = reader.readString(key, type);
 
 
-        if ( ret == READER_SUCCESS ) // IF REFINEMENTi IS DEFINED IN SETTINGS FILE
-        {
+        if ( ret == READER_SUCCESS ){ // IF REFINEMENTi IS DEFINED IN SETTINGS FILE
             // OPTIONAL, EXPLICIT ITERATIONS WHEN REFINEMENT OCCURS
             key = setStructureKey("REFINEMENT", i , "Iterations");
             vector <long int> iterations;
@@ -904,8 +863,7 @@ void readRefinement(Reader& reader,
 
             // MAKE SURE THAT ONLY Iterations OR Times IS DEFINED, NOT BOTH
             if ( (iterations.empty() ) &&
-                 (!times.empty() ) )
-            {
+                 (!times.empty() ) ){
                 char msg[200];
                 sprintf( msg, "error with REFINEMENT%i, can't define both Iterations AND Times for same setting - bye!", i);
                 problem( msg );
@@ -932,10 +890,8 @@ void readRefinement(Reader& reader,
             // EVENTS HAVE BEEN DEFINED ADD EVENT(s) TO EVENT LIST
 
             // IF EXPLICIT ITERATIOSN ARE DEFINED, BREAK THEM TO SEPARATE EVENT
-            if (iterations.empty() )
-            {
-                for (size_t j = 0 ; j < iterations.size() ; j++)
-                {
+            if (iterations.empty() ) {
+                for (size_t j = 0 ; j < iterations.size() ; j++){
                     unsigned int itr = (unsigned int) iterations[j];
                     RefInfo* refinfo = new RefInfo(type);
                     refinfo->setIteration( itr );
@@ -949,10 +905,8 @@ void readRefinement(Reader& reader,
 
             }
             // IF EXPLICIT TIMES ARE DEFINED, BREAK INTO SEPARATE EVENTS
-            else if ( !times.empty() )
-            {
-                for (size_t j = 0 ; j < times.size() ; j++)
-                {
+            else if ( !times.empty() ){
+                for (size_t j = 0 ; j < times.size() ; j++){
                     double tme = times[j];
                     RefInfo* refinfo = new RefInfo(type);
                     refinfo->setTime( tme );
@@ -965,8 +919,7 @@ void readRefinement(Reader& reader,
                 }
             }
             // REPEATING REFINEMENT
-            else
-            {
+            else{
                 RefInfo* refinfo = new RefInfo(type);
                 refinfo->setValues( values );
                 refinfo->setCoords(X, Y, Z);
@@ -1011,16 +964,7 @@ void ReadSettings(
 
         // READ ELECTRODES
         readElectrodes(electrodes , reader, eventlist);
-        // READ MESH REFINEMENT
-        //readMeshrefinement(meshrefinement, reader);
-        // READ AUTOREFINEMENT
-        //readAutorefinement(meshrefinement, reader);
-        // READ ENDREFINEMENT
-        //readEndrefinement(meshrefinement, reader);
 
-        // ----------------------------------
-        //    NEW STUFF TO REPLACE MeshRefinemnt, AutoRefinment, EndRefinemnt
-        // ----------------------------------
         // READ REFINEMENT
         readRefinement( reader, eventlist );
 

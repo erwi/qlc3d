@@ -104,7 +104,7 @@ void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
                 fprintf(fid,LCVIEW_TEXT_FORMAT_STRING,i+1,n[i],n[i+npLC],n[i+2*npLC],v->Values[i],n[i+3*npLC],n[i+4*npLC]);
             else
                 //fprintf(fid,"%i\t0\t0\t0\t%f\t1.0\t0.0\n",i+1,v->Values[i]);
-                fprintf(fid,LCVIEW_TEXT_FORMAT_STRING,i+1,0,0,0,v->Values[i],0,0);
+                fprintf(fid,LCVIEW_TEXT_FORMAT_STRING,i+1,0.,0.,0.,v->Values[i],0.,0.);
         }
 
         fclose(fid);

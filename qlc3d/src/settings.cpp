@@ -47,14 +47,14 @@ Settings::Settings():
     //Q_GMRES_Toler				= 	1e-6;
 	
 // Potential solver defaults
-	V_PCG_Maxiter 				= 1000;
-	V_PCG_Toler					= 1e-6;
-	V_PCG_Preconditioner		= 1;
+    //V_PCG_Maxiter 				= 1000;
+    //V_PCG_Toler					= 1e-6;
+    //V_PCG_Preconditioner		= 1;
 	
-	V_GMRES_Preconditioner		=	0;
-	V_GMRES_Maxiter				=	1000;
-	V_GMRES_Restart				=	32;
-	V_GMRES_Toler				= 	1e-6;
+    //V_GMRES_Preconditioner		=	0;
+    //V_GMRES_Maxiter				=	1000;
+    //V_GMRES_Restart				=	32;
+    //V_GMRES_Toler				= 	1e-6;
 
 }
 

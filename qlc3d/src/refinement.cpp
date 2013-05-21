@@ -27,7 +27,7 @@ void find_all_core_lines( vector<Line>& lines, const vector <unsigned int>& i_te
 
     for (unsigned int i = 0 ; i < i_tet.size() ; i++){ // loop over all tets
 	if  ( i_tet[i] == 6 ){ // if this is a red tet
-	    int tet[4] = {  m->getNode(i, 0), // shortcut to tet nodes
+        idx tet[4] = {  m->getNode(i, 0), // shortcut to tet nodes
 			    m->getNode(i, 1),
 			    m->getNode(i, 2),
 			    m->getNode(i, 3)};

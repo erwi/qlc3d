@@ -132,7 +132,7 @@ assert( n<getnDoF() );
     void setFixedNodes(Alignment *alignment, int* e);
     void setFixedNodesQ(Alignment* alignment, Mesh* e);
     void setFixedNodesPot(Electrodes* electrodes);
-    void setFixedNodesPot(Electrodes& electrodes, Mesh* e, double CurrentTime); // fixed potential for switching
+    void setFixedNodesPot(Electrodes& electrodes, Mesh* e); // fixed potential for switching
 
     void allocateFixedNodesArrays(Geometry& geom); // ALLOCATES FIXED NODE ARRAYS FOR POTENTIAL.
 

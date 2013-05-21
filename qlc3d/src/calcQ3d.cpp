@@ -37,19 +37,15 @@ void updateSolutionVector(SolutionVector &q,
 
     maxdq = 0;
     const idx npLC = q.getnDoF();
-    for (unsigned int i = 0 ; i < 5 ; i++)   // LOOP OVER DIMENSIONS
-    {
-        for (idx j = 0; j < npLC ; j++) // LOOP OVER EACH NODE IN DIMENSION i
-        {
+    for (unsigned int i = 0 ; i < 5 ; i++){   // LOOP OVER DIMENSIONS
+        for (idx j = 0; j < npLC ; j++){ // LOOP OVER EACH NODE IN DIMENSION i
             const idx n = j + i*npLC;
             const idx effDoF = q.getEquNode(n);
 
             // EQUIVALENT DOF OF FIXED NODES ARE LABELLED AS "NOT_AN_INDEX"
-            if (effDoF < NOT_AN_INDEX )
-            {
+            if (effDoF < NOT_AN_INDEX ){
                 const double dqj = dq[ effDoF ];
                 q.Values[n] -= dqj ;
-
                 // KEEP TRACK OF LARGEST CHANGE IN Q-TENSOR
                 maxdq = fabs(dqj) > fabs(maxdq) ? dqj:maxdq;
             }
@@ -87,28 +83,22 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         qn->setValuesTo(*q);
     }
 
-
-
     // CREATE MILLISECOND ACCURACY TIMER
     TickCounter <std::chrono::milliseconds> timer;
     timer.start();
 
     bool LOOP = true;
-    while ( LOOP ) // Q-TENSOR SOLUTION LOOP
-    {
+    while ( LOOP ){ // Q-TENSOR SOLUTION LOOP
         newton_iter++;
         timer.reset();
         // SET NUMBER OF THREADS USED IN ASSEMBLY
         setThreadCount(simu->getAssemblyThreadCount() );
 
         // ASSEMBLE RHS CONTRIBUTION FROM PREVIOUS TIME-STEP, IF NEEDED
-        if ( (isTimeStepping) && (newton_iter == 1) )
-        {
+        if ( (isTimeStepping) && (newton_iter == 1) ){
             RHS = 0;
-
             // CHOOSE WHICH VERSION TO CALL DEPENDING ON FORMULATION USED
-            if (mat_par->PhysicsFormulation == LC::Nematic )
-            {
+            if (mat_par->PhysicsFormulation == LC::Nematic ){
                 assemble_prev_rhs(RHS, *qn, *v, *mat_par, *simu, geom );
             }
             else if (mat_par->PhysicsFormulation == LC::BluePhase )
@@ -118,8 +108,6 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
                 assemble_prev_rhs_K2(RHS, *qn, *v, *mat_par, *simu, geom);
             }
         }
-
-
         // CLEAR MATRIX, L AND dq
         K = 0;
         L = 0;
@@ -131,7 +119,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 
         std::cout << " " <<newton_iter << " Assembly..."; fflush(stdout);
         // ASSEMBLE MATRIX AND RHS (L)
-        assembleQ(K, L, q, v, geom.t, geom.e, geom.getPtrTop(), mat_par, simu, settings, alignment, geom.getPtrToNodeNormals());
+        assembleQ(K, L, q, v, geom.t, geom.e, geom.getPtrTop(), mat_par, simu, alignment, geom.getPtrToNodeNormals());
 
         if (isTimeStepping) // make Non-linear Crank-Nicholson RHS
             for (size_t i = 0 ; i < numCols ; i++)

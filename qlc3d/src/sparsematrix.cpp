@@ -1,7 +1,8 @@
 #include<math.h>
-
-
 #include <sparsematrix.h>
+#include <omp.h>
+
+
 #define MB 1048576
 SparseMatrix::SparseMatrix()
 {

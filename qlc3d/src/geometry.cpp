@@ -434,8 +434,10 @@ void Geometry::setFacePeriNodes(list<size_t> &face0,
     for (F0 = face0.begin(), fc = 0; F0!=face0.end() ; ++F0, ++fc ) // LOOP OVER FACE 0
     {
         bool found = false;
+#ifdef DEBUG
         int ind_n  = 0;     // index to neares (debug)
         double dist = 1000000;
+#endif
         double f1 = p[3*(*F0) + ind1 ]; // coordinates of node F2 in face0
         double f2 = p[3*(*F0) + ind2 ];
 
@@ -448,13 +450,13 @@ void Geometry::setFacePeriNodes(list<size_t> &face0,
             double dist1 = fabs(f1 - fa); // distances in plane
             double dist2 = fabs(f2 - fb);
             double tdist = dist1*dist1 + dist2*dist2;
-
+#ifdef DEBUG
             if (tdist < dist) // debug info only, keep track of nearest found node
             {
                 dist = tdist; // nearest distance
                 ind_n = *F1;  // index to nearest distance
             }
-
+#endif
             if (tdist < eps*eps) // compare squared distances
             {
                 this->periNodes_[*F1] =*F0;

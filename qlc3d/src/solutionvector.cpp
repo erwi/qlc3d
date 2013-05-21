@@ -2,7 +2,7 @@
 #include <material_numbers.h>
 #include <algorithm>
 #include <stdlib.h>
-
+#include <omp.h>
 const double SolutionVector::BIGNUM = 1e99;
 
 
@@ -531,13 +531,12 @@ void SolutionVector::setFixedNodesPot(Electrodes* electrodes)
 }
 
 void SolutionVector::setFixedNodesPot(  Electrodes& electrodes,
-                                        Mesh* surface_mesh,
-                                        double CurrentTime)
+                                        Mesh* surface_mesh)
+
 {
-    // sets fixed nodes for potentials, taking into account voltage waveforms and current time
+    // sets fixed nodes for potentials,
     // this method is horrible and need to be rewritten
-    if (nFixed>0)
-    { //IF RE-SETTING, CLEAR OLD
+    if (nFixed>0){//IF RE-SETTING, CLEAR OLD
         if (FixedNodes) {free(FixedNodes); FixedNodes = NULL;}
         if (FixedValues) {free(FixedValues); FixedValues = NULL;}
         if (IsFixed) {free(IsFixed); IsFixed = NULL;}
@@ -545,35 +544,14 @@ void SolutionVector::setFixedNodesPot(  Electrodes& electrodes,
     }
     
 
-    for (size_t i = 0 ; i < electrodes.getnElectrodes() ; i++) // for each electrode
-    {
-        // find index to current time in voltage waveform
-        //int indx =-1; // start search with invalid index
-        
-        //for ( int j = 0 ; j < electrodes->E[i]->getnTimes() ; j ++) // for each switching time
-        //{
-        //    if ( fabs(electrodes->E[i]->Time[j] - CurrentTime) < 1e-15) // if switchin occuring now
-        //    {
-        //        indx = j;
-        //        break;
-        //    }
-        //}
-
-        // If a switching event was found, apply new boundary conditions and remove event
-        //if (indx >= 0 )
-        //{
-        //    double pot = electrodes->E[i]->Potential[indx]; // value of new potential
-        //    electrodes->E[i]->setCurrentPotential( pot );   //
-        //}
+    for (size_t i = 0 ; i < electrodes.getnElectrodes() ; i++){ // for each electrode
         double pot = electrodes.getCurrentElectrodePotential( i );
 
         // set all fixed nodes for electrode i to its current potential
         AddFixed( (i+1)*MAT_ELECTRODE1,
                   pot ,
                   surface_mesh);
-
     }// end for each electrode
-
     setBooleanFixedNodeList();
 }
 // end void setFixedNodesPot
@@ -592,12 +570,10 @@ void SolutionVector::setBooleanFixedNodeList(){
 
     // SET VALUE TO TRUE/FALSE FOR EACH NODE
     idx numFixedDoFs = getnFixed()*nDimensions;
-    for (idx i = 0 ; i < numFixedDoFs ; i ++) // then set only fixed nodes to true
-    {
+    for (idx i = 0 ; i < numFixedDoFs ; i ++){ // then set only fixed nodes to true
         idx indToFixed = FixedNodes[i];
         IsFixed[indToFixed]=true;
     }
-
 }
 
 
@@ -606,40 +582,35 @@ void SolutionVector::PrintFixedNodes()
     //debugging
     printf("number of fixed nodes is : %i\n",nFixed);
 
-    for ( idx i = 0 ; i < nFixed ; i++ )
-    {
-        for (idx j = 0 ; j < nDimensions ; j++)
-        {
+    for ( idx i = 0 ; i < nFixed ; i++ ){
+        for (idx j = 0 ; j < nDimensions ; j++){
             printf("fixed node %u, node number %u, value %1.3f, ",i,FixedNodes[i],FixedValues[i]);
         }
-        if(FixedNodeMaterial)
+        if(FixedNodeMaterial){
             printf("material %u", FixedNodeMaterial[i]);
+        }
         printf("\n");
     }
 }
-void SolutionVector::PrintValues()
-{
-    for (idx i = 0 ; i < nDoF *nDimensions; i++)
-    {
+void SolutionVector::PrintValues(){
+    for (idx i = 0 ; i < nDoF *nDimensions; i++){
         printf("Value[%i] = %e\n", i, Values[i]);
     }
-
 }
 void SolutionVector::PrintElim(){
 
-    if (!Elim)
-    {
+    if (!Elim){
         printf("Elim array is NULL\n");
         return;
     }
 
     printf("\nPrinting for dimension 0 only!:\n");
-    for (idx i = 0 ; i < nDoF ; i++)
+    for (idx i = 0 ; i < nDoF ; i++){
         printf("Elim[%i] = %i\n",i,Elim[i]);
+    }
 }
 void SolutionVector::PrintEquNodes(){
-    if (!EquNodes)
-    {
+    if (!EquNodes){
         printf("EquNodes array is NULL\n");
         return;
     }
@@ -652,31 +623,28 @@ void SolutionVector::PrintEquNodes(){
 void SolutionVector::PrintIsFixed()
 {
     printf("%i fixed, %i free nodes:\n", this->getnFixed(), this->getnFreeNodes() );
-    for (idx i = 0 ; i < this->getnDoF()*this->getnDimensions() ; i++)
-    {
+    for (idx i = 0 ; i < this->getnDoF()*this->getnDimensions() ; i++){
         printf("node[%i] = ", i);
-        if (getIsFixed(i))
+        if (getIsFixed(i)){
             printf("TRUE\n");
-        else
+        }
+        else{
             printf("FALSE\n");
+        }
     }
-
 }
 
-void SolutionVector::setToFixedValues()
-{
+void SolutionVector::setToFixedValues(){
     // SETS ALL VALUES TO CORRECT FIXED VALUES
 
     // MAKE SURE ARRAYS HAVE BEEN INITIALISED
     if ( ( (FixedNodes == NULL) || (FixedValues == NULL)) &&
-         ( nFixed > 0 )    )
-    {
+         ( nFixed > 0 )    ){
         printf("error - SolutionVector::setToFixedValues, NULL pointer - bye!\n");
         exit(1);
     }
 
-    for (idx i = 0 ; i < nFixed * getnDimensions(); i ++)
-    {
+    for (idx i = 0 ; i < nFixed * getnDimensions(); i ++){
         int ind = FixedNodes[i];
         double val = FixedValues[i];
         Values[ ind ] = val;
@@ -698,33 +666,22 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
             !geom->gettop_bottom_is_periodic() &&
             !geom->getfront_back_is_periodic() &&
             ( this->nFixed == 0 )
-            )
-    {
+            ){
         return; // no periodic boundaries, can return
     }
 
-
     if (Elim != NULL) free(Elim);	// allocate memory for equivalent nodes
-
     Elim  = (idx*) malloc(nDoF*nDimensions*sizeof(idx));
-
-
-
     // NODAL EQUIVALENCIES HAVE BEEN SET.
     // REPLACE DEPENDENT NODES WITH THEIR
     // INDEPENDENT EQUIVALENT NODES
-
     std::vector <idx> elim(nDoF, 0 );   // convenience working copy of Elim
-    for (idx i = 0 ; i < (idx) this->getnDoF() ; i++)
-    {
+    for (idx i = 0 ; i < (idx) this->getnDoF() ; i++){
         elim[i] =  geom->getPeriodicEquNode( i ) ;
     }
-
-
     // MARK FIXED NODES. THSE WILL BE LATER ON REMOVED FROM
     // FREE DEGREES OF FREEDOM
-    for (idx i = 0 ; i < nDoF ; i++ )
-    {
+    for (idx i = 0 ; i < nDoF ; i++ ){
         if ( this->getIsFixed(i) )
             elim[i] = NOT_AN_INDEX;
     }
@@ -739,12 +696,9 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
     // LOOP OVER EACH NODE. DECREASE INDEX TO ALL INDEPENDENT DOFs
     // THAT COME AFTER A DEPENDENT NODE (EQUIVALENT TO SHIFTING LEFT
     // ROWS/COLUMNS OF A MATRIX AFTER A COLUMN IS REMOVED)
-    for (idx i = 0 ; i < nDoF ; i++)
-    {
-        if (elim[i] != i)   // IF i'th NODE IS DEPENDENT
-        {
-            for (idx j = i ; j < nDoF ; j++) // SHIFT DOWN ALL DOF INDEXES AFTER IT
-            {
+    for (idx i = 0 ; i < nDoF ; i++){
+        if (elim[i] != i){   // IF i'th NODE IS DEPENDENT
+            for (idx j = i ; j < nDoF ; j++){ // SHIFT DOWN ALL DOF INDEXES AFTER IT
                 elima[j] --;
             }
         }
@@ -752,23 +706,18 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
 
     // SET DEPENDENT VARAIBLE INDEXES TO POINT TO CORRECT
     // INDEPENDENT DOF
-    for (idx i = 0 ; i < nDoF ; i++) // SET CORRECT VALUES
-    {
-        if ( (elim[i]!=i) && (elim[i]!= NOT_AN_INDEX ) ) // IF i'th NODE IS DEPENDENT ( AND NOT FIXED)
-        {
+    for (idx i = 0 ; i < nDoF ; i++){ // SET CORRECT VALUES
+        if ( (elim[i]!=i) && (elim[i]!= NOT_AN_INDEX ) ){ // IF i'th NODE IS DEPENDENT ( AND NOT FIXED)
             elima[i] = elima[ elim[i] ]; // IT WILL DEPEND ON THE CORRECTED DOF INDEX
         }
-        else
-            if ( elim[i] == NOT_AN_INDEX )    // KEEP FIXED NODE FLAGS
-            {
+        else if ( elim[i] == NOT_AN_INDEX ){// KEEP FIXED NODE FLAGS
                 elima[i] = NOT_AN_INDEX;
-            }
+        }
     }
 
     // TOTAL NUMBER OF FREE DOFs THAT NEED TO BE SOLVED (PER DIMENSION)
     // nFreeNodes = *max_element(elima.begin(), elima.end() ) + 1;
-    for (idx i = 0 ; i < (idx) elima.size() ; i++)
-    {
+    for (idx i = 0 ; i < (idx) elima.size() ; i++){
         if (elima[i] < NOT_AN_INDEX )
             nFreeNodes = std::max( nFreeNodes , elima[i]+1 );
     }
@@ -945,8 +894,10 @@ void SolutionVector::setFaceElim( list <int>& face0, // face1[i] = face0[i]
     for (F0 = face0.begin(), fc = 0; F0!=face0.end() ; ++F0, ++fc ) // LOOP OVER FACE 0
     {
         bool found = false;
+#ifdef DEBUG
         int ind_n  = 0;     // index to nearest (debug)
         double dist = 1000000;
+#endif
         double f1 = p[3*(*F0) + ind1 ]; // coordinates of node F2 in face0
         double f2 = p[3*(*F0) + ind2 ];
 
@@ -959,13 +910,13 @@ void SolutionVector::setFaceElim( list <int>& face0, // face1[i] = face0[i]
             double dist1 = fabs(f1 - fa); // distances in plane
             double dist2 = fabs(f2 - fb);
             double tdist = dist1*dist1 + dist2*dist2;
-
+#ifdef DEBUG
             if (tdist < dist) // debug info only, keep track of nearest found node
             {
                 dist = tdist; // nearest distance
                 ind_n = *F1;  // index to nearest distance
             }
-
+#endif
             if (tdist < eps*eps) // compare squared distances
             {
                 Elim[*F1] = *F0;

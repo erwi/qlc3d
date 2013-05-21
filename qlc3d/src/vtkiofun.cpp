@@ -26,7 +26,7 @@ bool writeID(std::fstream &fid)
 bool writeHeader(std::fstream &fid,
                  const char* headerString,
                  const FileFormat& format,
-                 const int num_points[3],
+                 const unsigned int num_points[3],
                  const double grid_spacing[3],
                  const double origin[3]
                  )

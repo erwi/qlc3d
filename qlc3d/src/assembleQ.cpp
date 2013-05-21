@@ -8,6 +8,7 @@
 #include <qassembly_macros.h>
 #include <assembleq2k.h>
 
+#include <omp.h>
 #include <spamtrix_ircmatrix.hpp>
 #include <spamtrix_vector.hpp>
 
@@ -133,8 +134,8 @@ void init_shape_surf(){
 inline void localKL(double* p,Mesh* t,
                     idx element_num, SolutionVector* q ,
                     SolutionVector* v, double lK[20][20],
-                    double lL[20],LC* mat_par, Simu* simu,
-                    const Shape4thOrder& shapes)
+double lL[20],LC* mat_par, Simu* simu,
+const Shape4thOrder& shapes)
 {
 
     memset(lK,0,20*20*sizeof(double));
@@ -161,9 +162,9 @@ inline void localKL(double* p,Mesh* t,
     //1. Calculate Inverse Jacobian - for 1st order elements can be done outside integration loop -> igp = 0
     double xr(0),xs(0),xt(0),yr(0),ys(0),yt(0),zr(0),zs(0),zt(0);
     const double pp[4][3] ={ {p[tt[0]*3] , p[tt[0]*3+1] , p[tt[0]*3+2]} ,
-                       {p[tt[1]*3] , p[tt[1]*3+1] , p[tt[1]*3+2]} ,
-                       {p[tt[2]*3] , p[tt[2]*3+1] , p[tt[2]*3+2]} ,
-                       {p[tt[3]*3] , p[tt[3]*3+1] , p[tt[3]*3+2]} };
+                             {p[tt[1]*3] , p[tt[1]*3+1] , p[tt[1]*3+2]} ,
+                             {p[tt[2]*3] , p[tt[2]*3+1] , p[tt[2]*3+2]} ,
+                             {p[tt[3]*3] , p[tt[3]*3+1] , p[tt[3]*3+2]} };
 
     for (int i=0;i<4;++i)
     {
@@ -184,8 +185,8 @@ inline void localKL(double* p,Mesh* t,
     // SCALING TO MICRONS HERE: (1e-6*1e-6)/1e-18 = x1e6
     const double invJdet = 1e6/Jdet;
     const double Jinv[3][3]={{ (zt*ys-yt*zs)*invJdet ,(xt*zs-zt*xs)*invJdet, (xs*yt-ys*xt)*invJdet}
-                       ,{(yt*zr-zt*yr)*invJdet ,(zt*xr-xt*zr)*invJdet, (xt*yr-yt*xr)*invJdet}
-                       ,{(yr*zs-ys*zr)*invJdet ,(xs*zr-xr*zs)*invJdet, (ys*xr-xs*yr)*invJdet}};
+                             ,{(yt*zr-zt*yr)*invJdet ,(zt*xr-xt*zr)*invJdet, (xt*yr-yt*xr)*invJdet}
+                             ,{(yr*zs-ys*zr)*invJdet ,(xs*zr-xr*zs)*invJdet, (ys*xr-xs*yr)*invJdet}};
 
     Jdet *= 1e-18; // NEEDS TO BE microns^3 LATER IN mul = ...
     // shape function derivatives
@@ -207,11 +208,11 @@ inline void localKL(double* p,Mesh* t,
     // LOCAL COPY OF Q-TENSOR AND POTENTIAL VARIABLES AT THE FOUR NODES OF THE CURRENT ELEMENT
     // THIS SEEMS TO SPEED UP THE EXECUTION OF THIS FUNCTION
     const double qbuff[6*4] = {q->getValue(tt[0],0), q->getValue(tt[0],1), q->getValue(tt[0],2), q->getValue(tt[0],3), q->getValue(tt[0],4),
-                         q->getValue(tt[1],0), q->getValue(tt[1],1), q->getValue(tt[1],2), q->getValue(tt[1],3), q->getValue(tt[1],4),
-                         q->getValue(tt[2],0), q->getValue(tt[2],1), q->getValue(tt[2],2), q->getValue(tt[2],3), q->getValue(tt[2],4),
-                         q->getValue(tt[3],0), q->getValue(tt[3],1), q->getValue(tt[3],2), q->getValue(tt[3],3), q->getValue(tt[3],4),
-                         v->getValue(tt[0])  , v->getValue(tt[1]),   v->getValue(tt[2]),   v->getValue(tt[3])
-                        };
+                               q->getValue(tt[1],0), q->getValue(tt[1],1), q->getValue(tt[1],2), q->getValue(tt[1],3), q->getValue(tt[1],4),
+                               q->getValue(tt[2],0), q->getValue(tt[2],1), q->getValue(tt[2],2), q->getValue(tt[2],3), q->getValue(tt[2],4),
+                               q->getValue(tt[3],0), q->getValue(tt[3],1), q->getValue(tt[3],2), q->getValue(tt[3],3), q->getValue(tt[3],4),
+                               v->getValue(tt[0])  , v->getValue(tt[1]),   v->getValue(tt[2]),   v->getValue(tt[3])
+                              };
     for (unsigned int igp = 0 ; igp < shapes.ngp ; ++igp)
     {
         //shape function
@@ -226,7 +227,7 @@ inline void localKL(double* p,Mesh* t,
         double Vx=0,Vy=0,Vz=0;
 
         // Solution and derivatives
-        #define IND(i,j) 5*(i) + (j)
+#define IND(i,j) 5*(i) + (j)
         for(int i=0;i<4;++i)
         {
             q1+=Sh[i]*qbuff[IND(i,0)];// OPTIMIZE BY PREFETCHING Q AND V TO LOCAL BUFFER AT START OF FUNCTION
@@ -601,11 +602,11 @@ void localKL_NQ(
         double* p,
         idx* tt,
         double lL[20],
-        idx it,
-        idx index_to_Neumann,
-        Mesh*  mesh,
-        Mesh* surf_mesh,
-        SolutionVector* v){
+idx it,
+idx index_to_Neumann,
+Mesh*  mesh,
+Mesh* surf_mesh,
+SolutionVector* v){
 
     int i;
 
@@ -680,11 +681,11 @@ void wk_localKL(
         idx element_num ,
         SolutionVector* q,
         double lL[15],
-        double lK[15][15],
-        idx FixLCNumber,
-        Alignment* alignment,
-        LC* lc ,
-        double* NodeNormals)
+double lK[15][15],
+idx FixLCNumber,
+Alignment* alignment,
+LC* lc ,
+double* NodeNormals)
 {		
     double Ss=lc->S0;
     double 	W = alignment->getStrength(FixLCNumber);
@@ -807,59 +808,42 @@ void assemble_volumes(
         SolutionVector* v,
         Mesh* t, double* p,
         LC* mat_par,
-        Simu* simu,
-        Settings* settings)
-{
+        Simu* simu){
 
-    int npLC = q->getnDoF();
+    idx npLC = q->getnDoF();
     //init_shape();
     Shape4thOrder shapes;
 #ifndef DEBUG
-    #pragma omp parallel for
+#pragma omp parallel for
 #endif
     // LOOP OVER EACH ELEMENT  it
-    for (idx it= 0 ; it < t->getnElements () ;it++)
-    {
+    for (idx it= 0 ; it < t->getnElements () ;it++){
         // IF THIS ELEMENT IS LC ELEMENT, ASSEMBLE LOCAL MATRIX
-        if( t->getMaterialNumber(it) != MAT_DOMAIN1 ) // if LC element
+        if( t->getMaterialNumber(it) != MAT_DOMAIN1 ){ // if LC element
             continue;
+        }
         double lK[20][20]; 	// local element matrix
         double lL[20];		// local RHS vector
-
-       // printf("LOCALKL");
         localKL(p,t,it,q,v,lK,lL,mat_par, simu, shapes);
-       // printf("OK\n");
+
         // ADD LOCAL MATRIX TO GLOBAL MATRIX
-        for (int i=0;i<20;i++)  // LOOP OVER ROWS
-        {
-            //int ri = tt[i%4]+npLC*(i/4); //
+        for (int i=0;i<20;i++){  // LOOP OVER ROWS
             int ri = t->getNode(it,i%4) + npLC*(i/4);   // LOCAL TO GLOBAL
-
             idx eqr = q->getEquNode(ri);    // eqr IS MAPPED INDEX TO GLOBAL MATRIX ROW
-
-
-            if ( eqr != NOT_AN_INDEX ) // ONLY FOR NON-FIXED NODES
-            {
+            if ( eqr != NOT_AN_INDEX ){ // ONLY FOR NON-FIXED NODES
 #ifndef DEBUG
 #pragma omp atomic
 #endif
                 L[eqr]+= lL[i]*BIGNUM;
-
-                for (int j = 0 ; j < 20 ; j++) // LOOP OVER COLUMNS
-                {
-                    int rj = t->getNode(it,j%4) + npLC*(j/4);
+                for (int j = 0 ; j < 20 ; j++){ // LOOP OVER COLUMNS
+                    idx rj = t->getNode(it,j%4) + npLC*(j/4);
                     idx eqc = q->getEquNode( rj );
-
-                    if ( eqc != NOT_AN_INDEX ) // IF NOT FIXED
-                    {
+                    if ( eqc != NOT_AN_INDEX ){ // IF NOT FIXED
                         K.sparse_add(eqr,eqc,lK[i][j]*BIGNUM);
                     }
                 }
             }// end NON-FIXED NODE
-
-
         }//end for i
-
     }//end fr it
 }
 // end void assemble_volumes
@@ -1002,7 +986,6 @@ void assembleQ(
         double* p,
         LC* mat_par,
         Simu* simu,
-        Settings* settings,
         Alignment* alignment,
         double* NodeNormals)
 {
@@ -1023,23 +1006,18 @@ void assembleQ(
 
 
     // SELECT MORI'S FORMULATION
-    if (mat_par->PhysicsFormulation == LC::Nematic )
-    {
-        assemble_volumes(K, L, q,  v, t, p, mat_par, simu, settings);
-
+    if (mat_par->PhysicsFormulation == LC::Nematic ){
+        assemble_volumes(K, L, q,  v, t, p, mat_par, simu);
         //SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
         assemble_Neumann_surfaces( L, q, v, t, e, p);
-
         if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
             assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
     }
     // USE WRIGHT'S 2K FORMULATION
-    else if (mat_par->PhysicsFormulation == LC::BluePhase )
-    {
-        //printf("BLUE PHASE FORMULATION DISBLED\n");
-        //exit( 1 );
+    else if (mat_par->PhysicsFormulation == LC::BluePhase ){
+        printf("BLUE PHASE FORMULATION DISBLED\n");
+        exit( 1 );
         printf("2K formulation\n");
-
         assemble_volumes2K(K, L, *q, *v, *mat_par, *simu, *t, p);
 
         if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
@@ -1057,11 +1035,11 @@ void assembleQ(
 /*================================================================*/
 
 inline void assemble_local_prev_volumes(   double lL[20],
-                                           SolutionVector& q,  SolutionVector& v,
-                                           Mesh& t, double* p,  idx element_num,
-                                           LC& mat_par, Simu& simu,
-                                           const Shape4thOrder& shapes
-                                           )
+SolutionVector& q,  SolutionVector& v,
+Mesh& t, double* p,  idx element_num,
+LC& mat_par, Simu& simu,
+const Shape4thOrder& shapes
+)
 {
 
 
@@ -1069,8 +1047,7 @@ inline void assemble_local_prev_volumes(   double lL[20],
     double lI[20][20];
     memset(lI,0,20*20*sizeof(double));
 
-
-    int tt[4] = {   t.getNode(element_num,0), t.getNode(element_num,1),
+    idx tt[4] = {   t.getNode(element_num,0), t.getNode(element_num,1),
                     t.getNode(element_num,2), t.getNode(element_num,3)};
 
     double Jdet = t.getDeterminant(element_num);
@@ -1105,7 +1082,7 @@ inline void assemble_local_prev_volumes(   double lL[20],
     Jdet = fabs(xr*ys*zt-xr*zs*yt+xs*yt*zr-xs*yr*zt+xt*yr*zs-xt*ys*zr);
     const double Jinv[3][3]={{(zt*ys-yt*zs)/Jdet,(xt*zs-zt*xs)/Jdet,(xs*yt-ys*xt)/Jdet}
                              ,{(yt*zr-zt*yr)/Jdet,(zt*xr-xt*zr)/Jdet,(xt*yr-yt*xr)/Jdet}
-                               ,{(yr*zs-ys*zr)/Jdet,(xs*zr-xr*zs)/Jdet,(ys*xr-xs*yr)/Jdet}};
+                             ,{(yr*zs-ys*zr)/Jdet,(xs*zr-xr*zs)/Jdet,(ys*xr-xs*yr)/Jdet}};
 
 
     // shape function derivatives
@@ -1120,8 +1097,7 @@ inline void assemble_local_prev_volumes(   double lL[20],
                                 q.getValue(tt[2],0), q.getValue(tt[2],1), q.getValue(tt[2],2), q.getValue(tt[2],3), q.getValue(tt[2],4),
                                 q.getValue(tt[3],0), q.getValue(tt[3],1), q.getValue(tt[3],2), q.getValue(tt[3],3), q.getValue(tt[3],4),
                                 v.getValue(tt[0])  , v.getValue(tt[1])  , v.getValue(tt[2])  , v.getValue(tt[3])};
-    for (unsigned int igp = 0 ; igp < shapes.ngp ; igp ++)
-    {
+    for (unsigned int igp = 0 ; igp < shapes.ngp ; igp ++){
         //shape function
         const double Sh[4]={  shapes.sh1[igp][0], shapes.sh1[igp][1],
                               shapes.sh1[igp][2], shapes.sh1[igp][3] };
@@ -1134,10 +1110,9 @@ inline void assemble_local_prev_volumes(   double lL[20],
         double Vx=0,Vy=0,Vz=0;
 
         // Solution and derivatives
-        #define IND(i,j) 5*(i) + (j)
-        for(int i=0;i<4;i++)
-        {
-            q1+=Sh[i]*qbuff[IND(i,0)];// OPTIMIZE BY PREFETCHING Q AND V TO LOCAL BUFFER AT START OF FUNCTION
+#define IND(i,j) 5*(i) + (j)
+        for(int i=0;i<4;i++) {
+            q1+=Sh[i]*qbuff[IND(i,0)];// PREFETCHED Q AND V TO LOCAL BUFFER OUTSIDE LOOP
             q2+=Sh[i]*qbuff[IND(i,1)];
             q3+=Sh[i]*qbuff[IND(i,2)];
             q4+=Sh[i]*qbuff[IND(i,3)];
@@ -1165,7 +1140,7 @@ inline void assemble_local_prev_volumes(   double lL[20],
             Vy+=dSh[i][1]*qbuff[20+i];
             Vz+=dSh[i][2]*qbuff[20+i];
         }//end for i
-        #undef IND
+#undef IND
         const double R=q1*q1+q2*q2+q3*q3+q5*q5+q4*q4; // frequently reoccurring term
         const double mul=shapes.w[igp]*Jdet;
 
@@ -1175,43 +1150,25 @@ inline void assemble_local_prev_volumes(   double lL[20],
         RHS_DIELECTRIC(L);
         ADD_RHS_BULK_TERMS(lL,L);
 
-
-        double Lflexo1, Lflexo2, Lflexo3, Lflexo4, Lflexo5;
-        Lflexo1 = 0; Lflexo2 =0; Lflexo3=0; Lflexo4=0; Lflexo5=0;
-
         for (int i=0;i<4;i++){ // matrix rows
             const double ShRx=mul*dSh[i][0];//including weight and jacobian in trial function
             const double ShRy=mul*dSh[i][1];
             const double ShRz=mul*dSh[i][2];
             const double ShR =mul*Sh[i];
             // L1 ELASTIC TERM
-            {
-                double L1term[5];
-                L1term[0]=(ShRx*q1x+ShRy*q1y+ShRz*q1z)*L1;
-                L1term[1]=(ShRx*q2x+ShRy*q2y+ShRz*q2z)*L1;
-                L1term[2]=(ShRx*q3x+ShRy*q3y+ShRz*q3z)*L1;
-                L1term[3]=(ShRx*q4x+ShRy*q4y+ShRz*q4z)*L1;
-                L1term[4]=(ShRx*q5x+ShRy*q5y+ShRz*q5z)*L1;
-                lL[i   ] += L1term[0];
-                lL[i+4 ] += L1term[1];
-                lL[i+8 ] += L1term[2];
-                lL[i+12] += L1term[3];
-                lL[i+16] += L1term[4];
-            }
+            lL[i   ] += (ShRx*q1x+ShRy*q1y+ShRz*q1z)*L1;
+            lL[i+4 ] += (ShRx*q2x+ShRy*q2y+ShRz*q2z)*L1;
+            lL[i+8 ] += (ShRx*q3x+ShRy*q3y+ShRz*q3z)*L1;
+            lL[i+12] += (ShRx*q4x+ShRy*q4y+ShRz*q4z)*L1;
+            lL[i+16] += (ShRx*q5x+ShRy*q5y+ShRz*q5z)*L1;
+
             //Chiral term
-            if (L4!=0)
-            {
-                double Lc[5];
-                Lc[0] = ((rt3*q5y/4.0-rt3*q4x/4.0)*ShR+ShRx*q4*rt3/4.0-ShRy*q5*rt3/4.0)*L4;
-                Lc[1] = ((q3z/2.0-q5y/4.0-q4x/4.0)*ShR+ShRx*q4/4.0+ShRy*q5/4.0-ShRz*q3/2.0)*L4;
-                Lc[2] = ((-q2z/2.0-q4y/4.0+q5x/4.0)*ShR+ShRy*q4/4.0+ShRz*q2/2.0-ShRx*q5/4.0)*L4;
-                Lc[3] = ((-q5z/4.0+q1x*rt3/4.0+q3y/4.0+q2x/4.0)*ShR-ShRx*q1*rt3/4.0-ShRx*q2/4.0-ShRy*q3/4.0+ShRz*q5/4.0)*L4;
-                Lc[4] = ((q4z/4.0-q1y*rt3/4.0+q2y/4.0-q3x/4.0)*ShR+ShRx*q3/4.0+ShRy*q1*rt3/4.0-ShRy*q2/4.0-ShRz*q4/4.0)*L4;
-                lL[i   ] += Lc[0];
-                lL[i+4 ] += Lc[1];
-                lL[i+8 ] += Lc[2];
-                lL[i+12] += Lc[3];
-                lL[i+16] += Lc[4];
+            if (L4!=0) {
+                lL[i   ] += ((rt3*q5y/4.0-rt3*q4x/4.0)*ShR+ShRx*q4*rt3/4.0-ShRy*q5*rt3/4.0)*L4;
+                lL[i+4 ] += ((q3z/2.0-q5y/4.0-q4x/4.0)*ShR+ShRx*q4/4.0+ShRy*q5/4.0-ShRz*q3/2.0)*L4;
+                lL[i+8 ] += ((-q2z/2.0-q4y/4.0+q5x/4.0)*ShR+ShRy*q4/4.0+ShRz*q2/2.0-ShRx*q5/4.0)*L4;
+                lL[i+12] += ((-q5z/4.0+q1x*rt3/4.0+q3y/4.0+q2x/4.0)*ShR-ShRx*q1*rt3/4.0-ShRx*q2/4.0-ShRy*q3/4.0+ShRz*q5/4.0)*L4;
+                lL[i+16] += ((q4z/4.0-q1y*rt3/4.0+q2y/4.0-q3x/4.0)*ShR+ShRx*q3/4.0+ShRy*q1*rt3/4.0-ShRy*q2/4.0-ShRz*q4/4.0)*L4;
             }
             if (three_elastic_constants){
                 double L2_1,L2_2,L2_3,L2_4,L2_5;//L2 elastic RHS  terms;
@@ -1234,29 +1191,22 @@ inline void assemble_local_prev_volumes(   double lL[20],
 
             }
             if ((efe!=0.0)||(efe2!=0.0)){ // IF FLEXOELECTRIC COEFFICIENTS ARN'T 0
-                Lflexo1 = (rt6*(Vx*ShRx+Vy*ShRy-2.0*Vz*ShRz)*efe/6.0);
-                Lflexo2 = (-rt2*(Vx*ShRx-Vy*ShRy)*efe/2.0);
-                Lflexo3 = (-rt2*(Vy*ShRx+Vx*ShRy)*efe/2.0);
-                Lflexo4 = (-rt2*(Vz*ShRy+Vy*ShRz)*efe/2.0);
-                Lflexo5 = (-rt2*(Vz*ShRx+Vx*ShRz)*efe/2.0);
-                lL[i+0]  +=    Lflexo1;
-                lL[i+4]  +=    Lflexo2;
-                lL[i+8]  +=    Lflexo3;
-                lL[i+12] +=    Lflexo4;
-                lL[i+16] +=    Lflexo5;
+                lL[i+0]  += (rt6*(Vx*ShRx+Vy*ShRy-2.0*Vz*ShRz)*efe/6.0);
+                lL[i+4]  += (-rt2*(Vx*ShRx-Vy*ShRy)*efe/2.0);
+                lL[i+8]  += (-rt2*(Vy*ShRx+Vx*ShRy)*efe/2.0);
+                lL[i+12] += (-rt2*(Vz*ShRy+Vy*ShRz)*efe/2.0);
+                lL[i+16] += (-rt2*(Vz*ShRx+Vx*ShRz)*efe/2.0);
             }
 
-            for (int j = 0 ; j < 4 ; j++)
-            {
+            // ASSEMBLE LOCAL MASS MATRIX
+            for (int j = 0 ; j < 4 ; j++){
                 double ShRC = ShR*Sh[j];
-                //Local mass matrix
                 lI[i   ][j   ]+=ShRC;
                 lI[i+4 ][j+4 ]+=ShRC;
                 lI[i+8 ][j+8 ]+=ShRC;
                 lI[i+12][j+12]+=ShRC;
                 lI[i+16][j+16]+=ShRC;
-            }//
-
+            }
         } // end for i  - rows
     }//end for igp
 
@@ -1272,19 +1222,13 @@ inline void assemble_local_prev_volumes(   double lL[20],
             }
         }
     }
-
     double dt = simu.dt;
     double u1 = mat_par.u1;
-
-
     for (int i=0;i<20;i++){
         /* SEGFAULT WITH OPENMP HERE*/
-       lL[i] =   ( lL[i] / 2.0 ) -  ( Mq[i]*(u1 / dt) ) ;   // ORIGNAL
-       // lL[i] =   ( lL[i] / 2.0 ) +  ( Mq[i]*(u1 / dt) ) ;   // M*current Q
-
+        lL[i] =   ( lL[i] / 2.0 ) -  ( Mq[i]*(u1 / dt) ) ;   // ORIGNAL
+        // lL[i] =   ( lL[i] / 2.0 ) +  ( Mq[i]*(u1 / dt) ) ;   // M*current Q
     }
-
-
 }// end local rhs prev
 
 
@@ -1321,32 +1265,21 @@ void assemble_prev_rhs(SpaMtrix::Vector &Ln,
 #ifndef DEBUG
 #pragma omp parallel for
 #endif
-    for ( idx it = 0 ; it < elem_cnt ; it++)
-    {
+    for ( idx it = 0 ; it < elem_cnt ; it++){
         // IF THIS ELEMENT IS LC ELEMENT, ASSEMBLE LOCAL MATRIX
-        if( t.getMaterialNumber(it) == MAT_DOMAIN1 )// if LC element
-        {
+        if( t.getMaterialNumber(it) == MAT_DOMAIN1 ){// if LC element
             idx eqr;
             double lL[20];		// local RHS vector
-
             assemble_local_prev_volumes(lL,
                                         qn, v ,
                                         t , p , it,
                                         mat_par , simu,
                                         shapes);
-          //  printf("elem %u\n", it);
-          //  for (int i = 0 ; i < 20 ; i++)
-          //  {
-          //      printf("lL[%i] = %e\n", i, lL[i]);
-          //  }
-
             // ADD LOCAL MATRIX TO GLOBAL MATRIX
-            for (unsigned int i=0;i<20;i++)
-            {
+            for (unsigned int i=0;i<20;i++){
                 int ri = t.getNode(it,i%4) + npLC*(i/4);
                 eqr = qn.getEquNode(ri);
-                if (eqr != NOT_AN_INDEX ) // IF NOT FIXED
-                {
+                if (eqr != NOT_AN_INDEX ){ // IF NOT FIXED
 #ifndef DEBUG
 #pragma omp atomic
 #endif
@@ -1354,9 +1287,7 @@ void assemble_prev_rhs(SpaMtrix::Vector &Ln,
                 }
             }// end for i
         }//end if LC material
-
     }//end for it
-
 }// end function
 
 

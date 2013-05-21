@@ -12,8 +12,12 @@ OBJS = qlc3d.o mesh.o simu.o electrodes.o lc.o box.o alignment.o readsettings.o 
 
 
 qlc3d.exe:$(OBJS)
-	g++  -fopenmp -fpthread -o qlc3d.exe  $(OBJS) $(LDFLAGS) -lgomp -lpthread
+	g++  -fopenmp -o qlc3d.exe  $(OBJS) $(LDFLAGS) -lgomp -lpthread
 
+# above line had -fpthread before "-o"
+	
+	
+	
 %.o:%.cpp
 	$(CXX) -c $(CFLAGS) $(CCCFLAGS) $(D_OF) $< $(INCLUDES) -I$(QLCINCS)
 

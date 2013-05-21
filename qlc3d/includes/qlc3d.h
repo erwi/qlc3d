@@ -72,14 +72,13 @@ void assembleQ(SpaMtrix::IRCMatrix &K,
            SpaMtrix::Vector &L,	// current RHS
            SolutionVector *q,
            SolutionVector* v,
-	       Mesh* t,
-	       Mesh* e,
-	       double* p,
-	       LC* mat_par,
-	       Simu* simu,
-	       Settings* settings,
-	       Alignment* alignment,
-	       double* NodeNormals);
+           Mesh* t,
+           Mesh* e,
+           double* p,
+           LC* mat_par,
+           Simu* simu,
+           Alignment* alignment,
+           double* NodeNormals);
 
 // UPDATE Q-TENSOR USING IMPLICIT METHODS
 double calcQ3d(SolutionVector *q,

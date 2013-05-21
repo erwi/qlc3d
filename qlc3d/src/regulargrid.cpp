@@ -448,19 +448,18 @@ bool RegularGrid::writeVTKGrid(const char *filename,
 
     // WRITES POTENTIAL, ORDER PARAMETER AND DIRECTOR ONTO VTK REGULAR GRID FILE
 
-    if (npr_ == 0 )
-    {
+    if (npr_ == 0 ){
         printf("error in %s, Regular grid doesn't seem to be initialised.\n", __func__);
         printf("grid count in x,y,z is %u, %u, %u - bye!\n", this->nx_, this->ny_, this->nz_);
         exit(1);
-
     }
 
     std::fstream fid;
     fid.open( filename, std::fstream::out );
 
-    if (!fid.is_open() )    // EXIT IF COULDN'T OPEN FILE
+    if (!fid.is_open() ){    // EXIT IF COULDN'T OPEN FILE
         return false;
+    }
 
 
     double* regU = new double[ npr_ ];  // TEMPORARY STORAGE FOR INTERPOLATED VALUES
@@ -473,7 +472,7 @@ bool RegularGrid::writeVTKGrid(const char *filename,
     interpolateToRegular( S , regS, npLC );
 
 
-    int num_points[3] = {nx_, ny_, nz_};
+    idx num_points[3] = {nx_, ny_, nz_};
     double grid_spacing[3] = {dx_, dy_, dz_};
     double origin[3] = { getGridX(0), getGridY(0), getGridZ(0)};
     vtkIOFun::writeID( fid );

@@ -247,7 +247,7 @@ inline void localKL(
 }// end void localKL
 void localKL_N(
     double* p,
-    int* tt,
+    idx* tt,
     double lK[npt][npt],
     double lL[npt],
     int it,
@@ -451,11 +451,11 @@ void assemble_Neumann(
 
             double lK[4][4];
             double lL[4];
-            int ee[3] = {   surf_mesh->getNode(it,0) ,
+            idx ee[3] = {   surf_mesh->getNode(it,0) ,
                             surf_mesh->getNode(it,1) ,
                             surf_mesh->getNode(it,2) } ;
 
-            int tt[4] = { tt[0] =   mesh->getNode(index_to_Neumann,0),
+            idx tt[4] = { tt[0] =   mesh->getNode(index_to_Neumann,0),
                           mesh->getNode(index_to_Neumann,1),
                           mesh->getNode(index_to_Neumann,2),
                           mesh->getNode(index_to_Neumann,3)};
@@ -469,7 +469,7 @@ void assemble_Neumann(
                 }
             }
 
-            int ti[4] = { ee[0], ee[1], ee[2], tt[intr] }; // reordered local element, internal node is always last
+            idx ti[4] = { ee[0], ee[1], ee[2], tt[intr] }; // reordered local element, internal node is always last
 
             localKL_N(p,&ti[0], lK , lL, it,index_to_Neumann, mesh, surf_mesh, q, lc, shapes);
 
