@@ -17,7 +17,6 @@
 #include <spamtrix_iterativesolvers.hpp>
 #include <spamtrix_luincpreconditioner.hpp>
 
-
 const idx npt = 4; //Number of Points per Tetrahedra
 
 double rt2 = sqrt(2.0);
@@ -78,19 +77,25 @@ void calcpot3d(
 
     // NO NEED TO CALCULATE POTENTIAL IF...
     if ( (v->getnFixed() == 0 ) ||      // no fixed potential nodes OR
-         (!electrodes->getCalcPot() ) ) // no need to calculate potential
-    {
+         (!electrodes->getCalcPot() ) ){ // no need to calculate potential
         v->setValuesTo(0.0); // if no potential calculation, set all values to zero
-        if ( electrodes->isEField() )
-        {
+        if ( electrodes->isEField() ){
             setUniformEField( *electrodes, *v, geom.getPtrTop());
         }
         return;
     }
-    K = 0.0; // clears values but keeps sparsity structure
 
+    K = 0.0; // clears values but keeps sparsity structure
     SpaMtrix::Vector L(v->getnFreeNodes());
     SpaMtrix::Vector V(v->getnFreeNodes());
+    // PROVIDE POTENTIAL FROM PREVIOUS STEP AS INITIAL GUESS
+    for (idx i = 0 ; i < v->getnDoF(); i++){
+        const idx ind = v->getEquNode(i);
+        if (ind != NOT_AN_INDEX){
+            V[ind] = v->getValue(i);
+        }
+    }
+
     // Assemble system
     assemble_volume(geom.getPtrTop(),v,q,lc,geom.t, K , L, electrodes);
     assemble_Neumann(geom.getPtrTop() , v , q , lc , geom.t , geom.e , K , L);
@@ -102,15 +107,14 @@ void calcpot3d(
     Pot_GMRES(K,L,V, settings);
 
     // COPY NON-FIXED VALUES BACK TO SOLUTIONVECTOR
-    for (idx i = 0 ; i < v->getnDoF() ; i++)
-    {
+    for (idx i = 0 ; i < v->getnDoF() ; i++){
         idx ind = v->getEquNode(i);
         // EQU NODES OF FIXED DOFS ARE ALL "NOT_AN_INDEX"
-        if (ind != NOT_AN_INDEX)
+        if (ind != NOT_AN_INDEX){
             v->setValue(i,0, V[ind] );
+        }
     }// end for i
-}
-//end calcpot3d
+}//end calcpot3d
 
 inline void localKL(
     double *p,
@@ -538,8 +542,7 @@ void setUniformEField(Electrodes &electrodes, SolutionVector &v, double *p)
 
     //2. LOOP OVER EACH NODE AND CACLCULATE ITS DISTANCE TO CENTRE
 
-    for (int i = 0 ; i < np ; i++)
-    {
+    for (int i = 0 ; i < np ; i++){
         double* pos = &p[i*3]; // shortcut to this node
         double vec[3] = { centre[0] - pos[0],
                           centre[1] - pos[1],
@@ -557,7 +560,10 @@ void setUniformEField(Electrodes &electrodes, SolutionVector &v, double *p)
 
 }
 
-void Pot_GMRES(SpaMtrix::IRCMatrix &K, SpaMtrix::Vector &B, SpaMtrix::Vector &X, Settings* settings )
+void Pot_GMRES(SpaMtrix::IRCMatrix &K,
+               SpaMtrix::Vector &B,
+               SpaMtrix::Vector &X,
+               Settings* settings )
 {
     /*!
         Solves the Linear simulatenous equation Ax=b using the GMRES method
@@ -573,6 +579,7 @@ void Pot_GMRES(SpaMtrix::IRCMatrix &K, SpaMtrix::Vector &B, SpaMtrix::Vector &X,
     double toler 	= settings->getV_GMRES_Toler();
 
     SpaMtrix::LUIncPreconditioner LU(K); // DOES THIS HAVE TO BE RECOMPUTED EACH TIME??
+    //SpaMtrix::DiagPreconditioner LU(K);
     SpaMtrix::IterativeSolvers solver(maxiter, restart, toler);
     if (!solver.gmres(K, X, B, LU) )
         printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",solver.maxIter,solver.toler);
