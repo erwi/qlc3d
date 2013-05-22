@@ -8,11 +8,11 @@ class LC
 {
 	public:
     // SELECTS WHICH FORMULATION IS USED
-    enum Formulation {Nematic ,  // MORI'S 3K ELASTIC FORMULATION
-                      BluePhase};  // 2K FORMULATION FROM WRIGHT(?) BLUE PHASE PAPER
-    Formulation PhysicsFormulation;
-    const static char* FORMULATION_NEMATIC_STRING;
-    const static char* FORMULATION_BLUEPHASE_STRING;
+    //enum Formulation {Nematic ,  // MORI'S 3K ELASTIC FORMULATION
+    //                  BluePhase};  // 2K FORMULATION FROM WRIGHT(?) BLUE PHASE PAPER
+    //Formulation PhysicsFormulation;
+    //const static char* FORMULATION_NEMATIC_STRING;
+    //const static char* FORMULATION_BLUEPHASE_STRING;
 
 	// elastic coefficients
 	double K11, K22, K33;
@@ -49,7 +49,7 @@ class LC
 	void convert_params_n2Q();
 	double getS0();
 
-    void setFormulation(std::string& f);
+    //void setFormulation(std::string& f);
 
 
 

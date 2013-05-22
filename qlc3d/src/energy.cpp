@@ -197,7 +197,7 @@ double calculateBluePhaseEnergy(Geometry& geom,
             double Vx(0),  Vy(0) , Vz(0);
             for(int i=0;i<4;++i)
             {
-    #define IND(i,j) 5*(i) + (j)
+#define IND(i,j) 5*(i) + (j)
                 q1+=Sh[i]*vars[IND(i,0)];// OPTIMIZE BY PREFETCHING Q AND V TO LOCAL BUFFER AT START OF FUNCTION
                 q2+=Sh[i]*vars[IND(i,1)];
                 q3+=Sh[i]*vars[IND(i,2)];
@@ -266,11 +266,11 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
 
     cout << " Calculating free energy..."; fflush(stdout);
 
-    if (lc->PhysicsFormulation == LC::BluePhase )
-    {
-        double Ftot = calculateBluePhaseEnergy(*geom, *q, *v, *lc);
-        cout << "BLUE PHASE ENERGY = " << Ftot << endl;
-    }
+    //if (lc->PhysicsFormulation == LC::BluePhase )
+    //{
+    //    double Ftot = calculateBluePhaseEnergy(*geom, *q, *v, *lc);
+    //    cout << "BLUE PHASE ENERGY = " << Ftot << endl;
+    //}
 
     // IF FIRST ITERATION, PRINT HEADERS
     if (simu->getCurrentIteration() == 1 )
@@ -285,9 +285,7 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
     //
     //
     using namespace Energy;
-
     init_shape();
-    LC::Formulation formulation = lc->PhysicsFormulation;
     double e0 = 8.8541878176*1e-12;
     double S0 = lc->S0;
 
@@ -307,12 +305,9 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
     double pi = 3.141569;
 
     double q0(0);           // CHIRALITY
-    if (lc->p0 > 0.0)
+    if (lc->p0 > 0.0){
         q0 = 2*pi/lc->p0 ;
-    if (formulation==LC::BluePhase)    // CHANGE HANDEDNESS
-        q0*=-1.0;
-
-    //printf("q0 = %e\n",q0);
+    }
 
     // IF SINGLE ELASTIC COEFFICIENT
     double L1(0);
@@ -335,18 +330,14 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
 
 
     //loop over each element and calculate elastic energy contribution
-    for (idx x = 0 ; x < geom->t->getnElements() ; x++ )
-    {
-        if (geom->t->getMaterialNumber(x)<= MAT_DOMAIN7)//IF LC ELEMENT
-        {
+    for (idx x = 0 ; x < geom->t->getnElements() ; x++ ){
+        if (geom->t->getMaterialNumber(x)<= MAT_DOMAIN7){//IF LC ELEMENT
             idx tt[4] = {geom->t->getNode(x,0),
                          geom->t->getNode(x,1),
                          geom->t->getNode(x,2),
                          geom->t->getNode(x,3)};
 
-            for (int igp=0;igp<ngp;igp++) //loop over each gauss point
-            {
-
+            for (int igp=0;igp<ngp;igp++){ //loop over each gauss point
                 double q1(0), q2(0), q3(0), q4(0), q5(0);
                 double q1x=0,q2x=0,q3x=0,q4x=0,q5x=0;
                 double q1y=0,q2y=0,q3y=0,q4y=0,q5y=0;
@@ -421,42 +412,30 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
 
 
                 // IF 3 ELASTIC COEFFICIENTS
-                if (formulation == LC::Nematic )
-                {
-                    // CALCULATE TWIST ENERGY: 1/2*K22(n.curl(n) - q0 )^2
-                    // G4 = (9*S^2 / 4 )* n.curl(n)
 
-                    double G4 = (q2*q4x - q4*q2x - q3*q5x + q5*q3x + q2*q5y + q3*q4y - q4*q3y - q5*q2y - 2*q2*q3z + 2*q3*q2z + q4*q5z - q5*q4z)*0.5
-                            + (3*q1*q4x - 3*q4*q1x - 3*q1*q5y + 3*q5*q1y)/(rt2*rt6);
+                // CALCULATE TWIST ENERGY: 1/2*K22(n.curl(n) - q0 )^2
+                // G4 = (9*S^2 / 4 )* n.curl(n)
 
-                    // chiral twist offset, scaled by S^2
-                    double aa = 3.0/2.0*R;
+                double G4 = (q2*q4x - q4*q2x - q3*q5x + q5*q3x + q2*q5y + q3*q4y - q4*q3y - q5*q2y - 2*q2*q3z + 2*q3*q2z + q4*q5z - q5*q4z)*0.5
+                        + (3*q1*q4x - 3*q4*q1x - 3*q1*q5y + 3*q5*q1y)/(rt2*rt6);
 
-                    double F_twist = ( G4- aa*q0 ) / ( 9.0 * S0 *S0 ) * 4; // DIVIDE OUT (9S^2/4) term
-                    F_twist*=F_twist; // (twist^2)
+                // chiral twist offset, scaled by S^2
+                double aa = 3.0/2.0*R;
+
+                double F_twist = ( G4- aa*q0 ) / ( 9.0 * S0 *S0 ) * 4; // DIVIDE OUT (9S^2/4) term
+                F_twist*=F_twist; // (twist^2)
 
 
-                    double G1 = 1.0/(rt6*rt6)*(q1x*q1x+q1y*q1y+q1z*q1z)*6.0+1.0/(rt2*rt2)*((q2x*q2x)*2.0+(q3x*q3x)*2.0+(q4x*q4x)*2.0+(q5x*q5x)*2.0+(q2y*q2y)*2.0+(q3y*q3y)*2.0+(q4y*q4y)*2.0+(q5y*q5y)*2.0+(q2z*q2z)*2.0+(q3z*q3z)*2.0+(q4z*q4z)*2.0+(q5z*q5z)*2.0);
-                    double G2 = 1.0/(rt6*rt6)*(q1x*q1x+q1y*q1y+(q1z*q1z)*4.0)+1.0/(rt2*rt2)*(q2x*q3y*2.0-q3x*q2y*2.0+q5x*q4y*2.0+q2x*q5z*2.0+q3x*q4z*2.0-q2y*q4z*2.0+q3y*q5z*2.0+q2x*q2x+q3x*q3x+q5x*q5x+q2y*q2y+q3y*q3y+q4y*q4y+q4z*q4z+q5z*q5z)-(q1x*q2x*2.0+q1x*q3y*2.0+q3x*q1y*2.0-q1y*q2y*2.0+q1x*q5z*2.0-q5x*q1z*4.0+q1y*q4z*2.0-q4y*q1z*4.0)/(rt2*rt6);
-                    double G6 = 1.0/(rt2*rt2*rt2)*(q2*(q2x*q2x)*2.0+q2*(q3x*q3x)*2.0+q2*(q4x*q4x)*2.0+q2*(q5x*q5x)*2.0-q2*(q2y*q2y)*2.0-q2*(q3y*q3y)*2.0-q2*(q4y*q4y)*2.0-q2*(q5y*q5y)*2.0+q3*q2x*q2y*4.0+q3*q3x*q3y*4.0+q3*q4x*q4y*4.0+q3*q5x*q5y*4.0+q5*q2x*q2z*4.0+q5*q3x*q3z*4.0+q5*q4x*q4z*4.0+q5*q5x*q5z*4.0+q4*q2y*q2z*4.0+q4*q3y*q3z*4.0+q4*q4y*q4z*4.0+q4*q5y*q5z*4.0)+(1.0/(rt6*rt6)*(q2*(q1x*q1x)-q2*(q1y*q1y)+q3*q1x*q1y*2.0+q5*q1x*q1z*2.0+q4*q1y*q1z*2.0)*6.0)/rt2-q1*1.0/(rt6*rt6*rt6)*(q1x*q1x+q1y*q1y-(q1z*q1z)*2.0)*6.0-(q1*1.0/(rt2*rt2)*(q2x*q2x+q3x*q3x+q4x*q4x+q5x*q5x+q2y*q2y+q3y*q3y+q4y*q4y+q5y*q5y-(q2z*q2z)*2.0-(q3z*q3z)*2.0-(q4z*q4z)*2.0-(q5z*q5z)*2.0)*2.0)/rt6;
+                double G1 = 1.0/(rt6*rt6)*(q1x*q1x+q1y*q1y+q1z*q1z)*6.0+1.0/(rt2*rt2)*((q2x*q2x)*2.0+(q3x*q3x)*2.0+(q4x*q4x)*2.0+(q5x*q5x)*2.0+(q2y*q2y)*2.0+(q3y*q3y)*2.0+(q4y*q4y)*2.0+(q5y*q5y)*2.0+(q2z*q2z)*2.0+(q3z*q3z)*2.0+(q4z*q4z)*2.0+(q5z*q5z)*2.0);
+                double G2 = 1.0/(rt6*rt6)*(q1x*q1x+q1y*q1y+(q1z*q1z)*4.0)+1.0/(rt2*rt2)*(q2x*q3y*2.0-q3x*q2y*2.0+q5x*q4y*2.0+q2x*q5z*2.0+q3x*q4z*2.0-q2y*q4z*2.0+q3y*q5z*2.0+q2x*q2x+q3x*q3x+q5x*q5x+q2y*q2y+q3y*q3y+q4y*q4y+q4z*q4z+q5z*q5z)-(q1x*q2x*2.0+q1x*q3y*2.0+q3x*q1y*2.0-q1y*q2y*2.0+q1x*q5z*2.0-q5x*q1z*4.0+q1y*q4z*2.0-q4y*q1z*4.0)/(rt2*rt6);
+                double G6 = 1.0/(rt2*rt2*rt2)*(q2*(q2x*q2x)*2.0+q2*(q3x*q3x)*2.0+q2*(q4x*q4x)*2.0+q2*(q5x*q5x)*2.0-q2*(q2y*q2y)*2.0-q2*(q3y*q3y)*2.0-q2*(q4y*q4y)*2.0-q2*(q5y*q5y)*2.0+q3*q2x*q2y*4.0+q3*q3x*q3y*4.0+q3*q4x*q4y*4.0+q3*q5x*q5y*4.0+q5*q2x*q2z*4.0+q5*q3x*q3z*4.0+q5*q4x*q4z*4.0+q5*q5x*q5z*4.0+q4*q2y*q2z*4.0+q4*q3y*q3z*4.0+q4*q4y*q4z*4.0+q4*q5y*q5z*4.0)+(1.0/(rt6*rt6)*(q2*(q1x*q1x)-q2*(q1y*q1y)+q3*q1x*q1y*2.0+q5*q1x*q1z*2.0+q4*q1y*q1z*2.0)*6.0)/rt2-q1*1.0/(rt6*rt6*rt6)*(q1x*q1x+q1y*q1y-(q1z*q1z)*2.0)*6.0-(q1*1.0/(rt2*rt2)*(q2x*q2x+q3x*q3x+q4x*q4x+q5x*q5x+q2y*q2y+q3y*q3y+q4y*q4y+q5y*q5y-(q2z*q2z)*2.0-(q3z*q3z)*2.0-(q4z*q4z)*2.0-(q5z*q5z)*2.0)*2.0)/rt6;
 
-                    double F_splay =  4*G2 / (9*S0*S0) - 2*G1/(27*S0*S0) - 4*G6 / (27*S0*S0*S0);
-                    double F_bend  =   2*G1 / (27.0*S0*S0) + 4*G6 / (27*S0*S0*S0);
+                double F_splay =  4*G2 / (9*S0*S0) - 2*G1/(27*S0*S0) - 4*G6 / (27*S0*S0*S0);
+                double F_bend  =   2*G1 / (27.0*S0*S0) + 4*G6 / (27*S0*S0*S0);
 
-                    F11 += 0.5*lc->K11 * mul*F_splay;
-                    F22 += 0.5*lc->K22 * mul*F_twist;
-                    F33 += 0.5*lc->K33 * mul*F_bend;
-                }
-                else if (formulation == LC::BluePhase)
-                {
-                    // CALCULATE ELASTIC ENERGY FOR CHIRAL/BLUE PHASE LC
-                    // USING ENERGY FROM WRIGTH & MERMIN, Rev. Mod. Phys. 61,2,1989
-
-                    double Fdtemp(0);
-                    ENERGY_ELASTIC_2K(Fdtemp);
-
-                    Fd += mul*Fdtemp;
-                }
+                F11 += 0.5*lc->K11 * mul*F_splay;
+                F22 += 0.5*lc->K22 * mul*F_twist;
+                F33 += 0.5*lc->K33 * mul*F_bend;
 
 
 
@@ -489,12 +468,10 @@ void CalculateFreeEnergy(FILE* fid, Simu* simu, LC* lc, Geometry* geom, Solution
     //
     //	END BULK ENERGY
     //
-    if (L1)
-    {
+    if (L1){
         fprintf(fid,"%e\t%e\t%e\t%e;\n", simu->getCurrentTime(), Fd, Fth, Fe);
     }
-    else
-    {
+    else{
         fprintf(fid,"%e\t%e\t%e\t%e\t%e\t%e;\n",simu->getCurrentTime(), F11,F22,F33 , Fth , Fe);
     }
     printf("OK\n");

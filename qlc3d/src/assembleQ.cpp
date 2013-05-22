@@ -6,7 +6,7 @@
 #include <sparsematrix.h>
 #include <shapefunction3d.h>
 #include <qassembly_macros.h>
-#include <assembleq2k.h>
+
 
 #include <omp.h>
 #include <spamtrix_ircmatrix.hpp>
@@ -89,17 +89,9 @@ void init_globals(LC& mat_par, SolutionVector& q){
 
 void init_shape_N() // initialise Neumann and surface derivative shape functions
 {
-    //  memset(sh1,0,ngps*4*sizeof(double));
-    //  memset(sh1r,0,ngps*4*sizeof(double));
-    //  memset(sh1s,0,ngps*4*sizeof(double));
-    //  memset(sh1t,0,ngps*4*sizeof(double));
-
-
     //for (int i=0; i<ngp; i++)
-    for (int i=0; i<ngps; i++)
-    {
+    for (int i=0; i<ngps; i++){
         // P1 Shape functions
-
         sh1[i][0]=1-sgp[i][0]-sgp[i][1];
         sh1[i][1]=sgp[i][0];
         sh1[i][2]=sgp[i][1];
@@ -166,8 +158,7 @@ const Shape4thOrder& shapes)
                              {p[tt[2]*3] , p[tt[2]*3+1] , p[tt[2]*3+2]} ,
                              {p[tt[3]*3] , p[tt[3]*3+1] , p[tt[3]*3+2]} };
 
-    for (int i=0;i<4;++i)
-    {
+    for (int i=0;i<4;++i){
         xr+=shapes.sh1r[0][i]*pp[i][0];
         xs+=shapes.sh1s[0][i]*pp[i][0];
         xt+=shapes.sh1t[0][i]*pp[i][0];
@@ -181,7 +172,7 @@ const Shape4thOrder& shapes)
         zt+=shapes.sh1t[0][i]*pp[i][2];
     }//end for i
     //Inverse Jacobian
-    //Jdet = fabs(xr*ys*zt-xr*zs*yt+xs*yt*zr-xs*yr*zt+xt*yr*zs-xt*ys*zr);
+
     // SCALING TO MICRONS HERE: (1e-6*1e-6)/1e-18 = x1e6
     const double invJdet = 1e6/Jdet;
     const double Jinv[3][3]={{ (zt*ys-yt*zs)*invJdet ,(xt*zs-zt*xs)*invJdet, (xs*yt-ys*xt)*invJdet}
@@ -213,8 +204,7 @@ const Shape4thOrder& shapes)
                                q->getValue(tt[3],0), q->getValue(tt[3],1), q->getValue(tt[3],2), q->getValue(tt[3],3), q->getValue(tt[3],4),
                                v->getValue(tt[0])  , v->getValue(tt[1]),   v->getValue(tt[2]),   v->getValue(tt[3])
                               };
-    for (unsigned int igp = 0 ; igp < shapes.ngp ; ++igp)
-    {
+    for (unsigned int igp = 0 ; igp < shapes.ngp ; ++igp){
         //shape function
         const double Sh[4]= {   shapes.sh1[igp][0], shapes.sh1[igp][1],
                                 shapes.sh1[igp][2], shapes.sh1[igp][3]};
@@ -228,8 +218,7 @@ const Shape4thOrder& shapes)
 
         // Solution and derivatives
 #define IND(i,j) 5*(i) + (j)
-        for(int i=0;i<4;++i)
-        {
+        for(int i=0;i<4;++i){
             q1+=Sh[i]*qbuff[IND(i,0)];// OPTIMIZE BY PREFETCHING Q AND V TO LOCAL BUFFER AT START OF FUNCTION
             q2+=Sh[i]*qbuff[IND(i,1)];
             q3+=Sh[i]*qbuff[IND(i,2)];
@@ -1005,26 +994,14 @@ void assembleQ(
 
 
 
-    // SELECT MORI'S FORMULATION
-    if (mat_par->PhysicsFormulation == LC::Nematic ){
-        assemble_volumes(K, L, q,  v, t, p, mat_par, simu);
-        //SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
-        assemble_Neumann_surfaces( L, q, v, t, e, p);
-        if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
-            assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
-    }
-    // USE WRIGHT'S 2K FORMULATION
-    else if (mat_par->PhysicsFormulation == LC::BluePhase ){
-        printf("BLUE PHASE FORMULATION DISBLED\n");
-        exit( 1 );
-        printf("2K formulation\n");
-        assemble_volumes2K(K, L, *q, *v, *mat_par, *simu, *t, p);
-
-        if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
-            assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
 
 
-    }
+    assemble_volumes(K, L, q,  v, t, p, mat_par, simu);
+    //SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
+    assemble_Neumann_surfaces( L, q, v, t, e, p);
+    if ( alignment->WeakSurfacesExist() ) // if weak anchoring surfaces exist
+        assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
+
 
 }
 // end void assembleQ
@@ -1038,8 +1015,7 @@ inline void assemble_local_prev_volumes(   double lL[20],
 SolutionVector& q,  SolutionVector& v,
 Mesh& t, double* p,  idx element_num,
 LC& mat_par, Simu& simu,
-const Shape4thOrder& shapes
-)
+const Shape4thOrder& shapes)
 {
 
 
@@ -1244,10 +1220,7 @@ void assemble_prev_rhs(SpaMtrix::Vector &Ln,
                        Geometry& geom
                        )
 {
-    //if (e.getnElements()){} // no warning of unused variables. WRITE fUNCTION FOR WEAK ANCHORING CONTRIBUTIONS
-
     init_globals(mat_par, qn);
-    //init_shape();
     Shape4thOrder shapes;
     unsigned int elem_cnt = geom.t->getnElements();//unsigned int) t.getnElements();
 

@@ -4,7 +4,7 @@
 #include <omp.h>
 #include <qlc3d.h>
 #include <cstdio>
-#include <assembleq2k.h>
+
 
 
 // SpaMtrix INCLUDES
@@ -32,7 +32,8 @@ void updateSolutionVector(SolutionVector &q,
                           const SpaMtrix::Vector &dq,
                           double &maxdq)
 {
-    // UPDATES SOLUTION VECTOR - USES getEquNode REDIRECTION
+    // UPDATES SOLUTION VECTOR q = q + dq
+    // USES getEquNode REDIRECTION
     // FOR PERIODIC AND FIXED NODES
 
     maxdq = 0;
@@ -97,16 +98,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         // ASSEMBLE RHS CONTRIBUTION FROM PREVIOUS TIME-STEP, IF NEEDED
         if ( (isTimeStepping) && (newton_iter == 1) ){
             RHS = 0;
-            // CHOOSE WHICH VERSION TO CALL DEPENDING ON FORMULATION USED
-            if (mat_par->PhysicsFormulation == LC::Nematic ){
-                assemble_prev_rhs(RHS, *qn, *v, *mat_par, *simu, geom );
-            }
-            else if (mat_par->PhysicsFormulation == LC::BluePhase )
-            {
-                //printf(" BLUE PAHSE FORMULATION DISABLED IN %s\n",__func__);
-                //exit(1);
-                assemble_prev_rhs_K2(RHS, *qn, *v, *mat_par, *simu, geom);
-            }
+            assemble_prev_rhs(RHS, *qn, *v, *mat_par, *simu, geom );
         }
         // CLEAR MATRIX, L AND dq
         K = 0;
@@ -145,8 +137,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         fflush( stdout );
 
         // PANIC!! if looks like no convergence
-        if (newton_iter > settings->getQ_Newton_Panic_Iter() )
-        {
+        if (newton_iter > settings->getQ_Newton_Panic_Iter() ){
             printf("Newton in distress!! - reducing time step by a factor of %f\n", settings->getQ_Newton_Panic_Coeff() );
             simu->setdt(settings->getQ_Newton_Panic_Coeff() * simu->getdt() );
             printf("new time step is : %e s.\n",simu->getdt());
