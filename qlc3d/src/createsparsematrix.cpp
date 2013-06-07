@@ -216,41 +216,39 @@ void setupSingleBlock(Geometry &geom,
     const idx npt = geom.t->getnNodes(); // 4 FOR LINEAR TETS
     vector<idx> eqn(npt,0);              // KEEPS EQU NODES FOR ELEMENT
 
-    for (idx it = 0 ; it < geom.t->getnElements() ; it++)
-    {
+    for (idx it = 0 ; it < geom.t->getnElements() ; it++){
         // MAKE SURE ONLY ELEMENTS WITH MATERIAL NUMBER MatNum ARE USED
         // IF MatNum HAS BEEN DEFINED
-        if (MatNum)
-            if ( MatNum != geom.t->getMaterialNumber(it)  )
+        if (MatNum){
+            if ( MatNum != geom.t->getMaterialNumber(it)  ){
                 continue;
+            }
+        }
 
         idx* nn = geom.t->getPtrToElement(it); // SHORTCUT TO ELEMENT NODES
 
         // CONVERT TO EQU NODES FOR THIS ELEMENT
-        for (idx i = 0 ; i < npt ;++i)
+        for (idx i = 0 ; i < npt ;++i){
             eqn[i] = sol.getEquNode( nn[i] );
+        }
 
         // ADD EQU NODES TO MATRIX
-        for (idx i = 0 ; i < npt ; ++i)
-        {
+        for (idx i = 0 ; i < npt ; ++i){
             // IGNORE FIXED NODES
-            if ( eqn[i] == NOT_AN_INDEX )
+            if ( eqn[i] == NOT_AN_INDEX ){
                 continue;
+            }
 
-            mm.addNonZero(eqn[i],eqn[i]); // DIAGONAL
-            for (idx j = i+1 ; j < npt ; ++j )
-            {
-                if (eqn[j] == NOT_AN_INDEX)
+            mm.addNonZero(eqn[i],eqn[i]); // DIAGONAL i,i
+            for (idx j = i+1 ; j < npt ; ++j ){
+                if (eqn[j] == NOT_AN_INDEX){ // IGNORE FIXED NODES
                     continue;
+                }
                 mm.addNonZero(eqn[i], eqn[j]);
                 mm.addNonZero(eqn[j], eqn[i]);
             }
         }
     }
-
-
-
-
 }
 
 
@@ -261,9 +259,7 @@ SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
 {
     // CHECK WHETHER POTENTIAL WILL NEED TO BE CALCULATED
     // IF YES MAKE MATRIX, IF NOT CREATE EMPTY MATRIX
-    if ( electrodes.getCalcPot() )
-    {
-
+    if ( electrodes.getCalcPot() ){
         const idx N = sol.getnFreeNodes();
         cout << "Matrix size : " << N <<"x"<<N; fflush(stdout);
         SpaMtrix::MatrixMaker mm(N,N);

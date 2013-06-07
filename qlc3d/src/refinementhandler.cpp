@@ -4,6 +4,9 @@
 #include <refinement.h> // declares autorefinement etc.
 #include <list>
 #include <qlc3d.h>
+
+#include <spamtrix_ircmatrix.hpp>
+
 void handleMeshRefinement(std::list<Event*>& refEvents,
                           Geometries& geometries,
                           SolutionVectors& solutionvectors,
@@ -11,8 +14,8 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
                           Alignment& alignment,
                           Electrodes& electrodes,
                           LC& lc,
-                          SparseMatrix& Kpot,
-                          SparseMatrix& Kq
+                          SpaMtrix::IRCMatrix &Kpot,
+                          SpaMtrix::IRCMatrix &Kq
                           )
 {
 
@@ -20,8 +23,7 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
     // MAKE LIST OF ALL REFINFO OBJECTS THAT ARE HANDLES NOW
     std::list<RefInfo> refInfos;
     std::list<Event*>::iterator evitr = refEvents.begin();
-    for ( ; evitr!= refEvents.end() ; ++evitr)
-    {
+    for ( ; evitr!= refEvents.end() ; ++evitr){
         RefInfo* ref = static_cast<RefInfo*>( (*evitr)->getEventDataPtr() );
         refInfos.push_back( *ref );
     }
@@ -42,8 +44,7 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
             );
 
     // DELETE ALL REFINEMENT EVENTS. ALWAYS
-    for (evitr = refEvents.begin() ; evitr != refEvents.end() ; ++evitr)
-    {
+    for (evitr = refEvents.begin() ; evitr != refEvents.end() ; ++evitr){
         delete (*evitr);
     }
 
@@ -52,7 +53,21 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
     // FOR Q-TENSOR AND POTENTIAL
     if (isRefined)
     {
-      /*// DISABLED DURING SPAMTRIX MIGRATION
+        std::cout << "creating new matrixes" << std::endl;
+
+
+        std::cout << "old size: " << Kpot.getNumRows() <<", " << Kpot.getNumCols() << std::endl;
+        Kpot.clear();
+        Kpot = createPotentialMatrix(*geometries.geom,
+                                     *solutionvectors.v,
+                                     0,
+                                     electrodes);
+
+        std::cout << "new size: " << Kpot.getNumRows() <<", " << Kpot.getNumCols() << std::endl;
+        std::cout << "exiting in " << __func__ << " need to make new matrix " << std::endl;
+        exit(-1979);
+
+        /*// DISABLED DURING SPAMTRIX MIGRATION
         Kpot.PrintInfo();
 
         printf("recreating matrixes for: "); fflush(stdout);
@@ -80,8 +95,8 @@ void handlePreRefinement(std::list<Event*>& refEvents,
                          Alignment& alignment,
                          Electrodes& electrodes,
                          LC& lc,
-                         SparseMatrix& Kpot,
-                         SparseMatrix& Kq)
+                         SpaMtrix::IRCMatrix &Kpot,
+                         SpaMtrix::IRCMatrix &Kq)
 {
 // PRE REFINMENT MODIFICATIONS TO THE MESH CARRY THROUGH THE
 // REST OF THE SIMULATION. THAT IS, THE INITIAL GEOMETRY IS

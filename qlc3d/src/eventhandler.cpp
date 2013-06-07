@@ -302,7 +302,7 @@ void handleEvents(EventList& evel,          // EVENT LIST
 // IF MESH REFINEMENT
     if (refineMesh)
     {
-       /*
+       //*
         handleMeshRefinement(refEvents,
                              geometries,
                              solutionvectors,
@@ -312,7 +312,7 @@ void handleEvents(EventList& evel,          // EVENT LIST
                              lc,
                              Kpot,
                              Kq); // defined in refinementhandler.cpp
-    */
+    //*/
 }
 
 // IF ELECTRODE POTENTIALS HAVE CHANGED, POTENTIALS MUST BE RECALCULATED

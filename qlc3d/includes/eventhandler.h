@@ -78,9 +78,10 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
                           Alignment& alignment,
                           Electrodes& electrodes,
                           LC& lc,
-                          SparseMatrix& Kpot,
-                          SparseMatrix& Kq
+                          SpaMtrix::IRCMatrix &Kpot,
+                          SpaMtrix::IRCMatrix &Kq
                           );
+
 void handlePreRefinement(std::list<Event*>& refEvents,
                           Geometries& geometries,    // PTRS TO MESHES
                           SolutionVectors& solutionvectors,
@@ -88,7 +89,7 @@ void handlePreRefinement(std::list<Event*>& refEvents,
                           Alignment& alignment,
                           Electrodes& electrodes,
                           LC& lc,
-                          SparseMatrix& Kpot,
-                          SparseMatrix& Kq
+                          SpaMtrix::IRCMatrix &Kpot,
+                          SpaMtrix::IRCMatrix &Kq
                           );
 #endif // EVENTHANDLER_H
