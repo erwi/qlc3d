@@ -890,7 +890,7 @@ void readRefinement(Reader& reader,
             // EVENTS HAVE BEEN DEFINED ADD EVENT(s) TO EVENT LIST
 
             // IF EXPLICIT ITERATIOSN ARE DEFINED, BREAK THEM TO SEPARATE EVENT
-            if (iterations.empty() ) {
+            if (!iterations.empty() ) {
                 for (size_t j = 0 ; j < iterations.size() ; j++){
                     unsigned int itr = (unsigned int) iterations[j];
                     RefInfo* refinfo = new RefInfo(type);

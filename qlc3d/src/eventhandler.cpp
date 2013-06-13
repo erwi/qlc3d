@@ -167,9 +167,8 @@ void handleInitialEvents(EventList& evel,          // EVENT LIST
             exit(1);
         }
     }
-    if (refineMesh)
-    {
-        /*
+    if (refineMesh){
+
         handlePreRefinement(refEvents,
                             geometries,
                             solutionvectors,
@@ -179,7 +178,7 @@ void handleInitialEvents(EventList& evel,          // EVENT LIST
                             lc,
                             Kpot,
                             Kq); // defined in refinementhandler.cpp
-                            */
+
     }
 // ALWAYS CALCULATE INITIAL POTENTIAL
     calcpot3d( Kpot,
