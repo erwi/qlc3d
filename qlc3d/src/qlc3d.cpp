@@ -238,35 +238,24 @@ int main(int argc, char* argv[]){
     //	CREATE GEOMETRY
     //	NEED 3 GEOMETRY OBJECTS WHEN USING MESH REFINEMENT
     // ================================================================
-    Geometry geom1 = Geometry();	// working geometry
-    Geometry geom_orig = Geometry();    // original, loaded from file
-    //Geometry geom_prev = Geometry();    // geometry from previous ref. iteration
+    Geometry geom1 = Geometry();	    // empty working geometry object
+    Geometry geom_orig = Geometry();    // empty original geom object, loaded from file
     prepareGeometry(geom_orig, simu, alignment);   // mesh file is read and geometry is loaded in this function (in inits.cpp)
-    //geom_prev.setTo( &geom_orig);	    // for first iteration, geom_prev = geom_orig
-    geom1.setTo( &geom_orig);
-    //Refine(geom_orig, geom_prev, geom1 , &meshrefinement);
-
-    //geom_orig.setTo( &geom1);
-    //geom_prev.setTo( &geom_orig);	    // for first iteration, geom_prev = geom_orig
-    //geom1.setTo( &geom_orig);
+    geom1.setTo(&geom_orig);            // in the beginning working geometry is original
 
     // SET CONVENIENCE STRUCT OF POINTERS
     Geometries geometries;
     geometries.geom = &geom1;
     geometries.geom_orig = &geom_orig;
-    //geometries.geom_prev = &geom_prev;
-
     // ==============================================
     //
     //	POTENTIAL SOLUTION DATA
     //
     //================================================
-
-    cout << "Creating V...";
+    cout << "Creating V..."; fflush(stdout);
     SolutionVector v( (idx) geom1.getnp() );
     v.allocateFixedNodesArrays( geom1 );
     v.setPeriodicEquNodes( &geom1 ); // periodic nodes
-
     cout << "OK"<<endl;
 
     // =============================================================
@@ -275,18 +264,15 @@ int main(int argc, char* argv[]){
     //
     //==============================================================
     // create vector for 5 * npLC Q-tensor components
-    cout << "Creating Q..." ;
+    cout << "Creating Q..."; fflush(stdout);
     SolutionVector q(geom1.getnpLC(),5);    //  Q-tensor for current time step
     SolutionVector qn(geom1.getnpLC(),5);   //  Q-tensor from previous time step
-
     SetVolumeQ(&q, &lc, &boxes, geom1.getPtrTop());
     setSurfacesQ(&q, &alignment, &lc, &geom1);
 
     //  LOAD Q FROM RESULT FILE
-    if (!simu.getLoadQ().empty() )
-    {
+    if (!simu.getLoadQ().empty() ){
         WriteResults::ReadResult(simu, q);
-
         setStrongSurfacesQ(&q, &alignment, &lc, &geom1); // over writes surfaces with user specified values
     }
     q.setFixedNodesQ(&alignment, geom1.e);  // set fixed surface anchoring
@@ -302,16 +288,13 @@ int main(int argc, char* argv[]){
     solutionvectors.v = &v;
 
     // Make matrices for potential and Q-tensor..
-    cout << "Creating sparse matrix for potential..." << endl;
+    cout << "Creating sparse matrix for potential..."; fflush(stdout);
     SpaMtrix::IRCMatrix Kpot = createPotentialMatrix(geom1,v,0,electrodes);
-    cout << "potential matrix OK"<< endl;
+    cout << "OK"<< endl;
 
-    cout << "Creating matrix for Q-tensor..." << endl;
+    cout << "Creating matrix for Q-tensor..."; fflush(stdout);
     SpaMtrix::IRCMatrix Kq = createQMatrix(geom1, q, MAT_DOMAIN1);
-    cout << "Q-tensor matrix OK" << endl;
-
-
-
+    cout << "OK" << endl;
     //********************************************************************
     //*
     //*		Save Initial configuration and potential

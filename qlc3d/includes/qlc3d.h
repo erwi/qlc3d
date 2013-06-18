@@ -26,8 +26,8 @@
 // SPAMTRIX INCLUDES
 //#include <spamtrix_ircmatrix.hpp>
 
-using std::vector;
-using std::string;
+//using std::vector;
+//using std::string;
 namespace SpaMtrix{
     class IRCMatrix;
     class Vector;

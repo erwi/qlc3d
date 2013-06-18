@@ -47,43 +47,17 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
     for (evitr = refEvents.begin() ; evitr != refEvents.end() ; ++evitr){
         delete (*evitr);
     }
-
-
     // IF MESH HAS BEEN REFINED NEED TO RECREATE MATRIXES
     // FOR Q-TENSOR AND POTENTIAL
-    if (isRefined)
-    {
-        std::cout << "creating new matrixes" << std::endl;
-
-
-        std::cout << "old size: " << Kpot.getNumRows() <<", " << Kpot.getNumCols() << std::endl;
-        Kpot.clear();
+    if (isRefined){
+        std::cout << "creating new matrixes, V..."; fflush(stdout);
         Kpot = createPotentialMatrix(*geometries.geom,
                                      *solutionvectors.v,
                                      0,
                                      electrodes);
-
-        std::cout << "new size: " << Kpot.getNumRows() <<", " << Kpot.getNumCols() << std::endl;
-        std::cout << "exiting in " << __func__ << " need to make new matrix " << std::endl;
-        exit(-1979);
-
-        /*// DISABLED DURING SPAMTRIX MIGRATION
-        Kpot.PrintInfo();
-
-        printf("recreating matrixes for: "); fflush(stdout);
-        Kpot.~SparseMatrix();
-        Kq.~SparseMatrix();
-        printf("V..."); fflush(stdout);
-        Kpot = *createSparseMatrix(*geometries.geom,
-                                   *solutionvectors.v);
-        printf("OK. Q...");fflush(stdout);
-        Kq = *createSparseMatrix(*geometries.geom,
-                                 *solutionvectors.q,
-                                 MAT_DOMAIN1);
-       Kpot.PrintInfo();
-
-        printf("OK\n"); fflush(stdout);
-        */
+        std::cout << "Q..."; fflush(stdout);
+        Kq = createQMatrix(*geometries.geom, *solutionvectors.q);
+        std::cout << "OK" << std::endl;
     }
 }
 
