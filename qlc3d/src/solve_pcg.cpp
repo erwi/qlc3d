@@ -1,10 +1,7 @@
-//#include <sparsematrix.h>
 #include <settings.h>
 #include <stdlib.h>
 #include <iostream>
-
 #include <simu.h>
-
 
 #include <spamtrix_ircmatrix.hpp>
 #include <spamtrix_vector.hpp>
@@ -24,23 +21,21 @@ void solve_QTensor(SpaMtrix::IRCMatrix &K,
     idx maxiter 	= settings.getQ_GMRES_Maxiter();
     idx restart 	= settings.getQ_GMRES_Restart();
     real toler      = settings.getQ_GMRES_Toler();
-
-
     SpaMtrix::IterativeSolvers solver(maxiter, restart, toler);
 
-    if (simu.getQMatrixSolver() == Simu::PCG )
-    {
+    if (simu.getQMatrixSolver() == Simu::PCG ){
         printf("PCG...");
         SpaMtrix::DiagPreconditioner M(K);
-        if (!solver.pcg(K,x,b,M) )
+        if (!solver.pcg(K,x,b,M) ){
             printf("PCG did not converge in %i iterations\nTolerance achieved is %f\n", solver.maxIter, solver.toler);
+        }
     }
-    else if (simu.getQMatrixSolver() == Simu::GMRES)
-    {
+    else if (simu.getQMatrixSolver() == Simu::GMRES){
         printf("GMRES...");
         SpaMtrix::DiagPreconditioner M(K);
-        if (!solver.gmres(K,x,b,M))
+        if (!solver.gmres(K,x,b,M)){
             printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",solver.maxIter,solver.toler);
+        }
     }
 
 }

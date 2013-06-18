@@ -660,8 +660,7 @@ void Refine(Geometry& geom,                 // SOURCE (OLD) GEOMETRY
     Num_Ref_Tet nrt;    // TYPE COUNTERS
     find_tet_refinement_types( i_tet, nrt); // COUNTS HOW MANY OF EACH EXIST
 
-    if (nrt.red ==  0) // EXIT IF NO RED TETS
-    {
+    if (nrt.red ==  0){ // EXIT IF NO RED TETS
         printf("error int %s, no red tetrahedra selected - bye!\n", __func__);
         exit(1);
     }
@@ -675,7 +674,6 @@ void Refine(Geometry& geom,                 // SOURCE (OLD) GEOMETRY
     vector < set <idx> > t_to_l; // index from tets to lines
     t_to_l.clear();
     expand_refinement_region(i_tet, nrt, lines, geom, t_to_l );
-
     //======================================
     //  3.  FIND TRIANGLE REFINEMENT TYPES
     //      THESE DO NOT AFFECT TET TYPES AND

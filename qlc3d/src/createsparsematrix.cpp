@@ -3,7 +3,6 @@
 #include <geometry.h>
 #include <material_numbers.h>
 #include <solutionvector.h>
-#include <sparsematrix.h>
 #include <settings.h>
 #include <list>
 #include <vector>
@@ -42,9 +41,8 @@ void print_dangly_set( vector < set <unsigned int> > dl){
 
 // CREATES DANGLY FROM LINES
 void create_dangly_matrix(vector <Line>& lines,
-                          vector< list <unsigned int> >& dangly)
-{
-/*! Creates a dangly sparse matrix of node pairs (i.e. lines)*/
+                          vector< list <unsigned int> >& dangly){
+    /*! Creates a dangly sparse matrix of node pairs (i.e. lines)*/
 
     // FIND MAXIMUM NODE NUMBER IN lines
     size_t MaxNode = 0;
@@ -79,54 +77,38 @@ void create_dangly_matrix(vector <Line>& lines,
         dangly[ind].sort();
         dangly[ind].unique();
     }
-
-
-
 }
 
 // CREATES DANGLY FROM GEOMETRY
 void create_dangly_matrix(vector< list <idx> > & dangly,
-
-                            const Geometry& geom,
-                            const SolutionVector& sol,
-                            const idx& MatNum)
-{
+                          const Geometry& geom,
+                          const SolutionVector& sol,
+                          const idx& MatNum){
     /* Creates a dangly sparse matrix of a Geometry, SolutionVector and material number */
 
     dangly.clear();
     list <idx> empty;
-
-
     dangly.assign( sol.getnFreeNodes() , empty ); // pre-allocate columns
-
     const idx npt = geom.t->getnNodes();
     vector <idx> eqn(npt, 0);
-
     eqn.resize(npt);
-    for (idx it = 0 ; it < geom.t->getnElements() ; it++) // LOOP OVER EACH ELEMENT
-    {
+
+    for (idx it = 0 ; it < geom.t->getnElements() ; it++){ // LOOP OVER EACH ELEMENT
         if ( (!MatNum) ||    // if ignore material numebr OR
-             ( MatNum == geom.t->getMaterialNumber(it))  )// if correct material
-        {
+             ( MatNum == geom.t->getMaterialNumber(it))){// if correct material
             idx* nn = geom.t->getPtrToElement( it );    // shrotcut to element node indexes
-
-            for (unsigned int i = 0 ; i < npt ; i++ )   // GET EQU NODES FOR THIS ELEMENT
+            for (unsigned int i = 0 ; i < npt ; i++ ){   // GET EQU NODES FOR THIS ELEMENT
                 eqn[i] = sol.getEquNode( nn[i] );
-
+            }
 
             // LOOP OVER LOCAL NODES
-            for (idx i = 0 ; i < npt ; i++)
-            {
+            for (idx i = 0 ; i < npt ; i++){
                 // DONT INSERT FIXED NODES
-                if (eqn[i] != NOT_AN_INDEX )
-                {
+                if (eqn[i] != NOT_AN_INDEX ){
                     dangly[eqn[i]].push_back( eqn[i] ); // DIAGONAL ENTRY
-
-                    for (unsigned int j = i+1 ; j < npt ; j++)
-                    {
+                    for (unsigned int j = i+1 ; j < npt ; j++){
                         // IF NODE IS NOT FIXED, CAN INSERT OFF DIAGONAL TOO
-                        if (eqn[j] != NOT_AN_INDEX)
-                        {
+                        if (eqn[j] != NOT_AN_INDEX){
                             dangly[eqn[i]].push_back( eqn[j] );
                             dangly[eqn[j]].push_back( eqn[i] );
                         }// end if j not fixed
@@ -149,14 +131,13 @@ void create_dangly_matrix(vector< list <idx> > & dangly,
         dangly[i].unique(); // remove repetitions
     }
 }
-
+/*
 void convert_sets_to_arrays( vector<list <unsigned int> > &ds,
                              const unsigned int dim,
-                             SparseMatrix& K)
-{
-    /*! Converts dangly matrix linked lists to a proper column copressed sparse matrix. The
-        Sparse matrix is expanded by the factor 'dim'. i.e., the row and column count are multiplied
-        by it and the sparsity pattern is copied to fill the new rows/cols.*/
+                             SparseMatrix& K){
+    // Converts dangly matrix linked lists to a proper column copressed sparse matrix. The
+    //    Sparse matrix is expanded by the factor 'dim'. i.e., the row and column count are multiplied
+    //    by it and the sparsity pattern is copied to fill the new rows/cols.
 
     // CALCULATE AMOUNT OF MEMRY NEEDED
     // find nnz
@@ -202,7 +183,7 @@ void convert_sets_to_arrays( vector<list <unsigned int> > &ds,
     K.MakeSparseMatrix(ncols_f,ncols_f, nnz, Ir, Jc);
 
 }
-
+*/
 
 
 
@@ -210,8 +191,7 @@ void convert_sets_to_arrays( vector<list <unsigned int> > &ds,
 void setupSingleBlock(Geometry &geom,
                       SolutionVector &sol,
                       const idx &MatNum,
-                      SpaMtrix::MatrixMaker &mm)
-{
+                      SpaMtrix::MatrixMaker &mm){
     // BOOK-KEEPING OF EQU-NODES
     const idx npt = geom.t->getnNodes(); // 4 FOR LINEAR TETS
     vector<idx> eqn(npt,0);              // KEEPS EQU NODES FOR ELEMENT
@@ -255,8 +235,7 @@ void setupSingleBlock(Geometry &geom,
 SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
                                           SolutionVector &sol,
                                           const int &MatNum,
-                                          const Electrodes &electrodes)
-{
+                                          const Electrodes &electrodes){
     // CHECK WHETHER POTENTIAL WILL NEED TO BE CALCULATED
     // IF YES MAKE MATRIX, IF NOT CREATE EMPTY MATRIX
     if ( electrodes.getCalcPot() ){
@@ -277,31 +256,28 @@ SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
 
 
 
-    SpaMtrix::IRCMatrix createQMatrix(Geometry &geom,
-                                      SolutionVector &q,
-                                      const int &MatNum)
-    {
-
-        SpaMtrix::MatrixMaker mm(q.getnFreeNodes(),q.getnFreeNodes());
-
-        const idx N = q.getnFreeNodes() * 5;
-        cout << "Matrix Size : " << N <<"x" << N; fflush(stdout);
-        setupSingleBlock(geom, q, MatNum, mm);  // CREATE SPARSITY PATTERN FOR COMPONENT q1
-        mm.expandBlocks(4);                     // EXPAND SPARSITY PATTERN FOR q2->q5 COMPONENTS
-        idx nnz = mm.calcNumNonZeros();
-        cout << " nnz = " << nnz << endl;
-
-        return mm.getIRCMatrix();
-    }
-
-    SparseMatrix* createSparseMatrix(vector <Line>& lines){
-        /*! Crates a SparseMatrix object where non-zeros are determined by the node indexes in the input parameter lines*/
+SpaMtrix::IRCMatrix createQMatrix(Geometry &geom,
+                                  SolutionVector &q,
+                                  const int &MatNum){
+    SpaMtrix::MatrixMaker mm(q.getnFreeNodes(),q.getnFreeNodes());
+    const idx N = q.getnFreeNodes() * 5;
+    cout << "Matrix Size : " << N <<"x" << N; fflush(stdout);
+    setupSingleBlock(geom, q, MatNum, mm);  // CREATE SPARSITY PATTERN FOR COMPONENT q1
+    mm.expandBlocks(4);                     // EXPAND SPARSITY PATTERN FOR q2->q5 COMPONENTS
+    idx nnz = mm.calcNumNonZeros();
+    cout << " nnz = " << nnz << endl;
+    return mm.getIRCMatrix();
+}
+/*
+SparseMatrix* createSparseMatrix(vector <Line>& lines){
+    // Crates a SparseMatrix object where non-zeros are determined by the node indexes in the input parameter lines
 
 
-        vector <list <idx> > dangly;
-        create_dangly_matrix( lines , dangly); // CREATE DANGLY SET MATRIX OF NODE PAIRS
+    vector <list <idx> > dangly;
+    create_dangly_matrix( lines , dangly); // CREATE DANGLY SET MATRIX OF NODE PAIRS
 
-        SparseMatrix* K = new SparseMatrix();
-        convert_sets_to_arrays( dangly, 1, *K );
-        return K;
-    }
+    SparseMatrix* K = new SparseMatrix();
+    convert_sets_to_arrays( dangly, 1, *K );
+    return K;
+}
+*/

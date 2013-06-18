@@ -43,20 +43,16 @@ bool RefReg::setType(const std::string &type){
             // Determine FIXLC NUMBER
             size_t pos = type.find_first_of("123456789");
             if ( pos < std::string::npos ){
-
                 std::stringstream ss; // convert string to number
                 ss << type.at(pos);
                 int fixlcnum;
                 ss >> fixlcnum;
                 this->material_num += FIXLCN_TO_MATNUM( fixlcnum ); // get actual material number
-                //printf(" REFINEMENT NEAR FIXLC%i -> matnum = %i\n", fixlcnum, material_num);
-                //exit(1);
             }
             else{
                 printf("error - %s is not a REFREG.Type - bye\n", type.c_str() );
                 exit(1);
             }
-
         }
         // Check if ELECTRODE
         else
@@ -89,18 +85,14 @@ void RefReg::addZ(const vector <double>& z){
     Z.insert(Z.end() , z.begin() , z.end() );
 }
 
-void RefReg::PrintRefinementRegion()
-{
-	//printf("Type : %s\n",Type.c_str());
-	
-	
+void RefReg::PrintRefinementRegion(){
+/*!Debug printing*/
 	vector <double> :: iterator litr;
 	printf("Params:");
 	for (litr = Params.begin() ; litr != Params.end() ; ++litr)
 		printf(" %f",*litr);
 
-
-	printf("\nDistance:");
+    printf("\nDistance:");
 	for (litr = Distance.begin() ; litr != Distance.end() ; ++litr)
 		printf(" %f",*litr);
 	
@@ -116,7 +108,6 @@ void RefReg::PrintRefinementRegion()
 	for (litr = Z.begin() ; litr != Z.end() ; ++litr)
 		printf(" %f",*litr);
 	printf("\n");
-	
 }
 
 int RefReg::getNumIterations(){
@@ -233,20 +224,15 @@ int MeshRefinement::getMaxNumRefIterations(){
     int max = 0;
     for (ritr = RefinementRegion.begin() ; ritr !=RefinementRegion.end() ; ++ritr)
 	max = ritr->getNumIterations() > max ? ritr->getNumIterations() : max;
-
     return max;
 }
 
 int MeshRefinement::getMaxNumAutoRefIterations(){
 /*! returns maximum number of Auto-refinement iterations */
-
     vector <AutoRef>::iterator itr;
     int max = 0;
-
     for ( itr = AutoRefinement.begin() ; itr!= AutoRefinement.end() ; ++itr){
-       // itr->printAutoref();
         max = (int) itr->getNumIterations() > max ? itr->getNumIterations() : max;
-       // printf(" Meshrefinement::getmaxnumautoref... ax  = %i \n", max);
     }
     return max;
 }
@@ -264,10 +250,9 @@ int MeshRefinement::getMaxNumEndRefIterations(){
 
 
 bool MeshRefinement::isRefinementIteration(const int &iteration){
-
+/*! determines wheteher current iteration is a refinement iteration*/
     vector<AutoRef>::iterator itr;
     for (itr = this->AutoRefinement.begin() ; itr!= this->AutoRefinement.end() ; ++itr){
-       // itr->printAutoref();
         if ( itr->isRefIter( iteration) ) return true;
     }
     return false;

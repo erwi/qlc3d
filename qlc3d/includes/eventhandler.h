@@ -6,7 +6,6 @@
 #include <eventlist.h>
 #include <simu.h>
 #include <meshrefinement.h>
-//#include <sparsematrix.h>
 #include <lc.h>
 #include <settings.h>
 #include <calcpot3d.h>

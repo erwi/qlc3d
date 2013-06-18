@@ -5,7 +5,6 @@
 
 #include <solutionvector.h>
 #include <lc.h>
-#include <sparsematrix.h>
 #include <settings.h>
 #include <geometry.h>
 #include <shapefunction3d.h>
@@ -23,7 +22,7 @@ double rt2 = sqrt(2.0);
 double rt6 = sqrt(6.0);
 
 //void init_shapes_surf();
-void potasm(SolutionVector *v, SolutionVector* q, LC* lc,Mesh *mesh, double *p, SparseMatrix *K, double* L);
+//void potasm(SolutionVector *v, SolutionVector* q, LC* lc,Mesh *mesh, double *p, SparseMatrix *K, double* L);
 
 
 void assemble_volume(double *p,

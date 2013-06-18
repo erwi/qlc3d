@@ -3,11 +3,12 @@
 #include <geometry.h>
 #include <line.h>
 #include <vector>
-#include <sparsematrix.h>
 #include <qlc3d.h>
 #include <globals.h>
 
-
+#include <spamtrix_ircmatrix.hpp>
+#include <spamtrix_matrixmaker.hpp>
+/*
 void create_node_number_matrix(SparseMatrix*& nnumbers,
 			       Geometry& geom,
 			       vector <Line>& lines){
@@ -23,8 +24,23 @@ void create_node_number_matrix(SparseMatrix*& nnumbers,
 	nnumbers->sparse_set( n1 , n2 , nold + i ); // adding same node on both diagonals is wasteful
 	nnumbers->sparse_set( n2 , n1 , nold + i ); // but may make it easier to access matrix as M(i,j) or M(j,i)
     }
-
 }
+*/
+SpaMtrix::IRCMatrix createNodeNumbersMatrix(Geometry &geom, vector<Line> &lines){
+/*!Creates sparse matrix with node numbers for new nodes*/
+
+    // USING A SPARSE MATRIX OF DOUBLE TYPE INSTED OF UNSIGNED INT MAY BE BAD IDEA...
+    unsigned int nold = geom.getnp();
+    SpaMtrix::MatrixMaker mm(nold,nold);
+    unsigned int i = 0;
+    for (const auto &l : lines ){
+        mm.addNonZero(l.L[0], l.L[1], nold+i);
+        mm.addNonZero(l.L[1], l.L[0], nold+i);
+        i++;
+    }
+    return mm.getIRCMatrix();
+}
+
 void create_new_coordinates( Geometry& geom,
                              vector <Line>& lines,
                              vector <double>& new_p
@@ -58,7 +74,8 @@ void make_new_green1_tet( vector <idx>& new_t,
                           const idx& elem ,
                           vector< Line>& lines,
                           vector< set <unsigned int> >& t_to_l,
-                          SparseMatrix* nnodes){
+                          const SpaMtrix::IRCMatrix &nnodes){
+                          //SparseMatrix* nnodes){ <-
 
     idx ln = *( t_to_l[elem].begin() ); // index to the only bisect line
 
@@ -69,7 +86,7 @@ void make_new_green1_tet( vector <idx>& new_t,
     no.push_back( (idx) lines[ln].L[1] );
     geom.t->CompleteNodesSet( elem , no );
 
-    nn.push_back( (unsigned int) nnodes->sparse_get(nA , nB) );
+    nn.push_back( (unsigned int) nnodes.sparse_get(nA, nB));//nnodes->sparse_get(nA , nB) ); <-
 
     // MAKE 2 NEW TETS
     // TET1 A,C,D,AB
@@ -89,7 +106,8 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
                           const idx& elem ,
                           vector< Line>& lines,
                           vector< set <idx> >& t_to_l,
-                          SparseMatrix* nnodes)
+                          const SpaMtrix::IRCMatrix &nnodes)
+                          //SparseMatrix* nnodes)
 {
     //GENERATE LIST OF OLD AND NEW NODES
     vector <idx> no; // old;
@@ -124,10 +142,10 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
         nC = lines[*itr].L[0];
         nD = lines[*itr].L[1];
 
-        nn.push_back( nnodes->sparse_get( nA, nB) ); // AB
+        nn.push_back((unsigned int) nnodes.sparse_get(nA, nB));// nnodes->sparse_get( nA, nB) ); // AB
         unsigned int temp[4] = {0,0,0,0}; // AC, AD, BC, BD
         nn.insert( nn.end() ,temp, temp+4 ); // PADDING NODES, NOT USED
-        nn.push_back(nnodes->sparse_get( nC, nD) ); // CD
+        nn.push_back((unsigned int) nnodes.sparse_get(nC, nD));//nnodes->sparse_get( nC, nD) ); // CD
 
         tet[0] = nA;
         tet[1] = nAB;
@@ -148,10 +166,7 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
         tet[13] = nB;
         tet[14] = nD;
         tet[15] = nCD;
-        //printf("nt0 = %u, %u, %u, %u\n", tet[0], tet[1], tet[2], tet[3] );
-        //printf("nt1 = %u, %u, %u, %u\n", tet[4], tet[5], tet[6], tet[7] );
-        //printf("nt2 = %u, %u, %u, %u\n", tet[8], tet[9], tet[10], tet[11] );
-        //printf("nt3 = %u, %u, %u, %u\n", tet[12], tet[13], tet[14], tet[15] );
+
         int m = geom.t->getMaterialNumber(elem);
         mat[0] = m;
         mat[1] = m;
@@ -196,8 +211,8 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
             geom.t->CompleteNodesSet( elem, no);
             //printf("n = %u, %u, %u, %u\n", nA, nB, nC, nD);
 
-            nn.push_back( nnodes->sparse_get(nA, nB) );
-            nn.push_back( nnodes->sparse_get(nA, nC) );
+            nn.push_back((unsigned int) nnodes.sparse_get(nA, nB) ); // <-
+            nn.push_back((unsigned int) nnodes.sparse_get(nA, nC) ); // <-
 
             tet[ 0 ] = nA;
             tet[ 1 ] = nAB;
@@ -213,9 +228,6 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
             tet[ 9 ] = nB;
             tet[ 10] = nD;
             tet[ 11] = nC;
-            //printf("nt0 = %u, %u, %u, %u\n", tet[0], tet[1], tet[2], tet[3] );
-            //printf("nt1 = %u, %u, %u, %u\n", tet[4], tet[5], tet[6], tet[7] );
-            //printf("nt2 = %u, %u, %u, %u\n", tet[8], tet[9], tet[10], tet[11] );
 
             int m = geom.t->getMaterialNumber(elem);
             mat[0] = m;
@@ -244,7 +256,8 @@ void make_new_red_tet( vector <idx>& new_t,
                        const unsigned int& elem ,
                        vector< Line>& lines,
                        vector< set <idx> >& t_to_l,
-                       SparseMatrix* nnodes){
+                       const SpaMtrix::IRCMatrix &nnodes){
+                       //SparseMatrix* nnodes){
 
     lines.begin(); // silence compiler warnings
     t_to_l.begin(); // NO WARNINGS
@@ -257,12 +270,12 @@ void make_new_red_tet( vector <idx>& new_t,
     for (int i = 0 ; i < 4 ; i++) no.push_back( geom.t->getNode( elem , i ) );
 
     // make new nodes list
-    nn.push_back( nnodes->sparse_get(nA,nB)); // AB
-    nn.push_back( nnodes->sparse_get(nA,nC)); // AC
-    nn.push_back( nnodes->sparse_get(nA,nD)); // AD
-    nn.push_back( nnodes->sparse_get(nB,nC)); // BC
-    nn.push_back( nnodes->sparse_get(nB,nD)); // BD
-    nn.push_back( nnodes->sparse_get(nC,nD)); // CD
+    nn.push_back((unsigned int) nnodes.sparse_get(nA,nB)); // AB <-
+    nn.push_back((unsigned int) nnodes.sparse_get(nA,nC)); // AC <-
+    nn.push_back((unsigned int) nnodes.sparse_get(nA,nD)); // AD <-
+    nn.push_back((unsigned int) nnodes.sparse_get(nB,nC)); // BC <-
+    nn.push_back((unsigned int) nnodes.sparse_get(nB,nD)); // BD <-
+    nn.push_back((unsigned int) nnodes.sparse_get(nC,nD)); // CD <-
 
 
     // CREATE 8 NEW ELEMENTS
@@ -288,7 +301,8 @@ void make_new_green3_tet( vector <idx>& new_t,
                           const idx& elem ,
                           vector< Line>& lines,
                           vector< set <idx> >& t_to_l,
-                          SparseMatrix* nnodes){
+                          const SpaMtrix::IRCMatrix &nnodes){
+                          //SparseMatrix* nnodes){
     // GENERATE LIST OF OLD AND NEW NODES
     vector <unsigned int> no ; // old
     vector <unsigned int> nn ; // new
@@ -309,10 +323,10 @@ void make_new_green3_tet( vector <idx>& new_t,
     geom.t->CompleteNodesSet( elem , no ); // get remaining node
 
     // POPULATE NEW NODES LIST
-    nn.push_back( (unsigned int) nnodes->sparse_get(nA, nB) ); // AB
-    nn.push_back( (unsigned int) nnodes->sparse_get(nA, nC) ); // AC
+    nn.push_back( (unsigned int) nnodes.sparse_get(nA, nB) ); // AB <-
+    nn.push_back( (unsigned int) nnodes.sparse_get(nA, nC) ); // AC <-
     nn.push_back( 0 ); // dummy AD
-    nn.push_back( (unsigned int) nnodes->sparse_get(nB, nC) ); // BC
+    nn.push_back( (unsigned int) nnodes.sparse_get(nB, nC) ); // BC <-
     //printf("newn = %u, %u, %u, %u", nAB, nAC, nAD, nBC);
     // MAKE 4 NEW TETS
     unsigned int tet[4*4] = { nA, nD, nAB, nAC,
@@ -337,7 +351,8 @@ void make_new_tri1(vector <idx>& new_e,
                    const idx& elem,
                    vector <Line>& lines,
                    vector <set <idx> >& e_to_l,
-                   SparseMatrix* nnodes
+                   const SpaMtrix::IRCMatrix &nnodes
+                   //SparseMatrix* nnodes
                    ){
     // GENERTE LIST OF OLD AND NEW NODES
     vector <unsigned int> no; //old
@@ -351,7 +366,7 @@ void make_new_tri1(vector <idx>& new_e,
     geom.e->CompleteNodesSet( elem , no );
 
     // MAKE NEW NODES LIST
-    nn.push_back( nnodes->sparse_get( nA, nB ) );
+    nn.push_back( (unsigned int) nnodes.sparse_get( nA, nB ) ); // <-
 
 
     // CREATE 2 NEW TRIANGLES
@@ -373,7 +388,8 @@ void make_new_tri2(vector <idx>& new_e,
                    const unsigned int& elem,
                    vector <Line>& lines,
                    vector <set <idx> >& e_to_l,
-                   SparseMatrix* nnodes
+                   const SpaMtrix::IRCMatrix &nnodes
+                   //SparseMatrix* nnodes
                    ){
     // GENERTE LIST OF OLD AND NEW NODES
     vector <unsigned int> no; //old
@@ -421,8 +437,8 @@ void make_new_tri2(vector <idx>& new_e,
     nC = nodes[0] > nodes[1]? nodes[0]:nodes[1]; // return larger
 
 
-    nn.push_back( nnodes->sparse_get( nA, nB ) );
-    nn.push_back( nnodes->sparse_get( nA, nC ) );
+    nn.push_back( nnodes.sparse_get( nA, nB ) ); // <-
+    nn.push_back( nnodes.sparse_get( nA, nC ) ); // <-
 
     printf("new nodes = %u, %u\n", nn[0] , nn[1] );
     // MAKE 3 NEW TRIANGLES
@@ -446,7 +462,8 @@ void make_new_tri3(vector <idx>& new_e,
                    const idx& elem,
                    vector <Line>& lines,
                    vector <set <idx> >& e_to_l,
-                   SparseMatrix* nnodes
+                   const SpaMtrix::IRCMatrix &nnodes
+                   //SparseMatrix* nnodes
                    ){
     lines.begin(); e_to_l.begin(); // NO COMPILER WARNINGS
     // GENERATE LIST OF OLD AND NEW NODES
@@ -458,10 +475,10 @@ void make_new_tri3(vector <idx>& new_e,
     no.push_back( geom.e->getNode( elem, 1) );
     no.push_back( geom.e->getNode( elem, 2) );
     // MAKE NEW NODES LIST
-    nn.push_back( nnodes->sparse_get(nA, nB) ); // AB
-    nn.push_back( nnodes->sparse_get(nA, nC) ); // AC
+    nn.push_back( nnodes.sparse_get(nA, nB) ); // AB <-
+    nn.push_back( nnodes.sparse_get(nA, nC) ); // AC <-
     nn.push_back( 0 );							// AD ,dummy, not used , D does not exist in tris
-    nn.push_back( nnodes->sparse_get(nB, nC) ); // BC
+    nn.push_back( nnodes.sparse_get(nB, nC) ); // BC <-
 
     // CREATE 4 NEW TRIANGLES
 
@@ -511,17 +528,16 @@ void create_new_elements(Geometry& geom,
 
     // MAKE NEW NODES FIRST. A SPARSE MATRIX IS USED TO MAP TWO
     // OLD NODES TO A NEW ONE
-    SparseMatrix* nnumbers;
+    //SparseMatrix* nnumbers; <-
 
-    create_node_number_matrix(nnumbers, geom, lines);
+    SpaMtrix::IRCMatrix nnumbers = createNodeNumbersMatrix(geom,lines);
+    //create_node_number_matrix(nnumbers, geom, lines); <-
 
     create_new_coordinates( geom, lines, new_p);
 
     // CREATE NEW TETRAHEDRA ELEMENTS
-    for (idx i = 0 ; i < (idx) i_tet.size() ; i++)
-    {
-        switch (i_tet[i])
-        {
+    for (idx i = 0 ; i < (idx) i_tet.size() ; i++){
+        switch (i_tet[i]){
         case (0):   // NON-REFINABLE TET. DO NOTHING
             break;
         case (GREEN1_TET):
@@ -543,27 +559,23 @@ void create_new_elements(Geometry& geom,
     }// end for i
 
     // CREATE NEW TRIANGLE ELEMENTS
-    for ( idx i = 0 ; i < (idx) i_tri.size() ; i++)
-    {
+    for ( idx i = 0 ; i < (idx) i_tri.size() ; i++){
 	if (i_tri[i] == 0){}// do nothing
-        else if ( i_tri[i] == 1)
-        {
+        else if ( i_tri[i] == 1){
             make_new_tri1( new_e, new_mat_e , geom, i, lines, e_to_l, nnumbers );
-	}
-        else if ( i_tri[i]== 2)
-        {
+        }
+        else if ( i_tri[i]== 2){
             make_new_tri2( new_e, new_mat_e , geom, i, lines, e_to_l, nnumbers );
-	}
-        else if ( i_tri[i] == 3)
-        {
+        }
+        else if ( i_tri[i] == 3){
             make_new_tri3 ( new_e, new_mat_e, geom , i , lines, e_to_l , nnumbers );
-	}
-	else{
+        }
+        else{
             printf("error - i_tri[%u] = %u - bye!\n", i , i_tri[i] );
             exit(1);
-	}
+        }
     }
-    delete nnumbers;
+    //delete nnumbers;
 }
 
 
