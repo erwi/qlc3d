@@ -809,13 +809,16 @@ void Mesh::listNodesOfMaterial(std::vector<idx> &nodes, const idx mat) const
 {
     // MAKES A LIST OF NODES BLEONGING TO ELEMENTS OF MATERIAL mat
     nodes.clear();
+    for (idx i = 0 ; i < getnElements() ; i++){
+        const idx curMat = this->getMaterialNumber(i);
 
-    for (idx i = 0 ; i < getnElements() ; i++)
-    {
-        if ( (this->getMaterialNumber(i) & mat ) == mat )
-        {
-            for (idx n = 0 ; n < this->getnNodes() ; n++)
-                nodes.push_back( (unsigned int) this->getNode(i, n) );
+        // THERE MAY BE A BUG HERE IN SOME CASES
+        const idx bitRes = curMat & mat;
+        if ( bitRes == mat ){
+            for (idx n = 0 ; n < this->getnNodes() ; n++){
+                const idx nodeNum= this->getNode(i,n); // nth node in ith element
+                nodes.push_back( nodeNum );
+            }
         }
     }
 
@@ -824,8 +827,32 @@ void Mesh::listNodesOfMaterial(std::vector<idx> &nodes, const idx mat) const
     std::vector< unsigned int> :: iterator u;
     u = unique( nodes.begin() , nodes.end() );
     nodes.erase( u , nodes.end() );
+}
+
+void Mesh::listFixLCSurfaces(std::vector<idx> &nodes, const idx FixLCNumber)const{
+
+#ifdef DEBUG
+    assert((FixLCNumber <=9) &&(FixLCNumber >0)); // valid FixLC surfaces are in range 1-9
+#endif
+
+    nodes.clear();
+    for(idx i = 0; i < getnElements(); i++){
+        const idx curMat = this->getMaterialNumber(i);
+        const idx curFixLCNum = curMat / MAT_FIXLC1;
+        if (curFixLCNum == FixLCNumber){ // if matching FixLC number
+            for (idx n = 0 ; n < this->getnNodes() ; n++){
+                const idx nodeNum = this->getNode(i,n);
+                nodes.push_back(nodeNum);
+            }
+
+        }// end if
+    }// end for i
+
+
 
 }
+
+
 
 /*
 void Mesh::FindIndexToMaterialNodes(idx mat_num, vector<idx> *index) const

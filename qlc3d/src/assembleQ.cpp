@@ -915,18 +915,17 @@ void assemble_surfaces(
 #ifndef DEBUG
 #pragma omp parallel for
 #endif
-    for (idx ie = 0 ; ie < e->getnElements() ; ie ++)
-    {
+    for (idx ie = 0 ; ie < e->getnElements() ; ie ++){
         int FixLCNum = e->getFixLCNumber(ie); // gets FixLC number for surface element ie
-        if ((FixLCNum > 0) && ( !alignment->IsStrong(FixLCNum-1) ) ) // if alignment surface
-        {
+        if ((FixLCNum > 0) && ( !alignment->IsStrong(FixLCNum-1) ) ){ // if alignment surface
             double lK[15][15];
             double lL[15];
+
+
+
+
             wk_localKL( e , ie , q , lL , lK , FixLCNum , alignment, lc , NodeNormals);
-
-            for (unsigned int i=0;i<15;i++)// LOOP OVER ROWS
-            {
-
+            for (unsigned int i=0;i<15;i++){// LOOP OVER ROWS
                 idx ri 	= e->getNode(ie,i%3) + npLC*(i/3);
                 idx eqr = q->getEquNode(ri);
                 if (eqr != NOT_AN_INDEX ) // IF NOT FIXED
@@ -934,6 +933,7 @@ void assemble_surfaces(
 #ifndef DEBUG
 #pragma omp atomic
 #endif
+
                     L[eqr]+=lL[i]*2e16;
 
                     for (unsigned int j=0;j<15;j++) // LOOP OVER COLUMNS

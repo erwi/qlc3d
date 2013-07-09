@@ -47,7 +47,7 @@ void SolutionVector::ClearFixed(){
 SolutionVector& SolutionVector::operator=(const SolutionVector& r)
 {
     if (this==&r)
-	return *this;
+        return *this;
 
     // CLEAR ALL DATA
     ClearAll();
@@ -230,16 +230,14 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
     // 1. First get index to all strong anchoring nodes
 
     vector <idx> ind_to_nodes;
-    for (int i = 0 ; i < alignment->getnSurfaces() ; i ++)
-    {
-        if (alignment->IsStrong(i))
-        {
+    for (int i = 0 ; i < alignment->getnSurfaces() ; i ++){
+        if (alignment->IsStrong(i)) {
             printf("FIXLC%i is strong\n", i+1 );
             vector <idx> temp_index;
 
             // HACK TO FIX POLYMERISED NODES
-            if ( alignment->getAnchoringNum(i) == ANCHORING_POLYMERISE )
-            {
+            /*
+            if ( alignment->getAnchoringNum(i) == ANCHORING_POLYMERISE ) {
                 temp_index.clear();
 
                 // Sth IS THRESHOLD VALUE FOR CHOOSING POLYMERISED NODES
@@ -250,8 +248,7 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
                 double *n = tensortovector(Values, npLC ); // get vector data
 
                 // FIND INDEX TO ALL NODES WHERE ORDER IS LESS OR EQUAL TO Sth
-                for (idx i = 3*npLC ; i < 4*npLC; i++) // FOR EACH ORDER PARAMETER
-                {
+                for (idx i = 3*npLC ; i < 4*npLC; i++){ // FOR EACH ORDER PARAMETER
                     if ( n[i] <= Sth )
                         temp_index.push_back(i - 3*npLC);
                 }
@@ -262,26 +259,22 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
                 delete [] n;
 
                 // CHECK THAT NOT ALL NODES WERE CHOSEN
-                if (temp_index.size() >= (size_t) npLC)
-                {
+                if (temp_index.size() >= (size_t) npLC) {
                     printf("error in %s, %s, setting Polymerised fixed nodes",__func__,__FILE__);
-                    printf("too many nodes Polymerised - bye!\n");
+                    printf("too many nodes Polymerised. Try setting the threshold to a larger value - bye!\n");
                     exit(1);
                 }
-
-
             }
-            else    // IF NOT POLYMERISED SURFACE, SELECT BY SURFACE MATERIAL NUMBER
-            {
-                e->listNodesOfMaterial( temp_index , (i+1)* MAT_FIXLC1 );
-            }
+            */
+            //else{    // IF NOT POLYMERISED SURFACE, SELECT BY SURFACE MATERIAL NUMBER
 
+            //e->listNodesOfMaterial( temp_index , curFixLC_MAT_NUMBER );
+            e->listFixLCSurfaces(temp_index, i+1);
+            //}
             ind_to_nodes.insert(ind_to_nodes.end(), temp_index.begin(), temp_index.end() );
         }
-        else
-        {
-            printf("FIXLC%i is not strong\n", i+1);
-            printf("%s\n", alignment->surface[i]->getAnchoringType().c_str() );
+        else{
+            printf("FIXLC%i is not strong, it is %s\n", i+1, alignment->surface[i]->getAnchoringType().c_str());
         }
     }// end for i
 
@@ -300,12 +293,10 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
     nFixed = ind_to_nodes.size();
 
     // IF NO FIXED NODES EXIST, LEAVE
-    if (!nFixed )
-    {
+    if (!nFixed ){
         setBooleanFixedNodeList();  // SET ALL TO NON-FIXED
         return;
     }
-
 
     FixedNodes = (idx*) malloc(getnDimensions() * nFixed * sizeof(idx) );
     if (FixedNodes == NULL){
@@ -321,10 +312,8 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
     // 3. copy index and values to arrays. This assumes that current Q-tensor values are correct
     // and will be fixed at these values (frozen to current)
     idx i = 0;
-
-
     //  nFreeNodes = nDoF - nFixed;
-    for (itr = ind_to_nodes.begin() ; itr != ind_to_nodes.end() ; ++itr )
+    for (itr = ind_to_nodes.begin() ; itr != ind_to_nodes.end() ; ++itr,++i )
     {
         idx fixedNodeNumber = *itr;
         FixedNodes[i] = fixedNodeNumber;
@@ -338,10 +327,7 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
         FixedValues[i + 2*nFixed] = getValue(*itr, 2); //q3;
         FixedValues[i + 3*nFixed] = getValue(*itr, 3); //q4;
         FixedValues[i + 4*nFixed] = getValue(*itr, 4); //q5;
-        i++;
     }
-
-
     setBooleanFixedNodeList();
 }
 
@@ -682,6 +668,13 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
     // MARK FIXED NODES. THSE WILL BE LATER ON REMOVED FROM
     // FREE DEGREES OF FREEDOM
     for (idx i = 0 ; i < nDoF ; i++ ){
+
+        if (i == 0)
+        {
+            int temp = 0;
+        }
+
+
         if ( this->getIsFixed(i) )
             elim[i] = NOT_AN_INDEX;
     }
@@ -711,7 +704,7 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
             elima[i] = elima[ elim[i] ]; // IT WILL DEPEND ON THE CORRECTED DOF INDEX
         }
         else if ( elim[i] == NOT_AN_INDEX ){// KEEP FIXED NODE FLAGS
-                elima[i] = NOT_AN_INDEX;
+            elima[i] = NOT_AN_INDEX;
         }
     }
 
@@ -745,22 +738,22 @@ void SolutionVector::setPeriodicEquNodes(Geometry* geom)
 }// end setPeriondicEquNodes
 
 void SolutionVector::setCornerElim(
-    list <int>& corn0, // sets periodic equivalent nodes for 4 corners
-    list <int>& corn1, // corn1[i] = corn0[i]
-    list <int>& corn2, // corn2[i] = corn0[i]
-    list <int>& corn3, // corn3[i] = corn0[i]
-    int* Elim,
-    const int& dim, // direction of corner 0,1,2 -> x,y,z
-    double* p // coordinates
-    )
+        list <int>& corn0, // sets periodic equivalent nodes for 4 corners
+        list <int>& corn1, // corn1[i] = corn0[i]
+        list <int>& corn2, // corn2[i] = corn0[i]
+        list <int>& corn3, // corn3[i] = corn0[i]
+        int* Elim,
+        const int& dim, // direction of corner 0,1,2 -> x,y,z
+        double* p // coordinates
+        )
 
 {
     /*! This sets Elim vector for periodic corner nodes.
  * Nodes are arranged so that corn1[i] = corn2[i] = corn2[i] = corn0[i]
- * AbsDist is a function pointer to a function that calculates absolute distance along 
+ * AbsDist is a function pointer to a function that calculates absolute distance along
  * X, Y or Z axes (use geom->getAbsNDist, where N is X, Y, or Z).
  * getCoord is a function pointer to getting X,Y or Z coordinate (replaces geom->getpN)
- * */	
+ * */
 
     list<int> :: iterator c0;
     list<int> :: iterator c1;
@@ -807,7 +800,7 @@ void SolutionVector::setCornerElim(
             exit(1);
         }
 
-	// COMPARISON WITH C2		
+        // COMPARISON WITH C2
         found = false;
         iNearest = -1;
         minDist = BIGNUM;
@@ -839,7 +832,7 @@ void SolutionVector::setCornerElim(
             printf("distance = %e\n", minDist);
             exit(1);
         }
-	// COMPARISON WITH C3
+        // COMPARISON WITH C3
         found = false;
         iNearest = -1;
         minDist = BIGNUM;

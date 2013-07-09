@@ -220,8 +220,7 @@ int main(int argc, char* argv[]){
 
 
     // CREATE A BACKUP OF SETTINGS FILE INTO RESULT SAVE DIRECTORY
-    if (! FilesysFun::copyFile( settings_filename, simu.getSaveDir(), "settings.qfg") )
-    {
+    if (! FilesysFun::copyFile( settings_filename, simu.getSaveDir(), "settings.qfg") )    {
         printf("error, could not back up settings file - bye!\n");
         return 1;
     }

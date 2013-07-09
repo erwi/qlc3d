@@ -83,6 +83,8 @@ public:
     void listElementsOfMaterial(std::vector <idx>& elems, const idx mat) const;
     // Creates list of all nodes belonging to elements of material mat
     void listNodesOfMaterial(std::vector <idx>& nodes, const idx mat) const;
+    void listFixLCSurfaces(std::vector <idx>& nodes, const idx FixLCNum) const; // list all nodes of given FixLC surface number (FixLCNum = 1,2,3...)
+
 
     bool ContainsAllNodes(idx elem, idx n, idx* nodes) const; // checks if element elem, contains all n nodes in array nodes
     void ContainsNodes(list <idx>* elems , list <idx>* points ); // adds element number to elemes that contain any node in list points

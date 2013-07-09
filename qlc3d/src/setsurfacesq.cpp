@@ -101,8 +101,8 @@ void setStrongSurfacesQ(SolutionVector *q,
         ind_nodes.clear();
         // creates index of all nodes of this alignment surface type
         // 08/02/12 geom->e->FindIndexToMaterialNodes((i+1)*MAT_FIXLC1, &ind_nodes);
-        geom->e->listNodesOfMaterial( ind_nodes, (i+1)*MAT_FIXLC1 );
-
+        //geom->e->listNodesOfMaterial( ind_nodes, (i+1)*MAT_FIXLC1 );
+        geom->e->listFixLCSurfaces(ind_nodes, i+1);
 
         if ( !ind_nodes.empty() ){ // if nodes found
             string AnchoringType = alignment->surface[i]->getAnchoringType();
@@ -135,14 +135,14 @@ void setSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* ge
     vector<idx> ind_nodes;
     
     // loop over all surfaces loaded from settings file
-    for (int i = 0 ; i < alignment->getnSurfaces() ; i++ )
-    {
+    for (int i = 0 ; i < alignment->getnSurfaces() ; i++ ){
         ind_nodes.clear();
         // creates index of all nodes of this alignment surface type
         // 08/02/12 geom->e->FindIndexToMaterialNodes((i+1)*MAT_FIXLC1, &ind_nodes);
-        geom->e->listNodesOfMaterial( ind_nodes , (i+1)*MAT_FIXLC1 );
-        if ( !ind_nodes.empty() )
-        { // if nodes found
+        //geom->e->listNodesOfMaterial( ind_nodes , (i+1)*MAT_FIXLC1 );
+        geom->e->listFixLCSurfaces(ind_nodes, i+1);
+
+        if ( !ind_nodes.empty() ){ // if nodes found
 
             string AnchoringType = alignment->surface[i]->getAnchoringType();
             //unsigned int AnchoringNum = alignment->surface[i]->getAnchoringNum(); // <--- SHOULD USE THIS
@@ -156,17 +156,13 @@ void setSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* ge
 
             // if homeotropic OR degenerate with negative strength
             else if ( (AnchoringType.compare("homeotropic")==0)  ||
-                      (AnchoringType.compare("degenerate") ==0 &&
-                       (alignment->surface[i]->getStrength() < 0) ) )
-            {
+                      (AnchoringType.compare("degenerate") ==0 &&(alignment->surface[i]->getStrength() < 0) ) ){
                 setHomeotropic(q,lc,&ind_nodes,geom);
             }
-            else if ( AnchoringType.compare("freeze") == 0 )
-            {
+            else if ( AnchoringType.compare("freeze") == 0 ) {
                 setFrozenSurfaces(q, &ind_nodes);
             }
-            else if ( AnchoringType.compare("polymerise") ==0 ) // FREEZES ALL NODES WHOSE ORDER IS BELOW VALUE DEFINED IN STRENGTH
-            {
+            else if ( AnchoringType.compare("polymerise") ==0 ){ // FREEZES ALL NODES WHOSE ORDER IS BELOW VALUE DEFINED IN STRENGTH
                 double Sth = alignment->surface[i]->getStrength();
                 setPolymeriseSurfaces(q,Sth);
             }
