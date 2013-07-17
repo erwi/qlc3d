@@ -377,10 +377,10 @@ void assemble_volume(
     SpaMtrix::Vector &L,
     Electrodes* electrodes)
 {
-    idx it;
+
     Shape4thOrder shapes;
     #pragma omp parallel for
-    for (it=0; it< mesh->getnElements(); it++)
+    for (idx it=0; it< mesh->getnElements(); it++)
     {
         double lK[npt][npt];
         double lL[npt];
@@ -394,33 +394,23 @@ void assemble_volume(
 
         localKL(p,t,lK,lL,it, mesh,q,lc,electrodes, shapes);
         //printlK( &lK[0][0] , npt);
-        for (idx i=0; i<npt; i++) // FOR ROWS
-        {
+        for (idx i=0; i<npt; i++){ // FOR ROWS
             idx ri=v->getEquNode(t[i]);
-
             // RHS FIXED NODE HANDLING
-            if ( ri == NOT_AN_INDEX ) // IF THIS NODE IS FIXED
-            {
-                for (int j = 0; j<4 ; j++)// SET CONTRIBUTION TO CONNECTED *FREE* NODES
-                {
+            if ( ri == NOT_AN_INDEX ){ // IF THIS NODE IS FIXED
+                for (int j = 0; j<4 ; j++){// SET CONTRIBUTION TO CONNECTED *FREE* NODES
                     idx nc = v->getEquNode( t[j] ); // INDEX TO CONNECTED NODE DEGREE OF FREEDOM POSITION
-                    if (nc != NOT_AN_INDEX )
-                    {
-#ifndef DEBUG
-#pragma omp atomic
-#endif
+                    if (nc != NOT_AN_INDEX ){
+                        #pragma omp atomic
                         L[ nc ] -= lK[i][j]*v->getValue(t[i]); // L = -K*v
                     }
                 }
-
             }// END IF ROW NODE IS FIXED
 
             if ( ri != NOT_AN_INDEX )
-                for (idx j=0; j<npt  ; j++) // FOR COLUMNS
-                {
+                for (idx j=0; j<npt  ; j++){ // FOR COLUMNS
                     idx rj=v->getEquNode(t[j]);
-                    if (rj != NOT_AN_INDEX )
-                    {
+                    if (rj != NOT_AN_INDEX ){
                         K.sparse_add(rj,ri,lK[j][i]);
                     }
                 }//end for j
@@ -440,12 +430,9 @@ void assemble_Neumann(
     SpaMtrix::IRCMatrix &K,
     SpaMtrix::Vector &L)
 {
-    idx it = 0;
     ShapeSurf4thOrder shapes;
-#ifndef DEBUG
 #pragma omp parallel for
-#endif
-    for (it=0; it < surf_mesh->getnElements(); it++)
+    for (idx it=0; it < surf_mesh->getnElements(); it++)
     {
         int index_to_Neumann = surf_mesh->getConnectedVolume(it);
 
@@ -476,30 +463,21 @@ void assemble_Neumann(
 
             localKL_N(p,&ti[0], lK , lL, it,index_to_Neumann, mesh, surf_mesh, q, lc, shapes);
 
-            for (int i=0; i<4; i++)
-            {
+            for (int i=0; i<4; i++){
                 idx ri=v->getEquNode(ti[i]);
-                if (ri == NOT_AN_INDEX ) // HANDLE FIXED NODE
-                {
-                    for (int j = 0; j<4 ; j++)
-                    {
+                if (ri == NOT_AN_INDEX ){ // HANDLE FIXED NODE
+                    for (int j = 0; j<4 ; j++){
                         idx cr = v->getEquNode( ti[j] ); // CONNECTED NODE DOF ORDER
-                        if (cr != NOT_AN_INDEX )
-                        {
-#ifndef DEBUG
-#pragma omp atomic
-#endif
+                        if (cr != NOT_AN_INDEX ){
+                            #pragma omp atomic
                             L[cr ] -= lK[j][i]*v->getValue(ti[i]);
                         }
                     }
                 }// END HANDLE FIXED NODE
-                else // HANDLE FREE NODE
-                {
-                    for (int j=0; j<4; j++) // FOR COLUMNS
-                    {
+                else{ // HANDLE FREE NODE
+                    for (int j=0; j<4; j++){ // FOR COLUMNS
                         idx rj=v->getEquNode(ti[j]);
-                        if (rj != NOT_AN_INDEX )// NON-FIXED NODE
-                        {
+                        if (rj != NOT_AN_INDEX ){// NON-FIXED NODE
                             K.sparse_add( rj,ri,lK[j][i] );
                         }
                     }//end for j

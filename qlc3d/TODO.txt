@@ -1,3 +1,6 @@
+21. Box#.Twist[start,delta] seems to get signs incorrectly. Check this.
+
+
 20. SetsurfacesQ uses ugly string comparisons when determining surface types. Change to Enums
 
 19. Make use of solver settings more flexible: Should not be necessary to specify all solver settings, only to override non-default ones. 

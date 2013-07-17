@@ -25,7 +25,7 @@ const double DEFAULT_Q_Newton_Panic_Coeff = 0.1;
 
 const int DEFAULT_Matrix_Maxiter = 2000;
 const int DEFAULT_GMRES_Restart  = 100;
-const double DEFAULT_Matrix_Toler = 1e-6;
+const double DEFAULT_Matrix_Toler = 1e-7;
 class Settings
 {
 private:
