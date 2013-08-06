@@ -47,8 +47,8 @@ void updateSolutionVector(SolutionVector &q,
             maxdq = maxdq > fabs(dq[i]) ? maxdq:fabs(dq[i]);
         }
 
-        if ( maxdq>simu.getMaxError() ){ // IF DAMPING IS NEEDED
-            damping = simu.getMaxError() / maxdq;
+        if ( maxdq>simu.getTargetdQ() ){ // IF DAMPING IS NEEDED
+            damping = simu.getTargetdQ() / maxdq;
             //cout << "dq > maxError, damping = " << damping << fflush(stdout);
         }
     }
