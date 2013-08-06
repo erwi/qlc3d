@@ -30,13 +30,31 @@ void setThreadCount(unsigned int nt)
 
 void updateSolutionVector(SolutionVector &q,
                           const SpaMtrix::Vector &dq,
-                          double &maxdq)
+                          double &maxdq,
+                          double &damping,
+                          const Simu &simu )
 {
     // UPDATES SOLUTION VECTOR q = q + dq
     // USES getEquNode REDIRECTION
     // FOR PERIODIC AND FIXED NODES
 
-    maxdq = 0;
+    // CALCULATE DAMPING COEFFICIENT IF GOING FOR STEADY STATE WITH NEWTON METHOD
+    //double damping = 1.0;
+    if (simu.getdt() == 0){
+        // FIND MAXIMUM CHANGE
+        maxdq = fabs(dq[0]);
+        for (idx i = 0 ; i < dq.getLength() ; i++){
+            maxdq = maxdq > fabs(dq[i]) ? maxdq:fabs(dq[i]);
+        }
+
+        if ( maxdq>simu.getMaxError() ){ // IF DAMPING IS NEEDED
+            damping = simu.getMaxError() / maxdq;
+            //cout << "dq > maxError, damping = " << damping << fflush(stdout);
+        }
+    }
+
+
+
     const idx npLC = q.getnDoF();
     for (unsigned int i = 0 ; i < 5 ; i++){   // LOOP OVER DIMENSIONS
         for (idx j = 0; j < npLC ; j++){ // LOOP OVER EACH NODE IN DIMENSION i
@@ -46,14 +64,13 @@ void updateSolutionVector(SolutionVector &q,
             // EQUIVALENT DOF OF FIXED NODES ARE LABELLED AS "NOT_AN_INDEX"
             if (effDoF < NOT_AN_INDEX ){
                 const double dqj = dq[ effDoF ];
-                q.Values[n] -= dqj ;
+                q.Values[n] -= damping*dqj ;
                 // KEEP TRACK OF LARGEST CHANGE IN Q-TENSOR
                 maxdq = fabs(dqj) > fabs(maxdq) ? dqj:maxdq;
             }
         }// end for j
     }// end for i
 }
-
 
 
 
@@ -127,13 +144,17 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         setThreadCount(simu->getMatrixSolverThreadCount());
         // SOLVES Ax = b MATRIX PROBLEM
         solve_QTensor(K, L, dq, *simu, *settings);
-        updateSolutionVector(*q, dq, maxdq); // q += dq , taking into account periodic and fixed nodes
+        double damping = 1.0; // steady state damping coeff. calculated in updateSolutionVector
+        updateSolutionVector(*q, dq, maxdq,damping,*simu); // q += damping*dq , taking into account periodic and fixed nodes
 
         if (newton_iter==1)
             maxdq_initial = maxdq; // maxdq_initial is needed elsewhere to adjust time-step size
 
         // PRINT SOLUTION TIME
         printf("OK %1.3es.\tdQ = %1.3e\n", (float) timer.getElapsed() / 1000.0, maxdq);
+        if (damping < 1.0){ // if damped, display by how much
+            printf("damping=%1.3e\n", damping);
+        }
         fflush( stdout );
 
         // PANIC!! if looks like no convergence
