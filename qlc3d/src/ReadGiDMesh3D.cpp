@@ -223,22 +223,21 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
     ifstream fin;
     char *charray 	= (char*)malloc(200*sizeof(char));
 
-    string filename = simu->MeshName;//"testcube.msh";
-    cout <<"Attempting to open mesh file: " << filename  << endl;
-    fin.open(filename.c_str() );//.c_str(),ifstream::in);
+    string filename = simu->MeshName;
+    cout <<"Attempting to open mesh file: " << simu->getCurrentDir() + "/" + filename  << endl;
+    fin.open(filename.c_str());
 
-    if (!fin.good() )
-    {
-        cout << "failed opening: " << filename.c_str() << endl;
+    if (!fin.good() ) {
+        std::cerr << "error - could not find mesh file."<< endl;
+        std::cerr << "was loking for mesh:\n" << simu->getCurrentDir() +"/"+ filename << endl;
+        std::cerr << "check your settings file for mistakes.\nBye!" << endl;
+
         exit(1);
     }
-    else // FILE OPENED OK
-    {
+    else{ // FILE OPENED OK
         printf("Reading GID mesh file: %s \n", filename.c_str()); fflush(stdout);
-
         // STUDENTS ARE BAD AT EXPORTING GID MESHES. CHECH WHETHER IT IS TEXT/BINARY FORMAT
-        if ( !isTextFile(fin) )
-        {
+        if ( !isTextFile(fin) ){
             std::cout << "Error, mesh file contains invalid characters."<< std::endl;
             std::cout << "This usually happens when mesh is not properly exported from GiD." << std::endl;
             std::cout << "Bye!" << std::endl;
@@ -254,92 +253,70 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
         string Prisms  	= "Nnode 6";//MESH    dimension 3 ElemType Prisma  Nnode 6";
         string Tris 	= "Nnode 3";//MESH    dimension 3 ElemType Triangle  Nnode 3";
 
-        while(!fin.eof()) // count  - while loop
-        {
+        while(!fin.eof()){ // count  - while loop
             fin.getline(charray,200);
             string line = charray;
-
-
-            if (line.find(Tets) != std::string::npos )
-            {
-                if (np[0] == 0)	// if tets are defined first
-                {
+            if (line.find(Tets) != std::string::npos ){
+                if (np[0] == 0){	// if tets are defined first
                     np[0] = CountNodes(&fin);
                     tets_first = true;
                 }
-
                 nt[0] = CountTetrahedra(&fin);
             }// end if tets before prisms
 
 
-            else if (line.find(Prisms) != std::string::npos)
-            {
+            else if (line.find(Prisms) != std::string::npos){
                 // if prisms are defined before nodes
                 if (np[0] == 0)
                     np[0] = CountNodes(&fin);
                 nperi = CountPrisms(&fin);
             }
-
-
-            else if (line.find(Tris) != std::string::npos)
-            {
-                if (np[0] == 0)
+            else if (line.find(Tris) != std::string::npos){
+                if (np[0] == 0){
                     np[0] = CountNodes(&fin);
-
+                }
                 ne[0] = CountTriangles(&fin);
             }
         } // end count while loop
 
-        if( fin.eof() )
-        {
+        if( fin.eof() ){
             bool error = false;
-            if ( *np == 0 )
-            {
+            if ( *np == 0 ){
                 printf("error, could not find coordinates - bye!\n");
                 error = true;
             }
-            if (*ne == 0)
-            {
+            if (*ne == 0){
                 printf("error, could not find triangle elements - bye\n");
                 error = true;
             }
-            if (*nt == 0)
-            {
+            if (*nt == 0){
                 printf("error, could not find tetrhedral elements - bye\n");
                 error = true;
             }
-            if (error)
-            {
+            if (error){
                 fflush(stdout);
                 exit(1);
             }
-
         }
 
 
         printf("Tets = %u , Tris = %u , Peri = %u, nodes = %u\n", nt[0], ne[0] , nperi, np[0]);
-
-
         double *dp 		= (double*) malloc(3*np[0]*sizeof(double));
-
         idx *dt			= (idx*)  malloc(4*nt[0]*sizeof(idx));
         idx *de 		= (idx*)  malloc(3*ne[0]*sizeof(idx));
-
         idx *dmatt 		= (idx*)malloc(nt[0]*sizeof(idx));
         idx *dmate 		= (idx*)malloc(ne[0]*sizeof(idx));
-
         idx* pr=NULL;
-        if (nperi>0)
+        if (nperi>0){
             pr 	= (idx*)malloc(nperi*6*sizeof(idx) );
-
+        }
 
         //REWIND TO START OF FILE
         fin.clear();              // forget we hit the end of file
         fin.seekg(0, ios::beg);   // move to the start of the file
 
 
-        while(!fin.eof())	// read - while loop
-        {
+        while(!fin.eof()){	// read - while loop
             fin.getline(charray,200,'\n');
             string line = charray;
             //if ( Tets.compare(0 , Tets.size() , charray , 0 , Tets.size()  ) == 0)
@@ -369,8 +346,7 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
         xmin = 1e9 ; ymin = 1e9 ; zmin = 1e9;
         xmax = -1e9; ymax = -1e9; zmax = -1e9;
 
-        for (idx i=0 ; i<np[0] ; i++)
-        {
+        for (idx i=0 ; i<np[0] ; i++){
             if(dp[i*3+0]<xmin) xmin = dp[i*3+0]; // find min
             if(dp[i*3+1]<ymin) ymin = dp[i*3+1];
             if(dp[i*3+2]<zmin) zmin = dp[i*3+2];
@@ -380,49 +356,26 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
             if(dp[i*3+2]>zmax) zmax = dp[i*3+2];
         }
 
-        for (idx i=0;i<np[0];i++)
-        {
+        for (idx i=0;i<np[0];i++){
             if(xmin<0) dp[i*3+0]-=xmin; // move mesh
             if(ymin<0) dp[i*3+1]-=ymin;
             if(zmin<0) dp[i*3+2]-=zmin;
         }
 
-
         if (xmin<0) {xmax-=xmin;  cout << "\tshifting all x by :"<<-xmin<<endl;xmin=0;}
         if (ymin<0) {ymax-=ymin;  cout << "\tshifting all y by :"<<-ymin<<endl;ymin=0;}
         if (zmin<0) {zmax-=zmin;  cout << "\tshifting all z by :"<<-zmin<<endl;zmin=0;}
 
-        /*
-        // REMOVE NUMERICAL NOISE FROM BOUNDARY NODES
-
-        for (idx i=0;i<np[0];i++)
-    {
-            if( dp[i*3+0]-xmin <= TOLER) dp[i*3+0]=xmin;
-            if( xmax-dp[i*3+0] <= TOLER) dp[i*3+0]=xmax;
-
-            if( dp[i*3+1]-ymin <= TOLER) dp[i*3+1]=ymin;
-            if( ymax-dp[3*i+1] <= TOLER) dp[i*3+1]=ymax;
-
-            if( dp[i*3+2]-zmin <= TOLER) dp[i*3+2]=zmin;
-            if( zmax-dp[3*i+2] <= TOLER) dp[i*3+2]=zmax;
-    }
-        //*/
-
-
-        if (pr!=NULL)
+        if (pr!=NULL){
             free(pr);
+        }
         *p=dp;
         *t=dt;
         *e=de;
         *matt = dmatt;
         *mate = dmate;
         free(charray);
-        /*
- */
-        //exit(0);
-    }//end if mesh file opened ok
-
-
+     }//end if mesh file opened ok
 }
 
 void writeBinaryMesh(Simu& simu, Geometry& geom){
@@ -494,9 +447,7 @@ void readBinaryMesh(std::string filename,
     file.read((char*) e , 3**ne*sizeof(int) );
     file.read((char*) tmat, *nt*sizeof(int) );
     file.read((char*) emat, *ne*sizeof(int) );
-
     file.close();
-
     printf("\nfile read OK\n"); fflush(stdout);
 
 }

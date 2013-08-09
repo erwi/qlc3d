@@ -80,13 +80,11 @@ void prepareGeometry(Geometry& geom,
     size_t point = filename.find_last_of('.');  // index to separator point
     string extension = filename.substr(point + 1);
 
-    if (extension.compare("geo") == 0 )
-    {
+    if (extension.compare("geo") == 0 ){ // IF BINARY "SECRET" MESH
         printf(" reading .geo file\n");
         readBinaryMesh(filename, p ,t, tmat, e, emat, &np, &nt, &ne);
     }
-    else
-    {
+    else {
         printf(" reading .%s file\n", extension.c_str() );
         ReadGiDMesh3D(&simu,&p,&np,&t,&nt,&e,&ne,&tmat,&emat);
     }

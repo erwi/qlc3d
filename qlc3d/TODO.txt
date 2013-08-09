@@ -1,3 +1,6 @@
+
+23. add option to manually fix nodes in settings file. 
+
 21. Box#.Twist[start,delta] seems to get signs incorrectly. Check this.
 
 

@@ -68,8 +68,7 @@ void adjustTimeStepSize(Simu& simu, const double& maxdq){
         double S = 1;
 
         // LINEAR REGION
-        if ( (R < RLmax) && (R > RLmin) )
-        {
+        if ( (R < RLmax) && (R > RLmin) ){
             S = R;
         }
         else
@@ -78,16 +77,12 @@ void adjustTimeStepSize(Simu& simu, const double& maxdq){
                 double  k = RLmin / (RLmin - Rmin);
                 double  dR = (RLmin - R);
                 S = RLmin - k * dR;
+            } else if ( R >= RLmax){// above LINEAR
+                double k = (Smax - RLmax) / (Rmax - RLmax);
+                double dr = R - RLmax;
+                S = RLmax + k * dr;
+                if (S>Smax) S = Smax;
             }
-            else
-                // above LINEAR
-                if ( R >= RLmax){
-                    double k = (Smax - RLmax) / (Rmax - RLmax);
-                    double dr = R - RLmax;
-                    S = RLmax + k * dr;
-                    if (S>Smax) S = Smax;
-                }
-
         cout << " scaling dt by: " << S << endl;
         double newdt = simu.getdt()* S;
         if ( newdt < simu.getMindt() ) newdt = simu.getMindt();
@@ -190,19 +185,16 @@ int main(int argc, char* argv[]){
 
 
     // IF SETTINGS FILENAME HAS BEEN DEFINED AS COMMAND LINE ARGUMENT
-    if ( argc >= 2)
-    {
+    if ( argc >= 2){
         settings_filename.clear();
         settings_filename = argv[1];  // change if set by command line argument
     }
     // IF WORKING DIR HAS BEEN DEFINED AS COMMAND LINE ARGUMENT
-    if (argc >= 3 )
-    {
+    if (argc >= 3 ){
         simu.setCurrentDir( argv[2] );
     }
     // CHANGE CURRENT DIR TO WORKING DIRECTORY
-    if ( !FilesysFun::setCurrentDirectory( simu.getCurrentDir() ) )
-    {
+    if ( !FilesysFun::setCurrentDirectory( simu.getCurrentDir() ) ){
         printf("error, could not set working directory to:\n%s\nbye!", simu.getCurrentDir().c_str() );
         exit(1);
     }
