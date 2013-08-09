@@ -40,9 +40,11 @@ void updateSolutionVector(SolutionVector &q,
 
     // CALCULATE DAMPING COEFFICIENT IF GOING FOR STEADY STATE WITH NEWTON METHOD
     //double damping = 1.0;
+
+    //*
+    maxdq = fabs(dq[0]);
     if (simu.getdt() == 0){
         // FIND MAXIMUM CHANGE
-        maxdq = fabs(dq[0]);
         for (idx i = 0 ; i < dq.getLength() ; i++){
             maxdq = maxdq > fabs(dq[i]) ? maxdq:fabs(dq[i]);
         }
@@ -52,8 +54,7 @@ void updateSolutionVector(SolutionVector &q,
             //cout << "dq > maxError, damping = " << damping << fflush(stdout);
         }
     }
-
-
+//*/
 
     const idx npLC = q.getnDoF();
     for (unsigned int i = 0 ; i < 5 ; i++){   // LOOP OVER DIMENSIONS
@@ -64,10 +65,12 @@ void updateSolutionVector(SolutionVector &q,
             // EQUIVALENT DOF OF FIXED NODES ARE LABELLED AS "NOT_AN_INDEX"
             if (effDoF < NOT_AN_INDEX ){
                 const double dqj = dq[ effDoF ];
-                q.Values[n] -= damping*dqj ;
+                q.Values[n] -= dqj ;
                 // KEEP TRACK OF LARGEST CHANGE IN Q-TENSOR
-                maxdq = fabs(dqj) > fabs(maxdq) ? dqj:maxdq;
+                //maxdq = fabs(dqj) > fabs(maxdq) ? dqj:maxdq;
+                maxdq = fabs(dqj) > maxdq? fabs(dqj):maxdq;
             }
+          //  cout << maxdq << "," << damping << endl;
         }// end for j
     }// end for i
 }
