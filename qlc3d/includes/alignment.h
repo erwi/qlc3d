@@ -14,6 +14,7 @@ using namespace std;
 #define ANCHORING_DEGENERATE	4
 #define ANCHORING_FREEZE	5	// anchoring type where initial Q-Tensor orientation is frozen
 #define ANCHORING_POLYMERISE    6
+#define ANCHORING_MANUAL_NODES 7
 #ifndef PI
     #define PI 3.14159265358979323846264338327950288419716939937510
 #endif
@@ -32,14 +33,13 @@ class Surface
 		double e[3];
 		bool UsesSurfaceNormal; // whether to use local surface normal vector or v1 and v2
         bool isFixed;   // whether this surface is fixed or not
+
 	public:
 
         int FixLCNumber;
+        std::vector<double> Params; // holds optional parameters, but is mostly empty
 
         Surface(int fxlcnum);
-		void printSurface();
-		void WriteSurface(FILE* fid, int surfnum);
-
 
         void setAnchoringType(std::string &atype);
 		void setStrength(double str);
@@ -81,8 +81,6 @@ class Alignment
 
 
 	void addSurface(Surface* s);
-	void printAlignment();
-	void WriteAlignment(FILE* fid); // writes alignment settings to textfile
 	void setnSurfaces(int n);
 
 	double getStrength(int n);	// get strength of FixLCn

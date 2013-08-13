@@ -29,35 +29,8 @@ Surface::Surface(int fxlcnum)
     UsesSurfaceNormal = false;
     isFixed = true;
 }
-void Surface::printSurface()
-{
-    printf("\n\tAnchoring :");
-    printf("%s",Anchoring.c_str());
-    printf("\n\tStrength\t= %f\n",Strength);
-    printf("\t[K1,K2]\t\t= [%1.1f, %1.1f]\n",K1,K2);
-    printf("\tEasy\t\t= [%1.1f, %1.1f, %1.1f]\n",Easy[0],Easy[1],Easy[2]);
-}
-void Surface::WriteSurface(FILE* fid, int surfnum)
-{
-    if (fid!=NULL)
-    {
-        char str[10];
-        sprintf(str,"FIXLC%i",surfnum);
 
-
-        fprintf(fid,"\t%s.Anchoring = %s\n",str, getAnchoringType().c_str());//Anchoring
-        fprintf(fid,"\t%s.Strength = %2.4e\n",str,getStrength()); //Strength
-        fprintf(fid,"\t%s.Easy = [%2.4f, %2.4f, %2.4f]\n", str, getEasyTilt() , getEasyTwist() , getEasyRot()); //Easy
-        fprintf(fid,"\t%s.K1 = %2.4f\n", str, getK1() ); //K1
-        fprintf(fid,"\t%s.K2 = %2.4f\n", str, getK2() ); //K2
-
-
-    }
-
-}
-
-void Surface::setAnchoringType(std::string &atype)
-{
+void Surface::setAnchoringType(std::string &atype){
     Anchoring = atype;
 
     // MAKE SURE LOWERCASE
@@ -97,6 +70,13 @@ void Surface::setAnchoringType(std::string &atype)
         isFixed = true;
         setUsesSurfaceNormal(false);
     }
+    else if (atype.compare("manualnodes") == 0){
+        printf("Surface::setAnchoringType - ManualNodes\n");
+        Anchoring = atype;
+        AnchoringNum = ANCHORING_MANUAL_NODES;
+        isFixed = true;
+        setUsesSurfaceNormal(false);
+    }
     else{
         using std::cout;
         using std::endl;
@@ -122,21 +102,17 @@ void Surface::setEasyAngles(double ttr[3]){		Easy[0] = ttr[0];	Easy[1] = ttr[1];
 void Surface::setv1( double v[3] ){		v1[0] = v[0]; v1[1] = v[1] ; v1[2] = v[2];}
 void Surface::setv2( double v[3] ){		v2[0] = v[0]; v2[1] = v[1] ; v2[2] = v[2];}
 void Surface::setEasyVector( double v[3]){	e[0] = v[0]; e[1] = v[1]; e[2] = v[2];}
-void Surface::calcEasyVector()
-{
+void Surface::calcEasyVector(){
     /*! Calculates easy vector e from easy angles, tilt and twist*/
 
 
-
 }
-void Surface::calcV1V2()
-{
+void Surface::calcV1V2(){
     /*! Calculates v1 and v2 vectors given tilt and twist angles
  *  Rotation matrices are given in Willman, IEEE Trans. Electron Dev. 54, 10, 2007 
  * */
 
-    if (this->AnchoringNum != ANCHORING_WEAK ) // vectors are only set for 'Weak' anchoring type
-    {
+    if (this->AnchoringNum != ANCHORING_WEAK ){ // vectors are only set for 'Weak' anchoring type
         return;
     }
 
@@ -154,21 +130,15 @@ void Surface::calcV1V2()
     l[0] = sin(a)*sin(g) - cos(a)*sin(b)*cos(g);
     l[1] = cos(a)*sin(g) + sin(a)*sin(b)*cos(g);
     l[2] = cos(b)*cos(g);
-
-
-
     // v1 is surface normal = (0,0,1) for flat bottom surface
     this->setv1( l );
     this->setv2( k );
-
     // calculate easy direction vector e = v1 x v2
     double e[3] = {0,0,0};
     e[0] =  v1[1]*v2[2] - v2[1]*v1[2];  // OUT OF BOUNDS!!!!
     e[1] = -v1[0]*v2[2] + v2[0]*v1[2];
     e[2] =  v1[0]*v2[1] - v2[0]*v1[1];
     this->setEasyVector( e );
-
-
 }
 void Surface::setUsesSurfaceNormal(bool sn) { UsesSurfaceNormal = sn;}
 
@@ -193,45 +163,20 @@ bool    Surface::getisFixed()           {return isFixed;}
 Alignment::Alignment(){	setnSurfaces(0);}//end constructor
 Alignment::~Alignment(){
     std::vector<Surface*>::iterator itr;
-    for(itr = surface.begin() ; itr!= surface.end() ; ++itr)
+    for(itr = surface.begin() ; itr!= surface.end() ; ++itr){
         delete (*itr);
-
+    }
 }
 
 void Alignment::setnSurfaces(int n){	n_surfaces = n;}
 
-void Alignment::addSurface(Surface* s)
-{
+void Alignment::addSurface(Surface* s){
     surface.push_back(s);
     n_surfaces++;
 }
 
 
 int Alignment::getnSurfaces(){	return n_surfaces;}
-void Alignment::printAlignment(){
-    //vector<Surface*>::iterator i;
-    printf("%i Alignment surfaces\n",getnSurfaces());
-    for (int i= 0 ; i < getnSurfaces(); i++)
-    {
-        printf("FIXLC%i :\n",i+1);
-        surface[i]->printSurface();
-    }
-}
-void Alignment::WriteAlignment(FILE* fid){
-    if (fid!=NULL)
-    {
-        fprintf(fid,"#=========================\n");
-        fprintf(fid,"# LC ALIGNMENT SURFACES\n");
-        fprintf(fid,"#=========================\n");
-
-        for (int i = 0 ; i < getnSurfaces() ; i ++ )
-        {
-            surface[i]->WriteSurface(fid,i+1);
-            fprintf(fid, "\n");
-        }
-
-    }
-}
 
 bool Alignment::IsStrong(int i){
     if (i >= (int) surface.size() ){
@@ -239,13 +184,11 @@ bool Alignment::IsStrong(int i){
         printf("number of surfaces = %i\n", (int) surface.size() );
         exit(1);
     }
-    bool bfixed = surface[i]->getisFixed();
-    return bfixed;
-
+    return surface[i]->getisFixed();
 }
 
-unsigned int Alignment::getAnchoringNum(const int &n)
-{// returns anchoring number of alignment surface n
+unsigned int Alignment::getAnchoringNum(const int &n){
+    // returns anchoring number of alignment surface n
     // Anchoring number is a descriptor that maps to a type.
     // It should be made into an enumerator
     vector <Surface*>::iterator itr;
@@ -262,10 +205,13 @@ unsigned int Alignment::getAnchoringNum(const int &n)
 
 
 bool Alignment::WeakSurfacesExist(){
+/*!
+returns true if any non-fixed surfaces have been defined
+*/
     for(int n = 0 ; n < getnSurfaces() ; n++ )
-        if ( !IsStrong(n) )
+        if ( !IsStrong(n) ){
             return true;
-
+        }
     return false;
 }
 

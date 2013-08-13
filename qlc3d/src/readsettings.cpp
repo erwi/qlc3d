@@ -940,7 +940,7 @@ void ReadSettings(
         Boxes* boxes,
         Alignment* alignment,
         Electrodes* electrodes,
-        MeshRefinement* meshrefinement,
+        MeshRefinement* meshrefinement, // <--- unused param.
         EventList& eventlist)
 {
 
