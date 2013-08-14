@@ -136,7 +136,9 @@ void setManualNodesAnchoring(SolutionVector *q, LC* lc, Surface& surf){
         if ( (surf.Params[i] < 0 ) ){
             cerr << "error - negative node index setting ManualNodesAnchoring, check your settings file - bye!" << endl;
         }
-        nodes_idx.push_back( static_cast<idx>(surf.Params[i]));
+        idx nodeIdx = static_cast<idx>(surf.Params[i]);
+        nodes_idx.push_back( nodeIdx);
+        cout << "node idx = " << nodeIdx << endl;
     }
     setGlobalAngles(q, lc, tilt, twist, &nodes_idx);
 }

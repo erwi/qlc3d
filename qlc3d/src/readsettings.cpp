@@ -8,11 +8,11 @@
 #include <meshrefinement.h>
 #include <refinfo.h>
 #include <filesysfun.h>
-using namespace std;
+//using namespace std;
+using std::cerr;
+using std::endl;
 
-
-void problem(const char *error)
-{
+void problem(const char *error){
     /*! Prints warning message for a bad setting and exits*/
     printf("WARNING - problem reading setting for : ");
     printf("%s\n",error);
@@ -23,37 +23,35 @@ void problem(std::string& name, int ret){
     /*! Checks reader return value. If it is an error, prints error message and quits.
         Use this for mandatory settings.
      */
-
-    if ( ret == READER_SUCCESS )
+    if ( ret == READER_SUCCESS ){
         return;
+    }
 
     Reader temp;
     if (ret!= READER_SUCCESS){
-        cout << "Problem reading " << name << " , computer says: " << temp.getErrorString(ret) << endl;
-        cout << "bye!"<<endl;
+        cerr << "Problem reading " << name << " , computer says: " << temp.getErrorString(ret) << endl;
+        cerr << "bye!"<<endl;
         exit(1);
     }
 }
-void problemo(std::string& name, int ret)
-{
+void problemo(std::string& name, int ret){
     /*! Checks reader return value. If it is an error, prints warning message but does not quit.
        Use this for optional settings.*/
     Reader temp;
-    if ( (ret!= READER_SUCCESS) )
-    {
+    if ( (ret!= READER_SUCCESS) ){
         cout << "Problem reading " << name << " , computer says: " << temp.getErrorString(ret) << endl;
     }
 }
-// end problemo (optional parameter problem)
-void problem_format(std::string &name, int ret)
-{
-    // CHECKS READER RETURN VALUE. QUITS IN CASE OF BAD FORMAT, BUT NOT IF
-    // VALUE WAS NOT FOUND
 
+void problem_format(std::string &name, int ret){
+/*! CHECKS READER RETURN VALUE. QUITS IN CASE OF BAD FORMAT, BUT NOT IF
+         VALUE WAS NOT FOUND
+*/
     // RETURN IF ...
     if  ( (ret == READER_NOT_FOUND) ||  // NOT FOUND
-          (ret == READER_SUCCESS) )     // EVERYTHING WENT BETTER THAN EXPECTED
+          (ret == READER_SUCCESS) ){     // EVERYTHING WENT BETTER THAN EXPECTED
         return;
+    }
 
     Reader temp; // SHOULD MAKE A STATIC FUNCTION INSTEAD
     std::string error = temp.getErrorString( ret );
@@ -62,10 +60,10 @@ void problem_format(std::string &name, int ret)
     exit(1);
 }
 
-bool isOK(const std::string& name, int ret)
-{
-    // EXITS AND PRINTS ERROR IF PROBLEM READING A VALUE THAT IS FOUND.
-    // USE THIS TO CHECK THE SYNTAX OF OPTIONAL VALUE DEFINITIONS
+bool isOK(const std::string& name, int ret){
+    /*! EXITS AND PRINTS ERROR IF PROBLEM READING A VALUE THAT IS FOUND.
+     USE THIS TO CHECK THE SYNTAX OF OPTIONAL VALUE DEFINITIONS
+     */
 
     // ALL OK.
     if ( ret == READER_SUCCESS ) return true;
@@ -73,20 +71,18 @@ bool isOK(const std::string& name, int ret)
 
     if ( ( ret == READER_BAD_FORMAT ) ||
          (ret == READER_BAD_VALUE  ) ||
-         (ret == READER_BAD_FILE) )
-    {
+         (ret == READER_BAD_FILE) ){
         Reader temp;
         cout << "Problem reading " << name << ", computer says: " << temp.getErrorString( ret ) << endl;
         exit(ret);
     }
-
     return false;   // SILENTLY RETURN FALSE IF KEY/VALUE PAIR WAS NOT FOUND
-
 }
 
 
-std::string setStructureKey(const char* struct_name, const unsigned int number, const char* key_name)
-{
+std::string setStructureKey(const char* struct_name,
+                            const unsigned int number,
+                            const char* key_name){
     std::stringstream ss;
     ss << struct_name << number <<"."<<key_name;
     std::string key;
@@ -95,8 +91,7 @@ std::string setStructureKey(const char* struct_name, const unsigned int number, 
 }
 
 
-void readLC(LC& lc,Reader& reader)
-{
+void readLC(LC& lc,Reader& reader){
 
     /// THIS CHECKING SHOULD BE DONE IN THE READER CLASS
     //	reader.file.seekg(0);
@@ -195,8 +190,7 @@ void readLC(LC& lc,Reader& reader)
 }//end void readLC
 
 
-void readSimu(Simu* simu, Reader& reader, EventList& evel)
-{
+void readSimu(Simu* simu, Reader& reader, EventList& evel){
     std::string name;
     std::string str_var;
     int         int_var = 0;
@@ -205,15 +199,13 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
 
     //  READ STRING SETTINGS
     //  MANDATORY STRING SETTINGS
-
     ret = 0;
     name = "EndCriterion";
     ret = reader.readString(name , str_var);
-    
 
-    if ( ret== READER_SUCCESS)
+    if ( ret== READER_SUCCESS){
         simu->setEndCriterion(str_var);
-
+    }
     problem(name, ret);
 
     name = "MeshName";
@@ -232,12 +224,9 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
 
     name = "SaveDir";
     ret = reader.readString(name , str_var);
-    if ( ret == READER_SUCCESS) // if specified, use it
-    {
+    if ( ret == READER_SUCCESS){ // if specified, use it
         simu->setSaveDir( simu->getCurrentDir() + "/" + str_var);
-    }
-    else // otherwise use default ( = res )
-    {
+    } else {// otherwise use default ( = res )
         simu->setSaveDir( simu->getCurrentDir() + "/" + simu->getSaveDir() );
     }
 
@@ -388,8 +377,7 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel)
 
 }//end void readSimu
 
-void readBoxes(Boxes* boxes, Reader& reader) //config_t* cfg)
-{
+void readBoxes(Boxes* boxes, Reader& reader){
     int maxbox = 100; // maximum number of supported boxes...
     for (int i = 1 ; i < maxbox ; i++){ // for boxes 1-99
         // cout << i << endl;
@@ -482,8 +470,7 @@ void readBoxes(Boxes* boxes, Reader& reader) //config_t* cfg)
 
 }// end void readBoxes
 
-void readAlignment(Alignment* alignment, Reader& reader)
-{
+void readAlignment(Alignment* alignment, Reader& reader){
 
     int num_surfaces = 99; // limit surfaces to 0-99
     std::string surface_name;
@@ -525,18 +512,12 @@ void readAlignment(Alignment* alignment, Reader& reader)
             ss.clear(); name.clear();
             ss << "FIXLC"<<i<<".Easy";
             ss >> name;
-            vector < double > vec;
+            std::vector < double > vec;
             ret = reader.readNumberArray( name , vec );
             problem( name , ret );
-            if (vec.size() == 3 ){
-                double ez[3] = {vec[0] , vec[1] , vec[2] };
-                s->setEasyAngles( ez );
-                s->calcV1V2(); // calculates surface vectors from easy angles
-            }
-            else{
-                cout << "error - Easy direction "<< name <<" needs 3 angles - bye!" << endl;
-                exit(1);
-            }
+            s->setEasyAngles( vec );
+            s->calcV1V2(); // calculates surface vectors from easy angles
+
 
             ss.clear(); name.clear();
             ss << "FIXLC" << i << ".K1";
@@ -553,6 +534,16 @@ void readAlignment(Alignment* alignment, Reader& reader)
             if (! s->getisFixed () ){
                 problem(name , ret);
                 s->setK2(dbl_val);
+            }
+
+            // READ PARAMS - OPTIONAL VALUES VECTOR
+            ss.clear(); name.clear();
+            ss << "FIXLC" << i << ".Params";
+            ss >> name;
+            ret = reader.readNumberArray(name, vec);
+            if (ret == READER_SUCCESS){
+                s->Params = vec;
+                cout << "found params " << vec[0] << endl;
             }
             alignment->addSurface(s);
         }

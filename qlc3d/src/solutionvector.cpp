@@ -235,6 +235,18 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
             printf("FIXLC%i is strong\n", i+1 );
             vector <idx> temp_index;
 
+            // IN CASE OF MANUAL NODES ANCHORING, THE NODE INDEXES ARE
+            // ALREADY KNOWN AND LISTED IN THE Surface.Params VECTROR
+            if (alignment->getAnchoringNum(i) == ANCHORING_MANUAL_NODES){
+                Surface *s = alignment->surface[i];
+
+                // CONVERT PARAMS (double) TO INDEXES
+                for (size_t i = 0 ; i < s->Params.size() ; i++){
+                    temp_index.push_back(static_cast<idx>(s->Params[i]));
+                }
+
+            }
+
             // HACK TO FIX POLYMERISED NODES
             /*
             if ( alignment->getAnchoringNum(i) == ANCHORING_POLYMERISE ) {
@@ -269,8 +281,9 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
             //else{    // IF NOT POLYMERISED SURFACE, SELECT BY SURFACE MATERIAL NUMBER
 
             //e->listNodesOfMaterial( temp_index , curFixLC_MAT_NUMBER );
-            e->listFixLCSurfaces(temp_index, i+1);
-            //}
+            else{
+                e->listFixLCSurfaces(temp_index, i+1);
+            }
             ind_to_nodes.insert(ind_to_nodes.end(), temp_index.begin(), temp_index.end() );
         }
         else{
@@ -280,7 +293,7 @@ void SolutionVector::setFixedNodesQ(Alignment* alignment, Mesh* e)
 
 
     // INDEX TO FIXED NODES MAY CONTAIN DUPLICATED ENTRIES, IF TWO FIXED
-    // LC SURFACES ARE NEX TO EACHOTHER. REMOVE THESE
+    // LC SURFACES ARE NEXT TO EACHOTHER. REMOVE THESE
 
     sort(ind_to_nodes.begin() , ind_to_nodes.end() );
     vector <idx>::iterator itr;

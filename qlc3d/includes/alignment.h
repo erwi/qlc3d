@@ -45,12 +45,14 @@ class Surface
 		void setStrength(double str);
 		void setK1(double k1);
 		void setK2(double k2);
-		void setEasyAngles(double ttr[3]);
-		void setv1( double v[3] );
+        //void setEasyAngles(double ttr[3]);
+        void setEasyAngles(std::vector<double> &e);
+        void setv1( double v[3] );
 		void setv2( double v[3] );
 		void setEasyVector( double v[3]);
-		void calcEasyVector(); // calculates Easy Vector from easy angles
-		void calcV1V2();// calculates v1 and v2 values from easy angles
+
+        void calcEasyVector(); // calculates Easy Vector from easy angles
+        void calcV1V2();// calculates v1 and v2 values from easy angles
 		void setUsesSurfaceNormal(bool sn);
 
 		string getAnchoringType();

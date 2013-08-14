@@ -97,11 +97,29 @@ void Surface::setStrength(double str){	Strength = str;}
 void Surface::setK1(double k1){			K1 = k1;}
 void Surface::setK2(double k2){			K2 = k2;}
 
-// set easy direction, tilt, twist & rotation
-void Surface::setEasyAngles(double ttr[3]){		Easy[0] = ttr[0];	Easy[1] = ttr[1];	Easy[2] = ttr[2];}
+
+//void Surface::setEasyAngles(double ttr[3]){		Easy[0] = ttr[0];	Easy[1] = ttr[1];	Easy[2] = ttr[2];}
+void Surface::setEasyAngles(std::vector<double> &e){
+    /*!
+     * set easy direction, tilt, twist & rotation
+     */
+    if (e.size()>3){
+        cerr << "error in Surface::setEasyAngles, too many easy angles" << endl;
+        cerr << "got " << e.size() << " but can only handle up to 3 (tilt, twist, rotation) - bye!" << endl;
+        exit(1);
+    }
+    Easy[0] = 0.0; Easy[1] = 0.0; Easy[2] = 0.0;
+    for (size_t i = 0; i < e.size() ; i++){
+        Easy[i] = e[i];
+    }
+}
+
+
+
 void Surface::setv1( double v[3] ){		v1[0] = v[0]; v1[1] = v[1] ; v1[2] = v[2];}
 void Surface::setv2( double v[3] ){		v2[0] = v[0]; v2[1] = v[1] ; v2[2] = v[2];}
 void Surface::setEasyVector( double v[3]){	e[0] = v[0]; e[1] = v[1]; e[2] = v[2];}
+
 void Surface::calcEasyVector(){
     /*! Calculates easy vector e from easy angles, tilt and twist*/
 
