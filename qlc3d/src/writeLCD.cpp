@@ -74,7 +74,7 @@ void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
     if (simu->getCurrentIteration() != SIMU_END_SIMULATION )
         sprintf(str, "result_t%05i", simu->getCurrentIteration() );
     else
-        sprintf(str,"result_final");
+        sprintf(str,"result_t_final");
 
     string resname = str;
     resname.append(".dat");
