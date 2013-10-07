@@ -49,13 +49,17 @@ void handleResultOutput(Simu& simu,
     //double* vReg(NULL);
 
 
-    if ( simu.getSaveFormat() & Simu::LCview )
-    {
-       // printf("LCview \n");
-        WriteResults::WriteLCViewResult(&simu, &lc, &geom, &v, &q);
+    if ( simu.getSaveFormat() & Simu::LCview ){
+        LCviewIO::WriteLCD_B(geom.getPtrTop(), geom.t, geom.e, &v, &q, &simu, &lc);
     }
-    if ( simu.getSaveFormat() & Simu::RegularVTK )
-    {
+
+    // WRITE TEXT FORMAT LCVIEW RESULT
+    if (simu.getSaveFormat() & Simu::LCviewTXT ){
+        LCviewIO::WriteLCD(geom.getPtrTop(), geom.t, geom.e, &v, &q, &simu);
+    }
+
+
+    if ( simu.getSaveFormat() & Simu::RegularVTK ){
         //printf("VTK GRID\n");
 
         std::stringstream ss;
@@ -73,8 +77,7 @@ void handleResultOutput(Simu& simu,
 
 
     }
-    if ( simu.getSaveFormat() & Simu::RegularVecMat)
-    {
+    if ( simu.getSaveFormat() & Simu::RegularVecMat){
         //printf("REGULAR GRID VECTORS MATLAB\n");
         std::stringstream ss;
         std::string filename;
@@ -90,8 +93,7 @@ void handleResultOutput(Simu& simu,
                            geom.getnpLC(),
                            simu.getCurrentTime());
     }
-    if ( simu.getSaveFormat() & Simu::DirStackZ)
-    {
+    if ( simu.getSaveFormat() & Simu::DirStackZ){
         cout << "REGULAR DIR STACKZ" << endl;
         std::stringstream ss;
         std::string filename;
@@ -106,6 +108,8 @@ void handleResultOutput(Simu& simu,
                              simu.getCurrentTime() );
 
     }
+
+
 
 // CLEANUP AFTER ALL SAVING HAS BEEN DONE
     if (director) delete [] director;

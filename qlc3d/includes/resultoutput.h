@@ -11,7 +11,7 @@
 #include <meshrefinement.h>
 
 
-namespace WriteResults
+namespace LCviewIO
 {
 
 static const char LCVIEW_TEXT_FORMAT_STRING[] = "%i %f %f %f %f %f %f\n";
@@ -24,6 +24,11 @@ void WriteLCViewResult(Simu* simu, 		// Simulation settings
                 SolutionVector* q); // Q-tensor solution
                 //MeshRefinement* meshref = NULL); // meshrefinement info. including whether a new mesh has been generated
 
+// WRITES LCVIEW RESULT IN TEXT FORMAT
+void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q, Simu* simu);
+// WRITES LCVIEW RESULT IN BINARY FORMAT
+void WriteLCD_B(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
+                Simu* simu, LC* lc);
 void ReadResult(Simu& simu,         // READS AND LOADS Q-TENSOR VALUES FROM AN EXISTING RESULT FILE
                 SolutionVector& q); // TRIES TO FIGURE OUT WHETHER RESULT FILE IS IN TEXT OR BINARY FORMAT
 

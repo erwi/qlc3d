@@ -29,8 +29,9 @@ public:
     enum SaveFormats {None          = 0,
                       LCview        = 1,
                       RegularVTK    = 2,
-                      RegularVecMat = 4,     // REGULAR GRID, VECTORS, MATLAB FILE
-                      DirStackZ     = 8   // REGULAR GRID, CSV-FILE WHERE EA
+                      RegularVecMat = 4,   // REGULAR GRID, VECTORS, MATLAB FILE
+                      DirStackZ     = 8,   // REGULAR GRID, CSV-FILE WHERE EA
+                      LCviewTXT     = 16   // LCview ASCII text file
                      };
     // RegularDirStackZ is written in a CommaSeparatedValue (CSV) text file where each
     // Row is a stack of directors along the z-axis.

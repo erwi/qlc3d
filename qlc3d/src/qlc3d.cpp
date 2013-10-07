@@ -263,7 +263,7 @@ int main(int argc, char* argv[]){
 
     //  LOAD Q FROM RESULT FILE
     if (!simu.getLoadQ().empty() ){
-        WriteResults::ReadResult(simu, q);
+        LCviewIO::ReadResult(simu, q);
         setStrongSurfacesQ(&q, &alignment, &lc, &geom1); // over writes surfaces with user specified values
     }
     q.setFixedNodesQ(&alignment, geom1.e);  // set fixed surface anchoring
@@ -292,7 +292,7 @@ int main(int argc, char* argv[]){
     //*
     //********************************************************************
     printf("\nSaving starting configuration (iteration -1)...\n");
-    WriteResults::CreateSaveDir(simu);
+    LCviewIO::CreateSaveDir(simu);
     Energy_fid = createOutputEnergyFile(simu); // done in inits
 
     handleInitialEvents(eventlist,
@@ -401,7 +401,7 @@ int main(int argc, char* argv[]){
     printf("\nNO FINAL REGULAR GRID RESULT WRITTEN. FIXME!!\n");
     simu.setCurrentIteration( SIMU_END_SIMULATION );
     FilesysFun::setCurrentDirectory( simu.getSaveDir() ); // GOTO OUPUT DIR
-    WriteResults::WriteLCViewResult(&simu, &lc , &geom1, &v, &q);
+    LCviewIO::WriteLCViewResult(&simu, &lc , &geom1, &v, &q);
     FilesysFun::setCurrentDirectory( simu.getCurrentDir() );// GO BACK TO EXECUTABLE DIR
     //handleEvents()
 

@@ -9,12 +9,7 @@
 #include <resultoutput.h>
 
 
-//char LCVIEW_TEXT_FORMAT_STRING[] = "%i %f %f %f %f %f %f\n";
-
-
-namespace WriteResults{
-
-
+namespace LCviewIO{
 
 void WriteMesh(Simu* simu,
                double* p,
@@ -58,6 +53,10 @@ void WriteMesh(Simu* simu,
 
 void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q, Simu* simu)
 {
+    /*!
+      Writes LCview result in text format.
+    */
+
     // First write mesh
     int np = v->getnDoF();
     if ( simu->IsMeshModified() ){ // only output mesh file if it has changed
@@ -73,18 +72,15 @@ void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
     char str[15];
     // check whether final result in sumlation, if yes, use special filename
     if (simu->getCurrentIteration() != SIMU_END_SIMULATION )
-        sprintf(str, "result%05i", simu->getCurrentIteration() );
+        sprintf(str, "result_t%05i", simu->getCurrentIteration() );
     else
         sprintf(str,"result_final");
 
     string resname = str;
     resname.append(".dat");
 
-
-
     fid = fopen(resname.c_str(),"w");
-    if (fid!=NULL)
-    {
+    if (fid!=NULL){
         int npLC = q->getnDoF();
         double *n = tensortovector(q->Values,npLC); // get vector data
         sprintf(str,"%f",simu->getCurrentTime());
@@ -97,21 +93,18 @@ void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
         text.append(meshname);
         fprintf(fid,"%s", text.c_str());//** Result Time :    0.00000000\n** z Compression Ratio :  1.00000\nmeshout.txt\n");
 
-        for (i=0;i<np;i++)
-        {
+        for (i=0;i<np;i++){
             if (i<npLC)
-                //fprintf(fid,"    %i   %f   %f   %f   %f   %f   %f\n",i+1,n[i],n[i+npLC],n[i+2*npLC],v->Values[i],n[i+3*npLC],n[i+4*npLC]);
                 fprintf(fid,LCVIEW_TEXT_FORMAT_STRING,i+1,n[i],n[i+npLC],n[i+2*npLC],v->Values[i],n[i+3*npLC],n[i+4*npLC]);
             else
-                //fprintf(fid,"%i\t0\t0\t0\t%f\t1.0\t0.0\n",i+1,v->Values[i]);
+
                 fprintf(fid,LCVIEW_TEXT_FORMAT_STRING,i+1,0.,0.,0.,v->Values[i],0.,0.);
         }
 
         fclose(fid);
         delete [] n;
     }
-    else
-    {
+    else{
         printf("writeLCD - could not open result file %s!\n", resname.c_str() );
         exit(1);
     }
@@ -235,15 +228,13 @@ void ReadResult(Simu& simu, SolutionVector& q)
 
     fclose(fid);
 
-    if (isBinary)
-    {
+    if (isBinary) {
         cout << "Result file format is binary" << endl;
-        WriteResults::ReadLCD_B(&simu,&q);
+        LCviewIO::ReadLCD_B(&simu,&q);
     }
-    else
-    {
+    else  {
         cout << "Result file format is text" << endl;
-        WriteResults::ReadLCD_T(simu,q);
+        LCviewIO::ReadLCD_T(simu,q);
     }
 
 
@@ -267,9 +258,9 @@ void ReadLCD_T(Simu &simu, SolutionVector &q)
     char line[lineLen];
 
     // READ 3  LINES OF HEADER DATA
-    fgets(line, lineLen, fid);
-    fgets(line, lineLen, fid);
-    fgets(line, lineLen, fid);
+    char* tempc = fgets(line, lineLen, fid);
+    tempc = fgets(line, lineLen, fid);
+    tempc = fgets(line, lineLen, fid);
 
     int id;
     float n[3], S[2], v;
@@ -345,18 +336,15 @@ void ReadLCD_B(Simu* simu, SolutionVector *q)
         idx np, nsol;
 
         // READS 5 LINES DISCARIDING DATA
-        fgets (str , 100 , fid);
-        fgets (str , 100 , fid);
-        fgets (str , 100 , fid);
-        fgets (str , 100 , fid);
-        fgets (str , 100 , fid);
+        char *tempc = fgets (str , 100 , fid);
+        tempc = fgets (str , 100 , fid);
+        tempc = fgets (str , 100 , fid);
+        tempc = fgets (str , 100 , fid);
+        tempc = fgets (str , 100 , fid);
 
         fscanf (fid, "%f %i %i\n",&S0,&np,&nsol);
-        //i = 0; // no warnings...
 
-        // printf("S0 = %f, np = %i, nsol = %i \n", S0, np, nsol);
-        if (np < q->getnDoF() )
-        {
+        if (np < q->getnDoF() ){
             cout << "error, the loaded result file does not math the mesh size - bye!" << endl;
             //printf("The file you're trying to load (\"%s\") doesn't seem to match the mesh - bye!\n",filename.c_str() );
             fclose(fid);
@@ -365,8 +353,7 @@ void ReadLCD_B(Simu* simu, SolutionVector *q)
 
         float q1,q2,q3,q4,q5,temp;
 
-        for (idx i = 0 ; i < q->getnDoF() ; i ++)
-        {
+        for (idx i = 0 ; i < q->getnDoF() ; i ++){
             fread ( &q1, sizeof(float), 1 , fid );
             fread ( &q2, sizeof(float), 1 , fid );
             fread ( &q3, sizeof(float), 1 , fid );
@@ -400,29 +387,19 @@ void WriteLCViewResult(
         SolutionVector* q)
 
 {
- ///
- //  Writes LCView result file(s) to disk.
  //
-    switch( simu->getOutputFormat() )
-    {
-    case SIMU_OUTPUT_FORMAT_BINARY:
-    {
+ //  Writes LCView result file(s) to disk. TODO: get rid of this function.
+ //
+    size_t sf = simu->getSaveFormat();
+    
+    if (sf & Simu::LCview){
         WriteLCD_B(geom->getPtrTop(), geom->t, geom->e, v, q, simu, lc); // WRITES BINARY FILE
-        break;
     }
-    case SIMU_OUTPUT_FORMAT_TEXT:
-    {
+    
+    if (sf & Simu::LCviewTXT){
         WriteLCD(geom->getPtrTop(), geom->t, geom->e, v, q, simu); // WRITES TEXT FILE
-        break;
     }
-    default:
-    {
-        printf("error in WriteResult, Simu.OutputFormat is not recognised - bye!\n");
-        fflush(stdout);
-        exit(1);
-    }
-    } // end switch
-}
+ }
 // end void WriteREsult
 
 

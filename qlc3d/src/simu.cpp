@@ -59,12 +59,13 @@ PotCons(Off),
     // OR AS SPECIFIED IN THE SETTINGS FILE
     QMatrixSolver = Auto;
 
-    std::vector<int> temp;
-    temp.push_back(Simu::None);
-    temp.push_back(Simu::LCview);
-    temp.push_back(Simu::RegularVTK);
-    temp.push_back(Simu::RegularVecMat);
-    temp.push_back(Simu::DirStackZ);
+    //std::vector<int> temp;
+    //temp.push_back(Simu::None);
+    //temp.push_back(Simu::LCview);
+    //temp.push_back(Simu::RegularVTK);
+    //temp.push_back(Simu::RegularVecMat);
+    //temp.push_back(Simu::DirStackZ);
+    //temp.push_back(Simu::LCviewTXT);
     //validSaveFormatStrings.setIntValues(temp);
 
 }
@@ -340,12 +341,13 @@ bool Simu::IsRunning()const{
 void Simu::addSaveFormat(std::string format)
 {
     /*! Add output file firmat to write*/
-    int SaveFormatValues[5] = {None,LCview,RegularVTK,RegularVecMat,DirStackZ};
+    int SaveFormatValues[6] = {None,LCview,RegularVTK,RegularVecMat,DirStackZ, LCviewTXT};
     StringEnum<Simu::SaveFormats> validator("SaveFormat",
-                                            "None,LCView,RegularVTK,RegularVecMat,DirStackZ",
+                                            "None,LCView,RegularVTK,RegularVecMat,DirStackZ,LCviewTXT",
                                             SaveFormatValues);
     try{
         SaveFormat = SaveFormat | validator.getEnumValue(format);
+        std::cout << "added SaveFormat : " << format << std::endl;
     }
     catch(...){
         validator.printErrorMessage(format);
