@@ -6,17 +6,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
-//#include <stringenum.h>
-
+#include <vector>
+//#include <reader.h>
 #define SIMU_N  0
 #define SIMU_END_SIMULATION -20000000 // magic minus bignum
 
 #define SIMU_OUTPUT_FORMAT_BINARY 	0
 #define SIMU_OUTPUT_FORMAT_TEXT		1
 
-enum PotentialConsistency {Off, Loop};
+class Reader; // forward declaration
 
+enum PotentialConsistency {Off, Loop};
 
 using namespace std;
 class Simu
@@ -43,6 +43,7 @@ public:
     enum QMatrixSolvers { Auto  = 0,
                           PCG   = 1,
                           GMRES = 2};
+
 private:
 
     enum EndCriteria {Iterations=0, Time=1, Change=2};
@@ -105,9 +106,10 @@ public:
     void setEndValue(double ev);
     void resetEndCriterion();       // starts simulation from beginning
     void setdt(double td);  // set dt, but clamps between min-max values
-    void setdtForced(const double& dt); // force-sets dt, does not care about min-max values
-    void setdtLimits(const double& min, const double& max);
-    void setdtFunction(double* f4); // array of length 4
+    void setdtForced(const double &dt); // force-sets dt, does not care about min-max values
+    void setdtLimits(const vector<double> &vec2);
+
+    void setdtFunction(const vector<double> &vec4);
     void getdtFunction(double* f );
     void setCurrentTime(double ct);
     void setCurrentIteration( int i);
@@ -124,14 +126,14 @@ public:
     unsigned int getMatrixSolverThreadCount()const {return numMatrixSolverThreads;}
     QMatrixSolvers getQMatrixSolver()const {return QMatrixSolver;}
     void setQMatrixSolver(QMatrixSolvers solver) {QMatrixSolver = solver;}
-    void setQMatrixSolver(std::string &solver);
+    void setQMatrixSolver(const std::string &solver);
 
 
     void setOutputEnergy(int ope);
     void setOutputFormat(int opf);
-    void setStretchVectorX(double sx);
-    void setStretchVectorY(double sy);
-    void setStretchVectorZ(double sz);
+
+    void setStretchVector(const std::vector<double> vec3);
+
     inline void setEnergyRegionX(const double& x) { EnergyRegion[0] = x;}
     inline void setEnergyRegionY(const double& y) { EnergyRegion[1] = y;}
     inline void setEnergyRegionZ(const double& z) { EnergyRegion[2] = z;}
@@ -187,13 +189,11 @@ public:
     size_t getSaveFormat()const {return SaveFormat;}
     void clearSaveFormat(){SaveFormat = None; } // CLEARS ALL SAVE TYPES
     void addSaveFormat(std::string format); // ADDS A SAVE FORMAT
-
+    void setSaveFormats(const std::vector<std::string> saveFormats); // array of save format type strings
+    // Load from settings file reader
+    void readSettingsFile(Reader &reader);
 // REGULAR GRID SIZE
-    void setRegularGridSize(const size_t& nx,
-                            const size_t& ny,
-                            const size_t& nz){RegularGridSize[0] = nx;
-                                              RegularGridSize[1] = ny;
-                                              RegularGridSize[2]= nz;}
+    void setRegularGridSize(const vector<unsigned int>& vec3);
     size_t getRegularGridXCount(){return RegularGridSize[0];}
     size_t getRegularGridYCount(){return RegularGridSize[1];}
     size_t getRegularGridZCount(){return RegularGridSize[2];}

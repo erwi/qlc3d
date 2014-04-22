@@ -3,81 +3,24 @@
 #include <qlc3d.h>
 #include <string>
 #include <vector>
-#include <reader.h>
+//#include <reader.h>
 #include <iostream>
 #include <meshrefinement.h>
 #include <refinfo.h>
 #include <filesysfun.h>
-//using namespace std;
+#include <globals.h>
+#include <reader.h>
+
 using std::cerr;
 using std::endl;
 
-void problem(const char *error){
-    /*! Prints warning message for a bad setting and exits*/
-    printf("WARNING - problem reading setting for : ");
-    printf("%s\n",error);
-    printf("\n");
-    exit(1);
-}
-void problem(std::string& name, int ret){
-    /*! Checks reader return value. If it is an error, prints error message and quits.
-        Use this for mandatory settings.
-     */
-    if ( ret == READER_SUCCESS ){
-        return;
-    }
-
-    Reader temp;
-    if (ret!= READER_SUCCESS){
-        cerr << "Problem reading " << name << " , computer says: " << temp.getErrorString(ret) << endl;
-        cerr << "bye!"<<endl;
-        exit(1);
-    }
-}
-void problemo(std::string& name, int ret){
-    /*! Checks reader return value. If it is an error, prints warning message but does not quit.
-       Use this for optional settings.*/
-    Reader temp;
-    if ( (ret!= READER_SUCCESS) ){
-        cout << "Problem reading " << name << " , computer says: " << temp.getErrorString(ret) << endl;
-    }
+void MissingMadatoryKey(std::string key, std::string file) {
+    std::cerr << "\nError in settings file " + file +
+                 "\nCould not find required key :\"" + key << +"\"" <<std::endl;
+    std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
 }
 
-void problem_format(std::string &name, int ret){
-/*! CHECKS READER RETURN VALUE. QUITS IN CASE OF BAD FORMAT, BUT NOT IF
-         VALUE WAS NOT FOUND
-*/
-    // RETURN IF ...
-    if  ( (ret == READER_NOT_FOUND) ||  // NOT FOUND
-          (ret == READER_SUCCESS) ){     // EVERYTHING WENT BETTER THAN EXPECTED
-        return;
-    }
 
-    Reader temp; // SHOULD MAKE A STATIC FUNCTION INSTEAD
-    std::string error = temp.getErrorString( ret );
-    cout << "Problem reading " << name << " , computer says: " << error << endl;
-    cout << "bye!"<<endl;
-    exit(1);
-}
-
-bool isOK(const std::string& name, int ret){
-    /*! EXITS AND PRINTS ERROR IF PROBLEM READING A VALUE THAT IS FOUND.
-     USE THIS TO CHECK THE SYNTAX OF OPTIONAL VALUE DEFINITIONS
-     */
-
-    // ALL OK.
-    if ( ret == READER_SUCCESS ) return true;
-
-
-    if ( ( ret == READER_BAD_FORMAT ) ||
-         (ret == READER_BAD_VALUE  ) ||
-         (ret == READER_BAD_FILE) ){
-        Reader temp;
-        cout << "Problem reading " << name << ", computer says: " << temp.getErrorString( ret ) << endl;
-        exit(ret);
-    }
-    return false;   // SILENTLY RETURN FALSE IF KEY/VALUE PAIR WAS NOT FOUND
-}
 
 
 std::string setStructureKey(const char* struct_name,
@@ -90,7 +33,7 @@ std::string setStructureKey(const char* struct_name,
     return key;
 }
 
-
+/*
 void readLC(LC& lc,Reader& reader){
 
     /// THIS CHECKING SHOULD BE DONE IN THE READER CLASS
@@ -188,20 +131,27 @@ void readLC(LC& lc,Reader& reader){
         lc.gamma2 = val;
 
 }//end void readLC
+*/
 
 
-void readSimu(Simu* simu, Reader& reader, EventList& evel){
-    std::string name;
-    std::string str_var;
-    int         int_var = 0;
-    double      dbl_var = 0;
-    int         ret;
+//void readSimu(Simu &simu, EventList &evel, Reader& reader) {
+//    std::string name;
+//    std::string str_var;
+//    int         int_var = 0;
+//    double      dbl_var = 0;
+//    int         ret;
+//    simu.readSettingsFile(reader    );
+
 
     //  READ STRING SETTINGS
     //  MANDATORY STRING SETTINGS
+    /*
     ret = 0;
     name = "EndCriterion";
     ret = reader.readString(name , str_var);
+
+
+    reader.ge
 
     if ( ret== READER_SUCCESS){
         simu->setEndCriterion(str_var);
@@ -373,10 +323,12 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel){
         }
         simu->setRegularGridSize( (size_t) vec[0], (size_t) vec[1], (size_t) vec[2] );
     }
+*/
 
+//}//end void readSimu
+//*/
 
-}//end void readSimu
-
+/*
 void readBoxes(Boxes* boxes, Reader& reader){
     int maxbox = 100; // maximum number of supported boxes...
     for (int i = 1 ; i < maxbox ; i++){ // for boxes 1-99
@@ -469,7 +421,9 @@ void readBoxes(Boxes* boxes, Reader& reader){
     //end for i = 1:maxbox
 
 }// end void readBoxes
+*/
 
+/*
 void readAlignment(Alignment* alignment, Reader& reader){
 
     int num_surfaces = 99; // limit surfaces to 0-99
@@ -551,12 +505,71 @@ void readAlignment(Alignment* alignment, Reader& reader){
     }// end for every FIXLC#
 
 }//end void readAlignment
+*/
 
-void readElectrodes(Electrodes* electrodes,
-                    Reader& reader,
-                    EventList& evli)
+//*
+void readElectrodes(Electrodes& electrodes,
+                    EventList& evli,
+                    Reader& reader)
 {
-
+    //
+    // Potential calculation related settings are read here.
+    // This includes electrode switching, uniform E-field and
+    // relative dielectric permittivity values
+    //
+    // Loop over range of possible (1-99) Electrodes
+    const int MAX_NUM_ELECTRODES = 100;
+    for (int electrodeNumber = 1; electrodeNumber < MAX_NUM_ELECTRODES; electrodeNumber++) {
+        std::string keyTime = "E" + std::to_string(electrodeNumber) + ".Time";
+        // If electrode found
+        if (reader.containsKey(keyTime)) {
+            // Read arrays with times and potential values
+            std::string keyPot = "E" + std::to_string(electrodeNumber) + ".Pot";
+            vector<double> times = reader.getValueByKey<vector<double>>(keyTime);
+            vector<double> pots  = reader.getValueByKey<vector<double>>(keyPot);
+            // Make sure equal number of times and potentials
+            if (times.size() != pots.size()) {
+                std::cerr << "error reading Electrode " << electrodeNumber <<
+                             ". Swithing times don't match switching potentials - bye!"
+                             << std::endl;
+                std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
+            }
+            //
+            // Decompose switching times and potentials to separate switching events
+            for (size_t i = 0; i < times.size(); i++) {
+                SwitchingInstance *switchingInstance = new SwitchingInstance( times.at(i),
+                                                               pots.at(i),
+                                                               electrodeNumber-1);
+                Event *event = new Event(EVENT_SWITCHING,
+                                         times.at(i));
+                event->setEventDataPtr(static_cast<void*>(switchingInstance));
+                evli.insertTimeEvent(event);
+            }
+        }
+        //
+        // Read uniform bulk E-fields here
+        if (reader.containsKey("EField")) {
+            vector<double> EField = reader.get<vector<double>>();
+            electrodes.EField[0] = EField.at(0);
+            electrodes.EField[1] = EField.at(1);
+            electrodes.EField[2] = EField.at(2);
+            // A dummy switching event at time 0 is needed for uniform E-fields.
+            Event* swEvent = new Event( EVENT_SWITCHING , 0.0 );
+            SwitchingInstance* si = new SwitchingInstance( 0 ,
+                                                           0 ,
+                                                           SwitchingInstance::UNIFORM_E_FIELD
+                                                           );
+            swEvent->setEventDataPtr( static_cast <void*> (si) );
+            evli.insertTimeEvent( swEvent );
+        }
+        //
+        // Read dielectric permittivities
+        if (reader.containsKey("eps_dielectric"))
+            electrodes.eps_dielectric = reader.get<vector<double>>();
+        // Finally set internal flags when all other settings are done
+        electrodes.setImplicitVariables();
+    }
+    /*
     std::string name;
     std::stringstream ss;
     // COUNT NUMBER OF ELECTRODES
@@ -644,9 +657,12 @@ void readElectrodes(Electrodes* electrodes,
     }
 
     electrodes->setImplicitVariables();
+    */
 }
 // end readElectrodes
+//*/
 
+/*
 void readMeshrefinement( MeshRefinement* meshrefinement, Reader& reader){
     int num_refreg = 100;
     stringstream ss;
@@ -704,6 +720,10 @@ void readMeshrefinement( MeshRefinement* meshrefinement, Reader& reader){
         }
     }
 }//end readMeshrefinement
+
+*/
+
+/*
 void readAutorefinement( MeshRefinement* meshrefinement, Reader& reader){
     int num_autoref = 100;
     stringstream ss;
@@ -758,7 +778,9 @@ void readAutorefinement( MeshRefinement* meshrefinement, Reader& reader){
     }// end for possible autorefs, i
 
 }
+*/
 
+/*
 void readEndrefinement( MeshRefinement* meshrefinement, Reader& reader){
     int num_endref = 10;
     stringstream ss;
@@ -812,7 +834,9 @@ void readEndrefinement( MeshRefinement* meshrefinement, Reader& reader){
         }// end if autoref i found
     }// end for possible autorefs, i
 }
+*/
 
+/*
 void readRefinement(Reader& reader,
                     EventList& evli)
 {
@@ -923,18 +947,39 @@ void readRefinement(Reader& reader,
         }// END IF SUCCESS
     }// END FOR LOOP OVER REFINEMENTi
 }
+*/
+
 
 void ReadSettings(
-        string settings_filename,
+        string settingsFileName,
         Simu* simu,
         LC& lc,
         Boxes* boxes,
         Alignment* alignment,
         Electrodes* electrodes,
         MeshRefinement* meshrefinement, // <--- unused param.
-        EventList& eventlist)
+        EventList& eventList)
 {
 
+    Reader reader;
+    reader.setCaseSensitivity(false);
+    reader.readSettingsFile(settingsFileName);
+    try {
+        simu->readSettingsFile(reader);
+        lc.readSettingsFile(reader);
+        boxes->readSettingsFile(reader);
+        readElectrodes(*electrodes, eventList, reader);
+    } catch (ReaderError e) {
+        e.printError();
+    }
+
+
+
+
+
+    std::cout << "EXIT OK " << std::endl;
+    exit(1);
+    /*
     Reader reader;
     reader.isIgnoreCase = true;
     using namespace std;
@@ -967,6 +1012,7 @@ void ReadSettings(
         cout << "error - could not open " << settings_filename <<" - bye!" << endl;
         exit(1);
     }
+    */
 }
 // end ReadSettings
 
@@ -977,6 +1023,7 @@ void ReadSolverSettings(const char* filename, Settings* settings)
     // READS SOLVER SETTINGS FROM FILE. THIS WAS ORIGIANLLY ASSUMED TO BE
     // CALLED "solver.qfg", BUT NOW ALSO READS "solver.txt", IF "solver.qfg"
     // IS NOT FOUND
+    /*
     std::string fn = filename;
     if ( !FilesysFun::fileExists(fn) )
     {
@@ -1085,6 +1132,7 @@ void ReadSolverSettings(const char* filename, Settings* settings)
         //cout<< "Could not read solver settings file:" << fn << " - bye!"<< endl;
         //exit(1);
     }
+    */
 
 } // end readSolverSettings
 

@@ -1,10 +1,11 @@
 #ifndef LC_H
 #define LC_H
 #include <stdio.h>
-#include <string>
-#include <algorithm>
+class Reader; // forward declaration
 class LC {
     /*!Liquid crystal material parameters*/
+    double gamma1;
+    void convert_params_n2Q();
 public:
     // elastic coefficients
     double K11, K22, K33;
@@ -22,19 +23,13 @@ public:
     double e33;
     //viscosities
     double u1;
-    double u2;
-    double gamma1;
-    double gamma2;
-    double alpha1;
-    double alpha4;
-    double alpha5;
-    double alpha6;
-    //
+
     LC();
     void printLC();
     void WriteLC(FILE *fid);
-    void convert_params_n2Q();
+
     double getS0();
+    void readSettingsFile(Reader &reader);
 };
 
 #endif

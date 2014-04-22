@@ -3,10 +3,8 @@
 #include <math.h>
 #include <iostream>
 #include <stdlib.h>
-
-//const char* LC::FORMULATION_NEMATIC_STRING = "nematic";
-//const char* LC::FORMULATION_BLUEPHASE_STRING = "bluephase";
-
+#include <algorithm>
+#include <reader.h>
 LC::LC(){
     // PhysicsFormulation = Nematic; // USE MORI'S 3K FORMULATION BY DEFAULT
     //printf("===========================================\n");
@@ -43,20 +41,20 @@ LC::LC(){
     e33 = 0;
 
     // viscosities
-    u1 = 0.01;
-    u2 = 0.01;
-    gamma1 = 0.1;
-    gamma2 = 0;
-    alpha1 = 0;
-    alpha4 = 0;
-    alpha5 = 0;
-    alpha6 = 0;
+    //u1 = 0.01;
+    //u2 = 0.01;
+    gamma1 = 0.0777;
+    //gamma2 = 0;
+    //alpha1 = 0;
+    //alpha4 = 0;
+    //alpha5 = 0;
+    //alpha6 = 0;
     //printf("\t%c%c = %f , %c|| = %f\n",238,193 , eps_per,238,eps_par);
     //printf("============================================================\n");
 }
 
 void LC::printLC(){
-
+    /*
     printf("\t[K11,K22,K33]\t\t=\t[%1.1f, %1.1f, %1.1f] pN\n", K11*1e12,K22*1e12,K33*1e12);
     printf("\tp0\t\t\t=\t%f microns\n",p0*1e6);
     printf("\t[A,B,C]\t\t\t=\t[%1.2f, %1.2f, %1.2f]*1e6\n", A*1e-6,B*1e-6,C*1e-6);
@@ -65,11 +63,12 @@ void LC::printLC(){
     printf("\t[e11,e33]\t\t= \t[%1.1f, %1.1f]*1e-12\n",e11*1e12,e33*1e12);
     printf("\t[gamma1,gamma2]\t\t=\t[%1.1f, %1.1f]\n",gamma1,gamma2);
     printf("\talpha[1,4,5,6]\t\t=\t[%1.1f, %1.1f, %1.1f, %1.1f]\n", alpha1,alpha4,alpha5,alpha6);
-
+*/
 
 }// end void printLC
 
 void LC::WriteLC(FILE* fid){
+    /*
     if (fid!=NULL)	{
         fprintf(fid,"#================================\n");
         fprintf(fid,"#  LC MATERIAL PARAMETERS\n");
@@ -97,6 +96,7 @@ void LC::WriteLC(FILE* fid){
         fprintf(fid,"\talpha6  = %2.4f\n",alpha6);//alpha6 = 6;
         fprintf(fid,"\n\n");
     }
+    */
 }
 
 void LC::convert_params_n2Q(){
@@ -129,4 +129,33 @@ void LC::convert_params_n2Q(){
 
 double LC::getS0(){
     return S0;
+}
+
+void LC::readSettingsFile(Reader &reader) {
+    if (reader.containsKey("K11"))
+        this->K11 = reader.get<double>();
+    if (reader.containsKey("K22"))
+        this->K22 = reader.get<double>();
+    if (reader.containsKey("K33"))
+        this->K33 = reader.get<double>();
+    if (reader.containsKey("p0"))
+        this->p0 = reader.get<double>();
+    if (reader.containsKey("A"))
+        this->A = reader.get<double>();
+    if (reader.containsKey("B"))
+        this->B = reader.get<double>();
+    if (reader.containsKey("C"))
+        this->C = reader.get<double>();
+    if (reader.containsKey("eps_par"))
+        this->eps_par = reader.get<double>();
+    if (reader.containsKey("eps_per"))
+        this->eps_per = reader.get<double>();
+    if (reader.containsKey("e11"))
+        this->e11 = reader.get<double>();
+    if (reader.containsKey("e33"))
+        this->e33 = reader.get<double>();
+    if (reader.containsKey("gamma1"))
+        this->gamma1 = reader.get<double>();
+
+    this->convert_params_n2Q();
 }

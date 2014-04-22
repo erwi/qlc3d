@@ -5,17 +5,17 @@
 #include <vector>
 #include <list>
 #include <electrodes.h>
-//#include <simu.h>
-class Simu;
 #include <limits>
 #include <refinfo.h>
+// Forward declarations
+class Simu;
+class Reader;
 using namespace std;
 // EVENT CAN OCCUR:
 //      AT PRE-DEFINED TIMES
 //      AT PRE-DEFINED ITERATIONS
 //      WITH REPEATING TIME-INTERVALLS (EVERY Nth SECOND)
 //      WITH REPEATING ITERATION-INTERVALLS (EVERY Nth ITERATION)
-
 enum EventType {    EVENT_SWITCHING,    // SWITCH ELECTRODE
                     EVENT_SAVE,         // SAVE RESULT
                     EVENT_REFINEMENT,   // MESH REFINEMENT
@@ -97,7 +97,7 @@ public:
     void setSaveIter(const size_t &si) {
         saveIter_ = si;
     }
-    void setSaveTime(const double &st);//{saveTime_ = st;}
+    void setSaveTime(const double &st);
     size_t getSaveIter() const {
         return saveIter_;
     }
@@ -110,11 +110,14 @@ public:
     void setRepRefTime(const double rrt) {
         repRefTime_ = rrt;
     }
-    void addRepRefInfo(Event *repRefEvent);  // ADDS REPEATING EVENT TO repRefinements LIST
-    Event *getCurrentEvent(const Simu &simu);    // removes current event from queue and returns a copy of it
+    void addRepRefInfo(Event *repRefEvent);     // ADDS REPEATING EVENT TO repRefinements LIST
+    Event *getCurrentEvent(const Simu &simu);   // removes current event from queue and returns a copy of it
     double timeUntilNextEvent(const Simu &simu) const;
-    void manageReoccurringEvents(Simu &simu); // PERIODICALLY ADDS REOCCURING EVENTS TO EVENT QUEQUE
-    void printEventList() const;
+    void manageReoccurringEvents(Simu &simu);   // PERIODICALLY ADDS REOCCURING EVENTS TO EVENT QUEQUE
+    void printEventList() const;                // debug printout of event list
+    void readSettingsFile(Reader& reader);      // Reads events info from settings file
+
+
 };
 #endif
 

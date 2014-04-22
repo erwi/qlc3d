@@ -13,15 +13,22 @@ public:
     BoxTypes Type;
     std::string TypeString;
     int BoxNumber;
-    double Params[2];
-    double X[2];
-    double Y[2];
-    double Z[2];
-    double Tilt[2];
-    double Twist[2];
+    //double Params[2];
+    std::vector<double> Params;
+    //double X[2];
+    //double Y[2];
+    //double Z[2];
+    //double Tilt[2];
+    //double Twist[2];
+    std::vector<double> X;
+    std::vector<double> Y;
+    std::vector<double> Z;
+    std::vector<double> Tilt;
+    std::vector<double> Twist;
+
     Box(int boxnum);
     void printBox();
-    void setParams(std::vector<double> p);
+    //void setParams(std::vector<double> p);
     void setX(std::vector<double> x);
     void setY(std::vector<double> y);
     void setZ(std::vector<double> z);
@@ -30,6 +37,8 @@ public:
     bool isInBox(double *coords);           // checks whether [x,y,z] coordinates in array of size 3 are inside the box
     void setBoxType(std::string &bt);
 };
+
+class Reader; // forward decl.
 
 class Boxes {
     /*! A collection of multiple Box regions*/
@@ -40,5 +49,8 @@ public:
     ~Boxes();
     void addBox(Box *b);
     void printBoxes();
+
+    void readSettingsFile(Reader &reader);
+
 };
 #endif

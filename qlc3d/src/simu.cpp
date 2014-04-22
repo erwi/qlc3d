@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <omp.h>
 #include "stringenum.h"
+#include <reader.h>
+#include <globals.h>
 Simu::Simu():
 PotCons(Off),
     TargetPotCons(1e-3),
@@ -111,15 +113,15 @@ void Simu::setdtForced(const double &dt)
 }
 
 
-void Simu::setdtLimits(const double &min, const double &max){
-    if ((min>max) || (min<=0)){
-	cout << "error - Simu::setdtLimits - invalid dtLimits - bye! \n" << endl;
-	exit(1);
+void Simu::setdtLimits(const vector<double> &vec2) {
+    double min = vec2.at(0);
+    double max = vec2.at(1);
+    if ((min>max) || (min<=0)) {
+        cerr << "error - Simu::setdtLimits - invalid dtLimits - bye! \n" << endl;
+        exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
     }
-
     dtLimits[0] = min;
     dtLimits[1] = max;
-
 }
 
 void Simu::setTargetdQ(const double &dq){
@@ -129,11 +131,16 @@ void Simu::setTargetdQ(const double &dq){
     }
     TargetdQ = dq;
 }
-void Simu::setdtFunction(double *f){
-    dtFunction[0] = f[0];
-    dtFunction[1] = f[1];
-    dtFunction[2] = f[2];
-    dtFunction[3] = f[3];
+void Simu::setdtFunction(const vector<double> &vec4) {
+    dtFunction[0] = vec4.at(0);
+    dtFunction[1] = vec4.at(1);
+    dtFunction[2] = vec4.at(2);
+    dtFunction[3] = vec4.at(3);
+}
+void Simu::setRegularGridSize(const vector<unsigned int> &vec3) {
+    this->RegularGridSize[0] = vec3.at(0);
+    this->RegularGridSize[1] = vec3.at(1);
+    this->RegularGridSize[2] = vec3.at(2);
 }
 
 void Simu::getdtFunction(double* f){
@@ -233,7 +240,7 @@ void Simu::setMatrixSolverThreadCount(unsigned int numT)
 #endif
 }
 
-void Simu::setQMatrixSolver(string &solver)
+void Simu::setQMatrixSolver(const string &solver)
 {
     StringEnum<Simu::QMatrixSolvers> validator("QMatrixSolver","Auto,PCG,GMRES");
 
@@ -247,37 +254,12 @@ void Simu::setQMatrixSolver(string &solver)
     }
 }
 
+void Simu::setStretchVector(const std::vector<double> vec3) {
+    for (int i = 0; i < 3; i++)
+        StretchVector[i] = vec3.at(i);
+}
 
-void Simu::setStretchVectorX(double sx)
-{
-	if (sx>0)
-		StretchVector[0] = sx;
-	else
-	{
-		printf("error - invalid StretchVector x component - bye!\n");
-		exit(1);
-	}
-}
-void Simu::setStretchVectorY(double sy)
-{
-	if (sy>0)
-		StretchVector[1] = sy;
-	else
-	{
-		printf("error - invalid StretchVector y component - bye!\n");
-		exit(1);
-	}
-}
-void Simu::setStretchVectorZ(double sz)
-{
-	if (sz>0)
-		StretchVector[2] = sz;
-	else
-	{
-		printf("error - invalid StretchVector z component - bye!\n");
-		exit(1);
-	}
-}
+
 
 
 string Simu::getMeshName() const
@@ -353,4 +335,66 @@ void Simu::addSaveFormat(std::string format)
         validator.printErrorMessage(format);
         exit(1);
     }
+}
+
+void Simu::setSaveFormats(const std::vector<string> saveFormats) {
+    for (const auto & s :saveFormats)
+        this->addSaveFormat(s);
+}
+
+
+void Simu::readSettingsFile(Reader &reader) {
+/*! loads values from settings file reader */
+    try {
+        MeshName = reader.getValueByKey<string>("MeshName");
+        std::string key;
+        // Read optional string values
+        if (reader.containsKey("LoadQ"))
+            this->LoadQ = reader.get<string>();
+        if (reader.containsKey("SaveDir"))
+            this->SaveDir = reader.get<string>();
+        if (reader.containsKey("QMatrixSolver"))
+            this->setQMatrixSolver(reader.get<string>());
+        // string arrays
+        if (reader.containsKey("SaveFormat"))
+            this->setSaveFormats(reader.get<vector<string> >());
+
+
+        // Read optional scalar values
+        if (reader.containsKey("EndValue"))
+            this->setEndValue(reader.get<double>());
+        if (reader.containsKey("dt"))
+            this->setdt(reader.get<double>());
+        if (reader.containsKey("TargetdQ"))
+            this->setTargetdQ(reader.get<double>());
+        if (reader.containsKey("Maxdt"))
+            this->setMaxdt(reader.get<double>());
+        if (reader.containsKey("MaxError"))
+            this->setMaxError(reader.get<double>());
+
+        if (reader.containsKey("OutputEnergy"))
+            this->setOutputEnergy(reader.get<int>());
+        if (reader.containsKey("OutputFormat"))
+            this->setOutputFormat(reader.get<int>());
+        if (reader.containsKey("SaveIter"))
+            this->setSaveIter(reader.get<int>());
+        if (reader.containsKey("NumAssemblyThreads"))
+            this->setAsseblyThreadCount(reader.get<unsigned int>());
+        if (reader.containsKey("NumMatrixSolverThreads"))
+            this->setMatrixSolverThreadCount(reader.get<unsigned int>());
+
+        // Number arrays
+        if (reader.containsKey("StretchVector"))
+            this->setStretchVector(reader.get<vector<double> >());
+        if (reader.containsKey("dtLimits"))
+            this->setdtLimits(reader.get<vector<double> > ());
+        if (reader.containsKey("dtFunction"))
+            this->setdtFunction(reader.get<vector<double> >());
+        if (reader.containsKey("RegularGridSize"))
+            this->setRegularGridSize(reader.get<vector<idx> >());
+
+
+    } catch (ReaderError e) {
+       e.printError();
+   }
 }

@@ -2,17 +2,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <algorithm>
+#include <reader.h>
+#include <vector>
+
+using std::vector;
 
 Box::Box(int boxnum) {
+
     Type = Normal;
     BoxNumber = boxnum;
-    Params[0] = 1;
-    Params[1] = 0;
-    X[0] = 0; X[1] = 0;
-    Y[0] = 0; Y[1] = 0;
-    Z[0] = 0; Z[1] = 0;
-    Tilt[0]     = 0; Tilt[1]    = 0;
-    Twist[0]    = 0; Twist[1]   = 0;
+    Params = {0,0};
+    X = {0,0};
+    Y = {0,0};
+    Z = {0,0};
+    Tilt = {0,0};
+    Twist = {0,0};
+
 }
 
 void Box::printBox() {
@@ -22,6 +27,8 @@ void Box::printBox() {
     printf("\tTilt\t= [%1.1f, %1.1f]\n", Tilt[0], Tilt[1]);
     printf("\tTwist\t= [%1.1f, %1.1f]\n", Twist[0], Twist[1]);
 }
+
+/*
 void Box::setParams(std::vector<double> p) {
     if (p.size() == 2) {
         Params[0] = p[0];
@@ -31,6 +38,7 @@ void Box::setParams(std::vector<double> p) {
         exit(1);
     }
 }
+*/
 void Box::setX(std:: vector<double> x) {
     if (x.size() == 2) {
         X[0] = x[0];
@@ -133,4 +141,30 @@ void Boxes::printBoxes() {
         box[i]->printBox();
     }
 }
+
+void Boxes::readSettingsFile(Reader &reader) {
+    using std::string;
+    const int MAX_NUM_BOXES = 100;
+    // Loop over all possible boxes ad try to read
+    for (int boxNum = 1; boxNum < MAX_NUM_BOXES; boxNum++) {
+        string key = "BOX"+std::to_string(boxNum) + ".Params";
+        // if box with current number found, read it fully
+        if (reader.containsKey(key)) {
+            Box *box = new Box(boxNum);
+            string keyBase = "BOX"+std::to_string(boxNum) + ".";
+            string type = reader.getValueByKey<string>(keyBase+"Type");
+            box->setBoxType(type);
+            box->Params = reader.getValueByKey<vector<double>>(keyBase+"Params");
+            box->X = reader.getValueByKey<vector<double>>(keyBase+"X");
+            box->Y = reader.getValueByKey<vector<double>>(keyBase+"Y");
+            box->Z = reader.getValueByKey<vector<double>>(keyBase+"Z");
+            box->Tilt = reader.getValueByKey<vector<double>>(keyBase+"Tilt");
+            box->Twist = reader.getValueByKey<vector<double>>(keyBase+"Twist");
+            this->addBox(box);
+        }
+    }
+
+}
+
+
 
