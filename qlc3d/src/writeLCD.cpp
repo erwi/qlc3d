@@ -162,18 +162,19 @@ void ReadResult(Simu &simu, SolutionVector &q) {
     }
     /// RAD SOME LINES FROM THE FILE AND TRY TO FIND OUT WHICH TYPE IT IS
     bool isBinary = false;
-    char line[100];
+    const int lineLength = 256;
+    char *line = new char[lineLength];
     // IF FILE CONTAINS BELOW MAGIC TEXT, IT IS IN BINARY MODE
     const char binaryMarker[] = "RAW FLOAT TRI";
     for (int i = 0 ; i < 5 ; i++) {
-        fgets(line, 100, fid); // returns null pointer if fails to read
+        line = fgets(line, lineLength, fid); // returns null pointer if fails to read
         string sline = line;
         if (sline.find(binaryMarker) < std::string::npos) {
-            //cout << "on line " << i << " detected key-word " <<binaryMarker << endl;
             isBinary = true;
             break;
         }
     }
+    delete [] line;
     fclose(fid);
     if (isBinary) {
         cout << "Result file format is binary" << endl;
@@ -195,11 +196,12 @@ void ReadLCD_T(Simu &simu, SolutionVector &q) {
         exit(1);
     }
     const int lineLen = 256;
-    char line[lineLen];
+    char *line = new char[lineLen];
     // READ 3  LINES OF HEADER DATA
-    char *tempc = fgets(line, lineLen, fid);
-    tempc = fgets(line, lineLen, fid);
-    tempc = fgets(line, lineLen, fid);
+    line = fgets(line, lineLen, fid);
+    line = fgets(line, lineLen, fid);
+    line = fgets(line, lineLen, fid);
+    delete [] line;
     int id;
     float n[3], S[2], v;
     //fgets(line, lineLen, fid);
@@ -250,39 +252,41 @@ void ReadLCD_T(Simu &simu, SolutionVector &q) {
 void ReadLCD_B(Simu *simu, SolutionVector *q) {
     // READS BINARY FORMATED RESULT FILE
     string filename = simu->getLoadQ();
-    // printf( "Loading Q-tensor from: %s\n",filename.c_str());
     FILE *fid = fopen(filename.c_str() , "rb");
-    char str[100];
+    // keep a return value ptr to suppress warnings
+    char *str;
+    const int tempLineLength = 100;
+    str = new char[tempLineLength];
     if (fid) {
         float S0;
         idx np, nsol;
         // READS 5 LINES DISCARIDING DATA
-        char *tempc = fgets(str , 100 , fid);
-        tempc = fgets(str , 100 , fid);
-        tempc = fgets(str , 100 , fid);
-        tempc = fgets(str , 100 , fid);
-        tempc = fgets(str , 100 , fid);
-        fscanf(fid, "%f %i %i\n", &S0, &np, &nsol);
+        str = fgets(str , tempLineLength , fid);
+        str = fgets(str , tempLineLength , fid);
+        str = fgets(str , tempLineLength , fid);
+        str = fgets(str , tempLineLength , fid);
+        str = fgets(str , tempLineLength , fid);
+        delete [] str;
+        size_t numRead = (size_t) fscanf(fid, "%f %i %i\n", &S0, &np, &nsol); numRead ++;
         if (np < q->getnDoF()) {
             cout << "error, the loaded result file does not math the mesh size - bye!" << endl;
-            //printf("The file you're trying to load (\"%s\") doesn't seem to match the mesh - bye!\n",filename.c_str() );
             fclose(fid);
             exit(1);
         }
         float q1, q2, q3, q4, q5, temp;
         for (idx i = 0 ; i < q->getnDoF() ; i ++) {
-            fread(&q1, sizeof(float), 1 , fid);
-            fread(&q2, sizeof(float), 1 , fid);
-            fread(&q3, sizeof(float), 1 , fid);
-            fread(&q5, sizeof(float), 1 , fid);
-            fread(&q4, sizeof(float), 1 , fid);
+            numRead = fread(&q1, sizeof(float), 1 , fid);
+            numRead = fread(&q2, sizeof(float), 1 , fid);
+            numRead = fread(&q3, sizeof(float), 1 , fid);
+            numRead = fread(&q5, sizeof(float), 1 , fid);
+            numRead = fread(&q4, sizeof(float), 1 , fid);
             q->setValue(i, 0, q1);
             q->setValue(i, 1, q2);
             q->setValue(i, 2, q3);
             q->setValue(i, 3, q4);
             q->setValue(i, 4, q5);
             for (idx j = 0 ; j < nsol - 5 ; j ++) // READ&DISCARD POTENTIAL AND FLOW
-                fread((void *) &temp, sizeof(float), 1 , fid);
+                numRead = fread((void *) &temp, sizeof(float), 1 , fid);
         }
         printf("OK\n");
         fclose(fid);
