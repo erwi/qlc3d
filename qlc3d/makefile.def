@@ -4,7 +4,7 @@
 #==============================================
 #	DEFAULT OS IS WINDOWS 
 #==============================================
-D_OF = -DWindows
+D_OF = -DLinux
 
 SPAMTRIX_DIR			= c:/work/SpaMtrix
 SPAMTRIX_INCLUDES		= $(SPAMTRIX_DIR)/include
@@ -24,11 +24,11 @@ ifeq ($(UNAME), Linux)
 
 	
 	D_OF = -DLinux
-
-
+	
+	QLC3D_PATH=$(pwd)
 	SPAMTRIX_DIR			= /home/eero/Projects/SpaMtrix
 	SPAMTRIX_INCLUDES		= $(SPAMTRIX_DIR)/include
-	SPAMTRIX_LIB			= $(SPAMTRIX_DIR)/lib
+	SPAMTRIX_LIB			= /home/eero/Projects/SpaMtrix/build/lib/libspamtrix.a
 		
 endif
 
@@ -50,5 +50,5 @@ CFLAGS += -fopenmp
 		
 
 
-LDFLAGS	 = $(SPAMTRIX_DIR)/lib/libspamtrix.a
+LDFLAGS	 = ${SPAMTRIX_LIB}#  $(SPAMTRIX_DIR)/lib/libspamtrix.a
 	   

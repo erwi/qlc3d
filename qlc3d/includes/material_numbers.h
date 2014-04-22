@@ -1,5 +1,4 @@
-
-// Define Material nubers
+// Define GiD material numbers
 #ifndef MATERIAL_NUMBERS_H
 #define MATERIAL_NUMBERS_H
 
@@ -29,7 +28,6 @@
 #define MAT_ELECTRODE8  512 // 9
 #define MAT_ELECTRODE9  576 // 6 and 9
 // UP TO MAT_ELECTRODE16 ?
-
 #define MAT_FIXLC1 2048 // 11
 #define MAT_FIXLC2 4096 // 12
 #define MAT_FIXLC3 6144 // 11 and 12
@@ -44,49 +42,34 @@
 #define MAT_NEUMANN 2   // 0x
 
 inline
-int FIXLCN_TO_MATNUM(const int& n){
+int FIXLCN_TO_MATNUM(const int &n) {
     /*! converts fixlc number to material number. e.g. 1 -> 2048 etc.*/
-    return n*MAT_FIXLC1;
+    return n * MAT_FIXLC1;
 }
 
 inline
-size_t MATNUM_TO_ELECTRODE_NUMBER(const size_t &mat)
-{
+size_t MATNUM_TO_ELECTRODE_NUMBER(const size_t &mat) {
 // RETURNS THE INDEX NUMBER OF AN ELECTRODE e.g.:
 // 32 -> 1
 // 36 -> 2
 // 2080 -> 1    (FIXLX1_ELECTRODE1)
 // 8768 -> 9    (FIXLC4_ELECTRODE9)
-
     // CREATE MASK WITH BITS 6,7,8,9 SET
     size_t mask = 64 | 128 | 256 | 512;
-
     // ONLY KEEP ELECTRODE BITS OF INPUT VARIABLE
     size_t eleBits = mat & mask;
-
     // GET ELECTRODE INDEX NUMBER
     size_t eleNum = eleBits / MAT_ELECTRODE1;
     return eleNum;
 }
 
 inline
-size_t MATNUM_TO_FIXLC_NUMBER(const size_t &mat)
-{
+size_t MATNUM_TO_FIXLC_NUMBER(const size_t &mat) {
     // RETURNS INDEX NUMBER OF A FIXLC SURFACE
-
     // CRAETE MASK WITH BITS 11 -> 14 SET
     size_t mask = MAT_FIXLC1 | MAT_FIXLC2 | MAT_FIXLC4 | MAT_FIXLC8;
-
     size_t fixlcBits = mat & mask;
-
     size_t fixlcNum = fixlcBits / MAT_FIXLC1;
     return fixlcNum;
 }
-
-
-
 #endif
-
-
-
-
