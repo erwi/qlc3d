@@ -91,6 +91,7 @@ double calcQ3d(SolutionVector *q,
                Alignment* alignment);//
                //double* NodeNormals);
 
+/*
 class SparseMatrix;
 double calcQExplicit(SolutionVector &q,
                      SolutionVector &v,
@@ -101,6 +102,7 @@ double calcQExplicit(SolutionVector &q,
                      Simu &simu,
                      Settings &settings
                      );
+                     */
 class Electrodes;
 class EventList;
 void ReadSettings(
@@ -157,8 +159,8 @@ void tensorToEigs(double* a,		// input Q-tensor, traceless basis
 				  );
 
 // THESE SHOULD BE DEFINED AS FRIEND FUNCTIONS TO CLASS SparseMatrix ?
-SparseMatrix* createSparseMatrix(const Geometry& geom, const SolutionVector& sol, const int& MatNum = 0); // sparse matrix for selected domain = LC only
-SparseMatrix* createSparseMatrix( vector<Line>& lines);
+//SparseMatrix* createSparseMatrix(const Geometry& geom, const SolutionVector& sol, const int& MatNum = 0); // sparse matrix for selected domain = LC only
+//SparseMatrix* createSparseMatrix( vector<Line>& lines);
 // CREATES SPARSE MATRIX OF CORRECT TYPE FOR SOLUTION OF Q-TENSOR
 // DEPENDING ON SOLVER METHOD USED (IMPLICIT / EXPLICIT)
 //SparseMatrix* createSparseMatrixQ(const Geometry &geom,
