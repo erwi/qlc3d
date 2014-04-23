@@ -179,6 +179,7 @@ int main(int argc, char* argv[]){
     MeshRefinement  meshrefinement;
     RegularGrid regGrid;
     EventList eventlist;
+    Settings settings;
     string settings_filename = "./meshes/test.txt"; 	// default settings file, loaded when no i/p args.
     simu.setCurrentDir( FilesysFun::getCurrentDirectory() );
 
@@ -208,7 +209,8 @@ int main(int argc, char* argv[]){
                  &alignment,
                  &electrodes,
                  &meshrefinement,
-                 eventlist);
+                 eventlist,
+                 settings);
 
 
     // CREATE A BACKUP OF SETTINGS FILE INTO RESULT SAVE DIRECTORY
@@ -218,10 +220,7 @@ int main(int argc, char* argv[]){
     }
 
     FILE* Energy_fid = NULL; // file for outputting free energy
-
-    // Solver settings	(choose solver, preconditioner etc.)
-    Settings settings = Settings();
-    ReadSolverSettings("solver.qfg", &settings);
+    //ReadSolverSettings("solver.qfg", &settings);
 
     selectQMatrixSolver(simu, lc);
 

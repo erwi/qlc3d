@@ -16,18 +16,18 @@ using std::endl;
 
 void MissingMadatoryKey(std::string key, std::string file) {
     std::cerr << "\nError in settings file " + file +
-                 "\nCould not find required key :\"" + key << +"\"" <<std::endl;
+              "\nCould not find required key :\"" + key << +"\"" << std::endl;
     std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
 }
 
 
 
 
-std::string setStructureKey(const char* struct_name,
+std::string setStructureKey(const char *struct_name,
                             const unsigned int number,
-                            const char* key_name){
+                            const char *key_name) {
     std::stringstream ss;
-    ss << struct_name << number <<"."<<key_name;
+    ss << struct_name << number << "." << key_name;
     std::string key;
     ss >> key;
     return key;
@@ -37,8 +37,8 @@ std::string setStructureKey(const char* struct_name,
 void readLC(LC& lc,Reader& reader){
 
     /// THIS CHECKING SHOULD BE DONE IN THE READER CLASS
-    //	reader.file.seekg(0);
-    //	reader.file.clear();
+    //  reader.file.seekg(0);
+    //  reader.file.clear();
     if ( ! reader.file.good() ){
         cout << "error reading LC - bye!" <<endl;
         exit(1);
@@ -143,9 +143,9 @@ void readLC(LC& lc,Reader& reader){
 //    simu.readSettingsFile(reader    );
 
 
-    //  READ STRING SETTINGS
-    //  MANDATORY STRING SETTINGS
-    /*
+//  READ STRING SETTINGS
+//  MANDATORY STRING SETTINGS
+/*
     ret = 0;
     name = "EndCriterion";
     ret = reader.readString(name , str_var);
@@ -431,7 +431,7 @@ void readAlignment(Alignment* alignment, Reader& reader){
     std::string surface_setting_name;
 
 
-    for ( int i = 0; i < num_surfaces; i++)	{
+    for ( int i = 0; i < num_surfaces; i++) {
         stringstream ss;
         string name;
         string str_val;
@@ -508,10 +508,9 @@ void readAlignment(Alignment* alignment, Reader& reader){
 */
 
 //*
-void readElectrodes(Electrodes& electrodes,
-                    EventList& evli,
-                    Reader& reader)
-{
+void readElectrodes(Electrodes &electrodes,
+                    EventList &evli,
+                    Reader &reader) {
     //
     // Potential calculation related settings are read here.
     // This includes electrode switching, uniform E-field and
@@ -530,19 +529,19 @@ void readElectrodes(Electrodes& electrodes,
             // Make sure equal number of times and potentials
             if (times.size() != pots.size()) {
                 std::cerr << "error reading Electrode " << electrodeNumber <<
-                             ". Swithing times don't match switching potentials - bye!"
-                             << std::endl;
+                          ". Swithing times don't match switching potentials - bye!"
+                          << std::endl;
                 std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
             }
             //
             // Decompose switching times and potentials to separate switching events
             for (size_t i = 0; i < times.size(); i++) {
-                SwitchingInstance *switchingInstance = new SwitchingInstance( times.at(i),
-                                                               pots.at(i),
-                                                               electrodeNumber-1);
+                SwitchingInstance *switchingInstance = new SwitchingInstance(times.at(i),
+                        pots.at(i),
+                        electrodeNumber - 1);
                 Event *event = new Event(EVENT_SWITCHING,
                                          times.at(i));
-                event->setEventDataPtr(static_cast<void*>(switchingInstance));
+                event->setEventDataPtr(static_cast<void *>(switchingInstance));
                 evli.insertTimeEvent(event);
             }
         }
@@ -554,13 +553,13 @@ void readElectrodes(Electrodes& electrodes,
             electrodes.EField[1] = EField.at(1);
             electrodes.EField[2] = EField.at(2);
             // A dummy switching event at time 0 is needed for uniform E-fields.
-            Event* swEvent = new Event( EVENT_SWITCHING , 0.0 );
-            SwitchingInstance* si = new SwitchingInstance( 0 ,
-                                                           0 ,
-                                                           SwitchingInstance::UNIFORM_E_FIELD
-                                                           );
-            swEvent->setEventDataPtr( static_cast <void*> (si) );
-            evli.insertTimeEvent( swEvent );
+            Event *swEvent = new Event(EVENT_SWITCHING , 0.0);
+            SwitchingInstance *si = new SwitchingInstance(0 ,
+                    0 ,
+                    SwitchingInstance::UNIFORM_E_FIELD
+                                                         );
+            swEvent->setEventDataPtr(static_cast <void *>(si));
+            evli.insertTimeEvent(swEvent);
         }
         //
         // Read dielectric permittivities
@@ -836,131 +835,96 @@ void readEndrefinement( MeshRefinement* meshrefinement, Reader& reader){
 }
 */
 
-/*
-void readRefinement(Reader& reader,
-                    EventList& evli)
-{
-    // READS SETINGS FOR MESH REFINEMENT AND ADDS REFINEMENT EVENT TO EVENT QUEUE
 
-    // FIRST READ "GLOBAL" REPEATED REFINMENT SETTINGS
-    string key = "RepRefIter";
-    size_t  repRefIter(0);
-    int ret = reader.readNumber( key, repRefIter );
-    problem_format( key, ret );
-    evli.setRepRefIter( repRefIter );
-
-    key = "RepRefTime";
-    double repRefTime(0);
-    ret = reader.readNumber( key , repRefTime );
-    problem_format(key, ret );
-    evli.setRepRefTime( repRefTime );
-
-    // LOOP OVER POSSIBLE REFINEMENT SETTINGS VALUES
-    unsigned int max_num_ref = 100;
-    for (unsigned int i = 1 ; i <= max_num_ref ; i++){ // FOR REFINEMENTS
-        string type = "";    // SETTING RETURN STRING VALUE
-        key = setStructureKey("REFINEMENT", i , "Type");
-        int ret = reader.readString(key, type);
-
-
-        if ( ret == READER_SUCCESS ){ // IF REFINEMENTi IS DEFINED IN SETTINGS FILE
-            // OPTIONAL, EXPLICIT ITERATIONS WHEN REFINEMENT OCCURS
-            key = setStructureKey("REFINEMENT", i , "Iterations");
-            vector <long int> iterations;
-            ret = reader.readNumberArray( key, iterations );
-            problem_format( key , ret );
-
-            // OPTIONAL, EXPLICIT TIMES WHEN REFINEMENT OCCURS
-            key = setStructureKey("REFINEMENT",i,"Times");
-            vector <double> times;
-            reader.readNumberArray( key, times );
-            problem_format( key , ret );
-
-            // MAKE SURE THAT ONLY Iterations OR Times IS DEFINED, NOT BOTH
-            if ( (iterations.empty() ) &&
-                 (!times.empty() ) ){
-                char msg[200];
-                sprintf( msg, "error with REFINEMENT%i, can't define both Iterations AND Times for same setting - bye!", i);
-                problem( msg );
+void readRefinement(Reader &reader,
+                    EventList &evli) {
+    // Reads mesh refinement settings and adds any refinement
+    // event to event list
+    // First read periodically occurring refinement settings
+    if (reader.containsKey("RefRefIter"))
+        evli.setRepRefIter(reader.get<int>());
+    if (reader.containsKey("RepRefTime"))
+        evli.setRepRefTime(reader.get<double>());
+    // Then read any numbered refinement "objects"
+    // Loop over each possible one
+    const int MAX_REF_COUNT = 100;
+    for (int refNum = 1; refNum < MAX_REF_COUNT; refNum++) {
+        string keyBase = "REFINEMENT" + std::to_string(refNum) + ".";
+        string key = keyBase + "Type";
+        //
+        // If found refinement event with current number
+        if (reader.containsKey(key)) {
+            // Read all fields for this event
+            string typeValue;
+            vector<long int> iterationsValue;
+            vector<double>   timesValue;
+            vector<double>   valuesValue;
+            vector<double>   xValue;
+            vector<double>   yValue;
+            vector<double>   zValue;
+            typeValue = reader.getValueByKey<string>(keyBase + "Type");
+            valuesValue = reader.getValueByKey<vector<double>>(keyBase + "Values");
+            xValue = reader.getValueByKey<vector<double>>(keyBase + "X");
+            yValue = reader.getValueByKey<vector<double>>(keyBase + "Y");
+            zValue = reader.getValueByKey<vector<double>>(keyBase + "Z");
+            if (reader.containsKey(keyBase + "Iterations"))
+                iterationsValue = reader.get<vector<long int>>();
+            if (reader.containsKey(keyBase + "Times"))
+                timesValue = reader.get<vector<double>>();
+            // Can't have both times and iterations defined for same
+            // refinement onject
+            if (iterationsValue.size() > 0 && timesValue.size() > 0) {
+                std::cerr << "error reading REFINEMENT" + std::to_string(refNum) << std::endl;
+                std::cerr << "Can not define both Iterations and Times for same event - bye!" << std::endl;
+                std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
             }
-
-            // START READING ALL POSSIBLE RefInfo DATA FIELDS
-            key = setStructureKey("REFINEMENT", i , "Values");
-            vector<double> values;
-            ret = reader.readNumberArray(key, values);
-            problem_format(key, ret);
-
-            vector<double> X , Y, Z;
-            key = setStructureKey("REFINEMENT", i , "X");
-            ret = reader.readNumberArray( key, X );
-            problem_format( key, ret );
-            key = setStructureKey("REFINEMENT", i , "Y");
-            ret = reader.readNumberArray( key, Y );
-            problem_format( key, ret );
-            key = setStructureKey("REFINEMENT", i , "Z");
-            ret = reader.readNumberArray( key, Z );
-            problem_format( key, ret );
-
-            // DATA HAS BEEN COLLECTED. DEPENDING ON WHETHER EXPLICIT REFINEMENT
-            // EVENTS HAVE BEEN DEFINED ADD EVENT(s) TO EVENT LIST
-
-            // IF EXPLICIT ITERATIOSN ARE DEFINED, BREAK THEM TO SEPARATE EVENT
-            if (!iterations.empty() ) {
-                for (size_t j = 0 ; j < iterations.size() ; j++){
-                    unsigned int itr = (unsigned int) iterations[j];
-                    RefInfo* refinfo = new RefInfo(type);
-                    refinfo->setIteration( itr );
-                    refinfo->setValues( values );
-                    refinfo->setCoords(X, Y, Z);
-                    RefInfo::validate( *refinfo );
-                    Event* e = new Event(EVENT_REFINEMENT, itr);
-                    e->setEventDataPtr( static_cast<void*> (refinfo) );
-                    evli.insertIterEvent( e );
+            //
+            // Now have all info for current refinement event.
+            // Create it and Add to events list
+            if (!iterationsValue.empty()) {
+                for (auto iter : iterationsValue) {
+                    Event *e = new Event(EVENT_REFINEMENT, (unsigned int) iter);
+                    e->setEventDataPtr(static_cast<void *>
+                                       (RefInfo::make(typeValue,
+                                                      iter, 0,
+                                                      valuesValue,
+                                                      xValue, yValue, zValue)));
                 }
-
-            }
-            // IF EXPLICIT TIMES ARE DEFINED, BREAK INTO SEPARATE EVENTS
-            else if ( !times.empty() ){
-                for (size_t j = 0 ; j < times.size() ; j++){
-                    double tme = times[j];
-                    RefInfo* refinfo = new RefInfo(type);
-                    refinfo->setTime( tme );
-                    refinfo->setValues( values );
-                    refinfo->setCoords(X, Y, Z);
-                    RefInfo::validate( *refinfo );
-                    Event* e = new Event( EVENT_REFINEMENT, tme );
-                    e->setEventDataPtr( static_cast<void*> (refinfo) );
-                    evli.insertTimeEvent( e );
+            } else if (!timesValue.empty()) {
+                for (auto time : timesValue) {
+                    Event *e = new Event(EVENT_REFINEMENT, time);
+                    e->setEventDataPtr(static_cast<void *>
+                                       (RefInfo::make(typeValue,
+                                                      0, time,
+                                                      valuesValue,
+                                                      xValue, yValue, zValue)));
+                    evli.insertTimeEvent(e);
                 }
+            } else {
+                RefInfo *refInfo = RefInfo::make(typeValue,
+                                                 0, 0, valuesValue,
+                                                 xValue, yValue, zValue);
+                // REPETITION BY ITERATION ONLY CURRENTLY SUPPORTED
+                // TODO Also support repetition by fixed time period
+                Event *e = new Event(EVENT_REFINEMENT, refInfo->getRefIter());
+                e->setEventDataPtr(static_cast<void *>
+                                   (refInfo));
+                evli.addRepRefInfo(e);
             }
-            // REPEATING REFINEMENT
-            else{
-                RefInfo* refinfo = new RefInfo(type);
-                refinfo->setValues( values );
-                refinfo->setCoords(X, Y, Z);
-                RefInfo::validate( *refinfo );
-                Event* e = new Event(EVENT_REFINEMENT, refinfo->getRefIter() ); // REPETITION BY ITERATION ONLY CURRENTLY SUPPORTED
-                e->setEventDataPtr( static_cast<void*> (refinfo) );
-                evli.addRepRefInfo( e );
-            }
-
-        }// END IF SUCCESS
-    }// END FOR LOOP OVER REFINEMENTi
+        } // end if found event by number
+    }// end for event numbers
 }
-*/
 
 
-void ReadSettings(
-        string settingsFileName,
-        Simu* simu,
-        LC& lc,
-        Boxes* boxes,
-        Alignment* alignment,
-        Electrodes* electrodes,
-        MeshRefinement* meshrefinement, // <--- unused param.
-        EventList& eventList)
-{
 
+void ReadSettings(string settingsFileName,
+    Simu *simu,
+    LC &lc,
+    Boxes *boxes,
+    Alignment *alignment,
+    Electrodes *electrodes,
+    MeshRefinement *meshrefinement, // <--- unused param.
+    EventList &eventList, Settings &settings) {
     Reader reader;
     reader.setCaseSensitivity(false);
     reader.readSettingsFile(settingsFileName);
@@ -968,15 +932,14 @@ void ReadSettings(
         simu->readSettingsFile(reader);
         lc.readSettingsFile(reader);
         boxes->readSettingsFile(reader);
+        settings.readSettingsFile(reader);
+
         readElectrodes(*electrodes, eventList, reader);
+        readRefinement(reader, eventList);
+        // readAlignment(*alignment, reader);
     } catch (ReaderError e) {
         e.printError();
     }
-
-
-
-
-
     std::cout << "EXIT OK " << std::endl;
     exit(1);
     /*
@@ -1018,8 +981,7 @@ void ReadSettings(
 
 
 
-void ReadSolverSettings(const char* filename, Settings* settings)
-{
+void ReadSolverSettings(const char *filename, Settings *settings) {
     // READS SOLVER SETTINGS FROM FILE. THIS WAS ORIGIANLLY ASSUMED TO BE
     // CALLED "solver.qfg", BUT NOW ALSO READS "solver.txt", IF "solver.qfg"
     // IS NOT FOUND
@@ -1133,6 +1095,5 @@ void ReadSolverSettings(const char* filename, Settings* settings)
         //exit(1);
     }
     */
-
 } // end readSolverSettings
 

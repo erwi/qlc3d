@@ -6,10 +6,10 @@ set(SPAMTRIX_INCLUDES_DIR /home/eero/Projects/SpaMtrix/include)
 set(SPAMTRIX_BINARY_DIR  /home/eero/Projects/SpaMtrix/build/lib)
 add_definitions(-DLinux) ## Must choose either -DLinux OR -DWindows
 add_definitions(-DDEBUG) # DISABLES OPENMP PRAGMAS
+set(CMAKE_BUILD_TYPE debug)
 #
 # Should be no need to change settings below
 #
-set(CMAKE_BUILD_TYPE release)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++0x")
 file(GLOB SOURCE_FILES ./includes/*.h ./src/*.cpp)
 find_package(OpenMP)

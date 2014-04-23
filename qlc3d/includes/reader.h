@@ -326,6 +326,7 @@ bool Reader::isValidKey(std::string key) {
             return true;
         }
     }
+    _recentKey.clear();
     return false; // key not found
 }
 
@@ -344,6 +345,7 @@ bool Reader::containsKey(const std::string &key) {
     /*!
      * Returns true if key has been defined.
      */
+    _recentKey.clear();
     // validate key format
     std::string tkey(key);
     this->cleanLineEnds(tkey);
@@ -488,7 +490,10 @@ T Reader::getValueByKey(const std::string &key) const {
 template<class T>
 T Reader::get() const {
 /*! returns value corresponding to most recently used key*/
-    return getValueByKey<T>(_recentKey);
+    if (!_recentKey.empty())
+        return getValueByKey<T>(_recentKey);
+    else
+        throw ReaderError("A valid key has not been found before calling Reader::get<class T>()");
 }
 
 inline void Reader::parseValue(const std::string &strVal, size_t &val) const {

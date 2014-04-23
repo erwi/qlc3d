@@ -113,10 +113,10 @@ void ReadSettings(
         Alignment* alignment,
         Electrodes* electrodes,
         MeshRefinement* meshrefinement,
-        EventList& eventlist
+        EventList& eventlist,
+        Settings & settings
 	);
 
-void ReadSolverSettings(const char* filename, Settings* settings);
 void CreateSaveDir(Simu* simu); //creates new save dir, if needed
 
 // -----------------------------
