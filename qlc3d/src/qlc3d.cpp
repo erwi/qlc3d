@@ -203,12 +203,12 @@ int main(int argc, char* argv[]){
     printf("current working directory:\n%s\n", FilesysFun::getCurrentDirectory().c_str() );
 
     ReadSettings(settings_filename, // CHANGE POINTERS TO REFS.
-                 &simu,
+                 simu,
                  lc,
-                 &boxes,
-                 &alignment,
-                 &electrodes,
-                 &meshrefinement,
+                 boxes,
+                 alignment,
+                 electrodes,
+                 meshrefinement,
                  eventlist,
                  settings);
 

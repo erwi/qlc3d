@@ -918,23 +918,23 @@ void readRefinement(Reader &reader,
 
 
 void ReadSettings(string settingsFileName,
-    Simu *simu,
+    Simu &simu,
     LC &lc,
-    Boxes *boxes,
-    Alignment *alignment,
-    Electrodes *electrodes,
-    MeshRefinement *meshrefinement, // <--- unused param.
+    Boxes &boxes,
+    Alignment &alignment,
+    Electrodes &electrodes,
+    MeshRefinement &meshrefinement, // <--- unused param.
     EventList &eventList, Settings &settings) {
     Reader reader;
     reader.setCaseSensitivity(false);
     reader.readSettingsFile(settingsFileName);
     try {
-        simu->readSettingsFile(reader);
+        simu.readSettingsFile(reader);
         lc.readSettingsFile(reader);
-        boxes->readSettingsFile(reader);
+        boxes.readSettingsFile(reader);
         settings.readSettingsFile(reader);
-
-        readElectrodes(*electrodes, eventList, reader);
+        alignment.readSettingsFile(reader);
+        readElectrodes( electrodes, eventList, reader);
         readRefinement(reader, eventList);
         // readAlignment(*alignment, reader);
     } catch (ReaderError e) {

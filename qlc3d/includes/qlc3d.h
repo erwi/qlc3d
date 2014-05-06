@@ -107,14 +107,14 @@ class Electrodes;
 class EventList;
 void ReadSettings(
         string settings_filename,
-        Simu* simu,
+        Simu &simu,
         LC& lc,
-        Boxes* boxes,
-        Alignment* alignment,
-        Electrodes* electrodes,
-        MeshRefinement* meshrefinement,
-        EventList& eventlist,
-        Settings & settings
+        Boxes &boxes,
+        Alignment &alignment,
+        Electrodes &electrodes,
+        MeshRefinement &meshrefinement,
+        EventList &eventlist,
+        Settings &settings
 	);
 
 void CreateSaveDir(Simu* simu); //creates new save dir, if needed

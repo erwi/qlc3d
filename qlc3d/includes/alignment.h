@@ -6,7 +6,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-using namespace std;
+
+//using namespace std;
 
 #define ANCHORING_STRONG    1
 #define ANCHORING_WEAK      2
@@ -18,9 +19,13 @@ using namespace std;
 #ifndef PI
 #define PI 3.14159265358979323846264338327950288419716939937510
 #endif
+using std::string;
+using std::vector;
 class Surface {
-    /*!The surface class represents a FIXLC anchoring surface.*/
+    /*!The surface class represents a single FIXLC anchoring surface.*/
 private:
+    static const double DEFAULT_ANCHORING_STRENGTH;
+
     string Anchoring;                   // name of anchoring type
     unsigned int AnchoringNum;          // number 1, 2, 3 or 4 corresponding to anchoring type, as defined above
     double Strength;
@@ -32,6 +37,7 @@ private:
     double e[3];                        // Easy direction vector
     bool UsesSurfaceNormal;             // whether to use local surface normal vector or v1 and v2
     bool isFixed;                       // whether this surface is fixed or not
+    void calcV1V2();                    // calculates v1 and v2 values from easy angles
 public:
     int FixLCNumber;
     std::vector<double> Params;         // holds optional parameters, but is mostly empty
@@ -45,7 +51,7 @@ public:
     void setv2(double v[3]);
     void setEasyVector(double v[3]);
     void calcEasyVector();              // calculates Easy Vector from easy angles
-    void calcV1V2();                    // calculates v1 and v2 values from easy angles
+
     void setUsesSurfaceNormal(bool sn);
     string getAnchoringType();
     unsigned int getAnchoringNum();     //
@@ -59,7 +65,12 @@ public:
     double *getPtrTov2();
     bool    getUsesSurfaceNormal();
     bool    getisFixed();
+
+    friend class Alignment;
 };
+
+class Reader; // forward declaration of reader class
+
 class Alignment {
     /*! A collection of Surface objects, each representing a FIXLC surface*/
 private:
@@ -80,6 +91,8 @@ public:
     unsigned int getAnchoringNum(const int &n); // // returns anchoring number of alignment surface n
     bool getUsesSurfaceNormal(int n); // if n uses surface normal instead of v1 and v2 ?
     bool WeakSurfacesExist();   // checks if weak surfaces are defined
+
+    void readSettingsFile(Reader& reader);
 };
 
 

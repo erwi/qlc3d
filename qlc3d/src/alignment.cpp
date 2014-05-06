@@ -1,6 +1,10 @@
 #include <alignment.h>
 #include <algorithm>
 #include <iostream>
+#include <reader.h>
+
+const double Surface::DEFAULT_ANCHORING_STRENGTH = 1e-4;
+
 
 Surface::Surface(int fxlcnum)
 {
@@ -8,7 +12,7 @@ Surface::Surface(int fxlcnum)
     Anchoring = "Strong";
     AnchoringNum = ANCHORING_STRONG;
     FixLCNumber = fxlcnum;
-    Strength = 1e-4;
+    Strength = DEFAULT_ANCHORING_STRENGTH;
     K1 = 1;
     K2 = 1;
     Easy[0] = 0;
@@ -35,54 +39,51 @@ void Surface::setAnchoringType(std::string &atype){
 
     // MAKE SURE LOWERCASE
     std::transform(atype.begin(), atype.end() , atype.begin(), ::tolower);
-    if (atype.compare("strong") == 0){
+    if (atype.compare("strong") == 0) {
         Anchoring = atype;
         AnchoringNum = ANCHORING_STRONG;
         isFixed = true;
     }
-    else if (atype.compare("homeotropic") == 0){
+    else if (atype.compare("homeotropic") == 0) {
         Anchoring = atype;
         AnchoringNum = ANCHORING_HOMEOTROPIC;
         isFixed = true;
     }
-    else if (atype.compare("weak") == 0){
+    else if (atype.compare("weak") == 0) {
         Anchoring = atype;
         AnchoringNum = ANCHORING_WEAK;
         isFixed = false;
     }
-    else if (atype.compare("degenerate") == 0){
+    else if (atype.compare("degenerate") == 0) {
         Anchoring = atype;
         AnchoringNum = ANCHORING_DEGENERATE;
         setUsesSurfaceNormal(true);
         isFixed = false;
     }
-    else if (atype.compare("freeze") == 0 ){
-        printf("Surface::setAnchoringType - freeze\n" );
+    else if (atype.compare("freeze") == 0 ) {
         Anchoring = atype;
         AnchoringNum = ANCHORING_FREEZE;
         isFixed = true;
         setUsesSurfaceNormal(false);
     }
-    else if (atype.compare("polymerise") == 0 ){
-        printf("Surface::setAnchoringType - Polymerise\n");
+    else if (atype.compare("polymerise") == 0 ) {
         Anchoring = atype;
         AnchoringNum = ANCHORING_POLYMERISE;
         isFixed = true;
         setUsesSurfaceNormal(false);
     }
-    else if (atype.compare("manualnodes") == 0){
-        printf("Surface::setAnchoringType - ManualNodes\n");
+    else if (atype.compare("manualnodes") == 0) {
         Anchoring = atype;
         AnchoringNum = ANCHORING_MANUAL_NODES;
         isFixed = true;
         setUsesSurfaceNormal(false);
     }
     else{
-        using std::cout;
+        using std::cerr;
         using std::endl;
-        cout << "error specifying FIXLC"<< FixLCNumber<<".Type, ";
-        cout << "\""<<Anchoring << "\" is not a valid anchoring type." << endl;
-        cout << "valid types are:\n" <<
+        cerr << "error specifying FIXLC"<< FixLCNumber<<".Anchoring, ";
+        cerr << "\""<<Anchoring << "\" is not a valid anchoring type." << endl;
+        cerr << "valid types are:\n" <<
                 "\tstrong\n"<<
                 "\tweak\n"<<
                 "\tdegenerate\n"<<
@@ -104,14 +105,15 @@ void Surface::setEasyAngles(std::vector<double> &e){
      * set easy direction, tilt, twist & rotation
      */
     if (e.size()>3){
-        cerr << "error in Surface::setEasyAngles, too many easy angles" << endl;
-        cerr << "got " << e.size() << " but can only handle up to 3 (tilt, twist, rotation) - bye!" << endl;
+        std::cerr << "error in Surface::setEasyAngles, too many easy angles" << std::endl;
+        std::cerr << "got " << e.size() << " but can only handle up to 3 (tilt, twist, rotation) - bye!" << std::endl;
         exit(1);
     }
     Easy[0] = 0.0; Easy[1] = 0.0; Easy[2] = 0.0;
-    for (size_t i = 0; i < e.size() ; i++){
+    for (size_t i = 0; i < e.size() ; i++)
         Easy[i] = e[i];
-    }
+    //
+    this->calcV1V2(); // calculates primary anchoring axes from easy angles
 }
 
 
@@ -122,8 +124,8 @@ void Surface::setEasyVector( double v[3]){	e[0] = v[0]; e[1] = v[1]; e[2] = v[2]
 
 void Surface::calcEasyVector(){
     /*! Calculates easy vector e from easy angles, tilt and twist*/
-
-
+    std::cerr << "unimplemented method: " << __PRETTY_FUNCTION__ << std::endl;
+    std::exit(1);
 }
 void Surface::calcV1V2(){
     /*! Calculates v1 and v2 vectors given tilt and twist angles
@@ -227,9 +229,8 @@ bool Alignment::WeakSurfacesExist(){
 returns true if any non-fixed surfaces have been defined
 */
     for(int n = 0 ; n < getnSurfaces() ; n++ )
-        if ( !IsStrong(n) ){
+        if ( !IsStrong(n) )
             return true;
-        }
     return false;
 }
 
@@ -239,3 +240,42 @@ double Alignment::getK2(int n)			{return surface[n-1]->getK2();}
 double* Alignment::getPtrTov1(int n)		{return surface[n-1]->getPtrTov1();}
 double* Alignment::getPtrTov2(int n)		{return surface[n-1]->getPtrTov2();}
 bool Alignment::getUsesSurfaceNormal(int n)  {return surface[n-1]->getUsesSurfaceNormal();}
+
+void Alignment::readSettingsFile(Reader &reader) {
+    /*!Reads surface anchoring settings from file*/
+    const int MAX_NUM_SURFACES = 99;
+    // Loop over all possible FixLC numbers
+    for (int i = 0; i < MAX_NUM_SURFACES; i++) {
+        string keyBase = "FIXLC"+std::to_string(i) + ".";
+        string key = keyBase + "Anchoring";
+        if (reader.containsKey(key)) {
+            string name = reader.getValueByKey<string>(key);
+            // Create reasonable default values for surface parameters
+            double strength  = Surface::DEFAULT_ANCHORING_STRENGTH;
+            double K1 = 1.0;
+            double K2 = 1.0;
+            vector <double> easyAngle = {0,0,0};
+            vector<double> params;
+            // Read optional values to overwrite defaults
+            if (reader.containsKey(keyBase + "Strength"))
+                strength = reader.get<double>();
+            if (reader.containsKey(keyBase + "K1"))
+                K1 = reader.get<double>();
+            if (reader.containsKey(keyBase + "K2"))
+                K2 = reader.get<double>();
+            if (reader.containsKey(keyBase + "Easy"))
+                easyAngle = reader.get<vector<double>>();
+            if (reader.containsKey(keyBase+"Params"))
+                params = reader.get<vector<double>>();
+            // Create new Surface object and set all values
+            Surface *s = new Surface(i);
+            s->setAnchoringType(name);
+            s->setEasyAngles(easyAngle);
+            s->setStrength(strength);
+            s->setK1(K1);
+            s->setK2(K2);
+            s->Params = params;
+            this->addSurface(s);
+        }
+    }
+}
