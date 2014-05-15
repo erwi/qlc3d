@@ -27,7 +27,19 @@ const string SFK_STRETCH_VECTOR = "StretchVector";
 const string SFK_DT_LIMITS = "dtLimits";
 const string SFK_DT_FUNCTION = "dtFunction";
 const string SFK_REGULAR_GRID_SIZE = "RegularGridSize";
-
+// LC Parameter keys
+const string SFK_K11 = "K11";
+const string SFK_K22 = "K22";
+const string SFK_K33 = "K33";
+const string SFK_p0  = "p0";
+const string SFK_A = "A";
+const string SFK_B = "B";
+const string SFK_C = "C";
+const string SFK_EPS_PAR = "eps_par";
+const string SFK_EPS_PER = "eps_per";
+const string SFK_E1 = "e1";
+const string SFK_E3 = "e3";
+const string SFK_GAMMA1 = "gamma1";
 
 
 #endif

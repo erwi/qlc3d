@@ -33,105 +33,36 @@ std::string setStructureKey(const char *struct_name,
     return key;
 }
 
-/*
+
 void readLC(LC& lc,Reader& reader){
+    if (reader.containsKey(SFK_K11))
+        lc.K11 = reader.get<double>();
+    if (reader.containsKey(SFK_K22))
+        lc.K22 = reader.get<double>();
+    if (reader.containsKey(SFK_K33))
+        lc.K33 = reader.get<double>();
+    if (reader.containsKey(SFK_p0))
+        lc.p0 = reader.get<double>();
+    if (reader.containsKey(SFK_A))
+        lc.A = reader.get<double>();
+    if (reader.containsKey(SFK_B))
+        lc.B = reader.get<double>();
+    if (reader.containsKey(SFK_C))
+        lc.C = reader.get<double>();
+    if (reader.containsKey(SFK_EPS_PAR))
+        lc.eps_par = reader.get<double>();
+    if (reader.containsKey(SFK_EPS_PER))
+        lc.eps_per = reader.get<double>();
+    if (reader.containsKey(SFK_E1))
+        lc.e11 = reader.get<double>();
+    if (reader.containsKey(SFK_E3))
+        lc.e33 = reader.get<double>();
+    if (reader.containsKey(SFK_GAMMA1))
+        lc.gamma1 = reader.get<double>();
 
-    /// THIS CHECKING SHOULD BE DONE IN THE READER CLASS
-    //  reader.file.seekg(0);
-    //  reader.file.clear();
-    if ( ! reader.file.good() ){
-        cout << "error reading LC - bye!" <<endl;
-        exit(1);
-    }
-    string name = "";
-    int ret     = 0;
-    double val  = 0;
-    // ELASTIC COEFFS
-    name = "K11";
-    ret = reader.readNumber(name , val);
-    if (ret == READER_SUCCESS)
-        lc.K11 = val;
-    problem(name, ret);
-
-    name = "K22";
-    ret = reader.readNumber(name , val);
-    if (ret == READER_SUCCESS)
-        lc.K22 = val;
-    problem(name, ret);
-
-    name = "K33";
-    ret = reader.readNumber(name , val);
-    if (ret == READER_SUCCESS)
-        lc.K33 = val;
-    problem(name, ret);
-
-    name = "p0";
-    ret = reader.readNumber(name , val);
-    if(ret == READER_SUCCESS)
-        lc.p0 = val;
-    problem_format(name, ret);
-    //problemo(name, ret);
-    // THERMOTROPIC COEFFS
-    name = "A";
-    ret = reader.readNumber(name , val);
-    if(ret == READER_SUCCESS)
-        lc.A = val;
-    problem(name,ret);
-
-    name = "B";
-    ret = reader.readNumber(name, val);
-    if(ret == READER_SUCCESS)
-        lc.B = val;
-    problem(name,ret);
-
-    name = "C";
-    ret = reader.readNumber(name, val);
-    if(ret == READER_SUCCESS)
-        lc.C = val;
-    problem(name,ret);
-
-    // ELECTRIC COEFFS
-    name = "eps_par";
-    ret = reader.readNumber(name, val);
-    if(ret == READER_SUCCESS)
-        lc.eps_par = val;
-    problem(name, ret);
-
-    name = "eps_per";
-    ret = reader.readNumber(name, val);
-    if(ret == READER_SUCCESS)
-        lc.eps_per = val;
-    problem(name, ret);
-
-    name = "e11";
-    ret = reader.readNumber(name, val);
-    problem_format(name, ret);
-    if(ret == READER_SUCCESS)
-        lc.e11 = val;
-
-
-    name = "e33";
-    ret = reader.readNumber(name, val);
-    problem_format(name, ret);
-    if(ret == READER_SUCCESS)
-        lc.e33 = val;
-
-
-    // VISCOUS COEFFICIENTS
-    name = "gamma1";
-    ret = reader.readNumber(name, val);
-    if(ret == READER_SUCCESS)
-        lc.gamma1 = val;
-    problem(name, ret);
-
-    name = "gamma2";
-    ret = reader.readNumber(name, val);
-    problem_format(name, ret);
-    if(ret == READER_SUCCESS)
-        lc.gamma2 = val;
+    lc.convert_params_n2Q();
 
 }//end void readLC
-*/
 
 
 void readSimu(Simu &simu, Reader &reader) {
@@ -790,8 +721,9 @@ void ReadSettings(string settingsFileName,
     reader.readSettingsFile(settingsFileName);
     try {
         readSimu(simu, reader);
+        readLC(lc, reader);
         //simu.readSettingsFile(reader);
-        lc.readSettingsFile(reader);
+        //lc.readSettingsFile(reader);
         boxes.readSettingsFile(reader);
         settings.readSettingsFile(reader);
         alignment.readSettingsFile(reader);

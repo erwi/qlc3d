@@ -131,31 +131,3 @@ double LC::getS0(){
     return S0;
 }
 
-void LC::readSettingsFile(Reader &reader) {
-    if (reader.containsKey("K11"))
-        this->K11 = reader.get<double>();
-    if (reader.containsKey("K22"))
-        this->K22 = reader.get<double>();
-    if (reader.containsKey("K33"))
-        this->K33 = reader.get<double>();
-    if (reader.containsKey("p0"))
-        this->p0 = reader.get<double>();
-    if (reader.containsKey("A"))
-        this->A = reader.get<double>();
-    if (reader.containsKey("B"))
-        this->B = reader.get<double>();
-    if (reader.containsKey("C"))
-        this->C = reader.get<double>();
-    if (reader.containsKey("eps_par"))
-        this->eps_par = reader.get<double>();
-    if (reader.containsKey("eps_per"))
-        this->eps_per = reader.get<double>();
-    if (reader.containsKey("e11"))
-        this->e11 = reader.get<double>();
-    if (reader.containsKey("e33"))
-        this->e33 = reader.get<double>();
-    if (reader.containsKey("gamma1"))
-        this->gamma1 = reader.get<double>();
-
-    this->convert_params_n2Q();
-}
