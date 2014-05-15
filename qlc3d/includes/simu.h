@@ -14,14 +14,14 @@
 #define SIMU_OUTPUT_FORMAT_BINARY 	0
 #define SIMU_OUTPUT_FORMAT_TEXT		1
 
-class Reader; // forward declaration
+class Reader; // forward declaration of settings file reader
 
 enum PotentialConsistency {Off, Loop};
 
 using namespace std;
 class Simu
 {
-
+    friend void readSimu(Simu& , Reader&);
 public:
     // SAVE FORMATS OPTIONS BITFIELDS - MUST BE POWERS OF 2!!!
     // REMEMBER TO ADD to "validSaveFormatStrings" IN CONSTRUCTOR
@@ -105,7 +105,7 @@ public:
     void setEndCriterion( string ec);
     void setEndValue(double ev);
     void resetEndCriterion();       // starts simulation from beginning
-    void setdt(double td);  // set dt, but clamps between min-max values
+    void setdt(const double &td);  // set dt, but clamps between min-max values
     void setdtForced(const double &dt); // force-sets dt, does not care about min-max values
     void setdtLimits(const vector<double> &vec2);
 
@@ -190,8 +190,6 @@ public:
     void clearSaveFormat(){SaveFormat = None; } // CLEARS ALL SAVE TYPES
     void addSaveFormat(std::string format); // ADDS A SAVE FORMAT
     void setSaveFormats(const std::vector<std::string> saveFormats); // array of save format type strings
-    // Load from settings file reader
-    void readSettingsFile(Reader &reader);
 // REGULAR GRID SIZE
     void setRegularGridSize(const vector<unsigned int>& vec3);
     size_t getRegularGridXCount(){return RegularGridSize[0];}

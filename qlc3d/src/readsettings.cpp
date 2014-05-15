@@ -10,7 +10,7 @@
 #include <filesysfun.h>
 #include <globals.h>
 #include <reader.h>
-
+#include <settings_file_keys.h>
 using std::cerr;
 using std::endl;
 
@@ -134,198 +134,58 @@ void readLC(LC& lc,Reader& reader){
 */
 
 
-//void readSimu(Simu &simu, EventList &evel, Reader& reader) {
-//    std::string name;
-//    std::string str_var;
-//    int         int_var = 0;
-//    double      dbl_var = 0;
-//    int         ret;
-//    simu.readSettingsFile(reader    );
+void readSimu(Simu &simu, Reader &reader) {
+    /*! loads values from settings file reader */
+        try {
+            simu.MeshName = reader.getValueByKey<string>(SFK_MESH_NAME);
+            std::string key;
+            // Read optional string values
+            if (reader.containsKey(SFK_LOAD_Q))
+                simu.LoadQ = reader.get<string>();
+            if (reader.containsKey(SFK_SAVE_DIR))
+                simu.SaveDir = reader.get<string>();
+            if (reader.containsKey(SFK_Q_MATRIX_SOLVER))
+                simu.setQMatrixSolver(reader.get<string>());
+            // string arrays
+            if (reader.containsKey(SFK_SAVE_FORMAT))
+                simu.setSaveFormats(reader.get<vector<string> >());
 
+            // Read optional scalar values
+            if (reader.containsKey(SFK_END_VALUE))
+                simu.setEndValue(reader.get<double>());
+            if (reader.containsKey(SFK_DT))
+                simu.setdt(reader.get<double>());
+            if (reader.containsKey(SFK_TARGET_DQ))
+                simu.setTargetdQ(reader.get<double>());
+            if (reader.containsKey(SFK_MAX_DT))
+                simu.setMaxdt(reader.get<double>());
+            if (reader.containsKey(SFK_MAX_ERROR))
+                simu.setMaxError(reader.get<double>());
 
-//  READ STRING SETTINGS
-//  MANDATORY STRING SETTINGS
-/*
-    ret = 0;
-    name = "EndCriterion";
-    ret = reader.readString(name , str_var);
+            if (reader.containsKey(SFK_OUTPUT_ENERGY))
+                simu.setOutputEnergy(reader.get<int>());
+            if (reader.containsKey(SFK_OUTPUT_FORMAT))
+                simu.setOutputFormat(reader.get<int>());
+            if (reader.containsKey(SFK_SAVE_ITER))
+                simu.setSaveIter(reader.get<int>());
+            if (reader.containsKey(SFK_NUM_ASSEMBLY_THREADS))
+                simu.setAsseblyThreadCount(reader.get<unsigned int>());
+            if (reader.containsKey(SFK_NUM_MATRIX_SOLVER_THREADS))
+                simu.setMatrixSolverThreadCount(reader.get<unsigned int>());
 
-
-    reader.ge
-
-    if ( ret== READER_SUCCESS){
-        simu->setEndCriterion(str_var);
-    }
-    problem(name, ret);
-
-    name = "MeshName";
-    ret = reader.readString(name, str_var);
-    if ( ret == READER_SUCCESS )
-        simu->MeshName = str_var;
-
-    problem(name, ret);
-
-    // OPTIONAL STRING SETTINGS
-    name = "LoadQ";
-    ret = reader.readString(name , str_var);
-    if (ret == READER_SUCCESS)
-        simu->setLoadQ(str_var);
-    //problemo(name, ret);
-
-    name = "SaveDir";
-    ret = reader.readString(name , str_var);
-    if ( ret == READER_SUCCESS){ // if specified, use it
-        simu->setSaveDir( simu->getCurrentDir() + "/" + str_var);
-    } else {// otherwise use default ( = res )
-        simu->setSaveDir( simu->getCurrentDir() + "/" + simu->getSaveDir() );
-    }
-
-    name = "QMatrixSolver";
-    ret = reader.readString(name, str_var);
-    if (ret == READER_SUCCESS)
-        simu->setQMatrixSolver(str_var);
-
-    //========================
-    // SCALAR VALUES
-    //========================
-    name = "SaveIter";
-    ret = reader.readNumber(name, int_var);
-    if (ret == READER_SUCCESS){
-        simu->setSaveIter(int_var);
-        evel.setSaveIter( (size_t) int_var );
-    }
-
-    name = "SaveTime";
-    ret = reader.readNumber(name, dbl_var );
-    if ( isOK(name, ret) ){
-        evel.setSaveTime( dbl_var );
-    }
-
-
-    name = "EndValue";
-    ret = reader.readNumber(name, dbl_var);
-    if (ret == READER_SUCCESS){
-        simu->setEndValue(dbl_var);
-    }
-    problem(name, ret);
-
-    name = "dt";
-    ret = reader.readNumber(name , dbl_var);
-    if (ret == READER_SUCCESS){
-        simu->setdt(dbl_var);
-    }
-
-
-    name = "TargetdQ";
-    ret = reader.readNumber(name , dbl_var);
-    if (ret == READER_SUCCESS){
-        simu->setTargetdQ(dbl_var);
-    }
-    else{
-        exit(1);
-    }
-    //problemo(name, ret);
-
-    name = "Maxdt";
-    ret = reader.readNumber(name , dbl_var);
-    if(ret==READER_SUCCESS)
-        simu->setMaxdt(dbl_var);
-    //problemo(name, ret);
-
-    name = "MaxError";
-    ret = reader.readNumber(name, dbl_var);
-    if(ret==READER_SUCCESS)
-        simu->setMaxError(dbl_var);
-    //problemo(name, ret);
-
-    name = "OutputEnergy";
-    ret  = reader.readNumber(name , int_var);
-    if ( ret == READER_SUCCESS)
-        simu->setOutputEnergy(int_var);
-    //problemo(name, ret);
-
-    name = "OutputFormat";
-    ret = reader.readNumber(name , int_var);
-    if(ret == READER_SUCCESS)
-        simu->setOutputFormat(int_var);
-
-    name = "NumAssemblyThreads";
-    ret = reader.readNumber(name, int_var);
-    if (ret == READER_SUCCESS)
-        simu->setAsseblyThreadCount( (unsigned int) int_var);
-
-    name = "NumMatrixSolverThreads";
-    ret = reader.readNumber(name, int_var);
-    if (ret == READER_SUCCESS)
-        simu->setMatrixSolverThreadCount( (unsigned int) int_var);
-
-
-
-    name = "SaveFormat";
-    std::vector < std::string > vec_str;
-    ret = reader.readStringArray( name , vec_str );
-
-    if ( ret == READER_SUCCESS ){
-        simu->clearSaveFormat(); // REMOVES DEFAULT
-        for (size_t i = 0 ; i < vec_str.size() ; i++){
-            simu->addSaveFormat( vec_str[i] );  // SAVE FORMATS ARE DEFINED IN Simu
-        }
-    }
-
-    //------------------------------------------
-    //
-    // READ VECTOR VALUES
-    //
-    //------------------------------------------
-    name = "StretchVector";
-    vector <double> vec;
-
-    ret = reader.readNumberArray(name , vec );
-    if (ret == READER_SUCCESS){
-        if (vec.size() != 3){
-            cout << "error - invalid StretchVector length - bye!\n"<<endl;
-            exit(1);
-        }
-        //cout << "stretch :"<< vec[0] <<","<< vec[1] <<"," << vec[2] << endl;
-        simu->setStretchVectorX(vec[0]);
-        simu->setStretchVectorY(vec[1]);
-        simu->setStretchVectorZ(vec[2]);
-        //cout << "stretch" << simu->getStretchVectorX() << "," << simu->getStretchVectorY() << "," << simu->getStretchVectorZ() << endl;
-    }
-    //problemo(name, ret);
-
-    name = "EnergyRegion";
-    ret = reader.readNumberArray(name , vec);
-    if ((ret == READER_SUCCESS) && (vec.size() == 3)){
-        simu->setEnergyRegionX(vec[0]);
-        simu->setEnergyRegionY(vec[1]);
-        simu->setEnergyRegionZ(vec[2]);
-    }
-
-    name = "dtLimits";
-    ret = reader.readNumberArray(name , vec);
-    if ( (ret == READER_SUCCESS) && (vec.size() == 2)){
-        simu->setdtLimits(vec[0], vec[1]);
-    }
-
-    name = "dtFunction";
-    ret = reader.readNumberArray(name , vec );
-    if ((ret == READER_SUCCESS) && (vec.size() == 4) ){
-        double F[4] ={vec[0] , vec[1] , vec[2], vec[3]};
-        simu->setdtFunction(F);
-    }
-
-    name = "RegularGridSize";
-    ret = reader.readNumberArray( name, vec);
-    if (ret == READER_SUCCESS ){
-        if (vec.size()!= 3){
-            problem(name, READER_BAD_FORMAT );
-        }
-        simu->setRegularGridSize( (size_t) vec[0], (size_t) vec[1], (size_t) vec[2] );
-    }
-*/
-
-//}//end void readSimu
+            // Number arrays
+            if (reader.containsKey(SFK_STRETCH_VECTOR))
+                simu.setStretchVector(reader.get<vector<double> >());
+            if (reader.containsKey(SFK_DT_LIMITS))
+                simu.setdtLimits(reader.get<vector<double> > ());
+            if (reader.containsKey(SFK_DT_FUNCTION))
+                simu.setdtFunction(reader.get<vector<double> >());
+            if (reader.containsKey(SFK_REGULAR_GRID_SIZE))
+                simu.setRegularGridSize(reader.get<vector<idx> >());
+        } catch (ReaderError e) {
+           e.printError();
+       }
+}//end void readSimu
 //*/
 
 /*
@@ -929,7 +789,8 @@ void ReadSettings(string settingsFileName,
     reader.setCaseSensitivity(false);
     reader.readSettingsFile(settingsFileName);
     try {
-        simu.readSettingsFile(reader);
+        readSimu(simu, reader);
+        //simu.readSettingsFile(reader);
         lc.readSettingsFile(reader);
         boxes.readSettingsFile(reader);
         settings.readSettingsFile(reader);
