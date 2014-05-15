@@ -23,8 +23,8 @@
 #include <spamtrix_ircmatrix.hpp>
 
 
-double qlc3d_GLOBALS::GLOBAL_COORD_EPS =1e-10; // TODO: MAKE THIS USED DEFINABLE IN A SETTINGS FILE
-
+double qlc3d_GLOBALS::GLOBAL_COORD_EPS = 1e-10; // TODO: MAKE THIS USED DEFINABLE IN A SETTINGS FILE
+//double qlc3d_GLOBALS::PI = 3.14159265359;
 
 int minnode(int *t, int dim1, int dim2){ // what does this do?
     int min = (int)1e9;

@@ -34,7 +34,8 @@ std::string setStructureKey(const char *struct_name,
 }
 
 
-void readLC(LC& lc,Reader& reader){
+void readLC(LC& lc,Reader& reader) {
+    try {
     if (reader.containsKey(SFK_K11))
         lc.K11 = reader.get<double>();
     if (reader.containsKey(SFK_K22))
@@ -61,6 +62,10 @@ void readLC(LC& lc,Reader& reader){
         lc.gamma1 = reader.get<double>();
 
     lc.convert_params_n2Q();
+    } catch (ReaderError e) {
+        e.printError();
+        std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
+    }
 
 }//end void readLC
 
@@ -722,8 +727,7 @@ void ReadSettings(string settingsFileName,
     try {
         readSimu(simu, reader);
         readLC(lc, reader);
-        //simu.readSettingsFile(reader);
-        //lc.readSettingsFile(reader);
+
         boxes.readSettingsFile(reader);
         settings.readSettingsFile(reader);
         alignment.readSettingsFile(reader);
