@@ -45,13 +45,12 @@ public:
 
 
     double getCurrentElectrodePotential(const size_t &eln) const; // get current potential for electrode eln
-    size_t getnElectrodes()const {
-        return nElectrodes;
-    }
+    size_t getnElectrodes() const { return nElectrodes; }
     void setnElectrodes(const size_t &numE) {
         potentials_.resize(numE, 0.0);
         nElectrodes = numE;
     }
+    void setEField(const std::vector<double> &vec3);
     void setElectrodePotential(const size_t &eNum, const double &pot);
     void setImplicitVariables(); // SETS FLAGS THAT DEPEND ON EXPLICITLY DEFINED VALUES
 

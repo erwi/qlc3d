@@ -8,6 +8,7 @@
  * Keys are not case sensitive.
  *
 */
+const char SFK_WILDCARD = '*';
 const string SFK_MESH_NAME = "MeshName";
 const string SFK_LOAD_Q    = "LoadQ";
 const string SFK_SAVE_DIR  = "SaveDir";
@@ -40,6 +41,9 @@ const string SFK_EPS_PER = "eps_per";
 const string SFK_E1 = "e1";
 const string SFK_E3 = "e3";
 const string SFK_GAMMA1 = "gamma1";
-
-
+// Electrodes and potential calculation keys
+const string SFK_E_TIME = "E*.Time";
+const string SFK_E_POTS = "E*.Pot";
+const string SFK_E_FIELD = "EField";
+const string SFK_EPS_DIELECTRIC = "eps_dielectric";
 #endif

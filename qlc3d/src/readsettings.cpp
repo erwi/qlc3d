@@ -3,7 +3,6 @@
 #include <qlc3d.h>
 #include <string>
 #include <vector>
-//#include <reader.h>
 #include <iostream>
 #include <meshrefinement.h>
 #include <refinfo.h>
@@ -14,54 +13,49 @@
 using std::cerr;
 using std::endl;
 
-void MissingMadatoryKey(std::string key, std::string file) {
-    std::cerr << "\nError in settings file " + file +
-              "\nCould not find required key :\"" + key << +"\"" << std::endl;
-    std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
-}
-
-
-
-
-std::string setStructureKey(const char *struct_name,
-                            const unsigned int number,
-                            const char *key_name) {
-    std::stringstream ss;
-    ss << struct_name << number << "." << key_name;
-    std::string key;
-    ss >> key;
-    return key;
+std::string wildcardToNum(const std::string& base, int num) {
+    /*!Replaces wildcard character in input string with input
+number, returning a copy*/
+    size_t idx = base.find_first_of(SFK_WILDCARD);
+    if (idx == std::string::npos) {
+        cerr << "error in " << __PRETTY_FUNCTION__ << endl;
+        std::exit(1);
+    }
+    std::string newStr = base.substr(0,idx);
+    newStr+= std::to_string(num);
+    newStr+= base.substr(idx+1 , std::string::npos);
+    return newStr;
 }
 
 
 void readLC(LC& lc,Reader& reader) {
     try {
-    if (reader.containsKey(SFK_K11))
-        lc.K11 = reader.get<double>();
-    if (reader.containsKey(SFK_K22))
-        lc.K22 = reader.get<double>();
-    if (reader.containsKey(SFK_K33))
-        lc.K33 = reader.get<double>();
-    if (reader.containsKey(SFK_p0))
-        lc.p0 = reader.get<double>();
-    if (reader.containsKey(SFK_A))
-        lc.A = reader.get<double>();
-    if (reader.containsKey(SFK_B))
-        lc.B = reader.get<double>();
-    if (reader.containsKey(SFK_C))
-        lc.C = reader.get<double>();
-    if (reader.containsKey(SFK_EPS_PAR))
-        lc.eps_par = reader.get<double>();
-    if (reader.containsKey(SFK_EPS_PER))
-        lc.eps_per = reader.get<double>();
-    if (reader.containsKey(SFK_E1))
-        lc.e11 = reader.get<double>();
-    if (reader.containsKey(SFK_E3))
-        lc.e33 = reader.get<double>();
-    if (reader.containsKey(SFK_GAMMA1))
-        lc.gamma1 = reader.get<double>();
+        if (reader.containsKey(SFK_K11))
+            lc.K11 = reader.get<double>();
+        if (reader.containsKey(SFK_K22))
+            lc.K22 = reader.get<double>();
+        if (reader.containsKey(SFK_K33))
+            lc.K33 = reader.get<double>();
+        if (reader.containsKey(SFK_p0))
+            lc.p0 = reader.get<double>();
+        if (reader.containsKey(SFK_A))
+            lc.A = reader.get<double>();
+        if (reader.containsKey(SFK_B))
+            lc.B = reader.get<double>();
+        if (reader.containsKey(SFK_C))
+            lc.C = reader.get<double>();
+        if (reader.containsKey(SFK_EPS_PAR))
+            lc.eps_par = reader.get<double>();
+        if (reader.containsKey(SFK_EPS_PER))
+            lc.eps_per = reader.get<double>();
+        if (reader.containsKey(SFK_E1))
+            lc.e11 = reader.get<double>();
+        if (reader.containsKey(SFK_E3))
+            lc.e33 = reader.get<double>();
+        if (reader.containsKey(SFK_GAMMA1))
+            lc.gamma1 = reader.get<double>();
 
-    lc.convert_params_n2Q();
+        lc.convert_params_n2Q();
     } catch (ReaderError e) {
         e.printError();
         std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
@@ -69,58 +63,57 @@ void readLC(LC& lc,Reader& reader) {
 
 }//end void readLC
 
-
 void readSimu(Simu &simu, Reader &reader) {
     /*! loads values from settings file reader */
-        try {
-            simu.MeshName = reader.getValueByKey<string>(SFK_MESH_NAME);
-            std::string key;
-            // Read optional string values
-            if (reader.containsKey(SFK_LOAD_Q))
-                simu.LoadQ = reader.get<string>();
-            if (reader.containsKey(SFK_SAVE_DIR))
-                simu.SaveDir = reader.get<string>();
-            if (reader.containsKey(SFK_Q_MATRIX_SOLVER))
-                simu.setQMatrixSolver(reader.get<string>());
-            // string arrays
-            if (reader.containsKey(SFK_SAVE_FORMAT))
-                simu.setSaveFormats(reader.get<vector<string> >());
+    try {
+        simu.MeshName = reader.getValueByKey<string>(SFK_MESH_NAME);
+        std::string key;
+        // Read optional string values
+        if (reader.containsKey(SFK_LOAD_Q))
+            simu.LoadQ = reader.get<string>();
+        if (reader.containsKey(SFK_SAVE_DIR))
+            simu.SaveDir = reader.get<string>();
+        if (reader.containsKey(SFK_Q_MATRIX_SOLVER))
+            simu.setQMatrixSolver(reader.get<string>());
+        // string arrays
+        if (reader.containsKey(SFK_SAVE_FORMAT))
+            simu.setSaveFormats(reader.get<vector<string> >());
 
-            // Read optional scalar values
-            if (reader.containsKey(SFK_END_VALUE))
-                simu.setEndValue(reader.get<double>());
-            if (reader.containsKey(SFK_DT))
-                simu.setdt(reader.get<double>());
-            if (reader.containsKey(SFK_TARGET_DQ))
-                simu.setTargetdQ(reader.get<double>());
-            if (reader.containsKey(SFK_MAX_DT))
-                simu.setMaxdt(reader.get<double>());
-            if (reader.containsKey(SFK_MAX_ERROR))
-                simu.setMaxError(reader.get<double>());
+        // Read optional scalar values
+        if (reader.containsKey(SFK_END_VALUE))
+            simu.setEndValue(reader.get<double>());
+        if (reader.containsKey(SFK_DT))
+            simu.setdt(reader.get<double>());
+        if (reader.containsKey(SFK_TARGET_DQ))
+            simu.setTargetdQ(reader.get<double>());
+        if (reader.containsKey(SFK_MAX_DT))
+            simu.setMaxdt(reader.get<double>());
+        if (reader.containsKey(SFK_MAX_ERROR))
+            simu.setMaxError(reader.get<double>());
 
-            if (reader.containsKey(SFK_OUTPUT_ENERGY))
-                simu.setOutputEnergy(reader.get<int>());
-            if (reader.containsKey(SFK_OUTPUT_FORMAT))
-                simu.setOutputFormat(reader.get<int>());
-            if (reader.containsKey(SFK_SAVE_ITER))
-                simu.setSaveIter(reader.get<int>());
-            if (reader.containsKey(SFK_NUM_ASSEMBLY_THREADS))
-                simu.setAsseblyThreadCount(reader.get<unsigned int>());
-            if (reader.containsKey(SFK_NUM_MATRIX_SOLVER_THREADS))
-                simu.setMatrixSolverThreadCount(reader.get<unsigned int>());
+        if (reader.containsKey(SFK_OUTPUT_ENERGY))
+            simu.setOutputEnergy(reader.get<int>());
+        if (reader.containsKey(SFK_OUTPUT_FORMAT))
+            simu.setOutputFormat(reader.get<int>());
+        if (reader.containsKey(SFK_SAVE_ITER))
+            simu.setSaveIter(reader.get<int>());
+        if (reader.containsKey(SFK_NUM_ASSEMBLY_THREADS))
+            simu.setAsseblyThreadCount(reader.get<unsigned int>());
+        if (reader.containsKey(SFK_NUM_MATRIX_SOLVER_THREADS))
+            simu.setMatrixSolverThreadCount(reader.get<unsigned int>());
 
-            // Number arrays
-            if (reader.containsKey(SFK_STRETCH_VECTOR))
-                simu.setStretchVector(reader.get<vector<double> >());
-            if (reader.containsKey(SFK_DT_LIMITS))
-                simu.setdtLimits(reader.get<vector<double> > ());
-            if (reader.containsKey(SFK_DT_FUNCTION))
-                simu.setdtFunction(reader.get<vector<double> >());
-            if (reader.containsKey(SFK_REGULAR_GRID_SIZE))
-                simu.setRegularGridSize(reader.get<vector<idx> >());
-        } catch (ReaderError e) {
-           e.printError();
-       }
+        // Number arrays
+        if (reader.containsKey(SFK_STRETCH_VECTOR))
+            simu.setStretchVector(reader.get<vector<double> >());
+        if (reader.containsKey(SFK_DT_LIMITS))
+            simu.setdtLimits(reader.get<vector<double> > ());
+        if (reader.containsKey(SFK_DT_FUNCTION))
+            simu.setdtFunction(reader.get<vector<double> >());
+        if (reader.containsKey(SFK_REGULAR_GRID_SIZE))
+            simu.setRegularGridSize(reader.get<vector<idx> >());
+    } catch (ReaderError e) {
+        e.printError();
+    }
 }//end void readSimu
 
 
@@ -190,7 +183,6 @@ void readAlignment(Alignment& alignment, Reader& reader) {
 } //end void readAlignment
 
 
-//*
 void readElectrodes(Electrodes &electrodes,
                     EventList &evli,
                     Reader &reader) {
@@ -202,321 +194,54 @@ void readElectrodes(Electrodes &electrodes,
     // Loop over range of possible (1-99) Electrodes
     const int MAX_NUM_ELECTRODES = 100;
     for (int electrodeNumber = 1; electrodeNumber < MAX_NUM_ELECTRODES; electrodeNumber++) {
-        std::string keyTime = "E" + std::to_string(electrodeNumber) + ".Time";
-        // If electrode found
-        if (reader.containsKey(keyTime)) {
-            // Read arrays with times and potential values
-            std::string keyPot = "E" + std::to_string(electrodeNumber) + ".Pot";
-            vector<double> times = reader.getValueByKey<vector<double>>(keyTime);
-            vector<double> pots  = reader.getValueByKey<vector<double>>(keyPot);
-            // Make sure equal number of times and potentials
-            if (times.size() != pots.size()) {
-                std::cerr << "error reading Electrode " << electrodeNumber <<
-                          ". Swithing times don't match switching potentials - bye!"
-                          << std::endl;
-                std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
-            }
-            //
-            // Decompose switching times and potentials to separate switching events
-            for (size_t i = 0; i < times.size(); i++) {
-                SwitchingInstance *switchingInstance = new SwitchingInstance(times.at(i),
-                        pots.at(i),
-                        electrodeNumber - 1);
-                Event *event = new Event(EVENT_SWITCHING,
-                                         times.at(i));
-                event->setEventDataPtr(static_cast<void *>(switchingInstance));
-                evli.insertTimeEvent(event);
-            }
+        std::string keyTime = wildcardToNum(SFK_E_TIME, electrodeNumber);
+        std::string keyPots = wildcardToNum(SFK_E_POTS, electrodeNumber);
+        vector<double> times;
+        vector<double> pots;
+        if (reader.containsKey(keyTime))
+            times = reader.get<vector<double>>();
+        if (reader.containsKey(keyPots))
+            pots = reader.get<vector<double>>();
+        //
+        // Make sure number of switching times matches number
+        // of switching potentials
+        if (times.size() != pots.size()) {
+            cerr << "error reading Electrode " << electrodeNumber <<
+                    ". Swithing times don't match switching potentials - bye!" << endl;
+            std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
         }
         //
-        // Read uniform bulk E-fields here
-        if (reader.containsKey("EField")) {
-            vector<double> EField = reader.get<vector<double>>();
-            electrodes.EField[0] = EField.at(0);
-            electrodes.EField[1] = EField.at(1);
-            electrodes.EField[2] = EField.at(2);
-            // A dummy switching event at time 0 is needed for uniform E-fields.
-            Event *swEvent = new Event(EVENT_SWITCHING , 0.0);
-            SwitchingInstance *si = new SwitchingInstance(0 ,
-                    0 ,
-                    SwitchingInstance::UNIFORM_E_FIELD
-                                                         );
-            swEvent->setEventDataPtr(static_cast <void *>(si));
-            evli.insertTimeEvent(swEvent);
+        // Decompose switching times and potentials to separate switching events
+        // TODO: move this loop inside Event
+        for (size_t i = 0; i < times.size(); i++) {
+            SwitchingInstance *switchingInstance = new SwitchingInstance(times.at(i),
+                                                                         pots.at(i),
+                                                                         electrodeNumber - 1);
+            Event *event = new Event(EVENT_SWITCHING,
+                                     times.at(i));
+            event->setEventDataPtr(static_cast<void *>(switchingInstance));
+            evli.insertTimeEvent(event);
         }
-        //
-        // Read dielectric permittivities
-        if (reader.containsKey("eps_dielectric"))
-            electrodes.eps_dielectric = reader.get<vector<double>>();
-        // Finally set internal flags when all other settings are done
-        electrodes.setImplicitVariables();
+    }// end for electrodeNumber
+    //
+    // Read uniform bulk E-fields here
+    if (reader.containsKey(SFK_E_FIELD)) {
+        electrodes.setEField(reader.get<vector<double>>());
+        // A dummy switching event at time 0 is needed for uniform E-fields.
+        // TODO: make this a part of the Event class
+        Event *swEvent = new Event(EVENT_SWITCHING , 0.0);
+        SwitchingInstance *si = new SwitchingInstance(0 , 0,
+                                                      SwitchingInstance::UNIFORM_E_FIELD);
+        swEvent->setEventDataPtr(static_cast <void *>(si));
+        evli.insertTimeEvent(swEvent);
     }
-    /*
-    std::string name;
-    std::stringstream ss;
-    // COUNT NUMBER OF ELECTRODES
-    int i = 1;
-    for ( ; i < 100 ; i++){
-        std::vector <double> dummy;
-        name.clear();
-        ss.clear();
-        ss << "E"<< i <<".Pot";
-        ss >> name;
-        int ret = reader.readNumberArray(name,dummy );
-
-        if (ret!=READER_SUCCESS){
-            break;
-        }
-    }
-    size_t numElectrodes = i - 1 ;
-    electrodes->setnElectrodes( numElectrodes );
-
-    for (size_t i = 1 ; i < numElectrodes + 1 ; i++){
-        std::vector<double> times;
-        std::vector<double> pots;
-
-        name.clear();
-        ss.clear();
-        ss << "E"<<i<<".Time";
-        ss >> name;
-        int ret = reader.readNumberArray(name,times);
-        problem(name, ret);
-
-        name.clear();
-        ss.clear();
-        ss << "E"<<i<<".Pot";
-        ss >> name;
-        ret = reader.readNumberArray(name, pots);
-
-        if (times.size() != pots.size() ){
-            cout <<" error reading E" << i <<" Time/Pot lengths do not match - bye!"<<endl;
-            exit(1);
-        }
-
-
-        // TODO: DISTINGUISH BETWEEN TIME/ITERATION SWITCHING
-        for (size_t j = 0 ; j < times.size() ; j++){
-            Event* swEvent = new Event(EVENT_SWITCHING, times[j]);
-            SwitchingInstance* si = new SwitchingInstance(times[j],  // WHEN
-                                                          pots[j],   // NEW POTENTIAL VALUE
-                                                          i-1);      // WHICH ELECTRODE
-            swEvent->setEventDataPtr( static_cast<void*>(si) );
-            evli.insertTimeEvent( swEvent );
-        }
-    }
-
-    // READ DIELECTRIC PERMITTIVITIES
-
-    name = "eps_dielectric";
-    std::vector<double> eps_temp;
-    int ret = reader.readNumberArray(name, eps_temp );
-    problem_format(name, ret );
-    if ( ret == READER_SUCCESS ){
-        electrodes->eps_dielectric = eps_temp;
-    }
-
-
-    // READ UNIFORM ELECTRIC FIELD
-    std::vector<double> Efield;
-    name = "EField";
-    ret = reader.readNumberArray(name, Efield);
-    problem_format( name , ret);
-    if ( ( ret == READER_SUCCESS ) &&
-         ( Efield.size() == 3 ) ){
-        electrodes->EField[0] = Efield[0];
-        electrodes->EField[1] = Efield[1];
-        electrodes->EField[2] = Efield[2];
-
-        // TODO ADD SWITCHING INSTANCE WITH SPECIAL ELECTRODE NUMBER
-        // INDICATING THAT A UNIFORM ELECTRC FIELD WILL BE CONSIDERED
-        Event* swEvent = new Event( EVENT_SWITCHING , 0.0 );
-        SwitchingInstance* si = new SwitchingInstance( 0 ,
-                                                       0 ,
-                                                       SwitchingInstance::UNIFORM_E_FIELD
-                                                       );
-        swEvent->setEventDataPtr( static_cast <void*> (si) );
-        evli.insertTimeEvent( swEvent );
-    }
-
-    electrodes->setImplicitVariables();
-    */
+    //
+    // Read dielectric permittivities
+    if (reader.containsKey(SFK_EPS_DIELECTRIC))
+        electrodes.eps_dielectric = reader.get<vector<double>>();
+    // Finally set internal flags when all other settings are done
+    electrodes.setImplicitVariables();
 }
-// end readElectrodes
-//*/
-
-/*
-void readMeshrefinement( MeshRefinement* meshrefinement, Reader& reader){
-    int num_refreg = 100;
-    stringstream ss;
-    string name = "";
-    std::vector < double > vec;
-
-    std::string str_val;
-    int ret = 0;
-
-    // READS REFREG STRUCTURES
-    for ( int i = 0 ; i < num_refreg ; i++){
-        ss.clear(); name.clear();
-        ss << "REFREG" << i << ".Type";
-        ss >> name;
-
-        ret = reader.readString(name , str_val);
-
-        if (ret == READER_SUCCESS ){ // if this REFREG was found
-            cout << " reading REFREG" << i << endl;
-            RefReg rr;
-            rr.setType(str_val);
-
-            // READ REGION COORDINATES
-            // READ X
-            ss.clear(); name.clear();
-            ss << "REFREG" << i <<".X";
-            ss >> name;
-            ret = reader.readNumberArray(name, vec);
-            problem(name, ret);
-            rr.addX( vec );
-            // READ Y
-            ss.clear(); name.clear();
-            ss << "REFREG" << i <<".Y";
-            ss >> name;
-            ret = reader.readNumberArray(name, vec);
-            problem(name, ret);
-            rr.addY( vec );
-            // READ Z
-            ss.clear(); name.clear();
-            ss << "REFREG" << i <<".Z";
-            ss >> name;
-            ret = reader.readNumberArray(name, vec);
-            problem(name, ret);
-            rr.addZ( vec );
-            // READ DISTANCE
-            ss.clear(); name.clear();
-            ss << "REFREG" << i <<".Distance";
-            ss >> name;
-            ret = reader.readNumberArray(name, vec);
-            cout << name << " " << ret << "length vec = " << vec.size() << endl;
-            problem(name, ret);
-            rr.addDistance( vec );
-            //rr.PrintRefinementRegion();
-            meshrefinement->addRefinementRegion( rr );
-        }
-    }
-}//end readMeshrefinement
-
-*/
-
-/*
-void readAutorefinement( MeshRefinement* meshrefinement, Reader& reader){
-    int num_autoref = 100;
-    stringstream ss;
-    string name = "";
-    std::vector <double> vec_val;
-    std::string str_val;
-    double dbl_val;
-    int ret = 0;
-    for (int i = 0 ; i < num_autoref; i++){ // fro autorefs, i
-        ss.clear();
-        name.clear();
-
-        ss <<"AUTOREF"<< i << ".Type";
-        ss >> name;
-
-        ret = reader.readString(name, str_val);
-
-        if (ret == READER_SUCCESS){ // IF THIS AUTOREFINEMENT IS FOUND
-            cout << "reading AUTOREF"<< i << endl;
-            AutoRef ar;
-            if(!ar.setType(str_val)){
-                cout << "error - invalid AUTOREF"<<i << " Type: " << str_val <<" - bye!" << endl;
-                exit(1);
-            }
-
-            ss.clear(); name.clear();
-            ss << "AUTOREF" << i <<".RefIter";
-            ss >> name;
-            ret = reader.readNumber(name, dbl_val );
-            problem(name, ret);
-            ar.setRefIter((int) dbl_val );
-
-            // READ MaxValue
-            ss.clear(); name.clear();
-            ss << "AUTOREF" << i <<".MaxValue";
-            ss >> name;
-            ret = reader.readNumberArray( name, vec_val );
-            problemo(name, ret );
-            ar.addMaxValue( vec_val );
-
-            // READ MinSize
-            ss.clear(); name.clear();
-            ss << "AUTOREF"<<i<<".MinSize";
-            ss >> name;
-            ret = reader.readNumber( name , dbl_val);
-            problemo ( name, ret );
-            ar.setMinSize(dbl_val);
-            printf("Autoref.MinSize = %e\n", dbl_val);
-            meshrefinement->addAutorefinement( ar );
-
-        }// end if autoref i found
-    }// end for possible autorefs, i
-
-}
-*/
-
-/*
-void readEndrefinement( MeshRefinement* meshrefinement, Reader& reader){
-    int num_endref = 10;
-    stringstream ss;
-    string name = "";
-    std::vector <double> vec_val;
-    std::string str_val;
-    double dbl_val;
-    int ret = 0;
-    for (int i = 0 ; i < num_endref; i++){ // fro autorefs, i
-        ss.clear();
-        name.clear();
-
-        ss <<"ENDREF"<< i << ".Type";
-        ss >> name;
-        //cout << name << endl;
-        ret = reader.readString(name , str_val);
-        //printf(" ret = %i\n", ret );
-        if (ret == READER_SUCCESS){ // IF THIS AUTOREFINEMENT IS FOUND
-            cout << "reading ENDREF"<< i << endl;
-            EndRef er;
-            if(!er.setType(str_val)){
-                cout << "error - invalid ENDREF"<<i << " Type: " << str_val <<" - bye!" << endl;
-                exit(1);
-            }
-
-            ss.clear(); name.clear();
-            ss << "ENDREF" << i <<".RefIter";
-            ss >> name;
-            ret = reader.readNumber(name, dbl_val );
-            problem(name, ret);
-            er.setRefIter((int) dbl_val );
-
-            // READ MaxValue
-            ss.clear(); name.clear();
-            ss << "ENDREF" << i <<".MaxValue";
-            ss >> name;
-            ret = reader.readNumberArray( name, vec_val );
-            problemo(name, ret );
-            er.addMaxValue( vec_val );
-
-            // READ MinSize
-            ss.clear(); name.clear();
-            ss << "ENDREF"<<i<<".MinSize";
-            ss >> name;
-            ret = reader.readNumber( name , dbl_val);
-            problemo ( name, ret );
-            er.setMinSize(dbl_val);
-            printf("Endref.MinSize = %e\n", dbl_val);
-            meshrefinement->addEndrefinement( er );
-
-        }// end if autoref i found
-    }// end for possible autorefs, i
-}
-*/
 
 
 void readRefinement(Reader &reader,
@@ -596,7 +321,7 @@ void readRefinement(Reader &reader,
             }
         } // end if found event by number
     }// end for event numbers
-}
+} // end readRefinement
 
 void readSolverSettings(Settings &settings, Reader &reader) {
     if (reader.containsKey("nThreads"))
@@ -640,16 +365,14 @@ void readSolverSettings(Settings &settings, Reader &reader) {
 } // end readSolverSettings
 
 
-
-
 void ReadSettings(string settingsFileName,
-    Simu &simu,
-    LC &lc,
-    Boxes &boxes,
-    Alignment &alignment,
-    Electrodes &electrodes,
-    MeshRefinement &meshrefinement, // <--- unused param.
-    EventList &eventList, Settings &settings) {
+                  Simu &simu,
+                  LC &lc,
+                  Boxes &boxes,
+                  Alignment &alignment,
+                  Electrodes &electrodes,
+                  MeshRefinement &meshrefinement, // <--- unused param.
+                  EventList &eventList, Settings &settings) {
     Reader reader;
     reader.setCaseSensitivity(false);
     reader.readSettingsFile(settingsFileName);
@@ -659,7 +382,6 @@ void ReadSettings(string settingsFileName,
         readBoxes(boxes, reader);
         readSolverSettings(settings, reader);
         readAlignment(alignment, reader);
-        //alignment.readSettingsFile(reader);
         readElectrodes( electrodes, eventList, reader);
         readRefinement(reader, eventList);
         // readAlignment(*alignment, reader);
@@ -668,40 +390,6 @@ void ReadSettings(string settingsFileName,
     }
     std::cout << "EXIT OK " << std::endl;
     exit(1);
-    /*
-    Reader reader;
-    reader.isIgnoreCase = true;
-    using namespace std;
-    if ( reader.openFile(settings_filename) ){
-        cout << "reading: "<< settings_filename << endl;
-        // READ SIMU
-        readSimu(simu , reader, eventlist);
-
-        // READ LC
-        readLC(lc , reader);
-        lc.convert_params_n2Q();
-
-        // READ BOXES
-        readBoxes(boxes , reader);
-
-        // READ ALIGNMENT SURFACES
-        readAlignment(alignment, reader);
-
-        // READ ELECTRODES
-        readElectrodes(electrodes , reader, eventlist);
-
-        // READ REFINEMENT
-        readRefinement( reader, eventlist );
-
-        // exit(0);
-
-        reader.closeFile();
-    }
-    else{
-        cout << "error - could not open " << settings_filename <<" - bye!" << endl;
-        exit(1);
-    }
-    */
 }
 // end ReadSettings
 

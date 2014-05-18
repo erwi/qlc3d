@@ -1,5 +1,8 @@
 #include <electrodes.h>
 #include <algorithm>
+#include <iostream>
+using std::cerr;
+using std::endl;
 /*
 Electrode::Electrode()
 {
@@ -45,65 +48,44 @@ const size_t SwitchingInstance::UNIFORM_E_FIELD = numeric_limits<size_t>::max();
 
 Electrodes::Electrodes():
     CalcPot(false),
-    nElectrodes(0)
-{
-
+    nElectrodes(0) {
     eps_dielectric.push_back(1.0);
     EField[0] = 0.0;
     EField[1] = 0.0;
     EField[2] = 0.0;
-
 }
-Electrodes::~Electrodes()
-{
+Electrodes::~Electrodes() { }
 
-}
-
-
-double Electrodes:: getDielectricPermittivity(int i)const
-{
+double Electrodes:: getDielectricPermittivity(int i) const {
 	if (i < (int) eps_dielectric.size() )
 		return eps_dielectric[i];
-	else
-		{
-			printf("error - Electrodes::getDielectricPermittivity - trying to access dielectric %i, when only %i dielectric are defined - bye !\n", i , (int) eps_dielectric.size() );
-			exit(1);
-		}
-}
-
-void Electrodes::printElectrodes()const
-{
-/*
-    for (int i = 0; i < nElectrodes; i++)
-    {
-        printf("E%i:\n",i+1);
-        E[i]->PrintElectrode();
+    else {
+        cerr << "error - Electrodes::getDielectricPermittivity - trying to access dielectric "
+             << i << "  when only "<< eps_dielectric.size() << " exist " << endl;
+        std::exit(1);
     }
-
-    std::cout << "eps_dielectric = " << std::endl;
-    for (int i = 0 ; i < (int) eps_dielectric.size() ; i++)
-        std::cout <<" " << eps_dielectric[i];
-
-    std::cout << std::endl;
-
-    std::cout << "EField = [" << EField[0] <<"," <<EField[1] << "," << EField[2] <<"] V/um" << std::endl;
-    */
 }
+
 //void Electrodes::setCalcPot(bool yn)	{	CalcPot = yn;}
 bool Electrodes::getCalcPot()const		{	return CalcPot;}
 //int Electrodes::getnElectrodes()const	{   return nElectrodes;}
-bool Electrodes::isEField()const
-{
+bool Electrodes::isEField() const {
     // CHECKS WHETHER UNIFORM E-FIELD HAS BEEN DEFINED
-
     if ( ( this->EField[0]!= 0.0) ||
          ( this->EField[1]!= 0.0) ||
          ( this->EField[2]!= 0.0) )
         return true;
     else
         return false;
-
-
+}
+void Electrodes::setEField(std::vector<double> const &vec3) {
+    if (vec3.size() != 3) {
+        cerr << "error - specified electric filed must have 3 components, got " << vec3.size() << endl;
+        std::exit(1);
+    }
+    this->EField[0] = vec3[0];
+    this->EField[1] = vec3[1];
+    this->EField[2] = vec3[2];
 }
 
 void Electrodes::setElectrodePotential(const size_t &eNum, const double &pot)
