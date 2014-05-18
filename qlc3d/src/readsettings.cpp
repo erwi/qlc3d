@@ -124,100 +124,30 @@ void readSimu(Simu &simu, Reader &reader) {
 }//end void readSimu
 //*/
 
-/*
-void readBoxes(Boxes* boxes, Reader& reader){
-    int maxbox = 100; // maximum number of supported boxes...
-    for (int i = 1 ; i < maxbox ; i++){ // for boxes 1-99
-        // cout << i << endl;
-        stringstream box;
-        string name;
-        string str_val;
 
-        int ret;
-        box << "BOX" << i <<".Type";
-        box >> name;
-        reader.file.seekg(0);
-        reader.file.clear();
-        if (!reader.file.good()){
-            cout << "error reading Boxes, file pointer is bad - bye!" << endl;
-            exit(1);
+void readBoxes(Boxes &boxes, Reader& reader) {
+    using std::string;
+    const int MAX_NUM_BOXES = 100;
+    // Loop over all possible boxes ad try to read
+    for (int boxNum = 1; boxNum < MAX_NUM_BOXES; boxNum++) {
+        string key = "BOX"+std::to_string(boxNum) + ".Params";
+        // if box with current number found, read it fully
+        if (reader.containsKey(key)) {
+            Box *box = new Box(boxNum);
+            string keyBase = "BOX"+std::to_string(boxNum) + ".";
+            string type = reader.getValueByKey<string>(keyBase+"Type");
+            box->setBoxType(type);
+            box->Params = reader.getValueByKey<vector<double>>(keyBase+"Params");
+            box->X = reader.getValueByKey<vector<double>>(keyBase+"X");
+            box->Y = reader.getValueByKey<vector<double>>(keyBase+"Y");
+            box->Z = reader.getValueByKey<vector<double>>(keyBase+"Z");
+            box->Tilt = reader.getValueByKey<vector<double>>(keyBase+"Tilt");
+            box->Twist = reader.getValueByKey<vector<double>>(keyBase+"Twist");
+            boxes.addBox(box);
         }
-
-        ret = reader.readString(name , str_val);
-        //=============================
-        // ADD BOXES IF THEY EXIST
-        //=============================
-        if (ret == READER_SUCCESS){ // if Boxi exists
-            // cout << "reading box " << i << endl;
-            Box* b = new Box(i);     // CREATE EMPTY BOX OBJECT
-            b->setBoxType(str_val);
-            //b->Type = str_val;
-
-            vector <double> par;
-            box.clear();
-            name.clear();
-            box << "BOX" << i <<".Params";
-            box >> name;
-
-
-            ret = reader.readNumberArray(name , par);
-            problem(name, ret);
-            b->setParams(par);
-
-            // BOX X
-            box.clear();
-            name.clear();
-            box << "BOX" << i <<".X";
-            box >> name;
-            ret = reader.readNumberArray(name , par);
-
-            //cout << "X :" << par[0] << "," << par[1] << endl;
-            problem(name, ret);
-            b->setX(par);
-
-
-            // BOX Y
-            box.clear();
-            name.clear();
-            box << "BOX" << i <<".Y";
-            box >> name;
-            ret = reader.readNumberArray(name, par);
-            problem(name, ret);
-            b->setY(par);
-            // BOX Z
-            box.clear();
-            name.clear();
-            box << "BOX" << i <<".Z";
-            box >> name;
-            ret = reader.readNumberArray(name , par);
-            problem(name , ret);
-            b->setZ(par);
-            // BOX TILT
-            box.clear();
-            name.clear();
-            box << "BOX" << i <<".Tilt";
-            box >> name;
-            ret = reader.readNumberArray(name, par);
-            problem(name , ret);
-            b->setTilt(par);
-            // BOX TWIST
-            box.clear();
-            name.clear();
-            box << "BOX" << i <<".Twist";
-            box >> name;
-            ret = reader.readNumberArray(name, par);
-            problem(name, ret);
-            b->setTwist(par);
-
-            // ADD TO LIST OF BOXES
-            boxes->addBox(b);
-
-        }// end if box exists
     }
-    //end for i = 1:maxbox
-
 }// end void readBoxes
-*/
+
 
 /*
 void readAlignment(Alignment* alignment, Reader& reader){
@@ -727,8 +657,8 @@ void ReadSettings(string settingsFileName,
     try {
         readSimu(simu, reader);
         readLC(lc, reader);
-
-        boxes.readSettingsFile(reader);
+        readBoxes(boxes, reader);
+        ///boxes.readSettingsFile(reader);
         settings.readSettingsFile(reader);
         alignment.readSettingsFile(reader);
         readElectrodes( electrodes, eventList, reader);

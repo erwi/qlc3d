@@ -142,29 +142,5 @@ void Boxes::printBoxes() {
     }
 }
 
-void Boxes::readSettingsFile(Reader &reader) {
-    using std::string;
-    const int MAX_NUM_BOXES = 100;
-    // Loop over all possible boxes ad try to read
-    for (int boxNum = 1; boxNum < MAX_NUM_BOXES; boxNum++) {
-        string key = "BOX"+std::to_string(boxNum) + ".Params";
-        // if box with current number found, read it fully
-        if (reader.containsKey(key)) {
-            Box *box = new Box(boxNum);
-            string keyBase = "BOX"+std::to_string(boxNum) + ".";
-            string type = reader.getValueByKey<string>(keyBase+"Type");
-            box->setBoxType(type);
-            box->Params = reader.getValueByKey<vector<double>>(keyBase+"Params");
-            box->X = reader.getValueByKey<vector<double>>(keyBase+"X");
-            box->Y = reader.getValueByKey<vector<double>>(keyBase+"Y");
-            box->Z = reader.getValueByKey<vector<double>>(keyBase+"Z");
-            box->Tilt = reader.getValueByKey<vector<double>>(keyBase+"Tilt");
-            box->Twist = reader.getValueByKey<vector<double>>(keyBase+"Twist");
-            this->addBox(box);
-        }
-    }
-
-}
-
 
 

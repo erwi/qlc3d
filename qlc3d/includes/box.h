@@ -50,7 +50,7 @@ public:
     void addBox(Box *b);
     void printBoxes();
 
-    void readSettingsFile(Reader &reader);
+    //void readSettingsFile(Reader &reader);
 
 };
 #endif
