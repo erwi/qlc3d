@@ -24,7 +24,7 @@ using std::vector;
 class Surface {
     /*!The surface class represents a single FIXLC anchoring surface.*/
 private:
-    static const double DEFAULT_ANCHORING_STRENGTH;
+
 
     string Anchoring;                   // name of anchoring type
     unsigned int AnchoringNum;          // number 1, 2, 3 or 4 corresponding to anchoring type, as defined above
@@ -39,6 +39,7 @@ private:
     bool isFixed;                       // whether this surface is fixed or not
     void calcV1V2();                    // calculates v1 and v2 values from easy angles
 public:
+    static const double DEFAULT_ANCHORING_STRENGTH;
     int FixLCNumber;
     std::vector<double> Params;         // holds optional parameters, but is mostly empty
     Surface(int fxlcnum);
@@ -91,8 +92,6 @@ public:
     unsigned int getAnchoringNum(const int &n); // // returns anchoring number of alignment surface n
     bool getUsesSurfaceNormal(int n); // if n uses surface normal instead of v1 and v2 ?
     bool WeakSurfacesExist();   // checks if weak surfaces are defined
-
-    void readSettingsFile(Reader& reader);
 };
 
 

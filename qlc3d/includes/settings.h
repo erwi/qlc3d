@@ -100,7 +100,6 @@ public:
     int     getV_GMRES_Restart() const;
     int     getV_GMRES_Preconditioner() const;
     double  getV_GMRES_Toler()const;
-    void readSettingsFile(Reader &reader);
 };
 #endif
 

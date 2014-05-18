@@ -122,7 +122,7 @@ void readSimu(Simu &simu, Reader &reader) {
            e.printError();
        }
 }//end void readSimu
-//*/
+
 
 
 void readBoxes(Boxes &boxes, Reader& reader) {
@@ -149,89 +149,46 @@ void readBoxes(Boxes &boxes, Reader& reader) {
 }// end void readBoxes
 
 
-/*
-void readAlignment(Alignment* alignment, Reader& reader){
 
-    int num_surfaces = 99; // limit surfaces to 0-99
-    std::string surface_name;
-    std::string surface_setting_name;
-
-
-    for ( int i = 0; i < num_surfaces; i++) {
-        stringstream ss;
-        string name;
-        string str_val;
-        int ret = 0;
-        ss << "FIXLC" << i << ".Anchoring";
-        ss >> name;
-
-        ret = reader.readString(name , str_val);
-
-        if ( ret == READER_SUCCESS){
-            Surface* s = new Surface(i);
-            s->setAnchoringType(str_val);
-
-            double dbl_val;
-
-            ss.clear(); name.clear();
-            ss << "FIXLC" << i << ".Strength";
-            ss >> name;
-            ret = reader.readNumber(name , dbl_val);
-            if ( ! s->getisFixed() ) {          // if not a fixed surface, set  mandatory strength
-                problem(name , ret);
-                s->setStrength(dbl_val);
-            }
-            else{
-                if (ret==READER_SUCCESS)    //SET OPTIONAL
-                    s->setStrength(dbl_val);
-                else
-                    s->setStrength(99e99);
-            }
-
-
-            ss.clear(); name.clear();
-            ss << "FIXLC"<<i<<".Easy";
-            ss >> name;
-            std::vector < double > vec;
-            ret = reader.readNumberArray( name , vec );
-            problem( name , ret );
-            s->setEasyAngles( vec );
-            s->calcV1V2(); // calculates surface vectors from easy angles
-
-
-            ss.clear(); name.clear();
-            ss << "FIXLC" << i << ".K1";
-            ss >> name;
-            ret = reader.readNumber( name , dbl_val);
-            if (! s->getisFixed () ){
-                problem(name , ret);
-                s->setK1(dbl_val);
-            }
-            ss.clear(); name.clear();
-            ss << "FIXLC" << i << ".K2";
-            ss >> name;
-            ret = reader.readNumber( name , dbl_val);
-            if (! s->getisFixed () ){
-                problem(name , ret);
-                s->setK2(dbl_val);
-            }
-
-            // READ PARAMS - OPTIONAL VALUES VECTOR
-            ss.clear(); name.clear();
-            ss << "FIXLC" << i << ".Params";
-            ss >> name;
-            ret = reader.readNumberArray(name, vec);
-            if (ret == READER_SUCCESS){
-                s->Params = vec;
-                cout << "found params " << vec[0] << endl;
-            }
-            alignment->addSurface(s);
+void readAlignment(Alignment& alignment, Reader& reader) {
+    /*!Reads surface anchoring settings from file*/
+    const int MAX_NUM_SURFACES = 99;
+    // Loop over all possible FixLC numbers
+    for (int i = 0; i < MAX_NUM_SURFACES; i++) {
+        string keyBase = "FIXLC"+std::to_string(i) + ".";
+        string key = keyBase + "Anchoring";
+        if (reader.containsKey(key)) {
+            string name = reader.getValueByKey<string>(key);
+            // Create reasonable default values for surface parameters
+            double strength  = Surface::DEFAULT_ANCHORING_STRENGTH;
+            double K1 = 1.0;
+            double K2 = 1.0;
+            vector <double> easyAngle = {0,0,0};
+            vector<double> params;
+            // Read optional values to overwrite defaults
+            if (reader.containsKey(keyBase + "Strength"))
+                strength = reader.get<double>();
+            if (reader.containsKey(keyBase + "K1"))
+                K1 = reader.get<double>();
+            if (reader.containsKey(keyBase + "K2"))
+                K2 = reader.get<double>();
+            if (reader.containsKey(keyBase + "Easy"))
+                easyAngle = reader.get<vector<double>>();
+            if (reader.containsKey(keyBase+"Params"))
+                params = reader.get<vector<double>>();
+            // Create new Surface object and set all values
+            Surface *s = new Surface(i);
+            s->setAnchoringType(name);
+            s->setEasyAngles(easyAngle);
+            s->setStrength(strength);
+            s->setK1(K1);
+            s->setK2(K2);
+            s->Params = params;
+            alignment.addSurface(s);
         }
-        // end if FXLCi exists
-    }// end for every FIXLC#
+    }
+} //end void readAlignment
 
-}//end void readAlignment
-*/
 
 //*
 void readElectrodes(Electrodes &electrodes,
@@ -641,6 +598,48 @@ void readRefinement(Reader &reader,
     }// end for event numbers
 }
 
+void readSolverSettings(Settings &settings, Reader &reader) {
+    if (reader.containsKey("nThreads"))
+        settings.setnThreads(reader.get<int>());
+    if (reader.containsKey("Q_Solver"))
+        settings.setQ_Solver(reader.get<int>());
+    if (reader.containsKey("V_Solver"))
+        settings.setV_Solver(reader.get<int>());
+    if (reader.containsKey("Q_Newton_Panic_Iter"))
+        settings.setQ_Newton_Panic_Iter(reader.get<int>());
+    if (reader.containsKey("Q_Newton_Panic_Coeff"))
+        settings.setQ_Newton_Panic_Coeff(reader.get<double>());
+    if (reader.containsKey("Q_PCG_Preconditioner"))
+        settings.setQ_PCG_Preconditioner(reader.get<int>());
+    if (reader.containsKey("Q_PCG_Maxiter"))
+        settings.setQ_PCG_Maxiter(reader.get<int>());
+    if (reader.containsKey("Q_PCG_Toler"))
+        settings.setQ_PCG_Toler(reader.get<double>());
+    if (reader.containsKey("Q_GMRES_Preconditioner"))
+        settings.setQ_GMRES_Preconditioner(reader.get<int>());
+    if (reader.containsKey("Q_GMRES_Maxiter"))
+        settings.setQ_GMRES_Maxiter(reader.get<int>());
+    if (reader.containsKey("Q_GMRES_Restart"))
+        settings.setQ_GMRES_Restart(reader.get<int>());
+    if (reader.containsKey("Q_GMRES_Toler"))
+        settings.setQ_GMRES_Toler(reader.get<double>());
+    if (reader.containsKey("V_PCG_Preconditioner"))
+        settings.setV_PCG_Preconditioner(reader.get<int>());
+    if (reader.containsKey("V_PCG_Maxiter"))
+        settings.setV_PCG_Maxiter(reader.get<int>());
+    if (reader.containsKey("V_PCG_Toler"))
+        settings.setV_PCG_Toler(reader.get<double>());
+    if (reader.containsKey("V_GMRES_Preconditioner"))
+        settings.setV_GMRES_Preconditioner(reader.get<int>());
+    if (reader.containsKey("V_GMRES_Maxiter"))
+        settings.setV_GMRES_Maxiter(reader.get<int>());
+    if (reader.containsKey("V_GMRES_Restart"))
+        settings.setV_GMRES_Restart(reader.get<int>());
+    if (reader.containsKey("V_GMRES_Toler"))
+        settings.setV_GMRES_Toler(reader.get<double>());
+} // end readSolverSettings
+
+
 
 
 void ReadSettings(string settingsFileName,
@@ -658,9 +657,9 @@ void ReadSettings(string settingsFileName,
         readSimu(simu, reader);
         readLC(lc, reader);
         readBoxes(boxes, reader);
-        ///boxes.readSettingsFile(reader);
-        settings.readSettingsFile(reader);
-        alignment.readSettingsFile(reader);
+        readSolverSettings(settings, reader);
+        readAlignment(alignment, reader);
+        //alignment.readSettingsFile(reader);
         readElectrodes( electrodes, eventList, reader);
         readRefinement(reader, eventList);
         // readAlignment(*alignment, reader);
@@ -708,119 +707,4 @@ void ReadSettings(string settingsFileName,
 
 
 
-void ReadSolverSettings(const char *filename, Settings *settings) {
-    // READS SOLVER SETTINGS FROM FILE. THIS WAS ORIGIANLLY ASSUMED TO BE
-    // CALLED "solver.qfg", BUT NOW ALSO READS "solver.txt", IF "solver.qfg"
-    // IS NOT FOUND
-    /*
-    std::string fn = filename;
-    if ( !FilesysFun::fileExists(fn) )
-    {
-        fn = "solver.txt";
-    }
-
-
-    Reader reader;
-    if ( reader.openFile(fn) )
-    {
-
-        int i_val;
-        double dbl;
-        int ret;
-        string name;
-
-        name = "nThreads";
-        ret = reader.readNumber(name, i_val);
-        problem(name, ret);
-        settings->setnThreads(i_val);
-
-        name = "Q_Solver";
-        problem(name , reader.readNumber(name , i_val ) );
-        settings->setQ_Solver( i_val);
-
-        name = "V_Solver";
-        problem(name , reader.readNumber(name , i_val ) );
-        settings->setV_Solver( i_val);
-
-        name = "Q_Newton_Panic_Iter";
-        problem(name , reader.readNumber(name , i_val ) );
-        settings->setQ_Newton_Panic_Iter( i_val);
-
-        name = "Q_Newton_Panic_Coeff";
-        problem(name , reader.readNumber(name , dbl ) );
-        settings->setQ_Newton_Panic_Coeff(dbl);
-
-
-        name = "Q_PCG_Preconditioner";
-        problem(name , reader.readNumber(name , i_val ) );
-        settings->setQ_PCG_Preconditioner( i_val);
-
-        name = "Q_PCG_Maxiter";
-        problem(name , reader.readNumber(name , i_val ) );
-        settings->setQ_PCG_Maxiter( i_val);
-
-
-        name = "Q_PCG_Toler";
-        problem(name , reader.readNumber(name , dbl ) );
-        settings->setQ_PCG_Toler(dbl);
-
-        name = "Q_GMRES_Preconditioner";
-        problem(name , reader.readNumber(name , i_val ) );
-        settings->setQ_GMRES_Preconditioner(i_val);
-
-
-        name = "Q_GMRES_Maxiter";
-        problem(name , reader.readNumber(name , i_val ) );
-        settings->setQ_GMRES_Maxiter( i_val);
-
-
-        name = "Q_GMRES_Restart";
-        problem(name , reader.readNumber(name , i_val ) );
-        settings->setQ_GMRES_Restart(i_val);
-
-        name = "Q_GMRES_Toler";
-        problem(name , reader.readNumber(name , dbl) );
-        settings->setQ_GMRES_Toler(dbl);
-
-        name = "V_PCG_Preconditioner";
-        problem(name , reader.readNumber(name , i_val ) );
-        settings->setV_PCG_Preconditioner( i_val);
-
-        name = "V_PCG_Maxiter";
-        problem(name , reader.readNumber(name , i_val ) );
-        settings->setV_PCG_Maxiter(i_val);
-
-        name = "V_PCG_Toler";
-        problem(name , reader.readNumber(name , dbl ) );
-        settings->setV_GMRES_Toler(dbl);
-
-        name = "V_GMRES_Preconditioner";
-        problem(name , reader.readNumber(name , i_val ) );
-        settings->setV_GMRES_Preconditioner( i_val);
-
-        name = "V_GMRES_Maxiter";
-        problem(name , reader.readNumber(name , i_val ) );
-        settings->setV_GMRES_Maxiter( i_val);
-
-        name = "V_GMRES_Restart";
-        problem(name , reader.readNumber(name , i_val ) );
-        settings->setV_GMRES_Restart( i_val);
-
-        name = "V_GMRES_Toler";
-        problem(name , reader.readNumber(name , dbl ) );
-        settings->setV_GMRES_Toler( dbl );
-
-        //settings->PrintSettings();
-
-        reader.closeFile();
-
-    }
-    else
-    {
-        cout << "Did not read solver settings. Using defaults" << endl;
-        //cout<< "Could not read solver settings file:" << fn << " - bye!"<< endl;
-        //exit(1);
-    }
-    */
-} // end readSolverSettings
 

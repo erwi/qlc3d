@@ -183,44 +183,4 @@ void Settings::PrintSettings() {
     printf("V_GMRES_Toler\t\t\t= %f\n",         getV_GMRES_Toler());
 }
 
-void Settings::readSettingsFile(Reader &reader) {
-    if (reader.containsKey("nThreads"))
-        this->setnThreads(reader.get<int>());
-    if (reader.containsKey("Q_Solver"))
-        this->setQ_Solver(reader.get<int>());
-    if (reader.containsKey("V_Solver"))
-        this->setV_Solver(reader.get<int>());
-    if (reader.containsKey("Q_Newton_Panic_Iter"))
-        this->setQ_Newton_Panic_Iter(reader.get<int>());
-    if (reader.containsKey("Q_Newton_Panic_Coeff"))
-        this->setQ_Newton_Panic_Coeff(reader.get<double>());
-    if (reader.containsKey("Q_PCG_Preconditioner"))
-        this->setQ_PCG_Preconditioner(reader.get<int>());
-    if (reader.containsKey("Q_PCG_Maxiter"))
-        this->setQ_PCG_Maxiter(reader.get<int>());
-    if (reader.containsKey("Q_PCG_Toler"))
-        this->setQ_PCG_Toler(reader.get<double>());
-    if (reader.containsKey("Q_GMRES_Preconditioner"))
-        this->setQ_GMRES_Preconditioner(reader.get<int>());
-    if (reader.containsKey("Q_GMRES_Maxiter"))
-        this->setQ_GMRES_Maxiter(reader.get<int>());
-    if (reader.containsKey("Q_GMRES_Restart"))
-        this->setQ_GMRES_Restart(reader.get<int>());
-    if (reader.containsKey("Q_GMRES_Toler"))
-        this->setQ_GMRES_Toler(reader.get<double>());
-    if (reader.containsKey("V_PCG_Preconditioner"))
-        this->setV_PCG_Preconditioner(reader.get<int>());
-    if (reader.containsKey("V_PCG_Maxiter"))
-        this->setV_PCG_Maxiter(reader.get<int>());
-    if (reader.containsKey("V_PCG_Toler"))
-        this->setV_PCG_Toler(reader.get<double>());
-    if (reader.containsKey("V_GMRES_Preconditioner"))
-        this->setV_GMRES_Preconditioner(reader.get<int>());
-    if (reader.containsKey("V_GMRES_Maxiter"))
-        this->setV_GMRES_Maxiter(reader.get<int>());
-    if (reader.containsKey("V_GMRES_Restart"))
-        this->setV_GMRES_Restart(reader.get<int>());
-    if (reader.containsKey("V_GMRES_Toler"))
-        this->setV_GMRES_Toler(reader.get<double>());
-}
 
