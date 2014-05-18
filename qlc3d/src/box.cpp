@@ -10,22 +10,13 @@ using std::cerr;
 Box::Box(int boxnum) {
     Type = Normal;
     BoxNumber = boxnum;
-    Params = {0,0};
+    Params = {0};
     X = {0,0};
     Y = {0,0};
     Z = {0,0};
     Tilt = {0,0};
     Twist = {0,0};
 }
-
-void Box::printBox() {
-    printf("\tType: ");
-    printf("\n\tparams : %f, %f\n", Params[0], Params[1]);
-    printf("\tX\t= [%1.1f, %1.1f]\n\tY\t= [%1.1f, %1.1f]\n\tZ\t= [%1.1f, %1.1f]\n", X[0], X[1], Y[0], Y[1], Z[0], Z[1]);
-    printf("\tTilt\t= [%1.1f, %1.1f]\n", Tilt[0], Tilt[1]);
-    printf("\tTwist\t= [%1.1f, %1.1f]\n", Twist[0], Twist[1]);
-}
-
 
 void Box::setX(std:: vector<double> x) {
     if (x.size() == 2) {
@@ -121,14 +112,6 @@ void Boxes::addBox(Box *b) {
     n_Boxes ++;
 }
 
-void Boxes::printBoxes() {
-    std::vector<Box *>::iterator i;
-    printf("%i Boxes:\n", n_Boxes);
-    for (int i = 0 ; i < n_Boxes; i++) {
-        printf("Box%i :\n", i + 1);
-        box[i]->printBox();
-    }
-}
 
 
 
