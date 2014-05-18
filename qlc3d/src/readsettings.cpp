@@ -123,6 +123,35 @@ void readBoxes(Boxes &boxes, Reader& reader) {
     const int MAX_NUM_BOXES = 100;
     // Loop over all possible boxes ad try to read
     for (int boxNum = 1; boxNum < MAX_NUM_BOXES; boxNum++) {
+        string typeKey = wildcardToNum(SFK_BOX_TYPE, boxNum);
+
+        if (reader.containsKey(typeKey)) {
+            Box *box = new Box(boxNum);
+            box->setBoxType(reader.get<std::string>());
+            //
+            string paramsKey = wildcardToNum(SFK_BOX_PARAMS, boxNum);
+            string xKey = wildcardToNum(SFK_BOX_X, boxNum);
+            string yKey = wildcardToNum(SFK_BOX_Y, boxNum);
+            string zKey = wildcardToNum(SFK_BOX_Z, boxNum);
+            string tiltKey = wildcardToNum(SFK_BOX_TILT, boxNum);
+            string twistKey = wildcardToNum(SFK_BOX_TWIST, boxNum);
+            if (reader.containsKey(paramsKey))
+                box->Params = reader.get<vector<double>>();
+            if (reader.containsKey(xKey))
+                box->setX(reader.get<vector<double>>());
+            if (reader.containsKey(yKey))
+                box->setY(reader.get<vector<double>>());
+            if (reader.containsKey(zKey))
+                box->setZ(reader.get<vector<double>>());
+            if (reader.containsKey(tiltKey))
+                box->setTilt(reader.get<vector<double>>());
+            if (reader.containsKey(twistKey))
+                box->setTwist(reader.get<vector<double>>());
+            boxes.addBox(box);
+       }
+    } // end for boxNum
+    /*
+    for (int boxNum = 1; boxNum < MAX_NUM_BOXES; boxNum++) {
         string key = "BOX"+std::to_string(boxNum) + ".Params";
         // if box with current number found, read it fully
         if (reader.containsKey(key)) {
@@ -139,6 +168,7 @@ void readBoxes(Boxes &boxes, Reader& reader) {
             boxes.addBox(box);
         }
     }
+    */
 }// end void readBoxes
 
 
@@ -324,43 +354,43 @@ void readRefinement(Reader &reader,
 } // end readRefinement
 
 void readSolverSettings(Settings &settings, Reader &reader) {
-    if (reader.containsKey("nThreads"))
+    if (reader.containsKey(SFK_NUM_ASSEMBLY_THREADS))
         settings.setnThreads(reader.get<int>());
-    if (reader.containsKey("Q_Solver"))
+    if (reader.containsKey(SFK_Q_SOLVER))
         settings.setQ_Solver(reader.get<int>());
-    if (reader.containsKey("V_Solver"))
+    if (reader.containsKey(SFK_V_SOLVER))
         settings.setV_Solver(reader.get<int>());
-    if (reader.containsKey("Q_Newton_Panic_Iter"))
+    if (reader.containsKey(SFK_Q_NEWTON_PANIC_ITER))
         settings.setQ_Newton_Panic_Iter(reader.get<int>());
-    if (reader.containsKey("Q_Newton_Panic_Coeff"))
+    if (reader.containsKey(SFK_Q_NEWTON_PANIC_COEFF))
         settings.setQ_Newton_Panic_Coeff(reader.get<double>());
-    if (reader.containsKey("Q_PCG_Preconditioner"))
+    if (reader.containsKey(SFK_Q_PCG_PECONDITIONER))
         settings.setQ_PCG_Preconditioner(reader.get<int>());
-    if (reader.containsKey("Q_PCG_Maxiter"))
+    if (reader.containsKey(SFK_Q_PCG_MAXITER))
         settings.setQ_PCG_Maxiter(reader.get<int>());
-    if (reader.containsKey("Q_PCG_Toler"))
+    if (reader.containsKey(SFK_Q_PCG_TOLER))
         settings.setQ_PCG_Toler(reader.get<double>());
-    if (reader.containsKey("Q_GMRES_Preconditioner"))
+    if (reader.containsKey(SFK_Q_GMRES_PRECONDITIONER))
         settings.setQ_GMRES_Preconditioner(reader.get<int>());
-    if (reader.containsKey("Q_GMRES_Maxiter"))
+    if (reader.containsKey(SFK_Q_GMRES_MAXITER))
         settings.setQ_GMRES_Maxiter(reader.get<int>());
-    if (reader.containsKey("Q_GMRES_Restart"))
+    if (reader.containsKey(SFK_Q_GMRES_RESTART))
         settings.setQ_GMRES_Restart(reader.get<int>());
-    if (reader.containsKey("Q_GMRES_Toler"))
+    if (reader.containsKey(SFK_Q_GMRES_TOLER))
         settings.setQ_GMRES_Toler(reader.get<double>());
-    if (reader.containsKey("V_PCG_Preconditioner"))
+    if (reader.containsKey(SFK_V_PCG_PRECONDITIONER))
         settings.setV_PCG_Preconditioner(reader.get<int>());
-    if (reader.containsKey("V_PCG_Maxiter"))
+    if (reader.containsKey(SFK_V_PCG_MAXITER))
         settings.setV_PCG_Maxiter(reader.get<int>());
-    if (reader.containsKey("V_PCG_Toler"))
+    if (reader.containsKey(SFK_V_PCG_TOLER))
         settings.setV_PCG_Toler(reader.get<double>());
-    if (reader.containsKey("V_GMRES_Preconditioner"))
+    if (reader.containsKey(SFK_V_GMRES_PRECONDITIONER))
         settings.setV_GMRES_Preconditioner(reader.get<int>());
-    if (reader.containsKey("V_GMRES_Maxiter"))
+    if (reader.containsKey(SFK_V_GMRES_MAXITER))
         settings.setV_GMRES_Maxiter(reader.get<int>());
-    if (reader.containsKey("V_GMRES_Restart"))
+    if (reader.containsKey(SFK_V_GMRES_RESTART))
         settings.setV_GMRES_Restart(reader.get<int>());
-    if (reader.containsKey("V_GMRES_Toler"))
+    if (reader.containsKey(SFK_V_GMRES_TOLER))
         settings.setV_GMRES_Toler(reader.get<double>());
 } // end readSolverSettings
 

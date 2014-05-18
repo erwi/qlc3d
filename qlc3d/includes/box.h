@@ -35,7 +35,7 @@ public:
     void setTilt(std::vector<double> tlt);
     void setTwist(std::vector<double> twt);
     bool isInBox(double *coords);           // checks whether [x,y,z] coordinates in array of size 3 are inside the box
-    void setBoxType(std::string &bt);
+    void setBoxType(const std::string &bt);
 };
 
 class Reader; // forward decl.

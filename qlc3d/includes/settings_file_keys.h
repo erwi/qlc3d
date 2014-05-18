@@ -46,4 +46,31 @@ const string SFK_E_TIME = "E*.Time";
 const string SFK_E_POTS = "E*.Pot";
 const string SFK_E_FIELD = "EField";
 const string SFK_EPS_DIELECTRIC = "eps_dielectric";
+// Initial LC orientation boxes
+const string SFK_BOX_TYPE = "Box*.Type";
+const string SFK_BOX_PARAMS = "Box*.Params";
+const string SFK_BOX_X = "Box*.X";
+const string SFK_BOX_Y = "Box*.Y";
+const string SFK_BOX_Z = "Box*.Z";
+const string SFK_BOX_TILT = "Box*.Tilt";
+const string SFK_BOX_TWIST = "Box*.Twist";
+// Solver settings keys
+const string SFK_Q_SOLVER = "Q_Solver";
+const string SFK_V_SOLVER = "V_Solver";
+const string SFK_Q_NEWTON_PANIC_ITER = "Q_Newton_Panic_Iter";
+const string SFK_Q_NEWTON_PANIC_COEFF = "Q_Newton_Panic_Coeff";
+const string SFK_Q_PCG_PECONDITIONER = "Q_PCG_Preconditioner";
+const string SFK_Q_PCG_MAXITER = "Q_PCG_Maxiter";
+const string SFK_Q_PCG_TOLER = "Q_PCG_Toler";
+const string SFK_Q_GMRES_PRECONDITIONER = "Q_GMRES_Preconditioner";
+const string SFK_Q_GMRES_MAXITER = "Q_GMRES_Maxiter";
+const string SFK_Q_GMRES_RESTART = "Q_GMRES_Restart";
+const string SFK_Q_GMRES_TOLER = "Q_GMRES_Toler";
+const string SFK_V_PCG_PRECONDITIONER = "V_PCG_Preconditioner";
+const string SFK_V_PCG_MAXITER = "V_PCG_Maxiter";
+const string SFK_V_PCG_TOLER = "V_PCG_Toler";
+const string SFK_V_GMRES_PRECONDITIONER = "V_GMRES_Preconditioner";
+const string SFK_V_GMRES_MAXITER = "V_GMRES_Maxiter";
+const string SFK_V_GMRES_RESTART = "V_GMRES_Restart";
+const string SFK_V_GMRES_TOLER = "V_GMRES_Toler";
 #endif

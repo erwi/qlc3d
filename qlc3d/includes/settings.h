@@ -53,7 +53,7 @@ private:
     double      V_GMRES_Toler;
 public:
     Settings();
-    void PrintSettings(); // Prints the settings
+    //void PrintSettings(); // Prints the settings
     //
     void    setnThreads(int num);
     void    setQ_Solver(int s);

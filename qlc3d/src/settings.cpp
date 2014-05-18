@@ -157,7 +157,7 @@ int Settings::getV_GMRES_Restart() const {
 double Settings::getV_GMRES_Toler() const {
     return V_GMRES_Toler;
 }
-
+/*
 void Settings::PrintSettings() {
     printf("Settings:\n");
     printf("nThreads\t\t\t= %i\n", getnThreads());
@@ -182,5 +182,5 @@ void Settings::PrintSettings() {
     printf("V_GMRES_Restart\t\t\t= %i\n",       getV_GMRES_Restart());
     printf("V_GMRES_Toler\t\t\t= %f\n",         getV_GMRES_Toler());
 }
-
+*/
 

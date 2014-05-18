@@ -6,9 +6,8 @@
 #include <vector>
 
 using std::vector;
-
+using std::cerr;
 Box::Box(int boxnum) {
-
     Type = Normal;
     BoxNumber = boxnum;
     Params = {0,0};
@@ -17,7 +16,6 @@ Box::Box(int boxnum) {
     Z = {0,0};
     Tilt = {0,0};
     Twist = {0,0};
-
 }
 
 void Box::printBox() {
@@ -28,23 +26,13 @@ void Box::printBox() {
     printf("\tTwist\t= [%1.1f, %1.1f]\n", Twist[0], Twist[1]);
 }
 
-/*
-void Box::setParams(std::vector<double> p) {
-    if (p.size() == 2) {
-        Params[0] = p[0];
-        Params[1] = p[1];
-    } else {
-        std::cout << "error, Box::setParams, invalid Params length - bye!" << std::endl;
-        exit(1);
-    }
-}
-*/
+
 void Box::setX(std:: vector<double> x) {
     if (x.size() == 2) {
         X[0] = x[0];
         X[1] = x[1];
     } else {
-        std::cout << "error, Box::setX, invalid X length - bye!" << std::endl;
+        std::cerr << "error, Box::setX, invalid X length - bye!" << std::endl;
         exit(1);
     }
 }
@@ -54,7 +42,7 @@ void Box::setY(std:: vector<double> y) {
         Y[0] = y[0];
         Y[1] = y[1];
     } else {
-        std::cout << "error, Box::setY, invalid Y length - bye!" << std::endl;
+        std::cerr << "error, Box::setY, invalid Y length - bye!" << std::endl;
         exit(1);
     }
 }
@@ -64,7 +52,7 @@ void Box::setZ(std:: vector<double> z) {
         Z[0] = z[0];
         Z[1] = z[1];
     } else {
-        std::cout << "error, Box::setZ, invalid Z length - bye!" << std::endl;
+        std::cerr << "error, Box::setZ, invalid Z length - bye!" << std::endl;
         exit(1);
     }
 }
@@ -74,7 +62,7 @@ void Box::setTilt(std:: vector<double> tlt) {
         Tilt[0] = tlt[0];
         Tilt[1] = tlt[1];
     } else {
-        std::cout << "error, Box::setTilt, invalid Tilt length - bye!" << std::endl;
+        std::cerr << "error, Box::setTilt, invalid Tilt length - bye!" << std::endl;
         exit(1);
     }
 }
@@ -83,7 +71,7 @@ void Box::setTwist(std:: vector<double> twt) {
         Twist[0] = twt[0];
         Twist[1] = twt[1];
     } else {
-        std::cout << "error, Box::setX, invalid Twist length - bye!" << std::endl;
+        std::cerr << "error, Box::setTwist, invalid Twist length - bye!" << std::endl;
         exit(1);
     }
 }
@@ -99,9 +87,9 @@ bool Box::isInBox(double *coords) {
     return true;
 }
 
-void Box::setBoxType(std::string &bt) {
+void Box::setBoxType(const std::string &bt) {
     this->TypeString = bt;
-    std::transform(bt.begin(), bt.end(), bt.begin(), ::tolower);
+    //std::transform(bt.begin(), bt.end(), bt.begin(), ::tolower);
     if (bt.compare("normal") == 0)
         Type = Normal;
     else if (bt.compare("random") == 0)
@@ -111,8 +99,8 @@ void Box::setBoxType(std::string &bt) {
     else {
         using std::cout;
         using std::endl;
-        cout << "error specyfying Box" << BoxNumber << ".Type as :\"" << TypeString << "\"" << endl;
-        cout << "possible types are: \n" << "\tnormal\n" << "\trandom\n"
+        cerr << "error specyfying Box" << BoxNumber << ".Type as :\"" << TypeString << "\"" << endl;
+        cerr << "possible types are: \n" << "\tnormal\n" << "\trandom\n"
              << "\thedgehog" << endl;
         exit(1);
     }
