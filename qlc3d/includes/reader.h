@@ -65,10 +65,10 @@ class Reader {
     const char _R_CBRACE = ']';
     const char _R_VDELIM = ',';
 
-    std::string _fileName;                // holds current file name
+    std::string _fileName;                          // holds current file name
     std::map<std::string, lineData> _keyValues;     // "database" of all read key/value pairs
-    std::vector<std::string> _validKeys;  // optional list of valid keys. read in from a file
-    std::string _recentKey;                 // previous accessed good key
+    std::vector<std::string> _validKeys;            // optional list of valid keys. read in from a separte file
+    std::string _recentKey;                         // previously accessed/searched key that is valid and found
     // STRING FORMATTING FUNCTIONS
     inline void removeComments(std::string &line) const;   // removes everything in a line after comment character
     inline void cleanLineEnds(std::string &line) const;    // removes white space from both ends of a string
@@ -126,6 +126,7 @@ public:
     inline bool containsKey(const std::string &key);
     template<class T> inline T getValueByKey(const std::string &key) const;
     template<class T> inline T get() const; // access by last used key
+    template<class T> inline T get(const std::string &key, const T& defaultValue);
     inline void printAll()const;
     inline bool isCaseSensitive()const {
         return _isCaseSensitive;
@@ -134,6 +135,7 @@ public:
     inline void setCaseSensitivity(const bool &isCS) {
         _isCaseSensitive = isCS;
     }
+    inline std::vector<std::string> getAllKeys() const; // returns vector containing all keys in file
 };
 
 //****************************************************************************************
@@ -495,6 +497,24 @@ T Reader::get() const {
     else
         throw ReaderError("A valid key has not been found before calling Reader::get<class T>()");
 }
+
+template<class T>
+T Reader::get(const std::string &key, const T& defaultValue) {
+    /*! Returns value by key. If key does not exit, returns given default value*/
+    if (containsKey(key))
+        return get<T>();
+    else
+        return defaultValue;
+}
+
+std::vector<std::string> Reader::getAllKeys() const {
+    /*! Returns vector containing all keys in input file */
+    std::vector<std::string> returnKeys;
+    for (auto& kv: _keyValues)
+        returnKeys.push_back(kv.first);
+    return returnKeys;
+}
+
 
 inline void Reader::parseValue(const std::string &strVal, size_t &val) const {
     /*!
