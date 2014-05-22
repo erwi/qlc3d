@@ -39,15 +39,20 @@ private:
     bool isFixed;                       // whether this surface is fixed or not
     void calcV1V2();                    // calculates v1 and v2 values from easy angles
 public:
+    static const string DEFAULT_ANCHORING_TYPE;
     static const double DEFAULT_ANCHORING_STRENGTH;
+    static const double DEFAULT_ANCHORING_K1;
+    static const double DEFAULT_ANCHORING_K2;
+    static const vector<double> DEFAULT_ANCHORING_EASY;
+    static const vector<double> DEFAULT_ANCHORING_PARAMS;
     int FixLCNumber;
     std::vector<double> Params;         // holds optional parameters, but is mostly empty
     Surface(int fxlcnum);
-    void setAnchoringType(std::string &atype);
+    void setAnchoringType(const std::string &atype);
     void setStrength(double str);
     void setK1(double k1);
     void setK2(double k2);
-    void setEasyAngles(std::vector<double> &e);
+    void setEasyAngles(const std::vector<double> &e);
     void setv1(double v[3]);
     void setv2(double v[3]);
     void setEasyVector(double v[3]);
@@ -76,11 +81,20 @@ class Alignment {
     /*! A collection of Surface objects, each representing a FIXLC surface*/
 private:
     int n_surfaces;
+    void addSurface(Surface *s);
 public:
     vector<Surface *> surface;
     Alignment();
     ~Alignment();
-    void addSurface(Surface *s);
+
+    void addSurface(const int fixLcNumber,
+                    const string &anchoring,
+                    const double &strength,
+                    const vector<double> &easy,
+                    const double &k1,
+                    const double &k2,
+                    const vector<double> &params);
+
     void setnSurfaces(int n);
     double getStrength(int n);  // get strength of FixLCn
     double getK1(int n);        // get K1 of FixLCn

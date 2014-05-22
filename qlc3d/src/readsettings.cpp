@@ -159,36 +159,26 @@ void readAlignment(Alignment& alignment, Reader& reader) {
     const int MAX_NUM_SURFACES = 99;
     // Loop over all possible FixLC numbers
     for (int i = 0; i < MAX_NUM_SURFACES; i++) {
-        string keyBase = "FIXLC"+std::to_string(i) + ".";
-        string key = keyBase + "Anchoring";
-        if (reader.containsKey(key)) {
-            string name = reader.getValueByKey<string>(key);
-            // Create reasonable default values for surface parameters
-            double strength  = Surface::DEFAULT_ANCHORING_STRENGTH;
-            double K1 = 1.0;
-            double K2 = 1.0;
-            vector <double> easyAngle = {0,0,0};
-            vector<double> params;
-            // Read optional values to overwrite defaults
-            if (reader.containsKey(keyBase + "Strength"))
-                strength = reader.get<double>();
-            if (reader.containsKey(keyBase + "K1"))
-                K1 = reader.get<double>();
-            if (reader.containsKey(keyBase + "K2"))
-                K2 = reader.get<double>();
-            if (reader.containsKey(keyBase + "Easy"))
-                easyAngle = reader.get<vector<double>>();
-            if (reader.containsKey(keyBase+"Params"))
-                params = reader.get<vector<double>>();
-            // Create new Surface object and set all values
-            Surface *s = new Surface(i);
-            s->setAnchoringType(name);
-            s->setEasyAngles(easyAngle);
-            s->setStrength(strength);
-            s->setK1(K1);
-            s->setK2(K2);
-            s->Params = params;
-            alignment.addSurface(s);
+        //
+        // Use anchoring type key to determine whether FixLC with current
+        // number has been defined
+        string anchoringKey = wildcardToNum(SFK_FIXLC_ANCHORING, i);
+        if (reader.containsKey(anchoringKey)) {
+            //
+            // create rest of key for this FixLC surface number
+            string strengthKey = wildcardToNum(SFK_FIXLC_STRENGTH, i);
+            string easyKey = wildcardToNum(SFK_FIXLC_EASY, i);
+            string k1Key = wildcardToNum(SFK_FIXLC_K1, i);
+            string k2Key = wildcardToNum(SFK_FIXLC_K2, i);
+            string paramsKey = wildcardToNum(SFK_FIXLC_PARAMS, i);
+            // add surface to collection of surfaces
+            alignment.addSurface(i,
+                                 reader.get<string>(anchoringKey, Surface::DEFAULT_ANCHORING_TYPE),
+                                 reader.get<double>(strengthKey, Surface::DEFAULT_ANCHORING_STRENGTH),
+                                 reader.get<vector<double>>(easyKey, Surface::DEFAULT_ANCHORING_EASY),
+                                 reader.get<double>(k1Key, Surface::DEFAULT_ANCHORING_K1),
+                                 reader.get<double>(k2Key, Surface::DEFAULT_ANCHORING_K2),
+                                 reader.get<vector<double>>(paramsKey, Surface::DEFAULT_ANCHORING_PARAMS));
         }
     }
 } //end void readAlignment
@@ -395,7 +385,6 @@ void ReadSettings(string settingsFileName,
         readAlignment(alignment, reader);
         readElectrodes( electrodes, eventList, reader);
         readRefinement(reader, eventList);
-        // readAlignment(*alignment, reader);
     } catch (ReaderError e) {
         e.printError();
     }

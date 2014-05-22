@@ -2,7 +2,7 @@
 #define SETTINGS_FILE_KEYS_H
 
 /*! All the settings file keys are declared and defined in this file
- * as const char variables.
+ * as const string variables.
  *
  * Start each variable name with SFK_
  * Keys are not case sensitive.
@@ -54,6 +54,14 @@ const string SFK_BOX_Y = "Box*.Y";
 const string SFK_BOX_Z = "Box*.Z";
 const string SFK_BOX_TILT = "Box*.Tilt";
 const string SFK_BOX_TWIST = "Box*.Twist";
+// Anchoring surfaces keys
+const string SFK_FIXLC_ANCHORING = "FIXLC*.Anchoring";
+const string SFK_FIXLC_STRENGTH = "FIXLC*.Strength";
+const string SFK_FIXLC_EASY = "FIXLC*.Easy";
+const string SFK_FIXLC_K1 = "FIXLC*.K1";
+const string SFK_FIXLC_K2 = "FIXLC*.K2";
+const string SFK_FIXLC_PARAMS = "FIXLC*.Params";
+
 // Solver settings keys
 const string SFK_Q_SOLVER = "Q_Solver";
 const string SFK_V_SOLVER = "V_Solver";

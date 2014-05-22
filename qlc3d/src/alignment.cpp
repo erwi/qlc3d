@@ -2,78 +2,66 @@
 #include <algorithm>
 #include <iostream>
 #include <reader.h>
-
+const string Surface::DEFAULT_ANCHORING_TYPE = "Strong";
 const double Surface::DEFAULT_ANCHORING_STRENGTH = 1e-4;
-
-
-Surface::Surface(int fxlcnum)
-{
-
+const double Surface::DEFAULT_ANCHORING_K1 = 1;
+const double Surface::DEFAULT_ANCHORING_K2 = 1;
+const vector<double> Surface::DEFAULT_ANCHORING_EASY = {0,0,0};
+const vector<double> Surface::DEFAULT_ANCHORING_PARAMS = {};
+Surface::Surface(int fxlcnum) {
     Anchoring = "Strong";
     AnchoringNum = ANCHORING_STRONG;
     FixLCNumber = fxlcnum;
     Strength = DEFAULT_ANCHORING_STRENGTH;
     K1 = 1;
     K2 = 1;
-    Easy[0] = 0;
-    Easy[1] = 0;
-    Easy[2] = 0;
-
-    v1[0] = 0;
-    v1[1] = 0;
-    v1[2] = 1;
-
-    v2[0] = 0;
-    v2[1] = 1;
-    v2[2] = 0;
-
-    e[0] = 1;
-    e[1] = 0;
-    e[2] = 0;
+    this->setEasyAngles(DEFAULT_ANCHORING_EASY);
     UsesSurfaceNormal = false;
     isFixed = true;
 }
 
-void Surface::setAnchoringType(std::string &atype){
+void Surface::setAnchoringType(const std::string &atype){
     Anchoring = atype;
 
     // MAKE SURE LOWERCASE
-    std::transform(atype.begin(), atype.end() , atype.begin(), ::tolower);
-    if (atype.compare("strong") == 0) {
-        Anchoring = atype;
+    string type = atype;
+
+    std::transform(type.begin(), type.end() , type.begin(), ::tolower);
+    if (type.compare("strong") == 0) {
+        Anchoring = type;
         AnchoringNum = ANCHORING_STRONG;
         isFixed = true;
     }
-    else if (atype.compare("homeotropic") == 0) {
-        Anchoring = atype;
+    else if (type.compare("homeotropic") == 0) {
+        Anchoring = type;
         AnchoringNum = ANCHORING_HOMEOTROPIC;
         isFixed = true;
     }
-    else if (atype.compare("weak") == 0) {
-        Anchoring = atype;
+    else if (type.compare("weak") == 0) {
+        Anchoring = type;
         AnchoringNum = ANCHORING_WEAK;
         isFixed = false;
     }
-    else if (atype.compare("degenerate") == 0) {
-        Anchoring = atype;
+    else if (type.compare("degenerate") == 0) {
+        Anchoring = type;
         AnchoringNum = ANCHORING_DEGENERATE;
         setUsesSurfaceNormal(true);
         isFixed = false;
     }
-    else if (atype.compare("freeze") == 0 ) {
-        Anchoring = atype;
+    else if (type.compare("freeze") == 0 ) {
+        Anchoring = type;
         AnchoringNum = ANCHORING_FREEZE;
         isFixed = true;
         setUsesSurfaceNormal(false);
     }
-    else if (atype.compare("polymerise") == 0 ) {
-        Anchoring = atype;
+    else if (type.compare("polymerise") == 0 ) {
+        Anchoring = type;
         AnchoringNum = ANCHORING_POLYMERISE;
         isFixed = true;
         setUsesSurfaceNormal(false);
     }
-    else if (atype.compare("manualnodes") == 0) {
-        Anchoring = atype;
+    else if (type.compare("manualnodes") == 0) {
+        Anchoring = type;
         AnchoringNum = ANCHORING_MANUAL_NODES;
         isFixed = true;
         setUsesSurfaceNormal(false);
@@ -100,7 +88,7 @@ void Surface::setK2(double k2){			K2 = k2;}
 
 
 //void Surface::setEasyAngles(double ttr[3]){		Easy[0] = ttr[0];	Easy[1] = ttr[1];	Easy[2] = ttr[2];}
-void Surface::setEasyAngles(std::vector<double> &e){
+void Surface::setEasyAngles(const std::vector<double> &e){
     /*!
      * set easy direction, tilt, twist & rotation
      */
@@ -194,6 +182,25 @@ void Alignment::addSurface(Surface* s){
     surface.push_back(s);
     n_surfaces++;
 }
+
+void Alignment::addSurface(const int fixLcNumber,
+                           const string &anchoring,
+                           const double &strength,
+                           const vector<double> &easy,
+                           const double &k1,
+                           const double &k2,
+                           const vector<double> &params) {
+
+    Surface *s = new Surface(fixLcNumber);
+    s->setAnchoringType(anchoring);
+    s->setStrength(strength);
+    s->setEasyAngles(easy);
+    s->setK1(k1);
+    s->setK2(k2);
+    s->Params = params;
+    this->addSurface(s);
+}
+
 
 
 int Alignment::getnSurfaces(){	return n_surfaces;}
