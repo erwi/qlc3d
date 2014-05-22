@@ -30,37 +30,23 @@ number, returning a copy*/
 
 void readLC(LC& lc,Reader& reader) {
     try {
-        if (reader.containsKey(SFK_K11))
-            lc.K11 = reader.get<double>();
-        if (reader.containsKey(SFK_K22))
-            lc.K22 = reader.get<double>();
-        if (reader.containsKey(SFK_K33))
-            lc.K33 = reader.get<double>();
-        if (reader.containsKey(SFK_p0))
-            lc.p0 = reader.get<double>();
-        if (reader.containsKey(SFK_A))
-            lc.A = reader.get<double>();
-        if (reader.containsKey(SFK_B))
-            lc.B = reader.get<double>();
-        if (reader.containsKey(SFK_C))
-            lc.C = reader.get<double>();
-        if (reader.containsKey(SFK_EPS_PAR))
-            lc.eps_par = reader.get<double>();
-        if (reader.containsKey(SFK_EPS_PER))
-            lc.eps_per = reader.get<double>();
-        if (reader.containsKey(SFK_E1))
-            lc.e11 = reader.get<double>();
-        if (reader.containsKey(SFK_E3))
-            lc.e33 = reader.get<double>();
-        if (reader.containsKey(SFK_GAMMA1))
-            lc.gamma1 = reader.get<double>();
-
+        lc.K11 = reader.get<double>(SFK_K11, LC::DEFAULT_K11);
+        lc.K22 = reader.get<double>(SFK_K22, LC::DEFAULT_K22);
+        lc.K33 = reader.get<double>(SFK_K33, LC::DEFAULT_K33);
+        lc.p0  = reader.get<double>(SFK_p0, LC::DEFAULT_P0);
+        lc.A = reader.get<double>(SFK_A, LC::DEFAULT_A);
+        lc.B = reader.get<double>(SFK_B, LC::DEFAULT_B);
+        lc.C = reader.get<double>(SFK_C, LC::DEFAULT_C);
+        lc.eps_par = reader.get<double>( SFK_EPS_PAR, LC::DEFAULT_EPS_PAR);
+        lc.eps_per = reader.get<double>(SFK_EPS_PER, LC::DEFAULT_EPS_PER);
+        lc.e11 = reader.get<double>(SFK_E1, LC::DEFAULT_E1);
+        lc.e33 = reader.get<double>(SFK_E3, LC::DEFAULT_E3);
+        lc.gamma1 = reader.get<double>(SFK_GAMMA1, LC::DEFAULT_GAMMA1);
         lc.convert_params_n2Q();
     } catch (ReaderError e) {
         e.printError();
         std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
     }
-
 }//end void readLC
 
 void readSimu(Simu &simu, Reader &reader) {
@@ -148,7 +134,7 @@ void readBoxes(Boxes &boxes, Reader& reader) {
             if (reader.containsKey(twistKey))
                 box->setTwist(reader.get<vector<double>>());
             boxes.addBox(box);
-       }
+        }
     } // end for boxNum
 }// end void readBoxes
 

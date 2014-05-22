@@ -5,24 +5,42 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <reader.h>
+
+
+// Define default material parameter values
+const double LC::DEFAULT_K11     = 10e-12;
+const double LC::DEFAULT_K22     = 10e-12;
+const double LC::DEFAULT_K33     = 10e-12;
+const double LC::DEFAULT_P0      = 0;
+const double LC::DEFAULT_EPS_PAR = 18.5;
+const double LC::DEFAULT_EPS_PER = 7.0;
+const double LC::DEFAULT_A       = -1.2e5;
+const double LC::DEFAULT_B       = -2.1333e6;
+const double LC::DEFAULT_C       = 1.7333e6;
+const double LC::DEFAULT_E1      = 0;
+const double LC::DEFAULT_E3      = 0;
+const double LC::DEFAULT_GAMMA1  = 0.0777;
+
+
+
 LC::LC() {
     // Load default parameter values by default
-    A = -1.2e5;
-    B = -2.1333e6;
-    C =  1.7333e6;
+    A = DEFAULT_A;
+    B = DEFAULT_B;
+    C = DEFAULT_C;
     // elastic coefficients
-    K11 = 10e-12;
-    K22 = 10e-12;
-    K33 = 10e-12;
-    p0 = 0.0;
+    K11 = DEFAULT_K11;
+    K22 = DEFAULT_K22;
+    K33 = DEFAULT_K33;
+    p0 = DEFAULT_P0;
     // permittivity
-    eps_par = 18.5;
-    eps_per = 7.0;
+    eps_par = DEFAULT_EPS_PAR;
+    eps_per = DEFAULT_EPS_PER;
     //flexoelectricity
-    e11 = 0;
-    e33 = 0;
+    e11 = DEFAULT_E1;
+    e33 = DEFAULT_E3;
     // rotational viscosity
-    gamma1 = 0.0777;
+    gamma1 = DEFAULT_GAMMA1;
     convert_params_n2Q(); // converts from "vector" to "tensor" parameter values
 }
 
