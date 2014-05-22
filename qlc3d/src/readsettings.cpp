@@ -10,6 +10,7 @@
 #include <globals.h>
 #include <reader.h>
 #include <settings_file_keys.h>
+#include <simu.h>
 using std::cerr;
 using std::endl;
 
@@ -55,54 +56,50 @@ void readSimu(Simu &simu, Reader &reader) {
         simu.MeshName = reader.getValueByKey<string>(SFK_MESH_NAME);
         std::string key;
         // Read optional string values
-        if (reader.containsKey(SFK_LOAD_Q))
-            simu.LoadQ = reader.get<string>();
-        if (reader.containsKey(SFK_SAVE_DIR))
-            simu.SaveDir = reader.get<string>();
-        if (reader.containsKey(SFK_Q_MATRIX_SOLVER))
-            simu.setQMatrixSolver(reader.get<string>());
+        simu.LoadQ = reader.get<string>(SFK_LOAD_Q,
+                                        Simu::DEFAULT_LOAD_Q);
+        simu.SaveDir = reader.get<string>(SFK_SAVE_DIR,
+                                          Simu::DEFAULT_SAVE_DIR);
+        simu.setQMatrixSolver(reader.get<string>(SFK_Q_MATRIX_SOLVER,
+                                                 Simu::DEFAULT_Q_MATRIX_SOLVER));
         // string arrays
-        if (reader.containsKey(SFK_SAVE_FORMAT))
-            simu.setSaveFormats(reader.get<vector<string> >());
-
+        simu.setSaveFormats(reader.get<vector<string> >(SFK_SAVE_FORMAT,
+                                                        Simu::DEFAULT_SAVE_FORMATS));
         // Read optional scalar values
-        if (reader.containsKey(SFK_END_VALUE))
-            simu.setEndValue(reader.get<double>());
-        if (reader.containsKey(SFK_DT))
-            simu.setdt(reader.get<double>());
-        if (reader.containsKey(SFK_TARGET_DQ))
-            simu.setTargetdQ(reader.get<double>());
-        if (reader.containsKey(SFK_MAX_DT))
-            simu.setMaxdt(reader.get<double>());
-        if (reader.containsKey(SFK_MAX_ERROR))
-            simu.setMaxError(reader.get<double>());
-
-        if (reader.containsKey(SFK_OUTPUT_ENERGY))
-            simu.setOutputEnergy(reader.get<int>());
-        if (reader.containsKey(SFK_OUTPUT_FORMAT))
-            simu.setOutputFormat(reader.get<int>());
-        if (reader.containsKey(SFK_SAVE_ITER))
-            simu.setSaveIter(reader.get<int>());
-        if (reader.containsKey(SFK_NUM_ASSEMBLY_THREADS))
-            simu.setAsseblyThreadCount(reader.get<unsigned int>());
-        if (reader.containsKey(SFK_NUM_MATRIX_SOLVER_THREADS))
-            simu.setMatrixSolverThreadCount(reader.get<unsigned int>());
-
+        simu.setEndValue(reader.get<double>(SFK_END_VALUE,
+                                            Simu::DEFAULT_END_VALUE));
+        simu.setdt(reader.get<double>(SFK_DT,
+                                      Simu::DEFAULT_DT));
+        simu.setTargetdQ(reader.get<double>(SFK_TARGET_DQ,
+                                            Simu::DEFAULT_TARGET_DQ));
+        simu.setMaxdt(reader.get<double>(SFK_MAX_DT,
+                                         Simu::DEFAULT_MAX_DT));
+        simu.setMaxError(reader.get<double>(SFK_MAX_ERROR,
+                                            Simu::DEFAULT_MAX_ERROR));
+        // int values
+        simu.setOutputEnergy(reader.get<int>(SFK_OUTPUT_ENERGY,
+                                             Simu::DEFAULT_OUTPUT_ENERGY));
+        simu.setOutputFormat(reader.get<int>(SFK_OUTPUT_FORMAT,
+                                             Simu::DEFAULT_OUTPUT_FORMAT));
+        simu.setSaveIter(reader.get<int>(SFK_SAVE_ITER,
+                                         Simu::DEFAULT_SAVE_ITER));
+        simu.setAsseblyThreadCount(reader.get<unsigned int>(SFK_NUM_ASSEMBLY_THREADS,
+                                                            Simu::DEFAULT_NUM_ASSEMBLY_THREADS));
+        simu.setMatrixSolverThreadCount(reader.get<unsigned int>(SFK_NUM_MATRIX_SOLVER_THREADS,
+                                                                 Simu::DEFAULT_NUM_MATRIX_SOLVER_THREADS));
         // Number arrays
-        if (reader.containsKey(SFK_STRETCH_VECTOR))
-            simu.setStretchVector(reader.get<vector<double> >());
-        if (reader.containsKey(SFK_DT_LIMITS))
-            simu.setdtLimits(reader.get<vector<double> > ());
-        if (reader.containsKey(SFK_DT_FUNCTION))
-            simu.setdtFunction(reader.get<vector<double> >());
-        if (reader.containsKey(SFK_REGULAR_GRID_SIZE))
-            simu.setRegularGridSize(reader.get<vector<idx> >());
+        simu.setStretchVector(reader.get<vector<double> >(SFK_STRETCH_VECTOR,
+                                                          Simu::DEFAULT_STRETCH_VECTOR));
+        simu.setdtLimits(reader.get<vector<double> > (SFK_DT_LIMITS,
+                                                      Simu::DEFAULT_DT_LIMITS));
+        simu.setdtFunction(reader.get<vector<double> >(SFK_DT_FUNCTION,
+                                                       Simu::DEFAULT_DT_FUNCTION));
+        simu.setRegularGridSize(reader.get<vector<idx> >(SFK_REGULAR_GRID_SIZE,
+                                                         Simu::DEFAULT_REGULAR_GRID_SIZE));
     } catch (ReaderError e) {
         e.printError();
     }
 }//end void readSimu
-
-
 
 void readBoxes(Boxes &boxes, Reader& reader) {
     using std::string;

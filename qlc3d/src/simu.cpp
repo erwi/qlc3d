@@ -5,20 +5,40 @@
 #include <reader.h>
 #include <globals.h>
 #include <settings_file_keys.h>
+
+// Define values of default Simu parameters
+const string Simu::DEFAULT_LOAD_Q = "";
+const string Simu::DEFAULT_SAVE_DIR = "res";
+const string Simu::DEFAULT_Q_MATRIX_SOLVER = "Auto";
+const vector<string> Simu::DEFAULT_SAVE_FORMATS = {"LCView"};
+const double Simu::DEFAULT_END_VALUE = 1e-3;
+const double Simu::DEFAULT_DT = 1e-9;
+const double Simu::DEFAULT_TARGET_DQ = 1e-3;
+const double Simu::DEFAULT_MAX_DT = 1e-4;
+const double Simu::DEFAULT_MAX_ERROR = 1e-7;
+const vector<double> Simu::DEFAULT_STRETCH_VECTOR = {1,1,1};
+const vector<double> Simu::DEFAULT_DT_LIMITS = {Simu::DEFAULT_DT, Simu::DEFAULT_MAX_DT};
+const vector<double> Simu::DEFAULT_DT_FUNCTION = {0.5, 0.8, 1.2, 10};
+const vector<idx> Simu::DEFAULT_REGULAR_GRID_SIZE = {0,0,0};
+const int Simu::DEFAULT_OUTPUT_ENERGY = 0;
+const int Simu::DEFAULT_OUTPUT_FORMAT = SIMU_OUTPUT_FORMAT_BINARY; // TODO: Get rid of this
+const int Simu::DEFAULT_SAVE_ITER = 1;
+const int Simu::DEFAULT_NUM_ASSEMBLY_THREADS = 0;
+const int Simu::DEFAULT_NUM_MATRIX_SOLVER_THREADS = 0;
 Simu::Simu():
     PotCons(Off),
     TargetPotCons(1e-3),
-    MaxError(1e-7),
+    MaxError(DEFAULT_MAX_ERROR),
     CurrentTime(0),
     CurrentChange(0),
-    TargetdQ(1e-3),
-    Maxdt(1e-4),
+    TargetdQ(DEFAULT_TARGET_DQ),
+    Maxdt(DEFAULT_MAX_DT),
     EndCriterion(Time),
-    LoadQ(""),
+    LoadQ(DEFAULT_LOAD_Q),
     CurrentDir(""),
-    SaveDir("res"),
+    SaveDir(DEFAULT_SAVE_DIR),
     LoadDir(""),
-    EndValue(1e-3),
+    EndValue(DEFAULT_END_VALUE),
     EndValue_orig(0),
     CurrentIteration(0),
 
@@ -32,19 +52,17 @@ Simu::Simu():
     numAsseblyThreads(0),       // 0 MEANS USE ALL AVAILABLE, AND IS DEFAULT
     numMatrixSolverThreads(0),
     MeshName(""),
-    dt(1e-9) {
-    dtLimits[0]         = 1e-9;
-    dtLimits[1]         = 1e-3;
-    dtFunction[0]       = 0.5;  // value of R where S = 0
-    dtFunction[1]       = 0.8; // S = R (min)
-    dtFunction[2]       = 1.2; // S = R (max)
-    dtFunction[3]       = 10.0;  // S = 2
+    dt(DEFAULT_DT) {
+    // TODO: make dtLimits a std::vector
+    std::copy(DEFAULT_DT_LIMITS.begin(), DEFAULT_DT_LIMITS.end(), dtLimits);
+    // TODO: make dtFunction a std::vector;
+    std::copy(DEFAULT_DT_FUNCTION.begin(), DEFAULT_DT_FUNCTION.end(), dtFunction);
+    // TODO make StretchVector a std::vector
+    std::copy(DEFAULT_STRETCH_VECTOR.begin(), DEFAULT_STRETCH_VECTOR.end(), StretchVector);
+    // TODO : make RegularGridSize a std::vector
+    std::copy(DEFAULT_REGULAR_GRID_SIZE.begin(), DEFAULT_REGULAR_GRID_SIZE.end(), RegularGridSize);
     restrictedTimeStep     = false;
-    StretchVector[0]    = 1.0;  StretchVector[1]    = 1.0;  StretchVector[2]    = 1.0;
-    EnergyRegion [0]    = 0.0;  EnergyRegion [1]    = 0.0;  EnergyRegion [2]    = 0.0;
     OutputFormat        = SIMU_OUTPUT_FORMAT_BINARY;
-    RegularGridSize[0] = 0; RegularGridSize[1] = 0; RegularGridSize[2] = 0;
-    // SET THREAD COUNTS TO MAXIMUM DETECTED BY OPENMP
 #ifndef DEBUG
     numAsseblyThreads = omp_get_max_threads();
     numMatrixSolverThreads = omp_get_max_threads();
@@ -53,14 +71,6 @@ Simu::Simu():
     // IN THE PROGRAM, DEPENDING ON THE PROPERTIES OF THE MATRIX
     // OR AS SPECIFIED IN THE SETTINGS FILE
     QMatrixSolver = Auto;
-    //std::vector<int> temp;
-    //temp.push_back(Simu::None);
-    //temp.push_back(Simu::LCview);
-    //temp.push_back(Simu::RegularVTK);
-    //temp.push_back(Simu::RegularVecMat);
-    //temp.push_back(Simu::DirStackZ);
-    //temp.push_back(Simu::LCviewTXT);
-    //validSaveFormatStrings.setIntValues(temp);
 }
 void Simu::PrintSimu() {}
 
