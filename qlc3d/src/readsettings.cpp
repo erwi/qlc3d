@@ -89,17 +89,16 @@ void readBoxes(Boxes &boxes, Reader& reader) {
     // Loop over all possible boxes ad try to read
     for (int boxNum = 1; boxNum < MAX_NUM_BOXES; boxNum++) {
         string typeKey = wildcardToNum(SFK_BOX_TYPE, boxNum);
-
         if (reader.containsKey(typeKey)) {
-
+            // found box with current number
+            // Make keys for current box number
             string paramsKey = wildcardToNum(SFK_BOX_PARAMS, boxNum);
             string xKey = wildcardToNum(SFK_BOX_X, boxNum);
             string yKey = wildcardToNum(SFK_BOX_Y, boxNum);
             string zKey = wildcardToNum(SFK_BOX_Z, boxNum);
             string tiltKey = wildcardToNum(SFK_BOX_TILT, boxNum);
             string twistKey = wildcardToNum(SFK_BOX_TWIST, boxNum);
-
-
+            // add box
             boxes.addBox(boxNum,
                          reader.get<string>(typeKey, Box::DEFAULT_TYPE),
                          reader.get<vector<double>>(paramsKey, Box::DEFAULT_PARAMS),
