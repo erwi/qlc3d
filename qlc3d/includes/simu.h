@@ -24,7 +24,7 @@ class Simu
 {
     friend void readSimu(Simu& , Reader&);
 public:
-    // SAVE FORMATS OPTIONS BITFIELDS - MUST BE POWERS OF 2!!!
+    // SAVE FORMATS OPTIONS BITFIELDS - MUST BE POWERS OF 2 AS WILL BE USED AS BITFIELDS!!!
     // REMEMBER TO ADD to "validSaveFormatStrings" IN CONSTRUCTOR
     // IF/WHEN ADDING NEW SAVE FORMATS!
     enum SaveFormats {None          = 0,
@@ -45,10 +45,14 @@ public:
                           GMRES = 2};
     //
     // Declare default values for parameters in Simu
+    const static vector<string> VALID_END_CRITERIA;
+    const static vector<string> VALID_SAVE_FORMATS;
+    const static vector<string> VALID_Q_MATRIX_SOLVERS;
     const static string DEFAULT_LOAD_Q;
     const static string DEFAULT_SAVE_DIR;
     const static string DEFAULT_Q_MATRIX_SOLVER;
     const static vector<string> DEFAULT_SAVE_FORMATS;
+    const static string DEFAULT_END_CRITERION;
     const static double DEFAULT_END_VALUE;
     const static double DEFAULT_DT;
     const static double DEFAULT_TARGET_DQ;

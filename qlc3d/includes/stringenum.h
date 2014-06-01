@@ -15,91 +15,73 @@ class StringEnum{
       possible values.
       */
     std::string key;
-    std::list< std::string> values;
-    std::vector<int> int_values;
-    bool parseValues(const std::string &values_in){
-        // BREAKS UP COMMA SEPARATED STRINGS LIST
-        std::string line = values_in; // working copy
-        while (line.size() ){
-            for (idx i = 0 ; i < line.size() ; i++){
-                char ch = line.at(i);
-                if (ch == ','){
-                    std::string subs = line.substr(0,i);
-                    line.erase(0,i+1);
-                    values.push_back(subs);
-                    break;
-                }
+    std::vector<std::string> values;
+    std::vector<int> enumValues;   // enum values can be signed/unsigned
 
-                if ((ch == '\0') || (i == line.size()-1)){
-                    std::string subs = line.substr(0,i+1);
-                    values.push_back(subs);
-                    line.erase(0,i+1); // REMOVE JUST ADDED SUBSTRING
-                    break;
-                }
-            }
-        }
-        return true;
-    }
     StringEnum(){}
 public:
 
-    StringEnum(const char *key_in, const char *val_in, const int* iVals = NULL){
-        // CONSTRUCTOR WITH DEFAULT INTEGER VALUE LIST
-        // val_in MUST BE A COMMA DELIMITED LIST OF STRINGS WITH NO SPACES
-        // iVals MUST BE EITHER NULL OR POINTER TO INTEGER ARRAY OF SAME LENGTH AS val_in
-        key = key_in;
-        parseValues(val_in);
-        // IF DEFAULT, NO VARIABLE ARGUMENTS
-
-        for (int i = 0 ; i < (int) this->values.size() ; i++){
-            if (iVals==NULL){// IFF NULL, USE DEFAULTS
-                int_values.push_back(i);
-            }
-            else {
-                int_values.push_back(iVals[i]);
-            }
-        }
+    StringEnum(const std::string &key, const std::vector<std::string>& validStrings) {
+        /*!
+         * key is key name in settings file, used in preinting error message.
+         * validStrings is array of valid string values
+         * The values of the unum are assumed to be consecutive and starting at 0.
+         */
+        this->key = key;
+        this->values = validStrings;
+        // populate with consecutive values for enum
+        for (int i = 0; i < (int) validStrings.size(); i++)
+            enumValues.push_back(i);
     }
+
+    StringEnum(const std::string &key,
+               const std::vector<std::string>& validStrings,
+               const std::vector<int>& enumValues) {
+        /*!
+         * key is key name in settings file, used in preinting error message.
+         * validStrings is array of valid string values.
+         * enum_values are enum values, useful in cases when not consecutive
+         */
+        // make sure enum names size matches number of custom enum numerical
+        // values.
+        if (validStrings.size() != enumValues.size()) {
+            std::cerr << "error in " << __PRETTY_FUNCTION__ << std::endl;
+        }
+
+        this->key = key;
+        this->values = validStrings;
+        this->enumValues = enumValues;
+    }
+
+
     EnumType getEnumValue(const std::string &sval) const {
-        // LOOP OVER EACH STRING VALUE AND COMPARE WITH VALID ONES
-        // RETURNS NUMBER ENUMERATOR WHEN VALID STRING IS FOUND
-        // OTHERWISE THROWS EXCEPTION
+   /*! Returns enum that corresponds to input string. If
+    *  input string is not valid, an exception is thrown instead
+    */
+        //Make a working copy of input and make it all lower case
         std::string tval = sval; // working copy
         std::transform(tval.begin(), tval.end(), tval.begin(), ::tolower);
-
-        std::list<std::string> ::const_iterator itr = values.begin();
-        for (int retVal = 0; itr != values.end() ; itr++, retVal++){
-            std::string tval2 = *itr;
-            std::transform(tval2.begin(), tval2.end(),tval2.begin(), ::tolower);
-
-            if (tval2.compare(tval) == 0 ){
-                 return  ( static_cast<EnumType> (int_values[retVal]) );
+        // loop over all valid strings
+        size_t enum_index = 0;
+        for ( ; enum_index < values.size(); enum_index++){
+            std::string valid_value = values[enum_index];
+            std::transform(valid_value.begin(), valid_value.end(),valid_value.begin(), ::tolower);
+            // If input value is valid, can cast index to enum and return early
+            if (valid_value.compare(tval) == 0 ) {
+                return  static_cast<EnumType> (enumValues[enum_index]);
             }
         }
+        // input string did not belong to set of valid strings
         throw std::exception();
     }
-    bool containsKey(const std::string &sval) const {
-        std::string tval = sval; // working copy
-        std::transform(tval.begin(), tval.end(), tval.begin(), ::tolower);
-        std::list<std::string>::const_iterator itr = values.begin();
-        for( ; itr != values.end() ; itr++){
-            std::string tval2 = *itr;
-            std::transform(tval2.begin(), tval2.end() , tval2.begin(), ::tolower);
-            if (tval2.compare(tval) == 0)
-                return true;
-        }
-        return false; // IF NOT FOUND
-    }
-    void printErrorMessage(const std::string &s_in)const{
-        std::cout << "Error specifying value for key : \"" << this->key <<"\""<< std::endl;
-        std::cout << "Valid options are: " << std::endl;
-        std::list<std::string> ::const_iterator itr = values.begin();
-        for (; itr!=values.end() ; itr++){
-            std::cout <<"\t"<< *itr << std::endl;
-        }
-        std::cout << "Found \"" << s_in << "\" instead. Bye!" << std::endl;
-    }
 
+    void printErrorMessage(const std::string &s_in) const {
+        std::cerr << "Error specifying value for key : \"" << this->key <<"\""<< std::endl;
+        std::cerr << "Valid options are: " << std::endl;
+        for (auto &v : values)
+            std::cerr << "\t" << v << std::endl;
+        std::cerr << "Found \"" << s_in << "\" instead. Bye!" << std::endl;
+    }
 };
 
 #endif

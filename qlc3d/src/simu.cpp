@@ -6,11 +6,16 @@
 #include <globals.h>
 #include <settings_file_keys.h>
 
+// Define valid enum string keys
+const vector<string> Simu::VALID_END_CRITERIA = {"Iterations", "Time", "Change"};
+const vector<string> Simu::VALID_SAVE_FORMATS = {"None","LCView","RegularVTK","RegularVecMat","DirStackZ","LCviewTXT"};
+const vector<string> Simu::VALID_Q_MATRIX_SOLVERS = {"Auto", "PCG", "GMRES"};
 // Define values of default Simu parameters
 const string Simu::DEFAULT_LOAD_Q = "";
 const string Simu::DEFAULT_SAVE_DIR = "res";
 const string Simu::DEFAULT_Q_MATRIX_SOLVER = "Auto";
 const vector<string> Simu::DEFAULT_SAVE_FORMATS = {"LCView"};
+const string Simu::DEFAULT_END_CRITERION = Simu::VALID_END_CRITERIA[1]; // "Time"
 const double Simu::DEFAULT_END_VALUE = 1e-3;
 const double Simu::DEFAULT_DT = 1e-9;
 const double Simu::DEFAULT_TARGET_DQ = 1e-3;
@@ -157,7 +162,8 @@ void Simu::setMaxdt(double maxdt)   {
     Maxdt = maxdt;
 }
 void Simu::setEndCriterion(string ec) {
-    StringEnum<Simu::EndCriteria> validator("EndCriterion", "Iterations,Time,Change");
+    //StringEnum<Simu::EndCriteria> validator("EndCriterion", "Iterations,Time,Change");
+    StringEnum<Simu::EndCriteria> validator( SFK_END_CRITERION, Simu::VALID_END_CRITERIA);
     try {
         EndCriterion = validator.getEnumValue(ec);
     } catch (...) {
@@ -236,7 +242,7 @@ void Simu::setMatrixSolverThreadCount(unsigned int numT) {
 }
 
 void Simu::setQMatrixSolver(const string &solver) {
-    StringEnum<Simu::QMatrixSolvers> validator("QMatrixSolver", "Auto,PCG,GMRES");
+    StringEnum<Simu::QMatrixSolvers> validator(SFK_Q_MATRIX_SOLVER, Simu::VALID_Q_MATRIX_SOLVERS);
     try {
         QMatrixSolver = validator.getEnumValue(solver);
     } catch (...) {
@@ -302,10 +308,10 @@ bool Simu::IsRunning()const {
 
 void Simu::addSaveFormat(std::string format) {
     /*! Add output file firmat to write*/
-    int SaveFormatValues[6] = {None, LCview, RegularVTK, RegularVecMat, DirStackZ, LCviewTXT};
-    StringEnum<Simu::SaveFormats> validator("SaveFormat",
-                                            "None,LCView,RegularVTK,RegularVecMat,DirStackZ,LCviewTXT",
-                                            SaveFormatValues);
+    StringEnum<Simu::SaveFormats> validator(SFK_SAVE_FORMAT,
+                                            Simu::VALID_SAVE_FORMATS,
+                                            {None, LCview, RegularVTK, RegularVecMat,
+                                             DirStackZ, LCviewTXT});
     try {
         SaveFormat = SaveFormat | validator.getEnumValue(format);
         std::cout << "added SaveFormat : " << format << std::endl;

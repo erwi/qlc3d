@@ -59,6 +59,7 @@ void readSimu(Simu &simu, Reader &reader) {
         simu.LoadQ = reader.get<string>(SFK_LOAD_Q, Simu::DEFAULT_LOAD_Q);
         simu.SaveDir = reader.get<string>(SFK_SAVE_DIR, Simu::DEFAULT_SAVE_DIR);
         simu.setQMatrixSolver(reader.get<string>(SFK_Q_MATRIX_SOLVER, Simu::DEFAULT_Q_MATRIX_SOLVER));
+        simu.setEndCriterion(reader.get<string>(SFK_END_CRITERION, Simu::DEFAULT_END_CRITERION));
         // string arrays
         simu.setSaveFormats(reader.get<vector<string> >(SFK_SAVE_FORMAT, Simu::DEFAULT_SAVE_FORMATS));
         // Read optional scalar values

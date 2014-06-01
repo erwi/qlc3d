@@ -14,6 +14,7 @@ const string SFK_LOAD_Q    = "LoadQ";
 const string SFK_SAVE_DIR  = "SaveDir";
 const string SFK_Q_MATRIX_SOLVER = "QMatrixSolver";
 const string SFK_SAVE_FORMAT = "SaveFormat";
+const string SFK_END_CRITERION = "EndCriterion";
 const string SFK_END_VALUE = "EndValue";
 const string SFK_DT = "dt";
 const string SFK_TARGET_DQ = "TargetdQ";
