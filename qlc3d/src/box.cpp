@@ -5,7 +5,8 @@
 #include <string>
 #include <reader.h>
 #include <vector>
-
+#include <stringenum.h>
+#include <settings_file_keys.h>
 const std::vector<std::string> Box::VALID_TYPES = {"Normal", "Random", "Hedgehog"};
 const std::string Box::DEFAULT_TYPE = Box::VALID_TYPES[0];
 const std::vector<double> Box::DEFAULT_PARAMS = {};
@@ -90,27 +91,15 @@ bool Box::isInBox(double *coords) {
 
 void Box::setBoxType(const std::string &bt) {
 /*!Sets the current box type from type name string.*/
-    // Convert input to all lower case
-    std::string type_in = bt;
-    std::transform(type_in.begin(), type_in.end(), type_in.begin(), tolower);
-    // Iterate over all valid type names comparing to input name
-    size_t i = 0;
-    for (; i < Box::VALID_TYPES.size(); i++) {
-        std::string vtype = Box::VALID_TYPES[i];
-        std::transform(vtype.begin(), vtype.end(), vtype.begin(), tolower);
-        if (vtype.compare(type_in) == 0)
-            break;
-    }
-    // If found a valid type
-    if (i != BoxTypes::InvalidType) {
-        this->TypeString = Box::VALID_TYPES[i];
-        this->Type = static_cast<BoxTypes>(i);
-    } else { // Print error
-        std::cerr << "error setting box type as : " << bt <<"\nvalid types are :" << std::endl;
-        for (auto types : Box::VALID_TYPES) {
-            std::cerr << types << std::endl;
-        }
-        exit(1);
+
+    std::string typeKey = wildcardToNum(SFK_BOX_TYPE, this->BoxNumber);
+    StringEnum<Box::BoxTypes> validator(typeKey, Box::VALID_TYPES);
+    try {
+        this->Type = validator.getEnumValue(bt);
+        this->TypeString = Box::VALID_TYPES[this->Type];
+    } catch (...) {
+        validator.printErrorMessage(bt);
+        std::exit(1);
     }
 }
 //===================================================================

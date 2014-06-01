@@ -14,19 +14,7 @@
 using std::cerr;
 using std::endl;
 
-std::string wildcardToNum(const std::string& base, int num) {
-    /*!Replaces wildcard character in input string with input
-number, returning a copy*/
-    size_t idx = base.find_first_of(SFK_WILDCARD);
-    if (idx == std::string::npos) {
-        cerr << "error in " << __PRETTY_FUNCTION__ << endl;
-        std::exit(1);
-    }
-    std::string newStr = base.substr(0,idx);
-    newStr+= std::to_string(num);
-    newStr+= base.substr(idx+1 , std::string::npos);
-    return newStr;
-}
+
 
 
 void readLC(LC& lc,Reader& reader) {

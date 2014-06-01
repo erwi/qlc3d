@@ -18,7 +18,7 @@ class StringEnum{
     std::vector<std::string> values;
     std::vector<int> enumValues;   // enum values can be signed/unsigned
 
-    StringEnum(){}
+    StringEnum() = delete;
 public:
 
     StringEnum(const std::string &key, const std::vector<std::string>& validStrings) {
