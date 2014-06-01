@@ -91,28 +91,23 @@ void readBoxes(Boxes &boxes, Reader& reader) {
         string typeKey = wildcardToNum(SFK_BOX_TYPE, boxNum);
 
         if (reader.containsKey(typeKey)) {
-            Box *box = new Box(boxNum);
-            box->setBoxType(reader.get<std::string>());
-            //
+
             string paramsKey = wildcardToNum(SFK_BOX_PARAMS, boxNum);
             string xKey = wildcardToNum(SFK_BOX_X, boxNum);
             string yKey = wildcardToNum(SFK_BOX_Y, boxNum);
             string zKey = wildcardToNum(SFK_BOX_Z, boxNum);
             string tiltKey = wildcardToNum(SFK_BOX_TILT, boxNum);
             string twistKey = wildcardToNum(SFK_BOX_TWIST, boxNum);
-            if (reader.containsKey(paramsKey))
-                box->Params = reader.get<vector<double>>();
-            if (reader.containsKey(xKey))
-                box->setX(reader.get<vector<double>>());
-            if (reader.containsKey(yKey))
-                box->setY(reader.get<vector<double>>());
-            if (reader.containsKey(zKey))
-                box->setZ(reader.get<vector<double>>());
-            if (reader.containsKey(tiltKey))
-                box->setTilt(reader.get<vector<double>>());
-            if (reader.containsKey(twistKey))
-                box->setTwist(reader.get<vector<double>>());
-            boxes.addBox(box);
+
+
+            boxes.addBox(boxNum,
+                         reader.get<string>(typeKey, Box::DEFAULT_TYPE),
+                         reader.get<vector<double>>(paramsKey, Box::DEFAULT_PARAMS),
+                         reader.get<vector<double>>(xKey, Box::DEFAULT_X_Y_Z),
+                         reader.get<vector<double>>(yKey, Box::DEFAULT_X_Y_Z),
+                         reader.get<vector<double>>(zKey, Box::DEFAULT_X_Y_Z),
+                         reader.get<vector<double>>(tiltKey, Box::DEFAULT_TILT_TWIST),
+                         reader.get<vector<double>>(twistKey, Box::DEFAULT_TILT_TWIST));
         }
     } // end for boxNum
 }// end void readBoxes

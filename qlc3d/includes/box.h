@@ -4,11 +4,18 @@
 #include <string>
 #include <vector>
 #include <stdio.h>
+
 class Box {
 /*!The Box class is used when defining initial LC orientations. It
 represents a cuboidal sub region within the modelled volume, where
 the LC orientation properties are set prior to starting the simulation proper.*/
 public:
+    // Declare default box types
+    const static std::string DEFAULT_TYPE;
+    const static std::vector<double> DEFAULT_PARAMS;
+    const static std::vector<double> DEFAULT_X_Y_Z;      // default is same in all dimensions
+    const static std::vector<double> DEFAULT_TILT_TWIST; // same defaults bot tilt and twist
+
     enum BoxTypes {Normal, Random, Hedgehog};
     BoxTypes Type;
     std::string TypeString;
@@ -38,5 +45,15 @@ public:
     Boxes();
     ~Boxes();
     void addBox(Box *b);
+    void addBox(const int &boxNum,
+                const std::string &boxType,
+                const std::vector<double> &params,
+                const std::vector<double> &x,
+                const std::vector<double> &y,
+                const std::vector<double> &z,
+                const std::vector<double> &tilt,
+                const std::vector<double> &twist);
+
+
 };
 #endif

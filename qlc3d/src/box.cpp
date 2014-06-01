@@ -5,17 +5,23 @@
 #include <reader.h>
 #include <vector>
 
+const std::string Box::DEFAULT_TYPE = "Normal";
+const std::vector<double> Box::DEFAULT_PARAMS = {};
+const std::vector<double> Box::DEFAULT_X_Y_Z = {0,0};
+const std::vector<double> Box::DEFAULT_TILT_TWIST = {0,0};
+
 using std::vector;
 using std::cerr;
 Box::Box(int boxnum) {
-    Type = Normal;
+    //Type = Normal;
+    setBoxType(Box::DEFAULT_TYPE);
     BoxNumber = boxnum;
-    Params = {0};
-    X = {0,0};
-    Y = {0,0};
-    Z = {0,0};
-    Tilt = {0,0};
-    Twist = {0,0};
+    Params = Box::DEFAULT_PARAMS;
+    X = Box::DEFAULT_X_Y_Z;
+    Y = Box::DEFAULT_X_Y_Z;
+    Z = Box::DEFAULT_X_Y_Z;;
+    Tilt = Box::DEFAULT_TILT_TWIST;
+    Twist = Box::DEFAULT_TILT_TWIST;
 }
 
 void Box::setX(std:: vector<double> x) {
@@ -112,6 +118,22 @@ void Boxes::addBox(Box *b) {
     n_Boxes ++;
 }
 
-
+void Boxes::addBox(const int &boxNum,
+                   const std::string &boxType,
+                   const std::vector<double> &params,
+                   const std::vector<double> &x,
+                   const std::vector<double> &y,
+                   const std::vector<double> &z,
+                   const std::vector<double> &tilt,
+                   const std::vector<double> &twist) {
+    Box *b = new Box(boxNum);
+    b->Params = params;
+    b->setX(x);
+    b->setY(y);
+    b->setZ(z);
+    b->setTilt(tilt);
+    b->setTwist(twist);
+    this->addBox(b);
+}
 
 
