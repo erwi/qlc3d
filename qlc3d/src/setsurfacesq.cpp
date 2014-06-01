@@ -76,11 +76,11 @@ void setFrozenSurfaces(SolutionVector* q, vector<idx>* ind_nodes){
 }
 
 void setPolymeriseSurfaces(SolutionVector*q, double Sth){
-// FIXES Q-TENSOR ON ALL NODES WHERE ORDER PARAMETER IS BELOW DEFINED VALUE Sth
-// NOTHING NEEDS TO BE DONE HERE. SEE SolutionVector::setFixedNodesQ WHERE NODES
-// ARE SELECTED
-   q=q;         // SUPPRESS WARNINGS
-   Sth = Sth;
+    // FIXES Q-TENSOR ON ALL NODES WHERE ORDER PARAMETER IS BELOW DEFINED VALUE Sth
+    // NOTHING NEEDS TO BE DONE HERE. SEE SolutionVector::setFixedNodesQ WHERE NODES
+    // ARE SELECTED
+    q=q;         // SUPPRESS WARNINGS
+    Sth = Sth;
 
 }
 
@@ -98,22 +98,19 @@ void setStrongSurfacesQ(SolutionVector *q,
         //geom->e->listNodesOfMaterial( ind_nodes, (i+1)*MAT_FIXLC1 );
         geom->e->listFixLCSurfaces(ind_nodes, i+1);
 
-        if ( !ind_nodes.empty() ){ // if nodes found
-            string AnchoringType = alignment->surface[i]->getAnchoringType();
-
-            if ( (AnchoringType.compare("Strong") == 0) ){
+        if ( !ind_nodes.empty() ) { // if nodes found
+            // get type of current surface
+            AnchoringType aType = alignment->surface[i]->getAnchoringType();
+            // depending on type, do different things...
+            if (aType == Strong) {
                 double tilt = alignment->surface[i]->getEasyTilt();
                 double twist= alignment->surface[i]->getEasyTwist();
                 setGlobalAngles(q,lc,tilt,twist,&ind_nodes);
             }
-
-            // homeotropic anchoring counts as strong for now...
-            else if ( (AnchoringType.compare("Homeotropic")==0)  ){
+            else if (aType == Homeotropic) {
                 setHomeotropic(q,lc,&ind_nodes,geom);
             }
-            // frozen surfaces are also strong
-            else if ( AnchoringType.compare("Freeze") == 0 )
-            {
+            else if (aType == Freeze) {
                 setFrozenSurfaces(q, &ind_nodes);
             }
         }// end if alignment nodes found
@@ -123,7 +120,7 @@ void setStrongSurfacesQ(SolutionVector *q,
 
 
 void setManualNodesAnchoring(SolutionVector *q, LC* lc, Surface& surf){
-/*!
+    /*!
   fixes maually defined nodes to tilt/twist values
   */
 
@@ -150,12 +147,13 @@ void setSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* ge
     
     // loop over all surfaces loaded from settings file
     for (int i = 0 ; i < alignment->getnSurfaces() ; i++ ){
+        const Surface &surf = alignment->getSurface(i);
+
         ind_nodes.clear();
         geom->e->listFixLCSurfaces(ind_nodes, i+1);
         // MANUAL NODES HAVE NO SURFACE TRIANGLES IN MESH AND MUST BE HANDLED SEPARATELY
-        if ( alignment->getAnchoringNum(i) == ANCHORING_MANUAL_NODES ){
+        if (surf.getAnchoringType() == ManualNodes) {
             cout << "FIXLC"<<i+1 << " is MANUAL NODES ANCHIORING" << endl;
-
             // MANUAL NODES SHOULD NOT DE DEFINED FOR A FIXLC# THAT IS PRESENT IN THE MESH
             if (!ind_nodes.empty()){
                 cerr << "error setting ManualNodes for FIXLC"<<i+1 << endl;
@@ -166,49 +164,42 @@ void setSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* ge
             setManualNodesAnchoring(q, lc, *(alignment->surface[i]));
             continue;
         }
-
-
+        //
         // creates index of all nodes of this alignment surface type
-        // 08/02/12 geom->e->FindIndexToMaterialNodes((i+1)*MAT_FIXLC1, &ind_nodes);
-        //geom->e->listNodesOfMaterial( ind_nodes , (i+1)*MAT_FIXLC1 );
+        if ( !ind_nodes.empty() ) { // if nodes found
 
+            AnchoringType aType = surf.getAnchoringType();
+            double strength = surf.getStrength();
 
-        if ( !ind_nodes.empty() ){ // if nodes found
-
-            string AnchoringType = alignment->surface[i]->getAnchoringType();
-            //unsigned int AnchoringNum = alignment->surface[i]->getAnchoringNum(); // <--- SHOULD USE THIS
-            if ((AnchoringType.compare("strong") == 0) ||
-                    (AnchoringType.compare("weak") == 0)||
-					(AnchoringType.compare("degenerate") == 0 ) ){
+            if ((aType == Strong) ||
+                (aType == Weak) ||
+                (aType == Degenerate)) {
                 double tilt = alignment->surface[i]->getEasyTilt();
                 double twist= alignment->surface[i]->getEasyTwist();
                 setGlobalAngles(q,lc,tilt,twist,&ind_nodes);
             }
-
             // if homeotropic OR degenerate with negative strength
-            else if ( (AnchoringType.compare("homeotropic")==0)  ||
-                      (AnchoringType.compare("degenerate") ==0 &&(alignment->surface[i]->getStrength() < 0) ) ){
+            else if ((aType == Homeotropic) ||
+                     ((aType == Degenerate) && (strength < 0))) {
                 setHomeotropic(q,lc,&ind_nodes,geom);
             }
-            else if ( AnchoringType.compare("freeze") == 0 ) {
+            else if (aType == Freeze) {
                 setFrozenSurfaces(q, &ind_nodes);
             }
-            else if ( AnchoringType.compare("polymerise") ==0 ){ // FREEZES ALL NODES WHOSE ORDER IS BELOW VALUE DEFINED IN STRENGTH
+            else if ( aType == Polymerise) { // FREEZES ALL NODES WHOSE ORDER IS BELOW VALUE DEFINED IN STRENGTH
                 double Sth = alignment->surface[i]->getStrength();
                 setPolymeriseSurfaces(q,Sth);
             }
-			else{
-				std::cout << "error in " <<__func__<< " unknonwn anchoring type: " << AnchoringType << std::endl;
-				exit(1);
-			}
-			
-        }// end if alignment nodes found
-		else{
-			std::cout << "error in " <<__func__<< " no surfaces of material : " << (i+1)*MAT_FIXLC1 << " found."<<std::endl;
-			exit(1);
-		}
-		
-    }// end for loop over alignment surfaces
+            else {
+                std::cerr << "error in " <<__func__<< " unhandled anchoring type: " << surf.getAnchoringTypeName() << std::endl;
+                std::exit(1);
+            }
+        } else {
+            std::cerr << "error in " <<__func__<< " no surfaces of material : " << (i+1)*MAT_FIXLC1 << " found."<<std::endl;
+            std::exit(1);
+    }
+
+}// end for loop over alignment surfaces
 
 
 }

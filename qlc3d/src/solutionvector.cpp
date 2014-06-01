@@ -202,17 +202,17 @@ void SolutionVector::setFixedNodesQ(Alignment *alignment, Mesh *e) {
     // 1. First get index to all strong anchoring nodes
     vector <idx> ind_to_nodes;
     for (int i = 0 ; i < alignment->getnSurfaces() ; i ++) {
-        if (alignment->IsStrong(i)) {
+        auto surf = alignment->getSurface(i); // ref to i'th surface
+
+        if (surf.isStrong()) {
             printf("FIXLC%i is strong\n", i + 1);
             vector <idx> temp_index;
             // IN CASE OF MANUAL NODES ANCHORING, THE NODE INDEXES ARE
             // ALREADY KNOWN AND LISTED IN THE Surface.Params VECTROR
-            if (alignment->getAnchoringNum(i) == ANCHORING_MANUAL_NODES) {
-                Surface *s = alignment->surface[i];
-                // CONVERT PARAMS (double) TO INDEXES
-                for (size_t i = 0 ; i < s->Params.size() ; i++) {
-                    temp_index.push_back(static_cast<idx>(s->Params[i]));
-                }
+            if (surf.getAnchoringType() == ManualNodes) {
+                // Cast params vector <double> to indices
+                for (size_t i = 0 ; i < surf.Params.size() ; i++)
+                    temp_index.push_back(static_cast<idx>(surf.Params[i]));
             }
             // HACK TO FIX POLYMERISED NODES
             /*
@@ -252,7 +252,7 @@ void SolutionVector::setFixedNodesQ(Alignment *alignment, Mesh *e) {
             }
             ind_to_nodes.insert(ind_to_nodes.end(), temp_index.begin(), temp_index.end());
         } else {
-            printf("FIXLC%i is not strong, it is %s\n", i + 1, alignment->surface[i]->getAnchoringType().c_str());
+            printf("FIXLC%i is not strong, it is %s\n", i + 1, alignment->surface[i]->getAnchoringTypeName().c_str());
         }
     }// end for i
     // INDEX TO FIXED NODES MAY CONTAIN DUPLICATED ENTRIES, IF TWO FIXED

@@ -6,19 +6,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <globals.h>
 
-//using namespace std;
 
-#define ANCHORING_STRONG    1
-#define ANCHORING_WEAK      2
-#define ANCHORING_HOMEOTROPIC   3
-#define ANCHORING_DEGENERATE    4
-#define ANCHORING_FREEZE    5   // anchoring type where initial Q-Tensor orientation is frozen
-#define ANCHORING_POLYMERISE    6
-#define ANCHORING_MANUAL_NODES 7
-#ifndef PI
-#define PI 3.14159265358979323846264338327950288419716939937510
-#endif
+enum AnchoringType {Strong = 0, Weak = 1, Homeotropic = 2,
+                     Degenerate = 3, Freeze = 5, Polymerise = 6,
+                     ManualNodes = 7, AnchoringTypesCount};
+
+
 using std::string;
 using std::vector;
 class Surface {
@@ -26,8 +21,9 @@ class Surface {
 private:
 
 
-    string Anchoring;                   // name of anchoring type
-    unsigned int AnchoringNum;          // number 1, 2, 3 or 4 corresponding to anchoring type, as defined above
+    //string Anchoring;                   // name of anchoring type TODO recover this using index to VALID_TYPES instead
+    //unsigned int AnchoringNum;          // number 1, 2, 3 or 4 corresponding to anchoring type, as defined above
+    AnchoringType Type;
     double Strength;
     double K1;
     double K2;
@@ -39,6 +35,7 @@ private:
     bool isFixed;                       // whether this surface is fixed or not
     void calcV1V2();                    // calculates v1 and v2 values from easy angles
 public:
+    static const vector<string> VALID_ANCHORING_TYPES;
     static const string DEFAULT_ANCHORING_TYPE;
     static const double DEFAULT_ANCHORING_STRENGTH;
     static const double DEFAULT_ANCHORING_K1;
@@ -58,19 +55,18 @@ public:
     void setEasyVector(double v[3]);
     void calcEasyVector();              // calculates Easy Vector from easy angles
 
-    void setUsesSurfaceNormal(bool sn);
-    string getAnchoringType();
-    unsigned int getAnchoringNum();     //
-    double getStrength();
-    double getK1();
-    double getK2();
-    double getEasyTilt();
-    double getEasyTwist();
-    double getEasyRot();
+    string getAnchoringTypeName() const;
+    AnchoringType getAnchoringType() const;
+    double getStrength() const;
+    double getK1() const;
+    double getK2() const;
+    double getEasyTilt() const;
+    double getEasyTwist() const;
+    double getEasyRot() const;
     double *getPtrTov1();
     double *getPtrTov2();
-    bool    getUsesSurfaceNormal();
-    bool    getisFixed();
+    bool    getUsesSurfaceNormal() const;
+    bool    isStrong() const;
 
     friend class Alignment;
 };
@@ -94,7 +90,7 @@ public:
                     const double &k1,
                     const double &k2,
                     const vector<double> &params);
-
+    const Surface & getSurface(const idx& i) const; // returns read-only reference to i'th surface
     void setnSurfaces(int n);
     double getStrength(int n);  // get strength of FixLCn
     double getK1(int n);        // get K1 of FixLCn
@@ -103,7 +99,8 @@ public:
     double *getPtrTov2(int n);  // get pointer to v2 of FicLCn
     int getnSurfaces();
     bool IsStrong(int n);       // is surface n strong?
-    unsigned int getAnchoringNum(const int &n); // // returns anchoring number of alignment surface n
+    //unsigned int getAnchoringNum(const int &n); // // returns anchoring number of alignment surface n
+    AnchoringType getTypeOfSurface(const idx &n) const; //returns type of n'th surface
     bool getUsesSurfaceNormal(int n); // if n uses surface normal instead of v1 and v2 ?
     bool WeakSurfacesExist();   // checks if weak surfaces are defined
 };
