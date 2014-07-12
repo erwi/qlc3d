@@ -127,7 +127,8 @@ void CreateSaveDir(Simu* simu); //creates new save dir, if needed
 
 void prepareGeometry(Geometry& geom,    // defined in inits.cpp
                      Simu& simu,
-                     Alignment& ali);
+                     Alignment& ali,
+                     Electrodes& electrodes);
 FILE* createOutputEnergyFile(Simu& simu); // defined in inits.cpp
 void selectQMatrixSolver(Simu &simu, const LC &lc); // defined in ints.cpp
 

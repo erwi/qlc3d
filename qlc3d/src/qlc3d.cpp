@@ -230,7 +230,8 @@ int main(int argc, char* argv[]){
     // ================================================================
     Geometry geom1 = Geometry();	    // empty working geometry object
     Geometry geom_orig = Geometry();    // empty original geom object, loaded from file
-    prepareGeometry(geom_orig, simu, alignment);   // mesh file is read and geometry is loaded in this function (in inits.cpp)
+    prepareGeometry(geom_orig, simu,    // mesh file is read and geometry is loaded in this function (in inits.cpp)
+                    alignment, electrodes);
     geom1.setTo(&geom_orig);            // in the beginning working geometry is original
 
     // SET CONVENIENCE STRUCT OF POINTERS

@@ -28,9 +28,9 @@ class Electrodes {
 private:
     bool CalcPot;                       // flag for checking whether it is necessary to calculate the potential
     std::vector<double> potentials_;    // keeps current potential values for each electrode
-
-public:
     int nElectrodes;
+public:
+
     std::vector <double> eps_dielectric;
     double EField[3];                   // Contains the x,y,z components of a uniform E-field
 

@@ -88,12 +88,9 @@ void Electrodes::setEField(std::vector<double> const &vec3) {
     this->EField[2] = vec3[2];
 }
 
-void Electrodes::setElectrodePotential(const size_t &eNum, const double &pot)
-{
-// SETS THE CURRENT POTENTIAL OF ELECTRODE eNum TO VALUE pot
-
-    if ( eNum >= getnElectrodes() )
-    {
+void Electrodes::setElectrodePotential(const size_t &eNum, const double &pot) {
+/*! SETS THE CURRENT POTENTIAL OF ELECTRODE eNum TO VALUE pot */
+    if ( eNum >= getnElectrodes() ) {
         printf("error in %s, cant set potential of electrode %u.\n" , __func__ , (unsigned int) eNum + 1);
         printf("Total number of electrodes is %u\n", (unsigned int) getnElectrodes() );
         exit(1);
@@ -106,15 +103,11 @@ void Electrodes::setElectrodePotential(const size_t &eNum, const double &pot)
     double maxPot = *std::max_element(potentials_.begin() , potentials_.end() );
     if (minPot != maxPot)
         CalcPot = true;
-
-
 }
 
-double Electrodes::getCurrentElectrodePotential(const size_t &eNum) const
-{
+double Electrodes::getCurrentElectrodePotential(const size_t &eNum) const {
 // RETURNS THE CURRENT POTENTIAL OF ELECTRODE eln
-    if ( eNum >= getnElectrodes() )
-    {
+    if ( eNum >= getnElectrodes() ) {
         printf("\nerror in %s, can't find potential for electrode %u.\n",__func__, (unsigned int) eNum + 1 );
         printf("Potentials have been specified for only %u electrodes.\n", (unsigned int) getnElectrodes());
         printf("Check your settings file - bye!\n");
