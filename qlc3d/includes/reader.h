@@ -87,7 +87,7 @@ class Reader {
         /*!
          * Converts to a vector of numbers
          */
-        // first convert to a vector od strings
+        // first convert to a vector of strings
         std::vector <std::string> svals;
         parseValue(strVal, svals);
         // then convert each item to a number
@@ -424,6 +424,7 @@ void Reader::parseValue(const std::string &strVal, std::vector<std::string> &val
     std::string str(strVal); // make working copy
     size_t i1, i2;
     // CHECK FOR OPEN/CLOSE BRAES
+    // TODO: this shoud be done using a stack
     if ((i1 = str.find_first_of(_R_OBRACE)) != str.find_last_of(_R_OBRACE)) {
         throw _R_VECTOR_FORMAT_ERROR_MSG;   // multiple '['
     }
@@ -443,6 +444,11 @@ void Reader::parseValue(const std::string &strVal, std::vector<std::string> &val
         throw _R_VECTOR_FORMAT_ERROR_MSG;   // empty vector
     }
     str = str.substr(i1 + 1, i2 - 1); // remove braces from both ends
+    // check that vector didn reduce to all whitespace characters
+    cleanLineEnds(str);
+    if (str.size() == 0) // if all whitespace, return with 0 elements added
+        return;
+
     // REPLACE ALL DELIMETERS BY SINGLE BLANKS
     while ((i1 = str.find_first_of(_R_VDELIM)) < std::string::npos) {
         if (i1 == 0) {      // first character is vector delimiter
