@@ -336,8 +336,8 @@ void ReadSettings(string settingsFileName,
     } catch (ReaderError e) {
         e.printError();
     }
-    std::cout << "EXIT OK " << std::endl;
-    exit(1);
+    //std::cout << "EXIT OK " << std::endl;
+    //exit(1);
 }
 // end ReadSettings
 

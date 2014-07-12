@@ -195,7 +195,8 @@ void setSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* ge
                 std::exit(1);
             }
         } else {
-            std::cerr << "error in " <<__func__<< " no surfaces of material : " << (i+1)*MAT_FIXLC1 << " found."<<std::endl;
+            std::cerr << "\nerror setting anchoring surfaces in " <<__func__<< std::endl;
+            std::cerr << "FIXLC" << (i+1) << " has been defined in settings file, but no such surface found in mesh.\nbye!" << std::endl;
             std::exit(1);
     }
 
