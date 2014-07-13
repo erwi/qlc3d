@@ -238,7 +238,7 @@ SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
                                           const Electrodes &electrodes){
     // CHECK WHETHER POTENTIAL WILL NEED TO BE CALCULATED
     // IF YES MAKE MATRIX, IF NOT CREATE EMPTY MATRIX
-    if ( electrodes.getCalcPot() ){
+    if ( electrodes.getCalcPot() ) {
         const idx N = sol.getnFreeNodes();
         cout << "Matrix size : " << N <<"x"<<N; fflush(stdout);
         SpaMtrix::MatrixMaker mm(N,N);

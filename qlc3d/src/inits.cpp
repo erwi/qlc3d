@@ -132,7 +132,7 @@ void prepareGeometry(Geometry& geom,
 
     // Count number of electrodes in mesh
     electrodes.setnElectrodes(countElectrodes(emat, ne));
-
+    //electrodes.setImplicitVariables();
 
     for (idx i = 0; i < 4*nt; i++)  t[i]--;	// change GiD mesh to zero indexing
     for (idx i = 0; i < 3*ne; i++)  e[i]--;

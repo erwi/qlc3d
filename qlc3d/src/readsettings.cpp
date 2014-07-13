@@ -189,7 +189,7 @@ void readElectrodes(Electrodes &electrodes,
     if (reader.containsKey(SFK_EPS_DIELECTRIC))
         electrodes.eps_dielectric = reader.get<vector<double>>();
     // Finally set internal flags when all other settings are done
-    electrodes.setImplicitVariables();
+    // electrodes.setImplicitVariables();
 }
 
 
