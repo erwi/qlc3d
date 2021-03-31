@@ -1,9 +1,6 @@
-CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
+CMAKE_MINIMUM_REQUIRED (VERSION 3.0)
 PROJECT (qlc3d)
-# Set path to SpaMtrix header files
-set(SPAMTRIX_INCLUDES_DIR /home/eero/Projects/SpaMtrix/include)
-# Set path to SpaMtrix static library file directory
-set(SPAMTRIX_BINARY_DIR  /home/eero/Projects/SpaMtrix/build/lib)
+
 add_definitions(-DLinux) ## Must choose either -DLinux OR -DWindows
 add_definitions(-DDEBUG) # DISABLES OPENMP PRAGMAS
 #
@@ -18,7 +15,9 @@ if (OPENMP_FOUND)
     set (CMALE_EXE_LINKER_FLAGS "${OpenMP_CXX_FLAGS}")
     add_definitions(-DUSES_OPENMP)
 endif(OPENMP_FOUND)
-link_directories(${SPAMTRIX_BINARY_DIR})
-include_directories(./includes ${SPAMTRIX_INCLUDES_DIR})
+
 add_executable(qlc3d ${SOURCE_FILES})
-target_link_libraries(qlc3d spamtrix gomp pthread)
+target_include_directories(qlc3d
+        PRIVATE
+            includes)
+target_link_libraries(qlc3d SpaMtrix gomp pthread)

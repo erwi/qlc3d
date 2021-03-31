@@ -1,0 +1,3 @@
+[submodule "extern/SpaMtrix"]
+	path = extern/SpaMtrix
+	url = https://github.com/erwi/SpaMtrix.git
