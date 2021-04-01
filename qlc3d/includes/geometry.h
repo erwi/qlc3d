@@ -141,6 +141,5 @@ public:
     bool checkForOverlapingNodes(); // Debug function that chaecks makes sure not nodes are overlapping. Returns TRUE if some are, false if everyting is OK
     void countNodeReferences(vector <int> &refc, Mesh &mesh); // counts the number of times each node is used in mesh. DEBUG
 };
-void prepareGeometry();
 #endif
 

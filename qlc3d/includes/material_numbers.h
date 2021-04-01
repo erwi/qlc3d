@@ -27,6 +27,7 @@
 #define MAT_ELECTRODE7  448 // 6 and 7 and 8
 #define MAT_ELECTRODE8  512 // 9
 #define MAT_ELECTRODE9  576 // 6 and 9
+static const unsigned int MAT_MAX_ELECTRODES_COUNT = 9;
 // UP TO MAT_ELECTRODE16 ?
 #define MAT_FIXLC1 2048 // 11
 #define MAT_FIXLC2 4096 // 12
@@ -49,11 +50,16 @@ int FIXLCN_TO_MATNUM(const int &n) {
 
 inline
 size_t MATNUM_TO_ELECTRODE_NUMBER(const size_t &mat) {
-// RETURNS THE INDEX NUMBER OF AN ELECTRODE e.g.:
-// 32 -> 1
-// 36 -> 2
-// 2080 -> 1    (FIXLX1_ELECTRODE1)
-// 8768 -> 9    (FIXLC4_ELECTRODE9)
+/*!
+ * Converts a material number to Electrode number, or 0 if
+ * input material number does not corrspond any electrode.
+ *
+ * e.g.:
+ *      32 -> 1
+ *      36 -> 2
+ *      2080 -> 1  (FIXLC1 + ELECTRODE1)
+ *      8768 -> 9  (FIXLC4 + ELECTRODE9)
+ */
     // CREATE MASK WITH BITS 6,7,8,9 SET
     size_t mask = 64 | 128 | 256 | 512;
     // ONLY KEEP ELECTRODE BITS OF INPUT VARIABLE

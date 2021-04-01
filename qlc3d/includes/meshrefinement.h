@@ -122,6 +122,10 @@ public:
     }
 };
 
+
+// forward declaration of Reader
+class Reader;
+
 class MeshRefinement {
     unsigned int    refiter;        // mesh refinement counter
     bool            needs_new_mesh; // true if mesh file has been modified
@@ -149,5 +153,6 @@ public:
         needs_new_mesh = n;
     }
     bool isRefinementIteration(const int &iteration);  // checks if this iteration is an refinement iteration
+
 };
 #endif

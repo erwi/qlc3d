@@ -108,16 +108,16 @@ class Electrodes;
 class EventList;
 void ReadSettings(
         string settings_filename,
-        Simu* simu,
+        Simu &simu,
         LC& lc,
-        Boxes* boxes,
-        Alignment* alignment,
-        Electrodes* electrodes,
-        MeshRefinement* meshrefinement,
-        EventList& eventlist
+        Boxes &boxes,
+        Alignment &alignment,
+        Electrodes &electrodes,
+        MeshRefinement &meshrefinement,
+        EventList &eventlist,
+        Settings &settings
 	);
 
-void ReadSolverSettings(const char* filename, Settings* settings);
 void CreateSaveDir(Simu* simu); //creates new save dir, if needed
 
 // -----------------------------
@@ -128,7 +128,8 @@ void CreateSaveDir(Simu* simu); //creates new save dir, if needed
 
 void prepareGeometry(Geometry& geom,    // defined in inits.cpp
                      Simu& simu,
-                     Alignment& ali);
+                     Alignment& ali,
+                     Electrodes& electrodes);
 FILE* createOutputEnergyFile(Simu& simu); // defined in inits.cpp
 void selectQMatrixSolver(Simu &simu, const LC &lc); // defined in ints.cpp
 

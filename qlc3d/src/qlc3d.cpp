@@ -23,8 +23,8 @@
 #include <spamtrix_ircmatrix.hpp>
 
 
-double qlc3d_GLOBALS::GLOBAL_COORD_EPS =1e-10; // TODO: MAKE THIS USED DEFINABLE IN A SETTINGS FILE
-
+double qlc3d_GLOBALS::GLOBAL_COORD_EPS = 1e-10; // TODO: MAKE THIS USED DEFINABLE IN A SETTINGS FILE
+//double qlc3d_GLOBALS::PI = 3.14159265359;
 
 int minnode(int *t, int dim1, int dim2){ // what does this do?
     int min = (int)1e9;
@@ -178,6 +178,7 @@ int runQlc3d(int argc, char **argv) {
     MeshRefinement  meshrefinement;
     RegularGrid regGrid;
     EventList eventlist;
+    Settings settings;
     string settings_filename = "./meshes/test.txt"; 	// default settings file, loaded when no i/p args.
     simu.setCurrentDir( FilesysFun::getCurrentDirectory() );
 
@@ -201,13 +202,14 @@ int runQlc3d(int argc, char **argv) {
     printf("current working directory:\n%s\n", FilesysFun::getCurrentDirectory().c_str() );
 
     ReadSettings(settings_filename, // CHANGE POINTERS TO REFS.
-                 &simu,
+                 simu,
                  lc,
-                 &boxes,
-                 &alignment,
-                 &electrodes,
-                 &meshrefinement,
-                 eventlist);
+                 boxes,
+                 alignment,
+                 electrodes,
+                 meshrefinement,
+                 eventlist,
+                 settings);
 
 
     // CREATE A BACKUP OF SETTINGS FILE INTO RESULT SAVE DIRECTORY
@@ -217,10 +219,7 @@ int runQlc3d(int argc, char **argv) {
     }
 
     FILE* Energy_fid = NULL; // file for outputting free energy
-
-    // Solver settings	(choose solver, preconditioner etc.)
-    Settings settings = Settings();
-    ReadSolverSettings("solver.qfg", &settings);
+    //ReadSolverSettings("solver.qfg", &settings);
 
     selectQMatrixSolver(simu, lc);
 
@@ -230,7 +229,8 @@ int runQlc3d(int argc, char **argv) {
     // ================================================================
     Geometry geom1 = Geometry();	    // empty working geometry object
     Geometry geom_orig = Geometry();    // empty original geom object, loaded from file
-    prepareGeometry(geom_orig, simu, alignment);   // mesh file is read and geometry is loaded in this function (in inits.cpp)
+    prepareGeometry(geom_orig, simu,    // mesh file is read and geometry is loaded in this function (in inits.cpp)
+                    alignment, electrodes);
     geom1.setTo(&geom_orig);            // in the beginning working geometry is original
 
     // SET CONVENIENCE STRUCT OF POINTERS

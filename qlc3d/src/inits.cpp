@@ -40,6 +40,42 @@ void validateTriangleMaterials(const idx* const mate, idx ne){
     }
 }// end void validateTriangleMatrials
 
+
+size_t countElectrodes(const idx* mate, idx ne) {
+    /*!
+    * Counts the number of electrodes defined in mesh. As in
+    * Electrode 1, 2 ... not the number of electrode elements.
+    *
+    * Also checks that electrode surfaces are defined contiguously
+    * in mesh file (i.e. 1, 2, 3,...  and not 1, 3, 4...
+    *
+    * mate is material numbers array and ne is array length.
+    */
+    // First set flags for those electrode numbers that are found
+    std::vector<int> eFoundFlag(MAT_MAX_ELECTRODES_COUNT + 1);
+    for (idx i = 0; i < ne; i++) {
+        const size_t enumber = MATNUM_TO_ELECTRODE_NUMBER(mate[i]);
+        if (enumber > 0) // if valid electrode number, set flag
+            eFoundFlag[enumber] = 1;
+    }
+    //
+    // Then find largest electrode whose flag is set
+    size_t eCount = 0;
+    for (idx i = eFoundFlag.size()-1; i > 1 ; i--) { // backwards loop
+        if ((eFoundFlag[i] > 0) && (i > eCount))
+            eCount = i;
+        //
+        // detect error, non-contiguous electrodes definitions
+        if ((eFoundFlag[i] > 0) && (eFoundFlag[i-1] == 0)) {
+            std::cerr << "\nerror in " << __func__ << std::endl;
+            std::cerr << "Found error in mesh file: non-contiguously numbered electrode surfaces." << std::endl;
+            std::cerr << "Electrode " << i << " (at least) is missing although "<< i+1 << " exists.\nbye!" << std::endl;
+            std::exit(1);
+        }
+    }
+   return eCount+1;
+}
+
 void validateTetrahedralMaterials(const idx* const matt, idx nt){
     // goes through each material number for tetrahedra. if bad ones are
     // found, error is printed and program terminated
@@ -48,9 +84,9 @@ void validateTetrahedralMaterials(const idx* const matt, idx nt){
     for (idx i = 0 ; i < nt ; ++i){
         const idx m = matt[i];
         if ((m == MAT_DOMAIN1) ||
-            (m==MAT_DIELECTRIC1) || (m==MAT_DIELECTRIC2) || (m==MAT_DIELECTRIC3) ||
-            (m==MAT_DIELECTRIC4) || (m==MAT_DIELECTRIC5) || (m==MAT_DIELECTRIC6) ||
-            (m==MAT_DIELECTRIC7) ){
+                (m==MAT_DIELECTRIC1) || (m==MAT_DIELECTRIC2) || (m==MAT_DIELECTRIC3) ||
+                (m==MAT_DIELECTRIC4) || (m==MAT_DIELECTRIC5) || (m==MAT_DIELECTRIC6) ||
+                (m==MAT_DIELECTRIC7) ){
             continue;
         }
         else{
@@ -64,8 +100,8 @@ void validateTetrahedralMaterials(const idx* const matt, idx nt){
 // FUNCTIONS  BELOW DECALRED IN qlc3d.h
 void prepareGeometry(Geometry& geom,
                      Simu& simu,
-                     Alignment& alignment)
-{
+                     Alignment& alignment,
+                     Electrodes& electrodes) {
 
     idx np,nt,ne;
     double *p;
@@ -80,7 +116,7 @@ void prepareGeometry(Geometry& geom,
     size_t point = filename.find_last_of('.');  // index to separator point
     string extension = filename.substr(point + 1);
 
-    if (extension.compare("geo") == 0 ){ // IF BINARY "SECRET" MESH
+    if (extension.compare("geo") == 0 ) { // IF BINARY "SECRET" MESH
         printf(" reading .geo file\n");
         readBinaryMesh(filename, p ,t, tmat, e, emat, &np, &nt, &ne);
     }
@@ -90,14 +126,17 @@ void prepareGeometry(Geometry& geom,
     }
 
     // PEOPLE DO STUPID THINGS IN GiD. NEED TO VALIDATE MATERIAL NUMBERS
-    // IT VALIDATION FAILS, ERROR MESSAGE IS PRINTED AND PROGRAM ABORTED
+    // IF VALIDATION FAILS, ERROR MESSAGE IS PRINTED AND PROGRAM ABORTED
     validateTriangleMaterials(emat, ne);
     validateTetrahedralMaterials(tmat, nt);
 
+    // Count number of electrodes in mesh
+    electrodes.setnElectrodes(countElectrodes(emat, ne));
+    //electrodes.setImplicitVariables();
+
     for (idx i = 0; i < 4*nt; i++)  t[i]--;	// change GiD mesh to zero indexing
     for (idx i = 0; i < 3*ne; i++)  e[i]--;
-
-    for (idx i = 0; i < np;   i++){	// scale mesh
+    for (idx i = 0; i < np;   i++) {	// scale mesh
         p[3*i + 0] = p[3*i + 0]* simu.getStretchVectorX();
         p[3*i + 1] = p[3*i + 1]* simu.getStretchVectorY();
         p[3*i + 2] = p[3*i + 2]* simu.getStretchVectorZ();
@@ -129,7 +168,6 @@ void prepareGeometry(Geometry& geom,
     free(emat);
 
     geom.ReorderDielectricNodes(); // Dielectric nodes are moved last
-
     geom.e->setConnectedVolume(geom.t);		// neighbour index tri -> tet
     geom.t->CalculateDeterminants3D(geom.getPtrTop());		// calculate tetrahedral determinants
     geom.t->ScaleDeterminants(1e-18); // scale to microns

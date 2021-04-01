@@ -12,45 +12,44 @@ class RefInfo
 public:
     enum Type {None = 0, Change = 1, Sphere=2, Box = 3};
 private:
-    Type type_;
-    long long int iter_; // WHEN TO REFINE, IF BOTH ZERO ASSUME REPEATING
-    double time_;   //
-    unsigned int refIter_;   // HOW MANY REFINMENT STEPS THIS OBJECT DESCRIBES
-
-    std::vector<double> values_; // THIS WILL HOLD DIFFERENT VALUES DEPENDING ON type_
-    std::vector<double> X_;      // LISTS OF COORDINATES FOR A SPECIFIED REGION
-    std::vector<double> Y_;
-    std::vector<double> Z_;
-
-
-
+    Type _type;
+    long long int _iter; // WHEN TO REFINE, IF BOTH ZERO ASSUME REPEATING
+    double _time;   //
+    unsigned int _refIter;   // HOW MANY REFINMENT STEPS THIS OBJECT DESCRIBES
+    std::vector<double> _values; // THIS WILL HOLD DIFFERENT VALUES DEPENDING ON type_
+    std::vector<double> _x;      // LISTS OF COORDINATES FOR A SPECIFIED REGION
+    std::vector<double> _y;
+    std::vector<double> _z;
+    // Privatre constructors, use the factory method make() instead
     RefInfo(){}
+    RefInfo(const std::string& Type);
     void setType( std::string Type );
     void setRefIter();
-
-    //void error(const char* var);    // PRINTS ERROR MESSAGE FOR VARIABLE var AND EXITS
-public:
-    RefInfo(const std::string& Type);
-    RefInfo(const RefInfo& other);      // COPY CONSTRUCTOR
-
-    void setIteration(const long int i){iter_ = i;}
-    void setTime(const double t){time_ = t;}
+    void setIteration(const long int i){_iter = i;}
+    void setTime(const double t){_time = t;}
     void setValues(std::vector<double>& values);
     void setCoords(const std::vector<double>& x,
                    const std::vector<double>& y,
                    const std::vector<double>& z);
+        static void validate(const RefInfo& refinfo );  // TRIES TO VALIDATE TO MAKE SURE INFO PROVIDED MAKES SENSE
+public:
+    RefInfo(const RefInfo& other);      // COPY CONSTRUCTOR
 
-
-
-    unsigned int    getRefIter()const {return refIter_;}
+    unsigned int    getRefIter()const {return _refIter;}
     double getValue(const size_t i) const;//
     void   getCoords(std::vector<double>& x,    // RETURNS ALL COORDINATES IN A VECTOR
                      std::vector<double>& y,
                      std::vector<double>& z) const ;
     void   getCoord( double& x, double &y, double& z)const; // RETURNS ONLY FIRST COORD
-    Type   getType() const {return type_;}
+    Type   getType() const {return _type;}
     void   printRefInfo(FILE* fid = stdout) const;
-    static void validate(const RefInfo& refinfo );  // TRIES TO VALIDATE TO MAKE SURE INFO PROVIDED MAKES SENSE
-};
 
+    static RefInfo *make(const std::string& type,       // A Factory method. simplified creation
+                         long int iteration,            // sets values and calls validate()
+                         double time,
+                         std::vector<double> &values,
+                         std::vector<double> &x,
+                         std::vector<double> &y,
+                         std::vector<double> &z);
+};
 #endif // REFINFO_H

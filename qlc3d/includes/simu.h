@@ -6,24 +6,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
-//#include <stringenum.h>
-
+#include <vector>
+#include <globals.h>
+//#include <reader.h>
 #define SIMU_N  0
 #define SIMU_END_SIMULATION -20000000 // magic minus bignum
 
 #define SIMU_OUTPUT_FORMAT_BINARY 	0
 #define SIMU_OUTPUT_FORMAT_TEXT		1
 
-enum PotentialConsistency {Off, Loop};
+class Reader; // forward declaration of settings file reader
 
+enum PotentialConsistency {Off, Loop};
 
 using namespace std;
 class Simu
 {
-
+    friend void readSimu(Simu& , Reader&);
 public:
-    // SAVE FORMATS OPTIONS BITFIELDS - MUST BE POWERS OF 2!!!
+    // SAVE FORMATS OPTIONS BITFIELDS - MUST BE POWERS OF 2 AS WILL BE USED AS BITFIELDS!!!
     // REMEMBER TO ADD to "validSaveFormatStrings" IN CONSTRUCTOR
     // IF/WHEN ADDING NEW SAVE FORMATS!
     enum SaveFormats {None          = 0,
@@ -37,12 +38,37 @@ public:
     // Row is a stack of directors along the z-axis.
     // The director components in each stack are interleaved in order nx,ny,nz, nx,ny,nz, ... as z-increases
     // The stacks are ordered in rows along the x-axis.
-
-
-    // POSSIBLE MATRIX SOLVERS FOR Q-TENSOR
+    //
+    // Possible matrix solver for Q-tensor
     enum QMatrixSolvers { Auto  = 0,
                           PCG   = 1,
                           GMRES = 2};
+    //
+    // Declare default values for parameters in Simu
+    const static vector<string> VALID_END_CRITERIA;
+    const static vector<string> VALID_SAVE_FORMATS;
+    const static vector<string> VALID_Q_MATRIX_SOLVERS;
+    const static string DEFAULT_LOAD_Q;
+    const static string DEFAULT_SAVE_DIR;
+    const static string DEFAULT_Q_MATRIX_SOLVER;
+    const static vector<string> DEFAULT_SAVE_FORMATS;
+    const static string DEFAULT_END_CRITERION;
+    const static double DEFAULT_END_VALUE;
+    const static double DEFAULT_DT;
+    const static double DEFAULT_TARGET_DQ;
+    const static double DEFAULT_MAX_DT;
+    const static double DEFAULT_MAX_ERROR;
+    // int default values can be defined here
+    const static int DEFAULT_OUTPUT_ENERGY;
+    const static int DEFAULT_OUTPUT_FORMAT;
+    const static int DEFAULT_SAVE_ITER;
+    const static int DEFAULT_NUM_ASSEMBLY_THREADS;
+    const static int DEFAULT_NUM_MATRIX_SOLVER_THREADS;
+    // default vectors
+    const static vector<double> DEFAULT_STRETCH_VECTOR;
+    const static vector<double> DEFAULT_DT_LIMITS;
+    const static vector<double> DEFAULT_DT_FUNCTION;
+    const static vector<idx>    DEFAULT_REGULAR_GRID_SIZE;
 private:
 
     enum EndCriteria {Iterations=0, Time=1, Change=2};
@@ -62,7 +88,6 @@ private:
     //string  EndCriterion;   // THIS SHOULD BE CHANGED TO AN ENUMERATOR!!
     EndCriteria EndCriterion;
     string  LoadQ;
-
     string  CurrentDir;      // working directory of qlc3d.exe
     string  SaveDir;        // directory where results are saved
     string  LoadDir;        // directory from where starting results are loaded
@@ -70,7 +95,7 @@ private:
     double  EndValue;
     double  EndValue_orig;   // original end values as defined in settings file. this is needed when end refinement is used
     double  StretchVector[3];
-    double  EnergyRegion[3]; // x,y,z coordinates for determining regions above/below which to calculate energy
+    double  EnergyRegion[3]; // x,y,z coordinates for determining regions above/below which to calculate energy TODO: get rid of
     int CurrentIteration;
     bool AssembleMatrix;
 
@@ -104,10 +129,11 @@ public:
     void setEndCriterion( string ec);
     void setEndValue(double ev);
     void resetEndCriterion();       // starts simulation from beginning
-    void setdt(double td);  // set dt, but clamps between min-max values
-    void setdtForced(const double& dt); // force-sets dt, does not care about min-max values
-    void setdtLimits(const double& min, const double& max);
-    void setdtFunction(double* f4); // array of length 4
+    void setdt(const double &td);  // set dt, but clamps between min-max values
+    void setdtForced(const double &dt); // force-sets dt, does not care about min-max values
+    void setdtLimits(const vector<double> &vec2);
+
+    void setdtFunction(const vector<double> &vec4);
     void getdtFunction(double* f );
     void setCurrentTime(double ct);
     void setCurrentIteration( int i);
@@ -124,14 +150,14 @@ public:
     unsigned int getMatrixSolverThreadCount()const {return numMatrixSolverThreads;}
     QMatrixSolvers getQMatrixSolver()const {return QMatrixSolver;}
     void setQMatrixSolver(QMatrixSolvers solver) {QMatrixSolver = solver;}
-    void setQMatrixSolver(std::string &solver);
+    void setQMatrixSolver(const std::string &solver);
 
 
     void setOutputEnergy(int ope);
     void setOutputFormat(int opf);
-    void setStretchVectorX(double sx);
-    void setStretchVectorY(double sy);
-    void setStretchVectorZ(double sz);
+
+    void setStretchVector(const std::vector<double> vec3);
+
     inline void setEnergyRegionX(const double& x) { EnergyRegion[0] = x;}
     inline void setEnergyRegionY(const double& y) { EnergyRegion[1] = y;}
     inline void setEnergyRegionZ(const double& z) { EnergyRegion[2] = z;}
@@ -187,13 +213,9 @@ public:
     size_t getSaveFormat()const {return SaveFormat;}
     void clearSaveFormat(){SaveFormat = None; } // CLEARS ALL SAVE TYPES
     void addSaveFormat(std::string format); // ADDS A SAVE FORMAT
-
+    void setSaveFormats(const std::vector<std::string> saveFormats); // array of save format type strings
 // REGULAR GRID SIZE
-    void setRegularGridSize(const size_t& nx,
-                            const size_t& ny,
-                            const size_t& nz){RegularGridSize[0] = nx;
-                                              RegularGridSize[1] = ny;
-                                              RegularGridSize[2]= nz;}
+    void setRegularGridSize(const vector<unsigned int>& vec3);
     size_t getRegularGridXCount(){return RegularGridSize[0];}
     size_t getRegularGridYCount(){return RegularGridSize[1];}
     size_t getRegularGridZCount(){return RegularGridSize[2];}

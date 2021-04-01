@@ -1,117 +1,90 @@
 #include <alignment.h>
 #include <algorithm>
 #include <iostream>
-
-Surface::Surface(int fxlcnum)
-{
-
-    Anchoring = "Strong";
-    AnchoringNum = ANCHORING_STRONG;
+#include <reader.h>
+#include <stringenum.h>
+#include <settings_file_keys.h>
+const vector<string> Surface::VALID_ANCHORING_TYPES = {"Strong", "Weak", "Homeotropic",
+                                                       "Degenerate", "Freeze", "Polymerise",
+                                                       "ManualNodes"};
+const string Surface::DEFAULT_ANCHORING_TYPE = Surface::VALID_ANCHORING_TYPES[0];
+const double Surface::DEFAULT_ANCHORING_STRENGTH = 1e-4;
+const double Surface::DEFAULT_ANCHORING_K1 = 1;
+const double Surface::DEFAULT_ANCHORING_K2 = 1;
+const vector<double> Surface::DEFAULT_ANCHORING_EASY = {0,0,0};
+const vector<double> Surface::DEFAULT_ANCHORING_PARAMS = {};
+Surface::Surface(int fxlcnum) {
     FixLCNumber = fxlcnum;
-    Strength = 1e-4;
+    Strength = DEFAULT_ANCHORING_STRENGTH;
     K1 = 1;
     K2 = 1;
-    Easy[0] = 0;
-    Easy[1] = 0;
-    Easy[2] = 0;
-
-    v1[0] = 0;
-    v1[1] = 0;
-    v1[2] = 1;
-
-    v2[0] = 0;
-    v2[1] = 1;
-    v2[2] = 0;
-
-    e[0] = 1;
-    e[1] = 0;
-    e[2] = 0;
+    this->setEasyAngles(DEFAULT_ANCHORING_EASY);
     UsesSurfaceNormal = false;
     isFixed = true;
 }
 
-void Surface::setAnchoringType(std::string &atype){
-    Anchoring = atype;
+void Surface::setAnchoringType(const std::string &atype){
 
-    // MAKE SURE LOWERCASE
-    std::transform(atype.begin(), atype.end() , atype.begin(), ::tolower);
-    if (atype.compare("strong") == 0){
-        Anchoring = atype;
-        AnchoringNum = ANCHORING_STRONG;
-        isFixed = true;
+    std::string typeKey = wildcardToNum(SFK_FIXLC_ANCHORING, this->FixLCNumber);
+    StringEnum<AnchoringType> validator(typeKey, Surface::VALID_ANCHORING_TYPES);
+    try {
+        this->Type = validator.getEnumValue(atype);
+        switch (Type) {
+        case Strong :
+            isFixed = true;
+            UsesSurfaceNormal = false;
+            break;
+        case Homeotropic :
+            isFixed = true;
+            UsesSurfaceNormal = true;
+            break;
+        case Weak :
+            isFixed = false;
+            UsesSurfaceNormal = false;
+            break;
+        case Degenerate :
+            isFixed = false;
+            UsesSurfaceNormal = true;
+            break;
+        case Freeze :
+            isFixed = true;
+            UsesSurfaceNormal = false;
+            break;
+        case ManualNodes :
+            isFixed = true;
+            UsesSurfaceNormal = false;
+            break;
+        case Polymerise:
+            isFixed = true;
+            UsesSurfaceNormal = false;
+            break;
+        default:
+            std::cerr << "unhandled anchoring type in " << __PRETTY_FUNCTION__ << std::endl;
+            std::exit(1);
+        }
+    } catch (...) {
+        validator.printErrorMessage(atype);
+        std::exit(1);
     }
-    else if (atype.compare("homeotropic") == 0){
-        Anchoring = atype;
-        AnchoringNum = ANCHORING_HOMEOTROPIC;
-        isFixed = true;
-    }
-    else if (atype.compare("weak") == 0){
-        Anchoring = atype;
-        AnchoringNum = ANCHORING_WEAK;
-        isFixed = false;
-    }
-    else if (atype.compare("degenerate") == 0){
-        Anchoring = atype;
-        AnchoringNum = ANCHORING_DEGENERATE;
-        setUsesSurfaceNormal(true);
-        isFixed = false;
-    }
-    else if (atype.compare("freeze") == 0 ){
-        printf("Surface::setAnchoringType - freeze\n" );
-        Anchoring = atype;
-        AnchoringNum = ANCHORING_FREEZE;
-        isFixed = true;
-        setUsesSurfaceNormal(false);
-    }
-    else if (atype.compare("polymerise") == 0 ){
-        printf("Surface::setAnchoringType - Polymerise\n");
-        Anchoring = atype;
-        AnchoringNum = ANCHORING_POLYMERISE;
-        isFixed = true;
-        setUsesSurfaceNormal(false);
-    }
-    else if (atype.compare("manualnodes") == 0){
-        printf("Surface::setAnchoringType - ManualNodes\n");
-        Anchoring = atype;
-        AnchoringNum = ANCHORING_MANUAL_NODES;
-        isFixed = true;
-        setUsesSurfaceNormal(false);
-    }
-    else{
-        using std::cout;
-        using std::endl;
-        cout << "error specifying FIXLC"<< FixLCNumber<<".Type, ";
-        cout << "\""<<Anchoring << "\" is not a valid anchoring type." << endl;
-        cout << "valid types are:\n" <<
-                "\tstrong\n"<<
-                "\tweak\n"<<
-                "\tdegenerate\n"<<
-                "\tfreeze\n"<<
-                "\tpolymerise\n" <<
-                "Check your settings file for typos - bye!\n " <<endl;
-        exit(1);
-    }
-
 }// end setAnchoringType
 void Surface::setStrength(double str){	Strength = str;}
 void Surface::setK1(double k1){			K1 = k1;}
 void Surface::setK2(double k2){			K2 = k2;}
 
-
-//void Surface::setEasyAngles(double ttr[3]){		Easy[0] = ttr[0];	Easy[1] = ttr[1];	Easy[2] = ttr[2];}
-void Surface::setEasyAngles(std::vector<double> &e){
+void Surface::setEasyAngles(const std::vector<double> &e){
     /*!
      * set easy direction, tilt, twist & rotation
      */
     if (e.size()>3){
-        cerr << "error in Surface::setEasyAngles, too many easy angles" << endl;
-        cerr << "got " << e.size() << " but can only handle up to 3 (tilt, twist, rotation) - bye!" << endl;
+        std::cerr << "error in Surface::setEasyAngles, too many easy angles" << std::endl;
+        std::cerr << "got " << e.size() << " but can only handle up to 3 (tilt, twist, rotation) - bye!" << std::endl;
         exit(1);
     }
     Easy[0] = 0.0; Easy[1] = 0.0; Easy[2] = 0.0;
-    for (size_t i = 0; i < e.size() ; i++){
+    for (size_t i = 0; i < e.size() ; i++)
         Easy[i] = e[i];
-    }
+    //
+    this->calcV1V2(); // calculates primary anchoring axes from easy angles
 }
 
 
@@ -122,22 +95,19 @@ void Surface::setEasyVector( double v[3]){	e[0] = v[0]; e[1] = v[1]; e[2] = v[2]
 
 void Surface::calcEasyVector(){
     /*! Calculates easy vector e from easy angles, tilt and twist*/
-
-
+    std::cerr << "unimplemented method: " << __PRETTY_FUNCTION__ << std::endl;
+    std::exit(1);
 }
 void Surface::calcV1V2(){
     /*! Calculates v1 and v2 vectors given tilt and twist angles
  *  Rotation matrices are given in Willman, IEEE Trans. Electron Dev. 54, 10, 2007 
  * */
 
-    if (this->AnchoringNum != ANCHORING_WEAK ){ // vectors are only set for 'Weak' anchoring type
+    if (this->Type != Weak) // vectors are only set for 'Weak' anchoring type (why?)
         return;
-    }
-
     double a = Easy[1] * PI / 180.0; // twist
     double b = Easy[0] * PI / 180.0; // tilt
     double g = Easy[2] * PI / 180.0; // rotation around
-
     double k[3] = {0.0, 0.0, 0.0};
     double l[3] = {0.0, 0.0, 0.0};
     // apply rotation matrices
@@ -158,20 +128,32 @@ void Surface::calcV1V2(){
     e[2] =  v1[0]*v2[1] - v2[0]*v1[1];
     this->setEasyVector( e );
 }
-void Surface::setUsesSurfaceNormal(bool sn) { UsesSurfaceNormal = sn;}
 
-string Surface::getAnchoringType()	{		return Anchoring;}
-unsigned int Surface::getAnchoringNum() {	return AnchoringNum;}
-double Surface::getStrength()		{		return Strength;}
-double Surface::getK1()				{		return K1;}
-double Surface::getK2()				{		return K2;}
-double Surface::getEasyTilt(){			return Easy[0];}
-double Surface::getEasyTwist(){			return Easy[1];}
-double Surface::getEasyRot(){			return Easy[2];}
+std::string Surface::getAnchoringTypeName() const {
+    return Surface::VALID_ANCHORING_TYPES[this->Type];
+}
+
+AnchoringType Surface::getAnchoringType() const {
+    return this->Type;
+}
+
+//unsigned int Surface::getAnchoringNum() const {
+//    return static_cast<unsigned int> (this->Type);
+//}
+double Surface::getStrength() const		{		return Strength;}
+double Surface::getK1() const				{		return K1;}
+double Surface::getK2() const				{		return K2;}
+double Surface::getEasyTilt() const{			return Easy[0];}
+double Surface::getEasyTwist() const{			return Easy[1];}
+double Surface::getEasyRot() const{			return Easy[2];}
 double* Surface::getPtrTov1(){			return &v1[0];}
 double* Surface::getPtrTov2(){			return &v2[0];}
-bool	Surface::getUsesSurfaceNormal(){return UsesSurfaceNormal;}
-bool    Surface::getisFixed()           {return isFixed;}
+bool	Surface::getUsesSurfaceNormal() const {
+    return UsesSurfaceNormal;
+}
+bool    Surface::isStrong() const {
+    return isFixed;
+}
 //====================================================
 //
 //		Alignment
@@ -193,43 +175,58 @@ void Alignment::addSurface(Surface* s){
     n_surfaces++;
 }
 
+void Alignment::addSurface(const int fixLcNumber,
+                           const string &anchoring,
+                           const double &strength,
+                           const vector<double> &easy,
+                           const double &k1,
+                           const double &k2,
+                           const vector<double> &params) {
+
+    Surface *s = new Surface(fixLcNumber);
+    s->setAnchoringType(anchoring);
+    s->setStrength(strength);
+    s->setEasyAngles(easy);
+    s->setK1(k1);
+    s->setK2(k2);
+    s->Params = params;
+    this->addSurface(s);
+}
+
+
+const Surface& Alignment::getSurface(const idx &i) const {
+    if (i >= (idx) this->surface.size()) {
+        std::cerr << "no such surface " << i << " in " << __PRETTY_FUNCTION__ << std::endl;
+        std::exit(1);
+    }
+
+    return *this->surface[i];
+}
+
 
 int Alignment::getnSurfaces(){	return n_surfaces;}
 
-bool Alignment::IsStrong(int i){
+bool Alignment::IsStrong(int i) {
     if (i >= (int) surface.size() ){
         printf("error - Alignment::IsStrong - surface %i does not exist\n", i+1 );
         printf("number of surfaces = %i\n", (int) surface.size() );
         exit(1);
     }
-    return surface[i]->getisFixed();
+    return getSurface(i).isStrong();
+    //return surface[i]->getisFixed();
 }
 
-unsigned int Alignment::getAnchoringNum(const int &n){
-    // returns anchoring number of alignment surface n
-    // Anchoring number is a descriptor that maps to a type.
-    // It should be made into an enumerator
-    vector <Surface*>::iterator itr;
-    itr = surface.begin();
-    if ( (n < getnSurfaces() )  && (n>=0) ){
-        return (*(itr+n))->getAnchoringNum();
-    }
-    else{
-        printf("error - Alignment::getAnchoringNum(%i) - %i is an invalid surface number, bye!\n", n ,n);
-        exit(1);
-    }
-
+AnchoringType Alignment::getTypeOfSurface(const idx &n) const {
+    return getSurface(n).getAnchoringType();
 }
-
 
 bool Alignment::WeakSurfacesExist(){
 /*!
 returns true if any non-fixed surfaces have been defined
 */
     for(int n = 0 ; n < getnSurfaces() ; n++ )
-        if ( !IsStrong(n) ){
+        if ( !IsStrong(n) )
             return true;
-        }
     return false;
 }
 

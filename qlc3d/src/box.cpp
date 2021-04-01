@@ -2,41 +2,39 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <algorithm>
+#include <string>
+#include <reader.h>
+#include <vector>
+#include <stringenum.h>
+#include <settings_file_keys.h>
+const std::vector<std::string> Box::VALID_TYPES = {"Normal", "Random", "Hedgehog"};
+const std::string Box::DEFAULT_TYPE = Box::VALID_TYPES[0];
+const std::vector<double> Box::DEFAULT_PARAMS = {};
+const std::vector<double> Box::DEFAULT_X_Y_Z = {0,0};
+const std::vector<double> Box::DEFAULT_TILT_TWIST = {0,0};
 
+
+
+using std::vector;
+using std::cerr;
 Box::Box(int boxnum) {
-    Type = Normal;
+    //Type = Normal;
+    setBoxType(Box::DEFAULT_TYPE);
     BoxNumber = boxnum;
-    Params[0] = 1;
-    Params[1] = 0;
-    X[0] = 0; X[1] = 0;
-    Y[0] = 0; Y[1] = 0;
-    Z[0] = 0; Z[1] = 0;
-    Tilt[0]     = 0; Tilt[1]    = 0;
-    Twist[0]    = 0; Twist[1]   = 0;
+    Params = Box::DEFAULT_PARAMS;
+    X = Box::DEFAULT_X_Y_Z;
+    Y = Box::DEFAULT_X_Y_Z;
+    Z = Box::DEFAULT_X_Y_Z;;
+    Tilt = Box::DEFAULT_TILT_TWIST;
+    Twist = Box::DEFAULT_TILT_TWIST;
 }
 
-void Box::printBox() {
-    printf("\tType: ");
-    printf("\n\tparams : %f, %f\n", Params[0], Params[1]);
-    printf("\tX\t= [%1.1f, %1.1f]\n\tY\t= [%1.1f, %1.1f]\n\tZ\t= [%1.1f, %1.1f]\n", X[0], X[1], Y[0], Y[1], Z[0], Z[1]);
-    printf("\tTilt\t= [%1.1f, %1.1f]\n", Tilt[0], Tilt[1]);
-    printf("\tTwist\t= [%1.1f, %1.1f]\n", Twist[0], Twist[1]);
-}
-void Box::setParams(std::vector<double> p) {
-    if (p.size() == 2) {
-        Params[0] = p[0];
-        Params[1] = p[1];
-    } else {
-        std::cout << "error, Box::setParams, invalid Params length - bye!" << std::endl;
-        exit(1);
-    }
-}
 void Box::setX(std:: vector<double> x) {
     if (x.size() == 2) {
         X[0] = x[0];
         X[1] = x[1];
     } else {
-        std::cout << "error, Box::setX, invalid X length - bye!" << std::endl;
+        std::cerr << "error, Box::setX, invalid X length - bye!" << std::endl;
         exit(1);
     }
 }
@@ -46,7 +44,7 @@ void Box::setY(std:: vector<double> y) {
         Y[0] = y[0];
         Y[1] = y[1];
     } else {
-        std::cout << "error, Box::setY, invalid Y length - bye!" << std::endl;
+        std::cerr << "error, Box::setY, invalid Y length - bye!" << std::endl;
         exit(1);
     }
 }
@@ -56,7 +54,7 @@ void Box::setZ(std:: vector<double> z) {
         Z[0] = z[0];
         Z[1] = z[1];
     } else {
-        std::cout << "error, Box::setZ, invalid Z length - bye!" << std::endl;
+        std::cerr << "error, Box::setZ, invalid Z length - bye!" << std::endl;
         exit(1);
     }
 }
@@ -66,7 +64,7 @@ void Box::setTilt(std:: vector<double> tlt) {
         Tilt[0] = tlt[0];
         Tilt[1] = tlt[1];
     } else {
-        std::cout << "error, Box::setTilt, invalid Tilt length - bye!" << std::endl;
+        std::cerr << "error, Box::setTilt, invalid Tilt length - bye!" << std::endl;
         exit(1);
     }
 }
@@ -75,7 +73,7 @@ void Box::setTwist(std:: vector<double> twt) {
         Twist[0] = twt[0];
         Twist[1] = twt[1];
     } else {
-        std::cout << "error, Box::setX, invalid Twist length - bye!" << std::endl;
+        std::cerr << "error, Box::setTwist, invalid Twist length - bye!" << std::endl;
         exit(1);
     }
 }
@@ -91,22 +89,17 @@ bool Box::isInBox(double *coords) {
     return true;
 }
 
-void Box::setBoxType(std::string &bt) {
-    this->TypeString = bt;
-    std::transform(bt.begin(), bt.end(), bt.begin(), ::tolower);
-    if (bt.compare("normal") == 0)
-        Type = Normal;
-    else if (bt.compare("random") == 0)
-        Type = Random;
-    else if (bt.compare("hedgehog") == 0)
-        Type = Hedgehog;
-    else {
-        using std::cout;
-        using std::endl;
-        cout << "error specyfying Box" << BoxNumber << ".Type as :\"" << TypeString << "\"" << endl;
-        cout << "possible types are: \n" << "\tnormal\n" << "\trandom\n"
-             << "\thedgehog" << endl;
-        exit(1);
+void Box::setBoxType(const std::string &bt) {
+/*!Sets the current box type from type name string.*/
+
+    std::string typeKey = wildcardToNum(SFK_BOX_TYPE, this->BoxNumber);
+    StringEnum<Box::BoxTypes> validator(typeKey, Box::VALID_TYPES);
+    try {
+        this->Type = validator.getEnumValue(bt);
+        this->TypeString = Box::VALID_TYPES[this->Type];
+    } catch (...) {
+        validator.printErrorMessage(bt);
+        std::exit(1);
     }
 }
 //===================================================================
@@ -125,12 +118,23 @@ void Boxes::addBox(Box *b) {
     n_Boxes ++;
 }
 
-void Boxes::printBoxes() {
-    std::vector<Box *>::iterator i;
-    printf("%i Boxes:\n", n_Boxes);
-    for (int i = 0 ; i < n_Boxes; i++) {
-        printf("Box%i :\n", i + 1);
-        box[i]->printBox();
-    }
+void Boxes::addBox(const int &boxNum,
+                   const std::string &boxType,
+                   const std::vector<double> &params,
+                   const std::vector<double> &x,
+                   const std::vector<double> &y,
+                   const std::vector<double> &z,
+                   const std::vector<double> &tilt,
+                   const std::vector<double> &twist) {
+    Box *b = new Box(boxNum);
+    b->setBoxType(boxType);
+    b->Params = params;
+    b->setX(x);
+    b->setY(y);
+    b->setZ(z);
+    b->setTilt(tilt);
+    b->setTwist(twist);
+    this->addBox(b);
 }
+
 
