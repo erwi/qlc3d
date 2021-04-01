@@ -271,10 +271,7 @@ void readSimu(Simu* simu, Reader& reader, EventList& evel){
     if (ret == READER_SUCCESS){
         simu->setTargetdQ(dbl_var);
     }
-    else{
-        exit(1);
-    }
-    //problemo(name, ret);
+    problem(name, ret);
 
     name = "Maxdt";
     ret = reader.readNumber(name , dbl_var);

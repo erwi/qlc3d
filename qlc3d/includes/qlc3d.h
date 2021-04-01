@@ -38,6 +38,7 @@ namespace SpaMtrix{
 #define eps0 8.8541878176e-12
 #define COMPLEX std::complex<double>
 
+int runQlc3d(int argc, char* argv[]);
 
 void ReadGiDMesh3D(Simu *simu,
                    double **p,

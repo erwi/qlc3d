@@ -154,8 +154,7 @@ double updateSolutions(SolutionVector& v, SolutionVector& q , SolutionVector& qn
 }
 
 
-
-int main(int argc, char* argv[]){
+int runQlc3d(int argc, char **argv) {
 
 
     printf("\n\n\n");
@@ -305,7 +304,7 @@ int main(int argc, char* argv[]){
                         settings,
                         Kpot,
                         Kq
-                        );
+    );
     printf("OK\n");
 
 
@@ -415,4 +414,9 @@ int main(int argc, char* argv[]){
 
     return (0);
 }
+
+
+//int main(int argc, char* argv[]){
+//    runQlc3d(argc, argv);
+//}
 // end main
