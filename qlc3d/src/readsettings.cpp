@@ -38,14 +38,14 @@ void readLC(LC& lc,Reader& reader) {
     }
 }//end void readLC
 
-void readSimu(Simu &simu, Reader &reader) {
+void readSimu(Simu &simu, EventList &eventList, Reader &reader) {
     /*! loads values from settings file reader */
     try {
         simu.MeshName = reader.getValueByKey<string>(SFK_MESH_NAME);
         std::string key;
         // Read optional string values
-        simu.LoadQ = reader.get<string>(SFK_LOAD_Q, Simu::DEFAULT_LOAD_Q);
-        simu.SaveDir = reader.get<string>(SFK_SAVE_DIR, Simu::DEFAULT_SAVE_DIR);
+        simu.setLoadQ(reader.get<string>(SFK_LOAD_Q, Simu::DEFAULT_LOAD_Q));
+        simu.setSaveDir(reader.get<string>(SFK_SAVE_DIR, Simu::DEFAULT_SAVE_DIR));
         simu.setQMatrixSolver(reader.get<string>(SFK_Q_MATRIX_SOLVER, Simu::DEFAULT_Q_MATRIX_SOLVER));
         simu.setEndCriterion(reader.get<string>(SFK_END_CRITERION, Simu::DEFAULT_END_CRITERION));
         // string arrays
@@ -67,6 +67,8 @@ void readSimu(Simu &simu, Reader &reader) {
         simu.setdtLimits(reader.get<vector<double> > (SFK_DT_LIMITS, Simu::DEFAULT_DT_LIMITS));
         simu.setdtFunction(reader.get<vector<double> >(SFK_DT_FUNCTION, Simu::DEFAULT_DT_FUNCTION));
         simu.setRegularGridSize(reader.get<vector<idx> >(SFK_REGULAR_GRID_SIZE, Simu::DEFAULT_REGULAR_GRID_SIZE));
+
+        eventList.setSaveIter(simu.getSaveIter());
     } catch (ReaderError e) {
         e.printError();
     }
@@ -326,7 +328,7 @@ void ReadSettings(string settingsFileName,
     reader.setCaseSensitivity(false);
     reader.readSettingsFile(settingsFileName);
     try {
-        readSimu(simu, reader);
+        readSimu(simu, eventList,reader);
         readLC(lc, reader);
         readBoxes(boxes, reader);
         readSolverSettings(settings, reader);

@@ -327,7 +327,9 @@ void assemble_volume(
     SpaMtrix::Vector &L,
     Electrodes *electrodes) {
     Shape4thOrder shapes;
+#ifndef DEBUG
     #pragma omp parallel for
+#endif
     for (idx it = 0; it < mesh->getnElements(); it++) {
         double lK[npt][npt];
         double lL[npt];
@@ -373,7 +375,7 @@ void assemble_Neumann(
     SpaMtrix::IRCMatrix &K,
     SpaMtrix::Vector &L) {
     ShapeSurf4thOrder shapes;
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for (idx it = 0; it < surf_mesh->getnElements(); it++) {
         int index_to_Neumann = surf_mesh->getConnectedVolume(it);
         if ((index_to_Neumann > -1) && (surf_mesh->getMaterialNumber(it) == MAT_NEUMANN)) { // if connected to LC tet

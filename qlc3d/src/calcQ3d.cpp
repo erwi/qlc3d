@@ -133,6 +133,10 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         // ASSEMBLE MATRIX AND RHS (L)
         assembleQ(K, L, q, v, geom.t, geom.e, geom.getPtrTop(), mat_par, simu, alignment, geom.getPtrToNodeNormals());
 
+        //printf("%e, %e, %e, %e, %e\n", L[0], L[100], L[200], L[300], L[400]);
+        //fflush(stdout);
+        //exit(0);
+
         if (isTimeStepping) // make Non-linear Crank-Nicholson RHS
             for (size_t i = 0 ; i < numCols ; i++)
                 L[i] += RHS[i];
