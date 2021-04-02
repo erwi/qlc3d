@@ -88,7 +88,6 @@ private:
     //string  EndCriterion;   // THIS SHOULD BE CHANGED TO AN ENUMERATOR!!
     EndCriteria EndCriterion;
     string  LoadQ;
-    string  CurrentDir;      // working directory of qlc3d.exe
     string  SaveDir;        // directory where results are saved
     string  LoadDir;        // directory from where starting results are loaded
 
@@ -122,7 +121,6 @@ public:
     void PrintSimu();
 
     void setMeshName(string meshname);
-    void setCurrentDir( const string& curdir){CurrentDir = curdir;}
     void setSaveDir(string savedir);
     void setLoadDir(string loaddir);
     void setMaxError(double me);
@@ -170,7 +168,6 @@ public:
     double getTargetPotCons() {return TargetPotCons;}
 
     string  getLoadQ() const {return LoadQ;}
-    string  getCurrentDir()const {return CurrentDir; }
     string  getLoadDir()const {return LoadDir;}
     string  getSaveDir()const {return SaveDir;}
     EndCriteria  getEndCriterion()const {return EndCriterion;}

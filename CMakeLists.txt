@@ -12,7 +12,7 @@ enable_testing()
 add_subdirectory(tests)
 set(QLC3D_EXE $<TARGET_FILE:qlc3d>)
 add_test(NAME temp_test
-        COMMAND ${PYTHON_EXECUTABLE} python/e2e.py ${QLC3D_EXE}
+        COMMAND ${PYTHON_EXECUTABLE} python/e2e_single-newton-iteration.py ${QLC3D_EXE}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests
        )
 # COMMAND temp_test tests/resources/settings.txt

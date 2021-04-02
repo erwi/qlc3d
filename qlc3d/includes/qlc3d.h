@@ -38,9 +38,11 @@ namespace SpaMtrix{
 #define eps0 8.8541878176e-12
 #define COMPLEX std::complex<double>
 
-int runQlc3d(int argc, char* argv[]);
+class Configuration;
 
-void ReadGiDMesh3D(Simu *simu,
+int runQlc3d(Configuration &configuration);
+
+void ReadGiDMesh3D(const std::string &fileName,
                    double **p,
                    idx *np,
                    idx **t,
@@ -127,6 +129,7 @@ void CreateSaveDir(Simu* simu); //creates new save dir, if needed
 // -----------------------------
 
 void prepareGeometry(Geometry& geom,    // defined in inits.cpp
+                     const std::string &meshFileName,
                      Simu& simu,
                      Alignment& ali,
                      Electrodes& electrodes);

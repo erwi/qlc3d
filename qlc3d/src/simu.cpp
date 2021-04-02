@@ -40,7 +40,6 @@ Simu::Simu():
     Maxdt(DEFAULT_MAX_DT),
     EndCriterion(Time),
     LoadQ(DEFAULT_LOAD_Q),
-    CurrentDir(""),
     SaveDir(DEFAULT_SAVE_DIR),
     LoadDir(""),
     EndValue(DEFAULT_END_VALUE),
@@ -255,9 +254,6 @@ void Simu::setStretchVector(const std::vector<double> vec3) {
     for (int i = 0; i < 3; i++)
         StretchVector[i] = vec3.at(i);
 }
-
-
-
 
 string Simu::getMeshName() const {
     // returns mesh name with mesh number appended

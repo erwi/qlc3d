@@ -55,7 +55,8 @@ def run_test(executable):
     command = executable + " " + settings_file + " " + project_dir
     print("command=" + command)
     sys.stdout.flush()
-    os.system(command)
+    exitCode = os.system(command)
+    assert_equals(0, exitCode)
     print("end")
     sys.stdout.flush()
 

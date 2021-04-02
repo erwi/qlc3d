@@ -19,6 +19,7 @@
 #include <eventhandler.h>
 #include <calcpot3d.h>
 #include <resultoutput.h>
+#include <configuration.h>
 
 #include <spamtrix_ircmatrix.hpp>
 
@@ -154,9 +155,7 @@ double updateSolutions(SolutionVector& v, SolutionVector& q , SolutionVector& qn
 }
 
 
-int runQlc3d(int argc, char **argv) {
-
-
+int runQlc3d(Configuration &configuration) {
     printf("\n\n\n");
     printf("=============================================================\n");
     printf("=                                                           =\n");
@@ -166,9 +165,6 @@ int runQlc3d(int argc, char **argv) {
     printf("=============================================================\n");
     printf("\n\n\n");
 
-
-
-    //*
     // Simulation settings (material parameters etc.)
     Simu	simu;
     Electrodes	electrodes;
@@ -179,29 +175,16 @@ int runQlc3d(int argc, char **argv) {
     RegularGrid regGrid;
     EventList eventlist;
     Settings settings;
-    string settings_filename = "./meshes/test.txt"; 	// default settings file, loaded when no i/p args.
-    simu.setCurrentDir( FilesysFun::getCurrentDirectory() );
 
-
-
-    // IF SETTINGS FILENAME HAS BEEN DEFINED AS COMMAND LINE ARGUMENT
-    if ( argc >= 2){
-        settings_filename.clear();
-        settings_filename = argv[1];  // change if set by command line argument
-    }
-    // IF WORKING DIR HAS BEEN DEFINED AS COMMAND LINE ARGUMENT
-    if (argc >= 3 ){
-        simu.setCurrentDir( argv[2] );
-    }
     // CHANGE CURRENT DIR TO WORKING DIRECTORY
-    if ( !FilesysFun::setCurrentDirectory( simu.getCurrentDir() ) ){
-        printf("error, could not set working directory to:\n%s\nbye!", simu.getCurrentDir().c_str() );
+    if ( !FilesysFun::setCurrentDirectory(configuration.currentDirectory()) ){
+        printf("error, could not set working directory to:\n%s\nbye!", configuration.currentDirectory().c_str() );
         exit(1);
     }
 
     printf("current working directory:\n%s\n", FilesysFun::getCurrentDirectory().c_str() );
 
-    ReadSettings(settings_filename, // CHANGE POINTERS TO REFS.
+    ReadSettings(configuration.settingsFileName(),
                  simu,
                  lc,
                  boxes,
@@ -211,15 +194,13 @@ int runQlc3d(int argc, char **argv) {
                  eventlist,
                  settings);
 
-
-    // CREATE A BACKUP OF SETTINGS FILE INTO RESULT SAVE DIRECTORY
-    if (! FilesysFun::copyFile( settings_filename, simu.getSaveDir(), "settings.qfg") )    {
+    // Create a backup settings file in the results directory
+    if (!FilesysFun::copyFile( configuration.settingsFileName(), simu.getSaveDir(), "settings.qfg") )    {
         printf("error, could not back up settings file - bye!\n");
         return 1;
     }
 
     FILE* Energy_fid = NULL; // file for outputting free energy
-    //ReadSolverSettings("solver.qfg", &settings);
 
     selectQMatrixSolver(simu, lc);
 
@@ -229,7 +210,11 @@ int runQlc3d(int argc, char **argv) {
     // ================================================================
     Geometry geom1 = Geometry();	    // empty working geometry object
     Geometry geom_orig = Geometry();    // empty original geom object, loaded from file
-    prepareGeometry(geom_orig, simu,    // mesh file is read and geometry is loaded in this function (in inits.cpp)
+    std::string meshName = configuration.currentDirectory() + "/" + simu.MeshName; // TODO
+    // mesh file is read and geometry is loaded in this function (in inits.cpp)
+    prepareGeometry(geom_orig,
+                    meshName,
+                    simu,
                     alignment, electrodes);
     geom1.setTo(&geom_orig);            // in the beginning working geometry is original
 
@@ -401,7 +386,7 @@ int runQlc3d(int argc, char **argv) {
     simu.setCurrentIteration( SIMU_END_SIMULATION );
     FilesysFun::setCurrentDirectory( simu.getSaveDir() ); // GOTO OUPUT DIR
     LCviewIO::WriteLCViewResult(&simu, &lc , &geom1, &v, &q);
-    FilesysFun::setCurrentDirectory( simu.getCurrentDir() );// GO BACK TO EXECUTABLE DIR
+    FilesysFun::setCurrentDirectory(configuration.currentDirectory());// GO BACK TO EXECUTABLE DIR
     //handleEvents()
 
     printf("OK\n");

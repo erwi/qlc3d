@@ -214,36 +214,40 @@ bool isTextFile(std::ifstream &fin)
     return true;
 }
 
-void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
-                   idx *ne, idx **matt, idx **mate)
+void ReadGiDMesh3D(const std::string &meshFileName,
+                   double **p,
+                   idx *np,
+                   idx **t,
+                   idx *nt,
+                   idx **e,
+                   idx *ne,
+                   idx **matt,
+                   idx **mate)
 {
-
     using namespace std;
     idx nperi = 0;
     ifstream fin;
     char *charray 	= (char*)malloc(200*sizeof(char));
 
-    string filename = simu->MeshName;
-    cout <<"Attempting to open mesh file: " << simu->getCurrentDir() + "/" + filename  << endl;
-    fin.open(filename.c_str());
+    cout <<"Attempting to open mesh file: " << meshFileName  << endl;
+    fin.open(meshFileName.c_str());
 
     if (!fin.good() ) {
         std::cerr << "error - could not find mesh file."<< endl;
-        std::cerr << "was loking for mesh:\n" << simu->getCurrentDir() +"/"+ filename << endl;
+        std::cerr << "was looking for mesh:\n" << meshFileName << endl;
         std::cerr << "check your settings file for mistakes.\nBye!" << endl;
-
         exit(1);
     }
-    else{ // FILE OPENED OK
-        printf("Reading GID mesh file: %s \n", filename.c_str()); fflush(stdout);
-        // STUDENTS ARE BAD AT EXPORTING GID MESHES. CHECH WHETHER IT IS TEXT/BINARY FORMAT
+    else{ // File opened OK
+        printf("Reading GID mesh file: %s \n", meshFileName.c_str()); fflush(stdout);
+        // STUDENTS ARE BAD AT EXPORTING GID MESHES. CHECK WHETHER IT IS TEXT/BINARY FORMAT
         if ( !isTextFile(fin) ){
             std::cout << "Error, mesh file contains invalid characters."<< std::endl;
             std::cout << "This usually happens when mesh is not properly exported from GiD." << std::endl;
             std::cout << "Bye!" << std::endl;
             exit(1);
         }
-        //printf("a");
+
         np[0] = 0;
         nt[0] = 0;
         ne[0] = 0;
@@ -299,7 +303,6 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
             }
         }
 
-
         printf("Tets = %u , Tris = %u , Peri = %u, nodes = %u\n", nt[0], ne[0] , nperi, np[0]);
         double *dp 		= (double*) malloc(3*np[0]*sizeof(double));
         idx *dt			= (idx*)  malloc(4*nt[0]*sizeof(idx));
@@ -338,8 +341,6 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
                 ReadTriangles(&fin,ne[0],de,dmate);
             }
         } // end read while loop
-
-
 
         // ONLY POSITIVE COORDINATES ALLOWED - MOVE IF NECESSARY
         double xmin,ymin,zmin,xmax,ymax,zmax;

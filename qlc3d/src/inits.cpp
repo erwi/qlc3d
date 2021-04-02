@@ -99,6 +99,7 @@ void validateTetrahedralMaterials(const idx* const matt, idx nt){
 
 // FUNCTIONS  BELOW DECALRED IN qlc3d.h
 void prepareGeometry(Geometry& geom,
+                     const std::string &meshFileName,
                      Simu& simu,
                      Alignment& alignment,
                      Electrodes& electrodes) {
@@ -112,17 +113,16 @@ void prepareGeometry(Geometry& geom,
 
     // Check whether to read mesh from text file or binary 'geo'-file
     // determine by file extension
-    std::string filename = simu.MeshName;
-    size_t point = filename.find_last_of('.');  // index to separator point
-    string extension = filename.substr(point + 1);
+    size_t point = meshFileName.find_last_of('.');  // index to separator point
+    string extension = meshFileName.substr(point + 1);
 
     if (extension.compare("geo") == 0 ) { // IF BINARY "SECRET" MESH
         printf(" reading .geo file\n");
-        readBinaryMesh(filename, p ,t, tmat, e, emat, &np, &nt, &ne);
+        readBinaryMesh(meshFileName, p ,t, tmat, e, emat, &np, &nt, &ne);
     }
     else {
         printf(" reading .%s file\n", extension.c_str() );
-        ReadGiDMesh3D(&simu,&p,&np,&t,&nt,&e,&ne,&tmat,&emat);
+        ReadGiDMesh3D(meshFileName,&p,&np,&t,&nt,&e,&ne,&tmat,&emat);
     }
 
     // PEOPLE DO STUPID THINGS IN GiD. NEED TO VALIDATE MATERIAL NUMBERS

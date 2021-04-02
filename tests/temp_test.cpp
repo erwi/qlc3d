@@ -6,18 +6,4 @@
 #include <filesystem>
 int main(int narg, char** args) {
     using namespace std;
-
-
-    //cout <<"temp dir" << std::filesystem
-
-    for (int i = 0; i < narg; i++) {
-        cout << args[i] << endl;
-    }
-    try {
-        runQlc3d(narg, args);
-    } catch (...) {
-        cout << "booo" << endl;
-    }
-
-    cout << "EXIT OK " << endl;
 }
