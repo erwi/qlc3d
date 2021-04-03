@@ -52,7 +52,7 @@ void readSimu(Simu &simu, EventList &eventList, Reader &reader) {
         simu.setSaveFormats(reader.get<vector<string> >(SFK_SAVE_FORMAT, Simu::DEFAULT_SAVE_FORMATS));
         // Read optional scalar values
         simu.setEndValue(reader.get<double>(SFK_END_VALUE, Simu::DEFAULT_END_VALUE));
-        simu.setdt(reader.get<double>(SFK_DT, Simu::DEFAULT_DT));
+        simu.initialTimeStep(reader.get<double>(SFK_DT, Simu::DEFAULT_DT));
         simu.setTargetdQ(reader.get<double>(SFK_TARGET_DQ, Simu::DEFAULT_TARGET_DQ));
         simu.setMaxdt(reader.get<double>(SFK_MAX_DT, Simu::DEFAULT_MAX_DT));
         simu.setMaxError(reader.get<double>(SFK_MAX_ERROR, Simu::DEFAULT_MAX_ERROR));
@@ -323,7 +323,8 @@ void ReadSettings(string settingsFileName,
                   Alignment &alignment,
                   Electrodes &electrodes,
                   MeshRefinement &meshrefinement, // <--- unused param.
-                  EventList &eventList, Settings &settings) {
+                  EventList &eventList,
+                  Settings &settings) {
     Reader reader;
     reader.setCaseSensitivity(false);
     reader.readSettingsFile(settingsFileName);
@@ -338,8 +339,6 @@ void ReadSettings(string settingsFileName,
     } catch (ReaderError e) {
         e.printError();
     }
-    //std::cout << "EXIT OK " << std::endl;
-    //exit(1);
 }
 // end ReadSettings
 

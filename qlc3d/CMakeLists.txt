@@ -4,7 +4,7 @@ PROJECT (qlc3d)
 add_definitions(-DLinux) ## Must choose either -DLinux OR -DWindows
 add_definitions(-DDEBUG) # DISABLES OPENMP PRAGMAS
 #
-# Should be no need to change settings below
+# Should be no need to change_ settings below
 #
 #set(CMAKE_BUILD_TYPE )
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++0x")

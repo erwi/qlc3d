@@ -75,19 +75,18 @@ void init_shape() {
 }// end namespace Energy
 
 
-void CalculateFreeEnergy(FILE *fid, Simu *simu, LC *lc, Geometry *geom, SolutionVector *v, SolutionVector *q) {
+void CalculateFreeEnergy(FILE *fid,
+                         int currentIteration,
+                         double currentTime,
+                         LC *lc,
+                         Geometry *geom,
+                         SolutionVector *v,
+                         SolutionVector *q) {
     using std::cout;
     using std::endl;
-    if (! simu->getOutputEnergy() == 1) // RETURN IF ENERGY CALCULATION NOT SET TO TRUE
-        return;
     cout << " Calculating free energy..."; fflush(stdout);
-    //if (lc->PhysicsFormulation == LC::BluePhase )
-    //{
-    //    double Ftot = calculateBluePhaseEnergy(*geom, *q, *v, *lc);
-    //    cout << "BLUE PHASE ENERGY = " << Ftot << endl;
-    //}
     // IF FIRST ITERATION, PRINT HEADERS
-    if (simu->getCurrentIteration() == 1) {
+    if (currentIteration == 1) {
         fprintf(fid, "%% columns are:\n");
         fprintf(fid, "%% time[s],splay,twist,bend,thermotropic,dielectric\n");
         fprintf(fid, "F = [ ...\n");
@@ -241,7 +240,7 @@ void CalculateFreeEnergy(FILE *fid, Simu *simu, LC *lc, Geometry *geom, Solution
     //    fprintf(fid,"%e\t%e\t%e\t%e;\n", simu->getCurrentTime(), Fd, Fth, Fe);
     //}
     //else{
-    fprintf(fid, "%e\t%e\t%e\t%e\t%e\t%e;\n", simu->getCurrentTime(), F11, F22, F33 , Fth , Fe);
+    fprintf(fid, "%e\t%e\t%e\t%e\t%e\t%e;\n", currentTime, F11, F22, F33 , Fth , Fe);
     //}
     printf("OK\n");
 }

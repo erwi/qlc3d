@@ -8,16 +8,13 @@
 #include <math.h>
 #include <vector>
 #include <globals.h>
-//#include <reader.h>
-#define SIMU_N  0
 #define SIMU_END_SIMULATION -20000000 // magic minus bignum
-
 #define SIMU_OUTPUT_FORMAT_BINARY 	0
 #define SIMU_OUTPUT_FORMAT_TEXT		1
 
 class Reader; // forward declaration of settings file reader
-
 enum PotentialConsistency {Off, Loop};
+enum SimulationMode {TimeStepping, SteadyState};
 
 using namespace std;
 class Simu
@@ -43,6 +40,10 @@ public:
     enum QMatrixSolvers { Auto  = 0,
                           PCG   = 1,
                           GMRES = 2};
+    enum EndCriteria {
+        Iterations = 0, Time = 1, Change = 2
+    };
+
     //
     // Declare default values for parameters in Simu
     const static vector<string> VALID_END_CRITERIA;
@@ -70,22 +71,19 @@ public:
     const static vector<double> DEFAULT_DT_FUNCTION;
     const static vector<idx>    DEFAULT_REGULAR_GRID_SIZE;
 private:
-
-    enum EndCriteria {Iterations=0, Time=1, Change=2};
+    //! initial time step is set by user in configuration, the actual time step may change_ during the simulation.
+    double initialTimeStep_;
     QMatrixSolvers QMatrixSolver;
 
     PotentialConsistency PotCons;
     double TargetPotCons; // minimum potential consistency when PotCons == Loop
-    double MaxError;
-    double CurrentTime;
-    double CurrentChange; // change in Q, for determining convergence
+    double MaxError; // TODO: what is this? is it needed? is it user config or some state which should not live here
 
     // ADAPTIVE TIME-STEPPING VARIABLES
     double  TargetdQ;
     double  dtLimits[2];
     double  dtFunction[4];
     double  Maxdt;
-    //string  EndCriterion;   // THIS SHOULD BE CHANGED TO AN ENUMERATOR!!
     EndCriteria EndCriterion;
     string  LoadQ;
     string  SaveDir;        // directory where results are saved
@@ -95,10 +93,11 @@ private:
     double  EndValue_orig;   // original end values as defined in settings file. this is needed when end refinement is used
     double  StretchVector[3];
     double  EnergyRegion[3]; // x,y,z coordinates for determining regions above/below which to calculate energy TODO: get rid of
-    int CurrentIteration;
     bool AssembleMatrix;
 
+    // TODO: mutable state!
     bool MeshModified;
+    // TODO: mutable state!
     int MeshNumber;     // counts number of modifications. This number is appended to the end of mesh name
     int	OutputEnergy;	// boolean whether or not to calculate energy
     int	OutputFormat;   // 0/1 -> binary/text (for SaveFormat = LCview)
@@ -114,11 +113,14 @@ private:
 public:
 
     string MeshName;
-    double dt;
+
+    // TODO: mutable state
     bool restrictedTimeStep; // flag to allow/disallow adapting time step size (e.g. just after potential switching)
 
     Simu();
-    void PrintSimu();
+    void initialTimeStep(const double &timeStep) { initialTimeStep_ = timeStep; }
+    double initialTimeStep() const { return initialTimeStep_; }
+    SimulationMode simulationMode() const { return initialTimeStep_ > 0 ? TimeStepping : SteadyState; }
 
     void setMeshName(string meshname);
     void setSaveDir(string savedir);
@@ -126,7 +128,7 @@ public:
     void setMaxError(double me);
     void setEndCriterion( string ec);
     void setEndValue(double ev);
-    void resetEndCriterion();       // starts simulation from beginning
+
     void setdt(const double &td);  // set dt, but clamps between min-max values
     void setdtForced(const double &dt); // force-sets dt, does not care about min-max values
     void setdtLimits(const vector<double> &vec2);
@@ -175,12 +177,10 @@ public:
     string  getMeshFileNameOnly(); // returns mesh filename, without directory
 
     double getMaxError()const {return MaxError;}
-    inline double getdt()const {return dt;}
+    //inline double getdt()const {return dt;}
     inline double getTargetdQ()const{return TargetdQ;}
     inline double getMaxdt()const{return dtLimits[1];}
     inline double getMindt()const{return dtLimits[0];}
-    double getCurrentTime() const {return CurrentTime; }
-    double getCurrentChange()const {return CurrentChange;}
     double getEndValue()const {return EndValue;}
 
     double getStretchVectorX()const {return StretchVector[0];}
@@ -192,7 +192,7 @@ public:
     inline double getEnergyRegionZ(){return EnergyRegion[2];}
     int getSaveIter() const{ return SaveIter;}
 
-    int getCurrentIteration() const {return CurrentIteration;}
+    //int getCurrentIteration() const {return CurrentIteration;}
     int getOutputEnergy()const{return OutputEnergy;}
     int getOutputFormat()const{return OutputFormat;}
 

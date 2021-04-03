@@ -9,6 +9,7 @@
 #include <refinfo.h>
 // Forward declarations
 class Simu;
+class SimulationState;
 class Reader;
 using namespace std;
 // EVENT CAN OCCUR:
@@ -91,7 +92,7 @@ public:
     EventList();
     ~EventList();
     bool eventsInQueue() const; // return true if further events exist in queue
-    bool eventOccursNow(const Simu &simu) const;
+    bool eventOccursNow(const SimulationState &simulationState) const;
     void insertTimeEvent(Event *tEvent);
     void insertIterEvent(Event *iEvent);
     void setSaveIter(const size_t &si) {
@@ -111,13 +112,11 @@ public:
         repRefTime_ = rrt;
     }
     void addRepRefInfo(Event *repRefEvent);     // ADDS REPEATING EVENT TO repRefinements LIST
-    Event *getCurrentEvent(const Simu &simu);   // removes current event from queue and returns a copy of it
-    double timeUntilNextEvent(const Simu &simu) const;
-    void manageReoccurringEvents(Simu &simu);   // PERIODICALLY ADDS REOCCURING EVENTS TO EVENT QUEQUE
-    void printEventList() const;                // debug printout of event list
-    void readSettingsFile(Reader& reader);      // Reads events info from settings file
+    Event *getCurrentEvent(const SimulationState &simulationState);   // removes current event from queue and returns a copy of it
+    double timeUntilNextEvent(const double &currentTime) const;
 
-
+    //! Adds reoccurring event to queue
+    void manageReoccurringEvents(int currentIteration, double currentTime, double timeStep);
 };
 #endif
 

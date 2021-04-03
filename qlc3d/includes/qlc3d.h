@@ -22,11 +22,6 @@
 #include <list>
 #include <iostream>
 
-// SPAMTRIX INCLUDES
-//#include <spamtrix_ircmatrix.hpp>
-
-//using std::vector;
-//using std::string;
 namespace SpaMtrix{
     class IRCMatrix;
     class Vector;
@@ -35,12 +30,7 @@ namespace SpaMtrix{
     #define PI 3.14159265358979323846264338327950288419716939937510
 #endif
 
-#define eps0 8.8541878176e-12
-#define COMPLEX std::complex<double>
-
 class Configuration;
-
-int runQlc3d(Configuration &configuration);
 
 void ReadGiDMesh3D(const std::string &fileName,
                    double **p,
@@ -65,7 +55,7 @@ void assemble_prev_rhs(SpaMtrix::Vector &Ln,
 		       SolutionVector& qn,
 		       SolutionVector& v,
                        LC&mat_par,
-                       Simu& simu,
+                       double dt,
                        Geometry& geom);
 
 
@@ -78,7 +68,7 @@ void assembleQ(SpaMtrix::IRCMatrix &K,
            Mesh* e,
            double* p,
            LC* mat_par,
-           Simu* simu,
+           double dt,
            Alignment* alignment,
            double* NodeNormals);
 
@@ -89,23 +79,11 @@ double calcQ3d(SolutionVector *q,
                Geometry& geom,
                LC* mat_par,
                Simu* simu,
+               SimulationState &simulationState,
                SpaMtrix::IRCMatrix &Kq,
                Settings* settings,
-               Alignment* alignment);//
-               //double* NodeNormals);
+               Alignment* alignment);
 
-/*
-class SparseMatrix;
-double calcQExplicit(SolutionVector &q,
-                     SolutionVector &v,
-                     SparseMatrix &K,
-                     Geometry &geom,
-                     LC &lc,
-                     Alignment &alignment,
-                     Simu &simu,
-                     Settings &settings
-                     );
-                     */
 class Electrodes;
 class EventList;
 void ReadSettings(
@@ -172,10 +150,6 @@ void tensorToEigs(double* a,		// input Q-tensor, traceless basis
 //                                 const SolutionVector &q,
 //                                 const Settings &set);
 
-
-
-
-
 // CREATES SPAMTRIX SPARSE MATRIC FOR POTENTIAL
 SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
                               SolutionVector &sol,
@@ -185,7 +159,5 @@ SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
 SpaMtrix::IRCMatrix createQMatrix(Geometry &geom,
                         SolutionVector &q,
                         const int& MatNum = MAT_DOMAIN1);
-
-
 #endif
 

@@ -34,8 +34,6 @@ Simu::Simu():
     PotCons(Off),
     TargetPotCons(1e-3),
     MaxError(DEFAULT_MAX_ERROR),
-    CurrentTime(0),
-    CurrentChange(0),
     TargetdQ(DEFAULT_TARGET_DQ),
     Maxdt(DEFAULT_MAX_DT),
     EndCriterion(Time),
@@ -44,8 +42,6 @@ Simu::Simu():
     LoadDir(""),
     EndValue(DEFAULT_END_VALUE),
     EndValue_orig(0),
-    CurrentIteration(0),
-
     AssembleMatrix(true),
     MeshModified(true),
     MeshNumber(0),
@@ -55,8 +51,7 @@ Simu::Simu():
     SaveFormat(LCview),
     numAsseblyThreads(0),       // 0 MEANS USE ALL AVAILABLE, AND IS DEFAULT
     numMatrixSolverThreads(0),
-    MeshName(""),
-    dt(DEFAULT_DT) {
+    MeshName("") {
     // TODO: make dtLimits a std::vector
     std::copy(DEFAULT_DT_LIMITS.begin(), DEFAULT_DT_LIMITS.end(), dtLimits);
     // TODO: make dtFunction a std::vector;
@@ -76,7 +71,6 @@ Simu::Simu():
     // OR AS SPECIFIED IN THE SETTINGS FILE
     QMatrixSolver = Auto;
 }
-void Simu::PrintSimu() {}
 
 void Simu::setSaveDir(string savedir) {
     SaveDir = savedir;
@@ -92,30 +86,6 @@ void Simu::setMaxError(double me) {
         exit(1);
     }
 }
-void Simu::setdt(const double &td) {
-    // clamp time step between min max values if not goinf for steady state (dt=0)
-    if (td > 0) {
-        dt = td;
-        if (td < dtLimits[0])
-            dt = dtLimits[0];
-        if (td > dtLimits[1])
-            dt = dtLimits[1];
-    } else {
-        dt = 0;
-    }
-}
-
-void Simu::setdtForced(const double &dt) {
-    // FORCES VALUE OF DT
-#ifdef DEBUG
-    if (dt <= 0) {
-        printf("warning in %s, trying to set dt to %e\n", __func__, dt);
-        exit(1);
-    }
-#endif
-    this->dt = dt;
-}
-
 
 void Simu::setdtLimits(const vector<double> &vec2) {
     double min = vec2.at(0);
@@ -154,9 +124,9 @@ void Simu::getdtFunction(double *f) {
     f[3] = dtFunction[3];
 }
 
-void Simu::setCurrentIteration(int i) {
-    CurrentIteration = i;
-}
+//void Simu::setCurrentIteration(int i) {
+//    CurrentIteration = i;
+//}
 void Simu::setMaxdt(double maxdt)   {
     Maxdt = maxdt;
 }
@@ -177,37 +147,15 @@ void Simu::setEndValue(double ev) {
         EndValue_orig = ev;
     EndValue = ev;
 }
-void Simu::resetEndCriterion() {
-    /*! Resets simu varibales so that simulation is started from beginning, while continuing
-    with the current result. This is used after an end-refinement is performed to force simulation to do
-    at least one more step.
 
-    For example, is end criterion is MaxChange, Current chancge is
-    set to something large so that simlation is effectively restarted
-    */
-    if (EndCriterion == Change) {
-        // Force more iterations by multiplying current change by 1000.
-        this->setCurrentChange(this->getEndValue() * 1000.f);
-    } else if (EndCriterion == Iterations) {
-        this->setEndValue(this->getEndValue() + this->EndValue_orig);   // end counter by original value defined i nsettings file
-    } else if (EndCriterion == Time) {
-        this->setEndValue(this->EndValue + this->EndValue_orig);
-    }
-}
-
-void Simu::setCurrentTime(double ct)        {
-    CurrentTime = ct;
-}
-void Simu::setAssembleMatrix(bool yn)       {
+void Simu::setAssembleMatrix(bool yn) {
     AssembleMatrix = yn;
 }
-void Simu::setLoadQ(string qbackup)         {
+void Simu::setLoadQ(string qbackup) {
     LoadQ  = qbackup;
 }
-void Simu::setCurrentChange(double ch)      {
-    CurrentChange = ch;
-}
-void Simu::setMeshName(string meshname)     {
+
+void Simu::setMeshName(string meshname) {
     MeshName = meshname;
 }
 void Simu::setOutputEnergy(int ope) {
@@ -274,32 +222,6 @@ string Simu::getMeshFileNameOnly() {
     if (pos != std::string::npos)
         meshname = meshname.substr(pos + 1 , meshname.length() + 1 - pos);
     return meshname;
-}
-
-void Simu::IncrementCurrentTime() {
-    CurrentTime += dt;
-}
-void Simu::IncrementCurrentIteration()      {
-    CurrentIteration ++;
-}
-bool Simu::IsRunning()const {
-    if (EndCriterion == Iterations) {
-        if (CurrentIteration > (int) EndValue) return false;
-    } else if (EndCriterion == Time) {
-        if (CurrentTime > EndValue) return false;
-    } else if (EndCriterion == Change) {
-        if (dt > 0) {
-            printf("\tdQ / dt = %1.3e , EndValue = %1.3e\n", fabs(getCurrentChange()), EndValue);
-            if (fabs(getCurrentChange()) <= EndValue)    // if dQ / dt < maxchange
-                return false;
-        }
-        if (fabs(getCurrentChange()) <= EndValue)
-            return false;
-    } else {
-        printf("error - Simu::IsRunning() - unknowns EndCriterion - bye!\n");
-        exit(1);
-    }
-    return true;
 }
 
 void Simu::addSaveFormat(std::string format) {

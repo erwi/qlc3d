@@ -1,30 +1,28 @@
 #include <eventhandler.h>
 #include <filesysfun.h>
 #include <qlc3d.h>
-
+#include <simulation-state.h>
 #include <filesystem>
 
 void handleElectrodeSwitching(Event *currentEvent,
                               Electrodes &electr,
                               SolutionVector &v,
-                              Simu &simu) {
-// SWITCHES ELECTRODE
-
-
+                              Simu &simu,
+                              SimulationState &simulationState) {
+    // SWITCHES ELECTRODE
     // GET SWITCHING EVENT DATA
     SwitchingInstance *si = static_cast<SwitchingInstance *> ( currentEvent->getEventDataPtr());
-    if (!si) {
-        printf("error in %s, NULL pointer received\n", __func__);
-        exit(1);
+    assert(si != nullptr);
+
+    // If time stepping, reduce step size to minimum
+    if (simu.simulationMode() == TimeStepping) {
+        simulationState.dt(simu.getMindt());
     }
 
-// IF TIME-STEPPING REDUCE STEP SIZE TO MINIMUM
-    if (simu.getdt() != 0.0)
-        simu.setdt(simu.getMindt());
-
     // IF SWITCHING INSTANCE IS A FLAG FOR UNIFORM ELECTRIC FIELD, CAN EXIT
-    if (si->electrodeNumber == SwitchingInstance::UNIFORM_E_FIELD)
+    if (si->electrodeNumber == SwitchingInstance::UNIFORM_E_FIELD) {
         return;
+    }
 
     // SET THE NEW ELECTRODE VALUE. FIRST CHECK THAT
     electr.setElectrodePotential(si->electrodeNumber, si->potential);
@@ -34,30 +32,31 @@ void handleElectrodeSwitching(Event *currentEvent,
     v.setToFixedValues();
 }
 
-void handleResultOutput(Simu &simu,
+void handleResultOutput(int currentIteration,
+                        double currentTime,
+                        Simu &simu,
                         LC &lc,
                         Geometry &geom,
                         SolutionVector &v,
                         SolutionVector &q) {
     std::string currentDirectory = std::filesystem::current_path().c_str();
-
     // Change to result output directory
     FilesysFun::setCurrentDirectory(simu.getSaveDir());
     double *director(NULL); // TODO: use vector
 
     if (simu.getSaveFormat() & Simu::LCview) {
-        LCviewIO::WriteLCD_B(geom.getPtrTop(), geom.t, geom.e, &v, &q, &simu, &lc);
+        LCviewIO::WriteLCD_B(geom.getPtrTop(), geom.t, geom.e, &v, &q, currentIteration, currentTime, &simu, &lc);
     }
 
     // WRITE TEXT FORMAT LCVIEW RESULT
     if (simu.getSaveFormat() & Simu::LCviewTXT) {
-        LCviewIO::WriteLCD(geom.getPtrTop(), geom.t, geom.e, &v, &q, &simu);
+        LCviewIO::WriteLCD(geom.getPtrTop(), geom.t, geom.e, &v, &q, &simu, currentIteration, currentTime);
     }
 
     if (simu.getSaveFormat() & Simu::RegularVTK) {
         std::stringstream ss;
         std::string filename;
-        ss << "regularvtk" << simu.getCurrentIteration() << ".vtk";
+        ss << "regularvtk" << currentIteration << ".vtk";
         ss >> filename;
         if (!director)
             director = tensortovector(q.Values, geom.getnpLC());
@@ -71,7 +70,7 @@ void handleResultOutput(Simu &simu,
     if (simu.getSaveFormat() & Simu::RegularVecMat) {
         std::stringstream ss;
         std::string filename;
-        ss << "regularvec" << simu.getCurrentIteration() << ".m";
+        ss << "regularvec" << currentIteration << ".m";
         ss >> filename;
         if (!director)
             director = tensortovector(q.Values, geom.getnpLC());
@@ -81,13 +80,13 @@ void handleResultOutput(Simu &simu,
                           v.Values,
                           director,
                           geom.getnpLC(),
-                          simu.getCurrentTime());
+                          currentTime);
     }
     if (simu.getSaveFormat() & Simu::DirStackZ) {
         cout << "REGULAR DIR STACKZ" << endl;
         std::stringstream ss;
         std::string filename;
-        ss << "dirstackz" << simu.getCurrentIteration() << ".csv";
+        ss << "dirstackz" << currentIteration << ".csv";
         ss >> filename;
         if (!director)
             director = tensortovector(q.Values, geom.getnpLC());
@@ -95,7 +94,7 @@ void handleResultOutput(Simu &simu,
         rGrid.writeDirStackZ(filename.c_str(),
                              director,
                              geom.getnpLC(),
-                             simu.getCurrentTime());
+                             currentTime);
     }
 
     if (director) { // TODO: use vector
@@ -104,31 +103,36 @@ void handleResultOutput(Simu &simu,
     FilesysFun::setCurrentDirectory(currentDirectory); // Go back to execution directory
 }
 
-
-void handleInitialEvents(EventList &evel,          // EVENT LIST
-                         Electrodes &electrodes,   // ELECTRODES WITH POTENTIALS AND TIMING
-                         Alignment &alignment,     // ANCHORING CONDITIONS
-                         Simu &simu,               // VARIOUS SIMU SETTINGS
-                         Geometries &geometries,   // POINTERS TO CURRENT MESHES
-                         SolutionVectors &solutionvectors, // PTRS TO SOLUTIONS
-                         LC &lc,                   // MATERIAL PARAMS.
-                         Settings &settings,       // SPARSE SOLVER SETTINGS
+/**
+ * THIS IS ONLY CALLED BEFORE SIMULATION STARTS, DOES NOT
+ * NEED TO BE AS GENERAL AS handleEvents.
+ * TAKES CARE OF:
+ *     PRE-REFINEMENT
+ *     CALCULATING INITIAL POTENTIALS
+ *     OUTPUT result_initial FILE
+ */
+void handleInitialEvents(SimulationState &simulationState, // non-const since dt may change_
+                         EventList &evel,
+                         Electrodes &electrodes,
+                         Alignment &alignment,
+                         Simu &simu,
+                         Geometries &geometries,
+                         SolutionVectors &solutionvectors,
+                         LC &lc,
+                         Settings &settings,
                          SpaMtrix::IRCMatrix &Kpot,
                          SpaMtrix::IRCMatrix &Kq
 ) {
-// THIS IS ONLY CALLED BEFORE SIMULATION STARTS, DOES NOT
-// NEED TO BE AS GENERAL AS handleEvents.
-// TAKES CARE OF:
-//      PRE-REFINEMENT
-//      CALCULATING INITIAL POTENTIALS
-//      OUTPUT result_initial FILE
 
+    int currentIteration = simulationState.currentIteration();
+    double currentTime = simulationState.currentTime();
+    double timeStep = simulationState.dt();
 // IF NEEDS PRE-REFINEMENT. DO IT FIRST
     bool refineMesh = false;
 
     std::list<Event *> refEvents;    // REFINEMENT EVENTS EXECUTED TOGETHER
-    while (evel.eventOccursNow(simu)) {
-        Event *currentEvent = evel.getCurrentEvent(simu); // removes event from queue to be processed
+    while (evel.eventOccursNow(simulationState)) {
+        Event *currentEvent = evel.getCurrentEvent(simulationState); // removes event from queue to be processed
         EventType et = currentEvent->getEventType();
         // REMOVE EVENT FROM LIST AND GET ITS TYPE
         ///EventType et = evel.popCurrentEvent( simu );
@@ -142,7 +146,8 @@ void handleInitialEvents(EventList &evel,          // EVENT LIST
                 handleElectrodeSwitching(currentEvent,
                                          electrodes,
                                          *solutionvectors.v,
-                                         simu);
+                                         simu,
+                                         simulationState);
                 delete currentEvent; // NOT NEEDED ANYMORE
                 break;
             case (EVENT_REFINEMENT): // REFINE MESH
@@ -155,19 +160,19 @@ void handleInitialEvents(EventList &evel,          // EVENT LIST
         }
     }
     if (refineMesh) {
-
         handlePreRefinement(refEvents,
                             geometries,
                             solutionvectors,
                             simu,
+                            simulationState,
                             alignment,
                             electrodes,
                             lc,
                             Kpot,
                             Kq); // defined in refinementhandler.cpp
-
     }
-// ALWAYS CALCULATE INITIAL POTENTIAL
+
+    // ALWAYS CALCULATE INITIAL POTENTIAL
     calcpot3d(Kpot,
               solutionvectors.v,
               solutionvectors.q,
@@ -176,78 +181,77 @@ void handleInitialEvents(EventList &evel,          // EVENT LIST
               &settings,
               &electrodes);
 
-// WRITE INITIAL RESULT FILE. ALWAYS!
-
-    handleResultOutput(simu,
+    // WRITE INITIAL RESULT FILE. ALWAYS!
+    handleResultOutput(currentIteration,
+                       currentTime,
+                       simu,
                        lc,
                        *geometries.geom,
                        *solutionvectors.v,
                        *solutionvectors.q);
 
-// ADD REOCCURRING EVENTS
-    evel.manageReoccurringEvents(simu);
-
+    // ADD REOCCURRING EVENTS
+    evel.manageReoccurringEvents(currentIteration, currentTime, timeStep);
 }
 
-void reduceTimeStep(Simu &simu, EventList &evel) {
-// REDUCES TIME STEP SIZE IF NECESSARY, SO THAT NEXT ITERATION
-// COINCIDES WITH NEXT TIME EVENT
-
-    if (simu.getdt() == 0) return; // ONLY NEEDED WHEN TIME-STEPPING
+/*!
+ * Reduces time step if necessary so that next time step does not skip over next event.
+ */
+void reduceTimeStep(SimulationState &simulationState, EventList &eventList) {
+    double dt = simulationState.dt();
+    double currentTime = simulationState.currentTime();
+    assert(dt > 0);
 
     // FIND TIME UNTIL NEXT EVENT
-    double tNext = evel.timeUntilNextEvent(simu);
-    if (tNext < 0) {
-        printf("error in %s, event missed - bye %es.!\n", __func__, tNext);
-        evel.printEventList();
-        exit(1);
+    double tNext = eventList.timeUntilNextEvent(currentTime);
+    assert(tNext > 0); // next time step should be in future
+
+    if (tNext < dt) {
+        simulationState.dt(tNext);
     }
-
-    if (tNext < simu.getdt())
-        simu.setdtForced(tNext);
-
 }
 
-void handleEvents(EventList &evel,          // EVENT LIST
-                  Electrodes &electrodes,   // ELECTRODES WITH POTENTIALS AND TIMING
-                  Alignment &alignment,     // ANCHORING CONDITIONS
-                  Simu &simu,               // VARIOUS SIMU SETTINGS
-                  Geometries &geometries,   // POINTERS TO CURRENT MESHES
-                  SolutionVectors &solutionvectors, // PTRS TO SOLUTIONS
-                  LC &lc,                   // MATERIAL PARAMS.
-                  Settings &settings,       // SPARSE SOLVER SETTINGS
+void handleEvents(EventList &evel,
+                  Electrodes &electrodes,
+                  Alignment &alignment,
+                  Simu &simu,
+                  SimulationState& simulationState, // non-const, dt may be modified
+                  Geometries &geometries,
+                  SolutionVectors &solutionvectors,
+                  LC &lc,
+                  Settings &settings,
                   SpaMtrix::IRCMatrix &Kpot,
                   SpaMtrix::IRCMatrix &Kq
 ) {
-
+    //int currentIteration = simulationState.currentIteration();
 
 // LEAVE IF NO EVENTS LEFT IN QUEUE
-    if (!evel.eventsInQueue())    // event queue is empty
-    {
-        evel.manageReoccurringEvents(simu);
-        reduceTimeStep(simu, evel);
+    if (!evel.eventsInQueue()) {    // event queue is empty
+        evel.manageReoccurringEvents(simulationState.currentIteration(),
+                                     simulationState.currentTime(),
+                                     simulationState.dt());
+        if (simu.simulationMode() == TimeStepping) {
+            reduceTimeStep(simulationState, evel);
+        }
         return;
     }
 
-
-// EVENTS ARE ORDERED BY TIME/ITERATION NUMBER,
-// BUT NOT ACCORDING TO TYPE. HOWEVER, DIFFERENT
-// EVENT TYPES SHOULD ALSO BE EXECUTED IN PARTICULAR ORDER
-// (e.g. UPDATE POTENTIAL VALUES BEFORE SAVING NEW RESULT FILE)
-// USE FOLLOWING FLAGS TO DETERMINE THIS
+    // EVENTS ARE ORDERED BY TIME/ITERATION NUMBER,
+    // BUT NOT ACCORDING TO TYPE. HOWEVER, DIFFERENT
+    // EVENT TYPES SHOULD ALSO BE EXECUTED IN PARTICULAR ORDER
+    // (e.g. UPDATE POTENTIAL VALUES BEFORE SAVING NEW RESULT FILE)
+    // USE FOLLOWING FLAGS TO DETERMINE THIS
     bool recalculatePotential = false;
     bool saveResult = false;
     bool refineMesh = false;
 
-
-// CHECK WHICH EVENTS ARE OCCURRING *NOW* AND SET CORRESPONFING
-// FLAGS + OTHER PRE-EVENT PROCESSING
-
+    // CHECK WHICH EVENTS ARE OCCURRING *NOW* AND SET CORRESPONFING
+    // FLAGS + OTHER PRE-EVENT PROCESSING
     std::list<Event *> refEvents; // STORES REF-EVENTS THAT NEED TO BE EXECUTED
 
-    while (evel.eventOccursNow(simu)) {
+    while (evel.eventOccursNow(simulationState)) {
         // REMOVE EVENT FROM LIST AND GET ITS TYPE
-        Event *currentEvent = evel.getCurrentEvent(simu); // removes event from queue to be processed
+        Event *currentEvent = evel.getCurrentEvent(simulationState); // removes event from queue to be processed
         EventType et = currentEvent->getEventType();
 
         // DEPENDING ON EVENT TYPE, DO STUFF
@@ -257,7 +261,7 @@ void handleEvents(EventList &evel,          // EVENT LIST
                 delete currentEvent; // NOT NEEDED ANYMORE
                 break;
             case (EVENT_SWITCHING):  // SWITCH ELECTRODES
-                handleElectrodeSwitching(currentEvent, electrodes, *solutionvectors.v, simu);
+                handleElectrodeSwitching(currentEvent, electrodes, *solutionvectors.v, simu, simulationState);
                 delete currentEvent; // NOT NEEDED ANYMORE
                 recalculatePotential = true;
 
@@ -278,25 +282,25 @@ void handleEvents(EventList &evel,          // EVENT LIST
     }
 
 // ADDS REOCCURRING EVENTS TO QUEUE FOR NEXT ITERATION
-    evel.manageReoccurringEvents(simu);
+    evel.manageReoccurringEvents(simulationState.currentIteration(),
+                                 simulationState.currentTime(),
+                                 simulationState.dt());
 
 // IF MESH REFINEMENT
     if (refineMesh) {
-        //*
         handleMeshRefinement(refEvents,
                              geometries,
                              solutionvectors,
                              simu,
+                             simulationState,
                              alignment,
                              electrodes,
                              lc,
                              Kpot,
                              Kq); // defined in refinementhandler.cpp
-        //*/
     }
 
-// IF ELECTRODE POTENTIALS HAVE CHANGED, POTENTIALS MUST BE RECALCULATED
-    if (recalculatePotential)
+    if (recalculatePotential) {
         calcpot3d(Kpot,
                   solutionvectors.v,
                   solutionvectors.q,
@@ -304,23 +308,21 @@ void handleEvents(EventList &evel,          // EVENT LIST
                   *geometries.geom,
                   &settings,
                   &electrodes);
-
-
-
-// IF RESULT OUTPUT IS NEEDED - THIS SHOUL BE DONE LAST
-    if (saveResult) {
-        handleResultOutput(simu,
-                           lc,
-                           *geometries.geom,
-                           *solutionvectors.v,
-                           *solutionvectors.q);
     }
 
+    if (saveResult) {
+        handleResultOutput(simulationState.currentIteration(),
+                simulationState.currentTime(),
+                simu,
+                lc,
+                *geometries.geom,
+                *solutionvectors.v,
+                *solutionvectors.q);
+    }
 
-    // IF TIME-STEPPING, REDUCE dt IF IT IS LARGER THAN
-    // TIME UNTIL NEXT EVENT
-    reduceTimeStep(simu, evel);
-
+    if (simu.simulationMode() == TimeStepping) {
+        reduceTimeStep(simulationState, evel);
+    }
 }//end void HandleEvents
 
 

@@ -90,11 +90,17 @@ void create_new_elements(   Geometry& geom,    // refinable geom
                             vector <idx>& new_mat_e            // return value, new tri materials
                             );
 
-bool autoref(Geometry& geom_orig, Geometry& geom_new,
-             SolutionVector& q, SolutionVector& qn,
+bool autoref(Geometry& geom_orig,
+             Geometry& geom_new,
+             SolutionVector& q,
+             SolutionVector& qn,
              SolutionVector& v,
              const list<RefInfo>& refInfos,
-             Simu& simu, Alignment& alignment,  Electrodes& electrodes, LC& lc);
+             Simu& simu,
+             SimulationState &simulationState,
+             Alignment& alignment,
+             Electrodes& electrodes,
+             LC& lc);
 
 // Checks for maximum dq within an element, as specified in meshrefinement.
 // returns true is dq within any element is too large.

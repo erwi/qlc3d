@@ -1,8 +1,9 @@
 #include <eventlist.h>
 #include <math.h>
 #include <refinfo.h>
-#include <simu.h>
 #include <reader.h>
+#include <simulation-state.h>
+
 const char *Event::getEventString(const EventType e) {
     switch (e) {
     case (EVENT_SAVE):
@@ -69,25 +70,27 @@ EventList::~EventList() {
 #ifdef DEBUG
         printf("unhandled time Events \n");
 #endif
-        for (itr = timeEvents_.begin() ; itr != timeEvents_.end(); itr++)
+        for (itr = timeEvents_.begin(); itr != timeEvents_.end(); itr++) {
             delete *itr;
+        }
     }
     if (!iterationEvents_.empty()) {
 #ifdef DEBUG
-        printf("unhandled iteration Events \n");
+        std::cout << "WARNING: There are " << iterationEvents_.size() << " unhandled event inn the queue" << std:: endl;
 #endif
-        for (itr = iterationEvents_.begin(); itr != iterationEvents_.end(); itr++)
+        for (itr = iterationEvents_.begin(); itr != iterationEvents_.end(); itr++) {
             delete *itr;
+        }
     }
     if (!repRefinements_.empty()) {
 #ifdef DEBUG
         printf("unhandled repRef Events \n");
 #endif
-        for (itr = repRefinements_.begin(); itr != repRefinements_.end(); itr++)
+        for (itr = repRefinements_.begin(); itr != repRefinements_.end(); itr++) {
             delete *itr;
+        }
     }
 }
-
 
 bool EventList::eventsInQueue() const {
 // RETURNS BOOLEAN INDICATING WHETHER ANY EVENTS EXIST IN QUEUE
@@ -96,21 +99,21 @@ bool EventList::eventsInQueue() const {
            );
 }
 
-bool EventList::eventOccursNow(const Simu &simu) const {
+bool EventList::eventOccursNow(const SimulationState &simulationState) const {
 // RETURNS TRUE IF AN EVENT OCCURS RIGHT NOW!!
     // OTHER EXPLICITLY SPECIFIED EVENTS
-    return ((nextIterEvent_ == (size_t)simu.getCurrentIteration()) || // IF EVENT SCHEDULED FOR CURRENT ITERATION
-            (nextTimeEvent_ == simu.getCurrentTime())) ;    // IF EVENT SCHEDULED FOR CURRENT TIME
+    return ((nextIterEvent_ == (size_t)simulationState.currentIteration()) || // IF EVENT SCHEDULED FOR CURRENT ITERATION
+            (nextTimeEvent_ == simulationState.currentTime())) ;    // IF EVENT SCHEDULED FOR CURRENT TIME
 }
 
-Event *EventList::getCurrentEvent(const Simu &simu) {
+Event *EventList::getCurrentEvent(const SimulationState &simulationState) {
 // EVENTS EXIST AS OBJECTS ON HEAP. ONLY POINTERS TO THESE
 // ARE STORED IN THE EVENT LIST.
 // THIS FUNCTION RETURNS A POINTER TO AN EVENT OBJECT
 // AND REMOVES THE CORRESPONDING POINTER FROM QUEUE.
 // ACTUAL DELETION OF OBJECT MUST BE PERFORMED ELSEWHERE
 // FIRST CHECK TIME EVENTS
-    if (nextTimeEvent_ == simu.getCurrentTime()) {
+    if (nextTimeEvent_ == simulationState.currentTime()) {
         if (timeEvents_.empty()) {
             printf("error in %s, no time events in queue - bye!\n", __func__);
             exit(1);
@@ -126,7 +129,7 @@ Event *EventList::getCurrentEvent(const Simu &simu) {
         return eve;
     }
 // IF NO CURRENT TIME EVENTS LEFT, CHECK ITER EVENTS
-    else if (nextIterEvent_ == (size_t) simu.getCurrentIteration()) {
+    else if (nextIterEvent_ == (size_t) simulationState.currentIteration()) {
         if (iterationEvents_.empty()) {
             printf("error in %s, no iteration event is queue - bye !\n", __func__);
             exit(1);
@@ -190,20 +193,16 @@ void EventList::addRepRefInfo(Event *e) {
     this->repRefinements_.push_back(e);
 }
 
-void EventList::manageReoccurringEvents(Simu &simu) {
-// ADDS REOCCURRING EVENTS TO FRONT OF QUEUE IF NEEDED.
-// NEW EVENTS WILL BE SCEDULED FOR NEXT ITERATION/TIME STEP.
-// NOTE THAT THIS MUST BE CALLED AFTER ALL EVENTS FOR CURRENT
-// ITERATION/TIMESTEP HAVE BEEN PROCESSED.
-// ADD ITER EVENTS
-    unsigned int nextIter = (unsigned int) simu.getCurrentIteration() + 1;
-    double nextTime = simu.getCurrentTime() + simu.getdt(); // TIME AT NEXT ITERATION
-// REOCCURRING SAVE ITERATION
+
+void EventList::manageReoccurringEvents(int currentIteration, double currentTime, double timeStep) {
+    unsigned int nextIter = currentIteration+ 1;
+    double nextTime = currentTime + timeStep; // TIME AT NEXT ITERATION
+    // REOCCURRING SAVE ITERATION
     if ((saveIter_ > 0) &&
             (nextIter % saveIter_) == 0) {
         prependReoccurringIterEvent(new Event(EVENT_SAVE ,  nextIter));
     }
-// REOCCURRING SAVE TIME
+    // REOCCURRING SAVE TIME
     if (saveTime_ > 0) {
         // PREDICTED NUM SAVE EVENTS BY NEXT TIME STEP, IF dt IS NOT ADJUSTED
         size_t num_next = static_cast<size_t>(nextTime / saveTime_);
@@ -211,16 +210,11 @@ void EventList::manageReoccurringEvents(Simu &simu) {
         if (num_next > saveTimeCount_) {
             // FIND EXACT TIME OF NEXT SAVE EVENT
             double t_next = (saveTimeCount_ + 1) * saveTime_;
-            // THIS SHOULD NEVER HAPPEN! FORCE REOCCURRING SAVE TIME DUE TO FLOATING POINT ACCURACY PROBLEMS
-            if (t_next <= simu.getCurrentTime()) {
-                t_next =  simu.getCurrentTime() + simu.getMindt();
-                printf("Warning in %s, floating point numerical accuracy in determining reoccurring save time\n", __func__);
-            }
             this->insertTimeEvent(new Event(EVENT_SAVE, t_next));
             saveTimeCount_++;
         }
     }
-// REOCCURRING REFINEMENT ITERATION
+    // REOCCURRING REFINEMENT ITERATION
     if ((repRefIter_ > 0) &&
             (nextIter % repRefIter_) == 0) {
         //
@@ -238,7 +232,7 @@ void EventList::manageReoccurringEvents(Simu &simu) {
             this->prependReoccurringIterEvent(ev);   // ADD TO FRONT OF QUEUE
         }
     }
-// REOCCURRING REFINEMENT TIME
+    // REOCCURRING REFINEMENT TIME
     if (repRefTime_ > 0) {
         printf("RepRefTime has not been implemented yet in %s\n", __func__);
         exit(1);
@@ -246,7 +240,7 @@ void EventList::manageReoccurringEvents(Simu &simu) {
 }
 
 void EventList::prependReoccurringIterEvent(Event *iEvent) {
-// ADDS NEW EVENT AT FRONT OF QUEUE
+    // ADDS NEW EVENT AT FRONT OF QUEUE
     //MAKE SURE EVENT OCCURRENCE IS ITERATIONS
     if (iEvent->getEventOccurrence() != EVENT_ITERATION) {
         printf("error in %s, event occurrence is not 'iterations' - bye!\n", __func__);
@@ -264,38 +258,13 @@ void EventList::prependReoccurringIterEvent(Event *iEvent) {
     nextIterEvent_ = iEvent->iteration;
 }
 
-double EventList::timeUntilNextEvent(const Simu &simu) const {
-// RETURNS AMOUNT OF TIME UNTIL THE OCCURRENCE OF NEXT
-// TIME EVENT, OR THE MAGIC NUMBER "NO_TIME_EVENTS" IF
-// NO MORE TIME EVENTS EXIST IN QUEUE
-    if (nextTimeEvent_ != NO_TIME_EVENTS)
-        return nextTimeEvent_ - simu.getCurrentTime();
-    else
+double EventList::timeUntilNextEvent(const double &currentTime) const {
+    // RETURNS AMOUNT OF TIME UNTIL THE OCCURRENCE OF NEXT
+    // TIME EVENT, OR THE MAGIC NUMBER "NO_TIME_EVENTS" IF
+    // NO MORE TIME EVENTS EXIST IN QUEUE
+    if (nextTimeEvent_ != NO_TIME_EVENTS) {
+        return nextTimeEvent_ - currentTime;
+    } else {
         return NO_TIME_EVENTS;
-}
-
-void EventList::printEventList()const {
-// DEBUG PRINTING
-    printf(" %u TimeEvents:\n", (unsigned int) timeEvents_.size());
-    std::list<Event *>::const_iterator tei = timeEvents_.begin();
-    for (tei = timeEvents_.begin(); tei != timeEvents_.end() ; ++tei) {
-        EventType et = (*tei)->getEventType();
-        double time = (*tei)->time;
-        printf("Event type %s, at t = %e\n", Event::getEventString(et), time);
     }
-    // ADD LOOP OVER ITER EVENTS
-    printf(" %u IterEvent:\n", (unsigned int) iterationEvents_.size());
-    std::list<Event *>::const_iterator iei = iterationEvents_.begin();
-    for (; iei != iterationEvents_.end() ; ++iei) {
-        EventType et = (*iei)->getEventType();
-        unsigned int iter = (*iei)->iteration;
-        printf("Event type %s at iteration %u\n", Event::getEventString(et), iter);
-    }
-}
-
-void EventList::readSettingsFile(Reader &reader) {
-    if (reader.containsKey("SaveIter"))
-        this->setSaveIter(reader.get<size_t>());
-    if (reader.containsKey("SaveTime"))
-        this->setSaveTime(reader.get<double>());
 }

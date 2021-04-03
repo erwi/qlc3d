@@ -4,7 +4,7 @@
 #include <omp.h>
 #include <qlc3d.h>
 #include <cstdio>
-
+#include <simulation-state.h>
 
 
 // SpaMtrix INCLUDES
@@ -39,11 +39,8 @@ void updateSolutionVector(SolutionVector &q,
     // FOR PERIODIC AND FIXED NODES
 
     // CALCULATE DAMPING COEFFICIENT IF GOING FOR STEADY STATE WITH NEWTON METHOD
-    //double damping = 1.0;
-
-    //*
     maxdq = fabs(dq[0]);
-    if (simu.getdt() == 0){
+    if (simu.simulationMode() == SteadyState) {
         // FIND MAXIMUM CHANGE
         for (idx i = 0 ; i < dq.getLength() ; i++){
             maxdq = maxdq > fabs(dq[i]) ? maxdq:fabs(dq[i]);
@@ -51,10 +48,8 @@ void updateSolutionVector(SolutionVector &q,
 
         if ( maxdq>simu.getTargetdQ() ){ // IF DAMPING IS NEEDED
             damping = simu.getTargetdQ() / maxdq;
-            //cout << "dq > maxError, damping = " << damping << fflush(stdout);
         }
     }
-//*/
 
     const idx npLC = q.getnDoF();
     for (unsigned int i = 0 ; i < 5 ; i++){   // LOOP OVER DIMENSIONS
@@ -75,14 +70,13 @@ void updateSolutionVector(SolutionVector &q,
     }// end for i
 }
 
-
-
 double calcQ3d(SolutionVector *q,   // current Q-tensor
                SolutionVector *qn,  // previous Q-tensor
                SolutionVector *v,   // potential
                Geometry& geom,
                LC *mat_par,
                Simu* simu,
+               SimulationState &simulationState,
                SpaMtrix::IRCMatrix &K,
                Settings* settings,
                Alignment* alignment)
@@ -91,16 +85,16 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
     double maxdq = 10;
     double maxdq_initial = 0;
 
-    const idx isTimeStepping = simu->getdt() > 0 ? 1:0;
-
-    SpaMtrix::Vector RHS(isTimeStepping*numCols); // THIS IS ZERO SIZED IF NOT TIME STEPPING
+    const idx isTimeStepping = simu->simulationMode() == TimeStepping ? 1:0;
+    double timeStep = simulationState.dt();
+    SpaMtrix::Vector RHS(isTimeStepping * numCols); // THIS IS ZERO SIZED IF NOT TIME STEPPING
     SpaMtrix::Vector dq(numCols);
     SpaMtrix::Vector L(numCols);
 
     int newton_iter = 0;    // COUNTER FOR NEWTON ITERATIONS
 
     // SAVE Q FROM PREVIOUS TIME STEP
-    if (simu->getdt() >0){
+    if (simu->simulationMode() == TimeStepping) {
         qn->setValuesTo(*q);
     }
 
@@ -118,7 +112,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         // ASSEMBLE RHS CONTRIBUTION FROM PREVIOUS TIME-STEP, IF NEEDED
         if ( (isTimeStepping) && (newton_iter == 1) ){
             RHS = 0;
-            assemble_prev_rhs(RHS, *qn, *v, *mat_par, *simu, geom );
+            assemble_prev_rhs(RHS, *qn, *v, *mat_par, timeStep, geom );
         }
         // CLEAR MATRIX, L AND dq
         K = 0;
@@ -131,15 +125,13 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 
         std::cout << " " <<newton_iter << " Assembly..."; fflush(stdout);
         // ASSEMBLE MATRIX AND RHS (L)
-        assembleQ(K, L, q, v, geom.t, geom.e, geom.getPtrTop(), mat_par, simu, alignment, geom.getPtrToNodeNormals());
+        assembleQ(K, L, q, v, geom.t, geom.e, geom.getPtrTop(), mat_par, timeStep, alignment, geom.getPtrToNodeNormals());
 
-        //printf("%e, %e, %e, %e, %e\n", L[0], L[100], L[200], L[300], L[400]);
-        //fflush(stdout);
-        //exit(0);
-
-        if (isTimeStepping) // make Non-linear Crank-Nicholson RHS
-            for (size_t i = 0 ; i < numCols ; i++)
+        if (isTimeStepping) { // make Non-linear Crank-Nicholson RHS
+            for (idx i = 0; i < numCols; i++) {
                 L[i] += RHS[i];
+            }
+        }
 
         printf("OK %1.3es.", (float) timer.getElapsed() / 1000.0 );
         timer.reset();
@@ -154,8 +146,9 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         double damping = 1.0; // steady state damping coeff. calculated in updateSolutionVector
         updateSolutionVector(*q, dq, maxdq,damping,*simu); // q += damping*dq , taking into account periodic and fixed nodes
 
-        if (newton_iter==1)
+        if (newton_iter == 1) {
             maxdq_initial = maxdq; // maxdq_initial is needed elsewhere to adjust time-step size
+        }
 
         // PRINT SOLUTION TIME
         printf("OK %1.3es.\tdQ = %1.3e\n", (float) timer.getElapsed() / 1000.0, maxdq);
@@ -167,19 +160,20 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         // PANIC!! if looks like no convergence
         if (newton_iter > settings->getQ_Newton_Panic_Iter() ){
             printf("Newton in distress!! - reducing time step by a factor of %f\n", settings->getQ_Newton_Panic_Coeff() );
-            simu->setdt(settings->getQ_Newton_Panic_Coeff() * simu->getdt() );
-            printf("new time step is : %e s.\n",simu->getdt());
+            double newTimeStep = settings->getQ_Newton_Panic_Coeff() * simulationState.dt();
+            simulationState.dt(newTimeStep);
+            printf("new time step is : %e s.\n", simulationState.dt());
             newton_iter = 0;
             q->setValuesTo(*qn);
         }// end if PANIC!!!
 
         // DETERMINE WHETHER NEWTON LOOP IS DONE
-        if (!isTimeStepping) // IF dt == 0, GOING FOR STEADY STATE AND ONLY DOING ONE ITERATION -> NO LOOPS
+        if (!isTimeStepping) {// IF dt == 0, GOING FOR STEADY STATE AND ONLY DOING ONE ITERATION -> NO LOOPS
             LOOP = false;
-        else if ( fabs(maxdq) < simu->getMaxError() ) // EXIT IF ACCURATE ENOUGH
+        } else if ( fabs(maxdq) < simu->getMaxError() ) { // EXIT IF ACCURATE ENOUGH
             LOOP = false;
-
-    }//end while LOOP
+        }
+    } //end while LOOP
     return maxdq_initial;
 }
 

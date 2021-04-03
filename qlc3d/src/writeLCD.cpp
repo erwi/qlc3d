@@ -38,7 +38,7 @@ void WriteMesh(Simu *simu,
     }
 }
 
-void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q, Simu *simu) {
+void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q, Simu *simu, int currentIteration, double currentTime) {
     /*!
       Writes LCview result in text format.
     */
@@ -53,8 +53,8 @@ void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
     int i;
     char str[15];
     // check whether final result in sumlation, if yes, use special filename
-    if (simu->getCurrentIteration() != SIMU_END_SIMULATION)
-        sprintf(str, "result_t%05i", simu->getCurrentIteration());
+    if (currentIteration != SIMU_END_SIMULATION)
+        sprintf(str, "result_t%05i", currentIteration);
     else
         sprintf(str, "result_t_final");
     string resname = str;
@@ -63,7 +63,7 @@ void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
     if (fid != NULL) {
         int npLC = q->getnDoF();
         double *n = tensortovector(q->Values, npLC); // get vector data
-        sprintf(str, "%f", simu->getCurrentTime());
+        sprintf(str, "%f", currentTime);
         std::string text = "** Result Time :    ";
         text.append(str);
         text.append("\n** z Compression Ratio :  1.00000\n");
@@ -85,11 +85,16 @@ void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
 }
 // end WriteLCD
 
-void WriteLCD_B(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
-                Simu *simu, LC *lc) {
+void WriteLCD_B(double *p,
+                Mesh *t, Mesh *e,
+                SolutionVector *v, SolutionVector *q,
+                int currentIteration,
+                double currentTime,
+                Simu* simu, LC *lc) {
     int npLC = q->getnDoF();
     int np = v->getnDoF();
     // First write mesh
+    // TODO: write mesh separately ASAP after modifying it
     if (simu->IsMeshModified()) { // only output mesh file if it has changed
         WriteMesh(simu, p, t, e, np);
         simu->setMeshModified(false);   // no need to rewrite same mesh again
@@ -99,22 +104,23 @@ void WriteLCD_B(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *
     int i;
     char str[15];
     // check whether final result in simulation, if yes, use special filename
-    if (simu->getCurrentIteration() != SIMU_END_SIMULATION)
-        sprintf(str, "result%05i", simu->getCurrentIteration());
-    else
-        sprintf(str, "result_final");
+    // TODO: pass filename as input arg
+    if (currentIteration != SIMU_END_SIMULATION) {
+        sprintf(str, "result%05i", currentIteration);
+    } else {
+        sprintf(str,"result_final");
+    }
     string resname = str;
     resname.append(".dat");
     fid = fopen(resname.c_str(), "wb");
     char time[20];
-    sprintf(time, "%1.9f\n", simu->getCurrentTime());
+    sprintf(time, "%1.9f\n", currentTime);
     string text = "** Result Time :   ";
     text.append(time);
     fprintf(fid, "%s\n", text.c_str());
     fprintf(fid, "** z Compression Ratio :  1.00000\n");
     std::string meshname = simu->getMeshFileNameOnly();
     meshname.append("\n");
-    //cout << "meshname =" << meshname << endl;
     fprintf(fid, "%s", meshname.c_str());
     fprintf(fid, "RAW FLOAT TRI - S0, np, nsols\n");
     fprintf(fid, "%g %d %d\r\n", lc->getS0(), np, 6);
@@ -297,7 +303,7 @@ void ReadLCD_B(Simu *simu, SolutionVector *q) {
 }
 
 
-
+/*
 void WriteLCViewResult(
     Simu *simu,
     LC *lc,
@@ -317,8 +323,7 @@ void WriteLCViewResult(
         WriteLCD(geom->getPtrTop(), geom->t, geom->e, v, q, simu); // WRITES TEXT FILE
     }
 }
-// end void WriteREsult
-
+ */
 
 void CreateSaveDir(Simu &simu) {
     // CREATES DIRECTORY FOR RESULTS, IF IT DOES NOT
