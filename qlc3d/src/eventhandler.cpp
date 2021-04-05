@@ -43,17 +43,18 @@ void handleResultOutput(int currentIteration,
     // Change to result output directory
     FilesysFun::setCurrentDirectory(simu.getSaveDir());
     double *director(NULL); // TODO: use vector
+    set<Simu::SaveFormats> saveFormats = simu.getSaveFormat();
 
-    if (simu.getSaveFormat() & Simu::LCview) {
+    if (saveFormats.count(Simu::LCview)) {
         LCviewIO::WriteLCD_B(geom.getPtrTop(), geom.t, geom.e, &v, &q, currentIteration, currentTime, &simu, &lc);
     }
 
     // WRITE TEXT FORMAT LCVIEW RESULT
-    if (simu.getSaveFormat() & Simu::LCviewTXT) {
+    if (saveFormats.count(Simu::LCviewTXT)) {
         LCviewIO::WriteLCD(geom.getPtrTop(), geom.t, geom.e, &v, &q, &simu, currentIteration, currentTime);
     }
 
-    if (simu.getSaveFormat() & Simu::RegularVTK) {
+    if (saveFormats.count(Simu::RegularVTK)) {
         std::stringstream ss;
         std::string filename;
         ss << "regularvtk" << currentIteration << ".vtk";
@@ -67,7 +68,8 @@ void handleResultOutput(int currentIteration,
                            director,
                            geom.getnpLC());
     }
-    if (simu.getSaveFormat() & Simu::RegularVecMat) {
+
+    if (saveFormats.count(Simu::RegularVecMat)) {
         std::stringstream ss;
         std::string filename;
         ss << "regularvec" << currentIteration << ".m";
@@ -82,7 +84,8 @@ void handleResultOutput(int currentIteration,
                           geom.getnpLC(),
                           currentTime);
     }
-    if (simu.getSaveFormat() & Simu::DirStackZ) {
+
+    if (saveFormats.count(Simu::DirStackZ)) {
         cout << "REGULAR DIR STACKZ" << endl;
         std::stringstream ss;
         std::string filename;

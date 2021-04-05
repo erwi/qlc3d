@@ -382,8 +382,8 @@ void ReadGiDMesh3D(const std::string &meshFileName,
 void writeBinaryMesh(Simu& simu, Geometry& geom){
     /*! Writes binary representation of geometry geom to file*/
 
-    // MAke output filename.
-    std::string filename = simu.MeshName;
+    // Make output filename.
+    std::string filename = simu.getMeshName();
     size_t ind = filename.find_last_of('.');
     filename.erase(ind+1);
     filename.append("geo");

@@ -336,7 +336,7 @@ void CreateSaveDir(Simu &simu) {
         return;             // if succesful, can leave
     else
         // if not succesful:
-        cout << "error - cold not create SaveDir:\n" << simu.getSaveDir() << "\nbye!" << endl;
+        cout << "error - cold not create saveDir_:\n" << simu.getSaveDir() << "\nbye!" << endl;
     exit(1);
 }
 // end void CreateSaveDir

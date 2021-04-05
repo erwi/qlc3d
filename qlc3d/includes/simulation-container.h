@@ -29,7 +29,7 @@ class SimulationState;
 class SimulationContainer {
     Configuration &configuration;
 
-    std::unique_ptr<Simu> simu;
+    std::shared_ptr<Simu> simu;
     std::unique_ptr<Electrodes> electrodes;
     std::unique_ptr<LC> lc;
     std::unique_ptr<Boxes> boxes;

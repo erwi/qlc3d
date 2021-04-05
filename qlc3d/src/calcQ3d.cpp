@@ -11,14 +11,57 @@
 #include <spamtrix_ircmatrix.hpp>
 #include <spamtrix_vector.hpp>
 #include <spamtrix_tickcounter.hpp>
+#include <spamtrix_iterativesolvers.hpp>
+#include <spamtrix_diagpreconditioner.hpp>
 
-// SOLVER FUNCTION DEFINED IN solve_pcg.cpp
+Simu::QMatrixSolvers selectQMatrixSolver(const Simu &simu, const LC &lc) {
+    // SELECTS WHICH MATRIX SOLVER TO USE FOR Q-TENSOR
+    // EQUATIONS. IF MATRIX IS SYMMETRIC USE PCG, ELSE
+    // GMRES
+
+    // IF SOLVER HAS ALREADY BEEN CHOSEN IN SETTINGS
+    // FILE, DON'T DO ANYTHING
+    if (simu.getQMatrixSolver()!=Simu::Auto) {
+        return simu.getQMatrixSolver();
+    }
+    // SINGLE ELASTIC COEFF. EQUATIONS -> SYMMETRIC
+    // CHIRALITY -> NON-SYMMETRIC
+    bool isSymmetric = true;
+    if (lc.K11 != lc.K22 ) { isSymmetric = false; }
+    if (lc.K11 != lc.K33 ) { isSymmetric = false; }
+    if (lc.p0 != 0.0) { isSymmetric = false; }
+
+    return isSymmetric ? Simu::PCG : Simu::GMRES;
+}
+
 void solve_QTensor(SpaMtrix::IRCMatrix &K,
                    SpaMtrix::Vector &b,
                    SpaMtrix::Vector &x,
                    const Simu &simu,
-                   const Settings &settings);
+                   const Settings &settings,
+                   const LC &lc)
+{
+    SpaMtrix::DiagPreconditioner M(K);
+    // Iterative solvers' settings...
+    idx maxiter 	= settings.getQ_GMRES_Maxiter();
+    idx restart 	= settings.getQ_GMRES_Restart();
+    real toler      = settings.getQ_GMRES_Toler();
+    SpaMtrix::IterativeSolvers solver(maxiter, restart, toler);
+    Simu::QMatrixSolvers solverType = selectQMatrixSolver(simu, lc);
 
+    if (solverType == Simu::PCG ){
+        printf("PCG...");
+        if (!solver.pcg(K,x,b,M) ){
+            printf("PCG did not converge in %i iterations\nTolerance achieved is %f\n", solver.maxIter, solver.toler);
+        }
+    }
+    else if (solverType == Simu::GMRES){
+        printf("GMRES...");
+        if (!solver.gmres(K,x,b,M)){
+            printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",solver.maxIter,solver.toler);
+        }
+    }
+}
 
 
 void setThreadCount(unsigned int nt)
@@ -142,7 +185,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         // SET SOLVER THREAD COUNT
         setThreadCount(simu->getMatrixSolverThreadCount());
         // SOLVES Ax = b MATRIX PROBLEM
-        solve_QTensor(K, L, dq, *simu, *settings);
+        solve_QTensor(K, L, dq, *simu, *settings, *mat_par);
         double damping = 1.0; // steady state damping coeff. calculated in updateSolutionVector
         updateSolutionVector(*q, dq, maxdq,damping,*simu); // q += damping*dq , taking into account periodic and fixed nodes
 

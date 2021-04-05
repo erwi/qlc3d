@@ -22,7 +22,7 @@
 
 SimulationContainer::SimulationContainer(Configuration &config) :
         configuration(config),
-        simu(new Simu()),
+        //simu(new Simu()),
         electrodes(new Electrodes()),
         lc(new LC()),
         boxes(new Boxes()),
@@ -43,8 +43,10 @@ void SimulationContainer::initialise() {
     }
     std::cout << "current working directory " << FilesysFun::getCurrentDirectory() << std::endl;
 
+    simu = configuration.simu();
+    eventList->setSaveIter(simu->getSaveIter());
+
     ReadSettings(configuration.settingsFileName(),
-                 *simu,
                  *lc,
                  *boxes,
                  *alignment,
@@ -67,7 +69,7 @@ void SimulationContainer::initialise() {
 
     Energy_fid = nullptr; // file for outputting free energy
 
-    selectQMatrixSolver(*simu, *lc);
+    //selectQMatrixSolver(*simu, *lc);
 
     // ================================================================
     //	CREATE GEOMETRY
@@ -75,7 +77,7 @@ void SimulationContainer::initialise() {
     // ================================================================
     //Geometry geom1 = Geometry();        // empty working geometry object
     //Geometry geom_orig = Geometry();    // empty original geom object, loaded from file
-    std::string meshName = configuration.currentDirectory() + "/" + simu->MeshName; // TODO
+    std::string meshName = configuration.currentDirectory() + "/" + simu->meshName(); // TODO
     // mesh file is read and geometry is loaded in this function (in inits.cpp)
     prepareGeometry(geom_orig,
                     meshName,
@@ -164,12 +166,14 @@ void SimulationContainer::initialise() {
     printf("OK\n");
 
     // TEMPORARY ARRAYS, USED IN POTENTIAL CONSISTENCY CALCULATIONS
+    /*
     simu->setPotCons(Off);
     if ((simu->getPotCons() != Off) && (simu->simulationMode() == TimeStepping)) {
         v_cons = std::unique_ptr<double[]>(new double[v.getnDoF()]);
         q_cons = std::unique_ptr<double[]>(new double[q.getnDoF() * q.getnDimensions()]);
         qn_cons = std::unique_ptr<double[]>(new double[q.getnDoF() * q.getnDimensions()]);
     }
+    */
 
     //===============================================
     //	 Start simulation
@@ -318,8 +322,8 @@ void SimulationContainer::adjustTimeStepSize() {
     }
     // if electrode switching etc. has just happened, dont adapt time step this time
     // but set switch to false to allow adjustment starting next step
-    if (simu->restrictedTimeStep) {
-        simu->restrictedTimeStep = false;
+    if (simu->restrictedTimeStep()) {
+        simu->restrictedTimeStep(false);
         return;
     }
     double dt = simulationState_.dt();

@@ -11,8 +11,12 @@ include(FindPythonInterp)
 enable_testing()
 add_subdirectory(tests)
 set(QLC3D_EXE $<TARGET_FILE:qlc3d>)
-add_test(NAME temp_test
+
+# python end-to-end test
+add_test(NAME temp-test
         COMMAND ${PYTHON_EXECUTABLE} python/e2e_single-newton-iteration.py ${QLC3D_EXE}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests
-       )
-# COMMAND temp_test tests/resources/settings.txt
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+
+# native c++ tests using catch library
+add_test(NAME cpp-test
+        COMMAND cpp-test)

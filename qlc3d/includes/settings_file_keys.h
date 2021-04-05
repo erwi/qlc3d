@@ -11,8 +11,8 @@
 
 const char SFK_WILDCARD = '*';
 const std::string SFK_MESH_NAME = "MeshName";
-const std::string SFK_LOAD_Q    = "LoadQ";
-const std::string SFK_SAVE_DIR  = "SaveDir";
+const std::string SFK_LOAD_Q    = "loadQ";
+const std::string SFK_SAVE_DIR  = "saveDir";
 const std::string SFK_Q_MATRIX_SOLVER = "QMatrixSolver";
 const std::string SFK_SAVE_FORMAT = "SaveFormat";
 const std::string SFK_END_CRITERION = "EndCriterion";
@@ -21,12 +21,12 @@ const std::string SFK_DT = "dt";
 const std::string SFK_TARGET_DQ = "TargetdQ";
 const std::string SFK_MAX_DT  = "Maxdt";
 const std::string SFK_MAX_ERROR = "MaxError";
-const std::string SFK_OUTPUT_ENERGY = "OutputEnergy";
-const std::string SFK_OUTPUT_FORMAT = "OutputFormat";
+const std::string SFK_OUTPUT_ENERGY = "outputEnergy";
+const std::string SFK_OUTPUT_FORMAT = "outputFormat";
 const std::string SFK_SAVE_ITER ="SaveIter";
 const std::string SFK_NUM_ASSEMBLY_THREADS = "NumAssemblyThreads";
 const std::string SFK_NUM_MATRIX_SOLVER_THREADS = "NumMatrixSolverThreads";
-const std::string SFK_STRETCH_VECTOR = "StretchVector";
+const std::string SFK_STRETCH_VECTOR = "stretchVector";
 const std::string SFK_DT_LIMITS = "dtLimits";
 const std::string SFK_DT_FUNCTION = "dtFunction";
 const std::string SFK_REGULAR_GRID_SIZE = "RegularGridSize";

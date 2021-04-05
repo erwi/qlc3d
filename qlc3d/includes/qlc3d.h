@@ -88,7 +88,6 @@ class Electrodes;
 class EventList;
 void ReadSettings(
         string settings_filename,
-        Simu &simu,
         LC& lc,
         Boxes &boxes,
         Alignment &alignment,
@@ -112,9 +111,6 @@ void prepareGeometry(Geometry& geom,    // defined in inits.cpp
                      Alignment& ali,
                      Electrodes& electrodes);
 FILE* createOutputEnergyFile(Simu& simu); // defined in inits.cpp
-void selectQMatrixSolver(Simu &simu, const LC &lc); // defined in ints.cpp
-
-
 
 void SetVolumeQ(SolutionVector *q, LC* lc, Boxes* boxes, double* p);
 

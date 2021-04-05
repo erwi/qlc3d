@@ -42,12 +42,13 @@ struct ReaderError {
 };
 
 class Reader {
-    struct lineData {           // a record for storing single key/value definition line data
-        size_t _lineNumber;     // line number in source file
-        std::string _rawText;   // raw unformatted text of the line
-        std::string _val;       // formatted value stored as a string
+    struct lineData {               // a record for storing single key/value definition line data
+        size_t lineNumber_;         // line number in source file
+        std::string rawText_;       // raw un formatted text of the line
+        std::string val_;           // formatted value stored as a string
     };
-    bool _isCaseSensitive;      // if not case sensitive, all text will be converted to lowercase
+    bool isCaseSensitive_;          // if not case sensitive, all text will be converted to lowercase
+    bool isLowerCaseStringValues_;    // whether to convert all returned string values to lowercase
     // ERROR MESSAGES
     const std::string _R_FILE_OPEN_ERROR_MESSAGE = "Could not open file :";
     const std::string _R_VECTOR_FORMAT_ERROR_MSG = "Bad vector format";
@@ -120,21 +121,22 @@ class Reader {
     }
 public:
 
-    inline Reader(): _isCaseSensitive(true) {}
+    inline Reader(): isCaseSensitive_(true), isLowerCaseStringValues_(false) {}
     inline void readSettingsFile(const std::string &fileName);
     inline void readValidKeysFile(const std::string &fileName);
     inline bool containsKey(const std::string &key);
     template<class T> inline T getValueByKey(const std::string &key) const;
     template<class T> inline T get() const; // access by last used key
+    template<class T> inline std::optional<T> getOptional(const std::string &key);
+
     template<class T> inline T get(const std::string &key, const T& defaultValue);
     inline void printAll()const;
-    inline bool isCaseSensitive()const {
-        return _isCaseSensitive;
-    }
+    inline bool isCaseSensitive() const { return isCaseSensitive_; }
+    inline void setCaseSensitivity(bool isCS) { isCaseSensitive_ = isCS; }
+    inline bool isLowerCaseStringValues() const { return isLowerCaseStringValues_; }
+    inline void setLowerCaseStringValues(bool isLowerCase) { isLowerCaseStringValues_ = isLowerCase; }
+
     inline bool isValidKey(std::string key);
-    inline void setCaseSensitivity(const bool &isCS) {
-        _isCaseSensitive = isCS;
-    }
     inline std::vector<std::string> getAllKeys() const; // returns vector containing all keys in file
 };
 
@@ -240,6 +242,10 @@ void Reader::readSettingsFile(const std::string &fileName) {
             toLower(key);
             toLower(value);
         }
+        if (isLowerCaseStringValues()) { // really only needed if case sensitivity is false
+            toLower(value);
+        }
+
         // IF VALID KEYS HAVE BEEN DEFINED, CHECK THIS IS ONE
         if ((_validKeys.size() > 0) && !isValidKey(key)) {
             throw ReaderError(rawKey + " is not a valid key.", _fileName, lineNumber, rawLine);
@@ -255,9 +261,9 @@ void Reader::readSettingsFile(const std::string &fileName) {
         }
         // IF OK SO FAR - SAVE LINE INFO TO "DATABASE"
         lineData valueData;
-        valueData._lineNumber = lineNumber;
-        valueData._rawText = rawLine;
-        valueData._val = value;
+        valueData.lineNumber_ = lineNumber;
+        valueData.rawText_ = rawLine;
+        valueData.val_ = value;
         _keyValues[key] = valueData;
         lineNumber++;
     } while (!fin.eof());
@@ -340,7 +346,7 @@ size_t Reader::getLineNumberByKey(const std::string &key) const {
     if (itr == _keyValues.end()) { // if not found
         throw std::string("could not find key: ") + key;
     }
-    return itr->second._lineNumber;
+    return itr->second.lineNumber_;
 }
 
 bool Reader::containsKey(const std::string &key) {
@@ -367,7 +373,7 @@ void Reader::printAll() const {
       * Prints all key/value pairs to stdout.
       */
     for (auto &k : _keyValues) {
-        std::cout << k.first << " = " << k.second._val << std::endl;
+        std::cout << k.first << " = " << k.second.val_ << std::endl;
     }
 }
 
@@ -469,11 +475,12 @@ void Reader::parseValue(const std::string &strVal, std::vector<std::string> &val
 }
 
 
+/*!
+ * Returns value corresponding to specified key.
+ * @throws ReaderError if the specified key does not exist or can not be converted to the specified type.
+ */
 template<class T>
 T Reader::getValueByKey(const std::string &key) const {
-    /*!
-     * Returns value corresponding to specified key.
-     */
     // create temporary working key-string
     std::string tkey(key);
     cleanLineEnds(tkey);
@@ -483,18 +490,28 @@ T Reader::getValueByKey(const std::string &key) const {
     if (itr == _keyValues.end()) {
         throw ReaderError(_R_KEY_NOT_FOUND_ERROR_MSG + key, _fileName);
     }
-    // Get value stored as a string and comvert to
+    // Get value stored as a string and convert to
     // specified type
-    const std::string &strVal = itr->second._val;
+    const std::string &strVal = itr->second.val_;
     try {
         T retVal;
         parseValue(strVal, retVal);
         return retVal;
     } catch (std::string msg) { // error converting to required type
         lineData badLine = (_keyValues.find(tkey)->second);
-        throw ReaderError(msg, _fileName, badLine._lineNumber, badLine._rawText);
+        throw ReaderError(msg, _fileName, badLine.lineNumber_, badLine.rawText_);
     }
 }
+
+template<class T>
+std::optional<T> Reader::getOptional(const std::string &key) {
+    if (containsKey(key)) {
+        return std::optional<T>(getValueByKey<T>(key));
+    } else {
+        return std::nullopt;
+    }
+}
+
 template<class T>
 T Reader::get() const {
 /*! returns value corresponding to most recently used key*/
@@ -504,13 +521,14 @@ T Reader::get() const {
         throw ReaderError("A valid key has not been found before calling Reader::get<class T>()");
 }
 
+/*! Returns value by key. If key does not exit, returns given default value*/
 template<class T>
 T Reader::get(const std::string &key, const T& defaultValue) {
-    /*! Returns value by key. If key does not exit, returns given default value*/
-    if (containsKey(key))
+    if (containsKey(key)) {
         return get<T>();
-    else
+    } else {
         return defaultValue;
+    }
 }
 
 std::vector<std::string> Reader::getAllKeys() const {

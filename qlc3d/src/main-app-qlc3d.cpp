@@ -11,8 +11,10 @@ void parseArgs(int argc, char **args, Configuration &configuration) {
     }
 }
 
-int runSimulation(SimulationContainer &simulation) {
+int runSimulation(Configuration &configuration) {
     try {
+        configuration.readSettings();
+        SimulationContainer simulation(configuration);
         simulation.initialise();
         while (simulation.hasIteration()) {
             simulation.runIteration();
@@ -34,6 +36,5 @@ int main(int argc, char **args) {
     Configuration configuration;
     parseArgs(argc, args, configuration);
 
-    SimulationContainer simulation(configuration);
-    return runSimulation(simulation);
+    return runSimulation(configuration);
 }
