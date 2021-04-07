@@ -1,11 +1,13 @@
-#include <stdio.h>
+#include <cstdio>
 #include <string>
-#include <string.h>
+#include <cstring>
 #include <fstream>
 #include <iostream>
+#include <filesystem>
+
 #include <simu.h>
 #include <geometry.h>
-//using namespace std;
+
 
 
 #define MAX_DIGITS 	1000000000
@@ -225,6 +227,9 @@ void ReadGiDMesh3D(const std::string &meshFileName,
                    idx **mate)
 {
     using namespace std;
+    if (!filesystem::exists(meshFileName)) {
+        throw std::runtime_error("can not read mesh: " + meshFileName + ", it does not exist");
+    }
     idx nperi = 0;
     ifstream fin;
     char *charray 	= (char*)malloc(200*sizeof(char));
@@ -233,10 +238,13 @@ void ReadGiDMesh3D(const std::string &meshFileName,
     fin.open(meshFileName.c_str());
 
     if (!fin.good() ) {
-        std::cerr << "error - could not find mesh file."<< endl;
-        std::cerr << "was looking for mesh:\n" << meshFileName << endl;
-        std::cerr << "check your settings file for mistakes.\nBye!" << endl;
-        exit(1);
+        throw std::runtime_error("could not open mesh file " + meshFileName);
+        /*
+        //std::cerr << "error - could not find mesh file."<< endl;
+        //std::cerr << "was looking for mesh:\n" << meshFileName << endl;
+        //std::cerr << "check your settings file for mistakes.\nBye!" << endl;
+        //exit(1);
+         */
     }
     else{ // File opened OK
         printf("Reading GID mesh file: %s \n", meshFileName.c_str()); fflush(stdout);
@@ -379,40 +387,7 @@ void ReadGiDMesh3D(const std::string &meshFileName,
      }//end if mesh file opened ok
 }
 
-void writeBinaryMesh(Simu& simu, Geometry& geom){
-    /*! Writes binary representation of geometry geom to file*/
-
-    // Make output filename.
-    std::string filename = simu.getMeshName();
-    size_t ind = filename.find_last_of('.');
-    filename.erase(ind+1);
-    filename.append("geo");
-    printf("binary output filename = %s\n", filename.c_str()); fflush(stdout);
-
-    fstream file ( filename.c_str() , ios::out | ios::binary);
-    if (!file.good() ){
-        printf("error - could not write %s\n", filename.c_str()); fflush(stdout);
-        exit(1);
-    }
-
-    //file << (unsigned int) geom.getnp() << (unsigned int) geom.t->getnElements() << (unsigned int) geom.e->getnElements();
-    unsigned int numbers[3] = { geom.getnp() , geom.t->getnElements() , geom.e->getnElements() };
-    file.write( (char*) numbers , 3*sizeof(unsigned int) );
-    // write coordinates
-    file.write( (char*) geom.getPtrTop(), 3* geom.getnp() * sizeof( double ) );
-    // write tets node indexes
-    file.write( (char*) geom.t->getPtrToElement(0) , 4*numbers[1]*sizeof(int) );
-    // write tris node indexes
-    file.write( (char*) geom.e->getPtrToElement(0) , 3*numbers[2]*sizeof(int) );
-    // write tets materials
-    file.write( (char*) geom.t->getPtrToMaterialNumber(0), numbers[1]*sizeof(int) );
-    // write tris materials
-    file.write( (char*) geom.e->getPtrToMaterialNumber(0), numbers[2]*sizeof(int) );
-    file.close();
-
-    //exit(1);
-}
-
+// TODO: delete
 void readBinaryMesh(std::string filename,
                     double *&p,
                     idx *&t, idx *&tmat,
