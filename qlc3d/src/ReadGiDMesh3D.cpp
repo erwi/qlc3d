@@ -105,10 +105,10 @@ idx CountPrisms( ifstream* fin)// counts number of prisms (for periodic nodes)
 
 }//end int CountPrisms
 
-void ReadNodes(ifstream* fin,idx np, double* dp)
-{
-
-
+/**
+ * Reads coordinate values into dp array.
+ */
+void ReadNodes(ifstream* fin,idx np, double* dp) {
     forwardToLine(fin,"coordinates");
 
     for (idx i = 0 ; i < np ; i++ )
@@ -122,8 +122,8 @@ void ReadNodes(ifstream* fin,idx np, double* dp)
 
     cout << "OK\n";
 }// end void ReadNodes
-void ReadTetrahedra(ifstream* fin, idx nt, idx* dt, idx* dmatt)
-{
+
+void ReadTetrahedra(ifstream* fin, idx nt, idx* dt, idx* dmatt) {
     printf("\tReading %i tetrahedra...", nt); fflush(stdout);
     forwardToLine(fin, "elements");
     char cbuff[256];
@@ -135,16 +135,21 @@ void ReadTetrahedra(ifstream* fin, idx nt, idx* dt, idx* dmatt)
         idx tmp=0;
         bool err = !( ss >> tmp >> dt[i*4] >> dt[i*4+1] >> dt[i*4+2] >> dt[i*4+3] >> dmatt[i]);
 
-        if (err)
-        {
-            std::cout << "\nerror reading tetrahedra, bad format"<< std::endl;
-            std::cout << "expected 6 numbers per line in the following format :" << std::endl;
-            std::cout << "<tet number> <node 1> <node 2> <node 3> <node 4> <tet material>" << std::endl;
-            std::cout << "found:\"" << cbuff << "\" instead" <<std::endl;
-            std::cout << "Bye!" << std::endl;
+        if (err) {
             fin->close();
-            exit(1);
+            std::string errorMsg;
+            errorMsg+= "error reading tetrahedra, bad format\n";
+            errorMsg+= "expected 6 numbers per line in the following format :\n";
+            errorMsg+= "<tet number> <node 1> <node 2> <node 3> <node 4> <tet material>\n";
+            errorMsg+= std::string("found:\"") + cbuff + "\" instead";
+            throw std::runtime_error(errorMsg);
          }
+
+        // GiD mesh files use 1-based indexing, but we want 0-based, so decrement each new index by one.
+        dt[i * 4]--;
+        dt[i * 4 + 1]--;
+        dt[i * 4 + 2]--;
+        dt[i * 4 + 3]--;
     }
 
     printf("OK\n"); fflush(stdout);
@@ -182,21 +187,24 @@ void ReadTriangles(ifstream* fin, idx ne, idx* e, idx* emat)
     printf("\tReading %i triangles...",ne); fflush(stdout);
 
     forwardToLine(fin, "elements");
-    for (idx i =0 ; i<ne ; i++)
-    {
+    for (idx i =0 ; i<ne ; i++) {
         idx temp;
         *fin >> temp; //triangle number - not needed
         *fin >> e[i*3+0];
         *fin >> e[i*3+1];
         *fin >> e[i*3+2];
 
-        if (fin->peek() == 10) // 10 is ASCII FOR NEW LINE
+        // convert from 1-based to 0-based indexing
+        e[i * 3 + 0]--;
+        e[i * 3 + 1]--;
+        e[i * 3 + 2]--;
+        if (fin->peek() == 10) { // 10 is ASCII FOR NEW LINE
             emat[i] = 0; // if newline character ( = no material number assigned), convert to 0
-        else
+        } else {
             *fin >> emat[i];
+        }
     }
     printf("OK\n"); fflush(stdout);
-
 }
 
 bool isTextFile(std::ifstream &fin)
@@ -239,12 +247,6 @@ void ReadGiDMesh3D(const std::string &meshFileName,
 
     if (!fin.good() ) {
         throw std::runtime_error("could not open mesh file " + meshFileName);
-        /*
-        //std::cerr << "error - could not find mesh file."<< endl;
-        //std::cerr << "was looking for mesh:\n" << meshFileName << endl;
-        //std::cerr << "check your settings file for mistakes.\nBye!" << endl;
-        //exit(1);
-         */
     }
     else{ // File opened OK
         printf("Reading GID mesh file: %s \n", meshFileName.c_str()); fflush(stdout);
@@ -268,8 +270,8 @@ void ReadGiDMesh3D(const std::string &meshFileName,
         while(!fin.eof()){ // count  - while loop
             fin.getline(charray,200);
             string line = charray;
-            if (line.find(Tets) != std::string::npos ){
-                if (np[0] == 0){	// if tets are defined first
+            if (line.find(Tets) != std::string::npos ) {
+                if (np[0] == 0) {	// if tets are defined first
                     np[0] = CountNodes(&fin);
                     tets_first = true;
                 }
@@ -277,13 +279,13 @@ void ReadGiDMesh3D(const std::string &meshFileName,
             }// end if tets before prisms
 
 
-            else if (line.find(Prisms) != std::string::npos){
+            else if (line.find(Prisms) != std::string::npos) {
                 // if prisms are defined before nodes
                 if (np[0] == 0)
                     np[0] = CountNodes(&fin);
                 nperi = CountPrisms(&fin);
             }
-            else if (line.find(Tris) != std::string::npos){
+            else if (line.find(Tris) != std::string::npos) {
                 if (np[0] == 0){
                     np[0] = CountNodes(&fin);
                 }

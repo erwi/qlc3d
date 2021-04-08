@@ -3,8 +3,6 @@
 #include <globals.h>
 #include <iostream>
 
-
-
 void validateTriangleMaterials(const idx* const mate, idx ne){
     // goes through all triangle material numbers and tries to check that all is well.
     // if problems are found, error message is printed and program aborted.
@@ -132,16 +130,12 @@ void prepareGeometry(Geometry& geom,
 
     // Count number of electrodes in mesh
     electrodes.setnElectrodes(countElectrodes(emat, ne));
-    //electrodes.setImplicitVariables();
 
-    for (idx i = 0; i < 4*nt; i++)  t[i]--;	// change GiD mesh to zero indexing
-    for (idx i = 0; i < 3*ne; i++)  e[i]--;
     for (idx i = 0; i < np;   i++) {	// scale mesh
         p[3*i + 0] = p[3*i + 0]* simu.getStretchVectorX();
         p[3*i + 1] = p[3*i + 1]* simu.getStretchVectorY();
         p[3*i + 2] = p[3*i + 2]* simu.getStretchVectorZ();
     }
-
 
     geom.setCoordinates(p, (size_t) np);
     if (p) free(p);

@@ -15,8 +15,9 @@ set(QLC3D_EXE $<TARGET_FILE:qlc3d>)
 # python end-to-end test
 add_test(NAME temp-test
         COMMAND ${PYTHON_EXECUTABLE} python/e2e_single-newton-iteration.py ${QLC3D_EXE}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tests)
 
 # native c++ tests using catch library
 add_test(NAME cpp-test
-        COMMAND cpp-test)
+        COMMAND cpp-test
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tests)
