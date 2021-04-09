@@ -27,12 +27,13 @@ public:
     // SAVE FORMATS OPTIONS BITFIELDS - MUST BE POWERS OF 2 AS WILL BE USED AS BITFIELDS!!!
     // REMEMBER TO ADD to "validSaveFormatStrings" IN CONSTRUCTOR
     // IF/WHEN ADDING NEW SAVE FORMATS!
-    enum SaveFormats {None          = 0,
-                      LCview        = 1,
-                      RegularVTK    = 2,
-                      RegularVecMat = 4,   // REGULAR GRID, VECTORS, MATLAB FILE
-                      DirStackZ     = 8,   // REGULAR GRID, CSV-FILE WHERE EA
-                      LCviewTXT     = 16   // LCview ASCII text file
+    enum SaveFormats {None,
+                      LCview,
+                      RegularVTK,
+                      RegularVecMat,    // REGULAR GRID, VECTORS, MATLAB FILE
+                      DirStackZ,        // REGULAR GRID, CSV-FILE WHERE EA
+                      LCviewTXT,        // LCview ASCII text file
+                      CsvUnstructured   // Unstructured csv file, compatible with paraview
                      };
     // RegularDirStackZ is written in a CommaSeparatedValue (CSV) text file where each
     // Row is a stack of directors along the z-axis.
