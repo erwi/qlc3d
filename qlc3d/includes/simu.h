@@ -20,7 +20,6 @@ enum SimulationMode {TimeStepping, SteadyState};
 using namespace std;
 class Simu
 {
-    friend void readSimu(Simu& , Reader&);
 public:
     enum SaveFormats {None,
                       LCview,
@@ -44,7 +43,6 @@ public:
         Iterations = 0, Time = 1, Change = 2
     };
 
-    //
     // Declare default values for parameters in Simu
     const static vector<string> VALID_END_CRITERIA;
     const static vector<string> VALID_SAVE_FORMATS;
@@ -77,37 +75,22 @@ private:
     //! initial time step is set by user in configuration, the actual time step may change_ during the simulation.
     const double initialTimeStep_;
     const QMatrixSolvers QMatrixSolver_;
-
-    // ADAPTIVE TIME-STEPPING VARIABLES
     const double maxError_;
-    const double TargetdQ_; // do newton iterations until this precision
-    const double dtLimits_[2];
-    const double dtFunction_[4];
-
-    const EndCriteria endCriterion_;
+    const double TargetdQ_;             // do newton iterations until this precision
+    const double dtLimits_[2];          // min/max time-step values used in adaptive time stepping
+    const double dtFunction_[4];        // function coefficients that controll the time step size adjustment
+    const EndCriteria endCriterion_;    // how we determine that a simulation has ended
     const std::string loadQ_;
-    const std::string saveDir_;        // directory where results are saved
+    const std::string saveDir_;         // directory where results are saved
     const double endValue_;
-
-    //
     const double  stretchVector_[3];
-    const size_t regularGridSize_[3];  // NUMBER OF NODES IN X,Y AND Z-DIRECTIONS
-    const int	outputEnergy_;	// boolean whether or not to calculate energy
-    const int	outputFormat_;   // 0/1 -> binary/text (for SaveFormat = LCview) // TODO should be part of list of save formats? Looks like not used anywhere
-    const int	saveIter_;       // determines frequency of saving intermediate result files !! CAN THIS BE REMOVED FROM SIMU??
-    //const size_t saveFormat_;  // bit field with different save formats TODO has to go. replace e.g. with set/list of enum
+    const size_t regularGridSize_[3];   // NUMBER OF NODES IN X,Y AND Z-DIRECTIONS
+    const int	outputEnergy_;	        // boolean whether or not to calculate energy
+    const int	outputFormat_;          // 0/1 -> binary/text (for SaveFormat = LCview) // TODO should be part of list of save formats? Looks like not used anywhere
+    const int	saveIter_;              // determines frequency of saving intermediate result files !! CAN THIS BE REMOVED FROM SIMU??
     const set<Simu::SaveFormats> saveFormat_;
-
     const unsigned int numAsseblyThreads_;
     const unsigned int numMatrixSolverThreads_;
-
-    // TODO: mutable state!
-    int MeshNumber;     // counts number of modifications. This number is appended to the end of mesh name
-    double  EndValue_orig;   // original end values as defined in settings file. this is needed when end refinement is used
-    bool MeshModified;
-    bool restrictedTimeStep_; // flag to allow/disallow adapting time step size (e.g. just after potential switching)
-    //===================================================
-    // SOLVER AND ASSEMBLY (METHOD) SPECIFIC VARIABLES
 public:
     Simu() = delete; // private, use SimuBuilder to create default valued Simu
     Simu(const std::string &meshName,  double initialTimeStep,
@@ -133,54 +116,38 @@ public:
     {}
 
 
-    double initialTimeStep() const { return initialTimeStep_; }
     SimulationMode simulationMode() const { return initialTimeStep_ > 0 ? TimeStepping : SteadyState; }
-    double getMaxError() const { return maxError_; }
+
     void getdtFunction(double* f );
 
     // METHOD VARIABLE ACCESS
     unsigned int getAssemblyThreadCount()const {return numAsseblyThreads_;}
     unsigned int getMatrixSolverThreadCount()const {return numMatrixSolverThreads_;}
-    QMatrixSolvers getQMatrixSolver()const {return QMatrixSolver_;}
 
-    string  getLoadQ() const {return loadQ_;}
-    string  getSaveDir()const {return saveDir_;}
-    EndCriteria  getEndCriterion()const {return endCriterion_;}
-    //! returns mesh filename, with MeshNumber appended TODO: delete this
-    string  getMeshName()const;
-    string  getMeshFileNameOnly(); // returns mesh filename, without directory
-
+    const std::string &getLoadQ() const {return loadQ_;}
+    const std::string &getSaveDir()const {return saveDir_;}
     const std::string &meshName() const { return meshName_; }
 
-    //inline double getdt()const {return dt;}
-    inline double getTargetdQ()const{return TargetdQ_;}
-    inline double getMaxdt()const{return dtLimits_[1];}
-    inline double getMindt()const{return dtLimits_[0];}
+    double initialTimeStep() const { return initialTimeStep_; }
+    double getMaxError() const { return maxError_; }
+    double getTargetdQ()const{return TargetdQ_;}
+    double getMaxdt()const{return dtLimits_[1];}
+    double getMindt()const{return dtLimits_[0];}
     double getEndValue()const {return endValue_;}
-
     double getStretchVectorX()const {return stretchVector_[0];}
     double getStretchVectorY()const {return stretchVector_[1];}
     double getStretchVectorZ()const {return stretchVector_[2];}
 
     int getSaveIter() const{ return saveIter_;}
-
     int getOutputEnergy()const{return outputEnergy_;}
     int getOutputFormat()const{return outputFormat_;}
-    int  getMeshNumber()const{ return MeshNumber;}
-    void setMeshNumber(const int& n) {MeshNumber = n;}
-    void IncrementMeshNumber(){ MeshNumber++;}
     const set<Simu::SaveFormats> &getSaveFormat() const { return saveFormat_; }
+    EndCriteria  getEndCriterion()const {return endCriterion_;}
+    QMatrixSolvers getQMatrixSolver()const {return QMatrixSolver_;}
 // REGULAR GRID SIZE
-    //void setRegularGridSize(const vector<unsigned int>& vec3);
     size_t getRegularGridXCount(){return regularGridSize_[0];}
     size_t getRegularGridYCount(){return regularGridSize_[1];}
     size_t getRegularGridZCount(){return regularGridSize_[2];}
-
-    // TODO: MUTABLE STATE METHODS. Move to e.g. SimulationState class
-    bool restrictedTimeStep() const { return restrictedTimeStep_; }
-    void restrictedTimeStep(bool restrictedTimeStep) { restrictedTimeStep_ = restrictedTimeStep; }
-    bool IsMeshModified()const{return MeshModified;}
-    void setMeshModified(const bool& mm){MeshModified = mm;}
 };
 
 class SimuBuilder {
