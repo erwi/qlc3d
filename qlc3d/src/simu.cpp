@@ -32,127 +32,13 @@ const int Simu::DEFAULT_NUM_ASSEMBLY_THREADS = 0;
 const int Simu::DEFAULT_NUM_MATRIX_SOLVER_THREADS = 0;
 const Simu::EndCriteria Simu::DEFAULT_END_CRITERION = Simu::EndCriteria::Time;
 
-/*
-Simu::Simu() :
-        PotCons(Off),
-        TargetPotCons(1e-3),
-        MaxError(DEFAULT_MAX_ERROR),
-        TargetdQ_(DEFAULT_TARGET_DQ),
-        Maxdt(DEFAULT_MAX_DT),
-        EndCriterion(Time),
-        loadQ_(DEFAULT_LOAD_Q),
-        saveDir_(DEFAULT_SAVE_DIR),
-        LoadDir(""),
-        EndValue(DEFAULT_END_VALUE),
-        EndValue_orig(0),
-        assembleMatrix_(true),
-        MeshModified(true),
-        MeshNumber(0),
-        outputEnergy_(0),
-        outputFormat_(SIMU_OUTPUT_FORMAT_BINARY),
-        SaveIter(0),
-        SaveFormat(LCview),
-        numAsseblyThreads_(0),       // 0 MEANS USE ALL AVAILABLE, AND IS DEFAULT
-        numMatrixSolverThreads_(0),
-        meshName_(""),
-        initialTimeStep_(DEFAULT_DT),
-        QMatrixSolver_(Simu::solverByString.at(DEFAULT_Q_MATRIX_SOLVER)) {
-    // TODO: make dtLimits_ a std::vector
-    std::copy(DEFAULT_DT_LIMITS.begin(), DEFAULT_DT_LIMITS.end(), dtLimits_);
-    // TODO: make dtFunction_ a std::vector;
-    std::copy(DEFAULT_DT_FUNCTION.begin(), DEFAULT_DT_FUNCTION.end(), dtFunction_);
-    // TODO make stretchVector_ a std::vector
-    std::copy(DEFAULT_STRETCH_VECTOR.begin(), DEFAULT_STRETCH_VECTOR.end(), stretchVector_);
-    // TODO : make RegularGridSize a std::vector
-    std::copy(DEFAULT_REGULAR_GRID_SIZE.begin(), DEFAULT_REGULAR_GRID_SIZE.end(), RegularGridSize);
-    restrictedTimeStep_ = false;
-    outputFormat_ = SIMU_OUTPUT_FORMAT_BINARY;
-#ifndef DEBUG
-    numAsseblyThreads_ = omp_get_max_threads();
-    numMatrixSolverThreads_ = omp_get_max_threads();
-#endif
-    // SET MATRIX SOLVER TO AUTO. THIS WILL BE CHANGED LATER
-    // IN THE PROGRAM, DEPENDING ON THE PROPERTIES OF THE MATRIX
-    // OR AS SPECIFIED IN THE SETTINGS FILE
-    //QMatrixSolver = Auto;
-}
-
-Simu::Simu(const std::string &meshName,
-           double initialTimeStep,
-           QMatrixSolvers solver,
-           double maxError,
-           double targetDQ,
-           const double dtLimits[2],
-           const double dtFunction[4],
-           EndCriteria endCriterion,
-           const std::string &loadQ,
-           const std::string &saveDir,
-           double endValue
-           ) :
-        meshName_(meshName),
-        initialTimeStep_(initialTimeStep),
-        QMatrixSolver_(solver),
-        maxError_(maxError),
-        TargetdQ_(targetDQ),
-        dtLimits_{dtLimits[0], dtLimits[1]},
-        dtFunction_{dtFunction[0], dtFunction[1], dtFunction[2], dtFunction[3]},
-        endCriterion_(endCriterion),
-        loadQ_(loadQ),
-        saveDir_(saveDir),
-        endValue_(endValue)
-
-        { }
-*/
+// TODO: use array of length 4 instead of pointer?
 void Simu::getdtFunction(double *f) {
     f[0] = dtFunction_[0];
     f[1] = dtFunction_[1];
     f[2] = dtFunction_[2];
     f[3] = dtFunction_[3];
 }
-
-string Simu::getMeshName() const {
-    // returns mesh name with mesh number appended
-    std::string meshname(this->meshName_);
-    std::stringstream ss;
-    ss << MeshNumber;
-    std::string num;
-    ss >> num;
-    size_t pos = meshname.find_last_of("."); // position of separator point
-    meshname.insert(pos, num);
-    return meshname;
-}
-
-string Simu::getMeshFileNameOnly() {
-    // GET FILE NAME OF CURRENT MESH, REMOVE DIRECTORY INFORMATION
-    std::string meshname(this->getMeshName());
-    size_t pos = meshname.find_last_of("/");
-    if (pos != std::string::npos)
-        meshname = meshname.substr(pos + 1, meshname.length() + 1 - pos);
-    return meshname;
-}
-
-/*! Add output file firmat to write*/
-/*
-void Simu::addSaveFormat(std::string format) {
-    StringEnum<Simu::SaveFormats> validator(SFK_SAVE_FORMAT,
-                                            Simu::VALID_SAVE_FORMATS,
-                                            {None, LCview, RegularVTK, RegularVecMat,
-                                             DirStackZ, LCviewTXT});
-    try {
-        saveFormat_ = saveFormat_ | validator.getEnumValue(format);
-        std::cout << "added SaveFormat : " << format << std::endl;
-    } catch (...) {
-        validator.printErrorMessage(format);
-        exit(1);
-    }
-}
-*/
-/*
-void Simu::setSaveFormats(const std::vector<string> saveFormats) {
-    for (const auto &s : saveFormats)
-        this->addSaveFormat(s);
-}
-*/
 
 // <editor-fold desc=SimuBuilder>
 void assertTrue(bool shouldBeTrue, const std::string &msg) {
