@@ -11,12 +11,12 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
                           Geometries& geometries,
                           SolutionVectors& solutionvectors,
                           Simu& simu,
+                          SimulationState &simulationState,
                           Alignment& alignment,
                           Electrodes& electrodes,
                           LC& lc,
                           SpaMtrix::IRCMatrix &Kpot,
-                          SpaMtrix::IRCMatrix &Kq
-                          )
+                          SpaMtrix::IRCMatrix &Kq)
 {
 
     cout << refEvents.size() << " REFINEMENTS NOW\n" << endl;
@@ -38,10 +38,10 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
             *solutionvectors.v,
             refInfos,
             simu,
+            simulationState,
             alignment,
             electrodes,
-            lc
-            );
+            lc);
 
     // DELETE ALL REFINEMENT EVENTS. ALWAYS
     for (evitr = refEvents.begin() ; evitr != refEvents.end() ; ++evitr){
@@ -66,6 +66,7 @@ void handlePreRefinement(std::list<Event*>& refEvents,
                          Geometries& geometries,
                          SolutionVectors& solutionvectors,
                          Simu& simu,
+                         SimulationState &simulationState,
                          Alignment& alignment,
                          Electrodes& electrodes,
                          LC& lc,
@@ -82,6 +83,7 @@ void handlePreRefinement(std::list<Event*>& refEvents,
                          geometries,
                          solutionvectors,
                          simu,
+                         simulationState,
                          alignment,
                          electrodes,
                          lc,

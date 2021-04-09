@@ -6,16 +6,14 @@
 #include <iostream>
 #include <meshrefinement.h>
 #include <refinfo.h>
-#include <filesysfun.h>
 #include <globals.h>
 #include <reader.h>
 #include <settings_file_keys.h>
-#include <simu.h>
 using std::cerr;
 using std::endl;
 
 
-
+// TODO: this while file should be deleted and replaced by the SettingsReader class
 
 void readLC(LC& lc,Reader& reader) {
     try {
@@ -37,11 +35,12 @@ void readLC(LC& lc,Reader& reader) {
         std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
     }
 }//end void readLC
-
+/*! loads values from settings file reader */
+/*
 void readSimu(Simu &simu, EventList &eventList, Reader &reader) {
-    /*! loads values from settings file reader */
+
     try {
-        simu.MeshName = reader.getValueByKey<string>(SFK_MESH_NAME);
+        simu.meshName_ = reader.getValueByKey<string>(SFK_MESH_NAME);
         std::string key;
         // Read optional string values
         simu.setLoadQ(reader.get<string>(SFK_LOAD_Q, Simu::DEFAULT_LOAD_Q));
@@ -52,7 +51,7 @@ void readSimu(Simu &simu, EventList &eventList, Reader &reader) {
         simu.setSaveFormats(reader.get<vector<string> >(SFK_SAVE_FORMAT, Simu::DEFAULT_SAVE_FORMATS));
         // Read optional scalar values
         simu.setEndValue(reader.get<double>(SFK_END_VALUE, Simu::DEFAULT_END_VALUE));
-        simu.setdt(reader.get<double>(SFK_DT, Simu::DEFAULT_DT));
+        simu.initialTimeStep(reader.get<double>(SFK_DT, Simu::DEFAULT_DT));
         simu.setTargetdQ(reader.get<double>(SFK_TARGET_DQ, Simu::DEFAULT_TARGET_DQ));
         simu.setMaxdt(reader.get<double>(SFK_MAX_DT, Simu::DEFAULT_MAX_DT));
         simu.setMaxError(reader.get<double>(SFK_MAX_ERROR, Simu::DEFAULT_MAX_ERROR));
@@ -73,7 +72,7 @@ void readSimu(Simu &simu, EventList &eventList, Reader &reader) {
         e.printError();
     }
 }//end void readSimu
-
+*/
 void readBoxes(Boxes &boxes, Reader& reader) {
     using std::string;
     const int MAX_NUM_BOXES = 100;
@@ -317,18 +316,18 @@ void readSolverSettings(Settings &settings, Reader &reader) {
 
 
 void ReadSettings(string settingsFileName,
-                  Simu &simu,
                   LC &lc,
                   Boxes &boxes,
                   Alignment &alignment,
                   Electrodes &electrodes,
                   MeshRefinement &meshrefinement, // <--- unused param.
-                  EventList &eventList, Settings &settings) {
+                  EventList &eventList,
+                  Settings &settings) {
     Reader reader;
     reader.setCaseSensitivity(false);
     reader.readSettingsFile(settingsFileName);
     try {
-        readSimu(simu, eventList,reader);
+        //readSimu(simu, eventList,reader);
         readLC(lc, reader);
         readBoxes(boxes, reader);
         readSolverSettings(settings, reader);
@@ -338,8 +337,6 @@ void ReadSettings(string settingsFileName,
     } catch (ReaderError e) {
         e.printError();
     }
-    //std::cout << "EXIT OK " << std::endl;
-    //exit(1);
 }
 // end ReadSettings
 
