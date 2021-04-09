@@ -183,12 +183,12 @@ bool autoref(Geometry &geom_orig,
              Alignment &alignment,
              Electrodes &electrodes,
              LC &lc) {
-    bool bRefined(false);   // indicates whether mesh is changed or not
-    unsigned int refiter(0);         // refinement iteration counter
-    unsigned int maxrefiter(0);
+    bool bRefined{false};   // indicates whether mesh is changed or not
+    unsigned int refiter{0};         // refinement iteration counter
+    unsigned int maxrefiter{0};
     // DETERMINE MAXIMUM REFINEMENT ITERATIONS NUMBER
-    if (!(maxrefiter = getMaxRefiterCount(refInfos))) {   // IF NO REFINEMENT
-        simu.setMeshModified(false);
+    if (maxrefiter != getMaxRefiterCount(refInfos)) {   // IF NO REFINEMENT
+        simulationState.meshModified(false);
         return false;             // LEAVE REFINEMENT FUNCTION NOW
     }
     // CREATE TEMPORARY WORKING COPY OF GEOMETRY
@@ -258,9 +258,12 @@ bool autoref(Geometry &geom_orig,
     cout << "============================================" << endl;
     if (simu.simulationMode() == TimeStepping) {
         simulationState.dt(simu.getMindt());
+        simulationState.restrictedTimeStep(true);
     }
-    simu.IncrementMeshNumber();     // output mesh name will be appended with this number
-    simu.setMeshModified(true);     // this is a flag set to notify that a new output file needs to be written
+
+    simulationState.incrementMeshNumber();
+    simulationState.meshModified(true);
+
     return bRefined; // WHETHER MESH WAS REFINED
 }
 

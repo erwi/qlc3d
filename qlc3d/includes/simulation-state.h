@@ -17,11 +17,32 @@ struct Progress {
     double change_;
 };
 
+struct Events {
+    /*!
+     * Indicates that the current time step has been restricted (set to minimum) because an event that requires it
+     * has occurred. When this is false, the time step may not be adapted during this iteration.
+     * TODO: rename to mayAdaptTimeStep ?
+     */
+    bool restrictedTimeStep_;
+    /*!
+     * Indicates that the current mesh has been modified and a new mesh file must be created.
+     * TODO: consider writing the mesh as part of mesh refinement instead?
+     */
+    bool meshModified_;
+
+    //! counter to keep track of number of mesh modifications
+    unsigned int meshNumber_;
+
+    Events(): restrictedTimeStep_{false}, meshModified_{false}, meshNumber_{0}
+    { }
+};
+
 /*!
  * A class for storing the current simulation state. This is mutable and evolves with each iteration.
  */
 class SimulationState {
     Progress progress_;
+    Events events_;
 
 public:
     void currentIteration(int iteration) { progress_.iteration_ = iteration; }
@@ -38,5 +59,13 @@ public:
 
     double change() const { return progress_.change_; }
     void change(const double &change) { progress_.change_ = change; }
+
+    bool restrictedTimeStep() const { return events_.restrictedTimeStep_; }
+    void restrictedTimeStep(bool isRestricted) { events_.restrictedTimeStep_ = isRestricted; }
+
+    bool meshModified() const { return events_.meshModified_; }
+    void meshModified(bool isModified) { events_.meshModified_ = isModified; }
+    unsigned int meshNumber() const { return events_.meshNumber_; }
+    void incrementMeshNumber() { events_.meshNumber_++; }
 };
 #endif //PROJECT_QLC3D_SIMULATION_STATE_H

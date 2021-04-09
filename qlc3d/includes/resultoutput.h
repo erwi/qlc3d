@@ -15,7 +15,7 @@ namespace LCviewIO
 {
 
 static const char LCVIEW_TEXT_FORMAT_STRING[] = "%i %f %f %f %f %f %f\n";
-// FOLLOWING FUNCTIONS ARE DEFINED IN WriteLCD.cpp
+// FOLLOWING FUNCTIONS ARE DEFINED IN writeLCD_T.cpp
 
 /*
 void WriteLCViewResult(Simu* simu, 		// Simulation settings
@@ -25,15 +25,26 @@ void WriteLCViewResult(Simu* simu, 		// Simulation settings
                 SolutionVector* q); // Q-tensor solution
                 //MeshRefinement* meshref = NULL); // meshrefinement info. including whether a new mesh has been generated
 */
+/*!
+ * Writes the mesh to the specified file name
+ * @param p point coordinates
+ * @param t tetrahedra
+ * @param e triangles
+ * @param np numberp of points
+ * @param fileName output file name
+ */
+void writeMesh(double *p, Mesh *t, Mesh *e, idx np, const std::string &fileName);
+
 // WRITES LCVIEW RESULT IN TEXT FORMAT
-void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q, Simu* simu, int currentIteration, double currentTime);
+void writeLCD_T(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q, int currentIteration, double currentTime, const std::string &meshFileName);
 // WRITES LCVIEW RESULT IN BINARY FORMAT
-void WriteLCD_B(double *p,
+void writeLCD_B(double *p,
                 Mesh *t, Mesh *e,
                 SolutionVector *v, SolutionVector *q,
                 int currentIteration,
                 double currentTime,
-                Simu *simu, LC* lc);
+                LC* lc,
+                const std::string &meshFileName);
 void ReadResult(Simu& simu,         // READS AND LOADS Q-TENSOR VALUES FROM AN EXISTING RESULT FILE
                 SolutionVector& q); // TRIES TO FIGURE OUT WHETHER RESULT FILE IS IN TEXT OR BINARY FORMAT
 

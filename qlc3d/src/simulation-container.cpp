@@ -322,8 +322,8 @@ void SimulationContainer::adjustTimeStepSize() {
     }
     // if electrode switching etc. has just happened, dont adapt time step this time
     // but set switch to false to allow adjustment starting next step
-    if (simu->restrictedTimeStep()) {
-        simu->restrictedTimeStep(false);
+    if (simulationState_.restrictedTimeStep()) {
+        simulationState_.restrictedTimeStep(false);
         return;
     }
     double dt = simulationState_.dt();
@@ -372,6 +372,4 @@ void SimulationContainer::adjustTimeStepSize() {
     }
     simulationState_.dt(newdt);
     simulationState_.change(maxdq);
-    //simu->setdt(newdt); // min/max limits taken care of here
-    //simu->setCurrentChange(maxdq); // updates maximum change_ value for this iteration
 }

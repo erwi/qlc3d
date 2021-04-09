@@ -32,26 +32,46 @@ void handleElectrodeSwitching(Event *currentEvent,
     v.setToFixedValues();
 }
 
-void handleResultOutput(int currentIteration,
-                        double currentTime,
+void handleResultOutput(SimulationState &simulationState,
                         Simu &simu,
                         LC &lc,
                         Geometry &geom,
                         SolutionVector &v,
                         SolutionVector &q) {
+    int currentIteration = simulationState.currentIteration();
+    double currentTime = simulationState.currentTime();
     std::string currentDirectory = std::filesystem::current_path().c_str();
     // Change to result output directory
     FilesysFun::setCurrentDirectory(simu.getSaveDir());
     double *director(NULL); // TODO: use vector
     set<Simu::SaveFormats> saveFormats = simu.getSaveFormat();
 
-    if (saveFormats.count(Simu::LCview)) {
-        LCviewIO::WriteLCD_B(geom.getPtrTop(), geom.t, geom.e, &v, &q, currentIteration, currentTime, &simu, &lc);
-    }
+    if (saveFormats.count(Simu::LCview) || saveFormats.count(Simu::LCviewTXT)) {
+        // calculate mesh name with mesh number appended. e.g. mesh.txt -> mesh0.txt
+        std::string numberedMeshName(simu.meshName());
+        std::stringstream ss;
+        ss << simulationState.meshNumber();
+        std::string num;
+        ss >> num;
+        size_t pos = numberedMeshName.find_last_of("."); // position of separator point
+        numberedMeshName.insert(pos, num);
 
-    // WRITE TEXT FORMAT LCVIEW RESULT
-    if (saveFormats.count(Simu::LCviewTXT)) {
-        LCviewIO::WriteLCD(geom.getPtrTop(), geom.t, geom.e, &v, &q, &simu, currentIteration, currentTime);
+        // write the mesh if it has changed since last time
+        // TODO: should this be done when the mesh changes instead?
+        if (simulationState.meshModified()) {
+            LCviewIO::writeMesh(geom.getPtrTop(), geom.t, geom.e, geom.getnp(), numberedMeshName);
+            simulationState.meshModified(false); // false so we don't need to output mesh until it is modified again
+        }
+
+        // Write the actual result file
+        if (saveFormats.count(Simu::LCview)) {
+            LCviewIO::writeLCD_B(geom.getPtrTop(), geom.t, geom.e, &v, &q, currentIteration, currentTime, &lc,
+                                 numberedMeshName);
+        }
+        if (saveFormats.count(Simu::LCviewTXT)) {
+            LCviewIO::writeLCD_T(geom.getPtrTop(), geom.t, geom.e, &v, &q, currentIteration, currentTime,
+                                 numberedMeshName);
+        }
     }
 
     if (saveFormats.count(Simu::RegularVTK)) {
@@ -185,8 +205,7 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
               &electrodes);
 
     // WRITE INITIAL RESULT FILE. ALWAYS!
-    handleResultOutput(currentIteration,
-                       currentTime,
+    handleResultOutput(simulationState,
                        simu,
                        lc,
                        *geometries.geom,
@@ -314,8 +333,7 @@ void handleEvents(EventList &evel,
     }
 
     if (saveResult) {
-        handleResultOutput(simulationState.currentIteration(),
-                simulationState.currentTime(),
+        handleResultOutput(simulationState,
                 simu,
                 lc,
                 *geometries.geom,
