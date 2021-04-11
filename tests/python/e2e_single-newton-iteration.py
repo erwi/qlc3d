@@ -10,7 +10,7 @@ RESULT_BACKUP_CONFIG_FILE = 'settings.qfg'
 RESULT_FILE_0 = 'dirstackz0.csv'
 RESULT_FILE_1 = 'dirstackz1.csv'
 EXPECTED_RESULT_FILE_LINES = ['1,1,3,0',
-                              '0.998782,0.0348782,0.0348995,0.958484,-4.57858e-08,0.285145,0.998782,-0.0348782,0.0348995']
+                              '0.998782,0.0348782,0.0348995,0.958484,-4.5476e-08,0.285145,0.998782,-0.0348782,0.0348995']
 
 
 def assert_true(should_be_true, msg=''):
@@ -20,8 +20,6 @@ def assert_true(should_be_true, msg=''):
 
 
 def assert_equals(expected, actual):
-    print(expected)
-    print(actual)
     assert_true(expected == actual, '"' + str(actual) + '" should be "' + str(expected) + '"')
 
 

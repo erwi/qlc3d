@@ -10,7 +10,9 @@ add_subdirectory(testutil)
 # tests written in c++, using catch
 add_executable(cpp-test
         cpp-test.cpp
-        configuration-tests.cpp meshio-tests.cpp)
+        configuration-tests.cpp
+        meshio-tests.cpp
+        math-tests.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 

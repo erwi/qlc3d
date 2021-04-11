@@ -17,7 +17,11 @@ if (OPENMP_FOUND)
 endif(OPENMP_FOUND)
 #==========================
 # qlc3d library
-add_library(lib-qlc3d STATIC ${SOURCE_FILES})
+add_library(lib-qlc3d STATIC
+        ${SOURCE_FILES}
+        src/simulation-container.cpp
+        src/eventhandler.cpp
+        src/resultoutput.cpp includes/lc-representation.h src/lc-representation.cpp)
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 target_include_directories(lib-qlc3d
         PUBLIC includes)
