@@ -3,6 +3,7 @@
 //
 #include <filesystem>
 #include <settings-reader.h>
+#include <cassert>
 #include "configuration.h"
 
 Configuration::Configuration() :
@@ -17,5 +18,6 @@ void Configuration::readSettings() {
 }
 
 std::shared_ptr<Simu> Configuration::simu() const {
+    assert(simu_ != nullptr);
     return simu_;
 }

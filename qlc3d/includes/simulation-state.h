@@ -46,26 +46,26 @@ class SimulationState {
 
 public:
     void currentIteration(int iteration) { progress_.iteration_ = iteration; }
-    int currentIteration() const { return progress_.iteration_; }
+    [[nodiscard]] int currentIteration() const { return progress_.iteration_; }
 
-    double currentTime() const { return progress_.simulationTime_; }
+    [[nodiscard]] double currentTime() const { return progress_.simulationTime_; }
     void currentTime(const double &time) { progress_.simulationTime_ = time; }
 
-    double dt() const { return progress_.dt_; }
+    [[nodiscard]] double dt() const { return progress_.dt_; }
     void dt(const double& dt) {
         assert(dt >= 0);
         progress_.dt_ = dt;
     }
 
-    double change() const { return progress_.change_; }
+    [[nodiscard]] double change() const { return progress_.change_; }
     void change(const double &change) { progress_.change_ = change; }
 
-    bool restrictedTimeStep() const { return events_.restrictedTimeStep_; }
+    [[nodiscard]] bool restrictedTimeStep() const { return events_.restrictedTimeStep_; }
     void restrictedTimeStep(bool isRestricted) { events_.restrictedTimeStep_ = isRestricted; }
 
-    bool meshModified() const { return events_.meshModified_; }
+    [[nodiscard]] bool meshModified() const { return events_.meshModified_; }
     void meshModified(bool isModified) { events_.meshModified_ = isModified; }
-    unsigned int meshNumber() const { return events_.meshNumber_; }
+    [[nodiscard]] unsigned int meshNumber() const { return events_.meshNumber_; }
     void incrementMeshNumber() { events_.meshNumber_++; }
 };
 #endif //PROJECT_QLC3D_SIMULATION_STATE_H

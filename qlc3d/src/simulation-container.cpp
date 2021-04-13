@@ -198,6 +198,11 @@ bool SimulationContainer::hasIteration() const {
     } else if (end == Simu::Time) {
         return simulationState_.currentTime() <= endValue;
     } else if (end == Simu::Change) {
+        // Change is unknown until at leas one iteration has run, so at lest run one iteration.
+        if (simulationState_.currentIteration() == 1) {
+            return true;
+        }
+
         double currentChange = simulationState_.change();
         if (simu->simulationMode() == TimeStepping) {
             printf("\tdQ / dt = %1.3e , EndValue = %1.3e\n", fabs(currentChange), endValue); // TODO: delete
@@ -237,6 +242,7 @@ void SimulationContainer::runIteration() {
     maxdq = updateSolutions();
 
     /// UPDATE CURRENT TIME
+    simulationState_.change(maxdq);
     simulationState_.currentTime(simulationState_.currentTime() + simulationState_.dt());
 
     /// CALCULATE NEW TIME STEP SIZE BASED ON maxdq
@@ -371,5 +377,4 @@ void SimulationContainer::adjustTimeStepSize() {
         newdt = simu->getMindt();
     }
     simulationState_.dt(newdt);
-    simulationState_.change(maxdq);
 }

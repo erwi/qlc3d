@@ -20,17 +20,15 @@ public:
     Configuration();
 
     void readSettings();
-    std::shared_ptr<Simu> simu() const;
+    [[nodiscard]] std::shared_ptr<Simu> simu() const;
+    void simu(Simu *simu) { simu_ = std::shared_ptr<Simu>(simu); }
 
-    const std::string &settingsFileName() const { return settingsFileName_; };
+    /// The file name of the current settings file
+    [[nodiscard]] const std::string &settingsFileName() const { return settingsFileName_; };
     void settingsFileName(const std::string &name) { settingsFileName_ = name; }
 
-    /*!
-     * The working directory of the currently running project
-     */
-    const std::string &currentDirectory() const { return currentDirectory_; }
+     /// The working directory of the currently running project
+    [[nodiscard]] const std::string &currentDirectory() const { return currentDirectory_; }
     void currentDirectory(const std::string &path) { currentDirectory_ = path; }
 };
-
-
 #endif //PROJECT_QLC3D_CONFIGURATION_H
