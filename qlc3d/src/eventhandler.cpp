@@ -59,17 +59,17 @@ void handleResultOutput(SimulationState &simulationState,
         // write the mesh if it has changed since last time
         // TODO: should this be done when the mesh changes instead?
         if (simulationState.meshModified()) {
-            LCviewIO::writeMesh(geom.getPtrTop(), geom.t, geom.e, geom.getnp(), numberedMeshName);
+            ResultIO::writeMesh(geom.getPtrTop(), geom.t, geom.e, geom.getnp(), numberedMeshName);
             simulationState.meshModified(false); // false so we don't need to output mesh until it is modified again
         }
 
         // Write the actual result file
         if (saveFormats.count(Simu::LCview)) {
-            LCviewIO::writeLCD_B(geom.getPtrTop(), geom.t, geom.e, &v, &q, currentIteration, currentTime, &lc,
+            ResultIO::writeLCD_B(geom.getPtrTop(), geom.t, geom.e, &v, &q, currentIteration, currentTime, &lc,
                                  numberedMeshName);
         }
         if (saveFormats.count(Simu::LCviewTXT)) {
-            LCviewIO::writeLCD_T(geom.getPtrTop(), geom.t, geom.e, &v, &q, currentIteration, currentTime,
+            ResultIO::writeLCD_T(geom.getPtrTop(), geom.t, geom.e, &v, &q, currentIteration, currentTime,
                                  numberedMeshName);
         }
     }
@@ -118,6 +118,12 @@ void handleResultOutput(SimulationState &simulationState,
                              director,
                              geom.getnpLC(),
                              currentTime);
+    }
+
+    if (saveFormats.count(Simu::CsvUnstructured)) {
+        cout << "CsvUnstructured" << endl;
+        std::string filename = "unstructured.csv." + std::to_string(simulationState.currentIteration());
+        ResultIO::writeCsvUnstructured(geom.getPtrTop(), v, q, filename);
     }
 
     if (director) { // TODO: use vector

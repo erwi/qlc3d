@@ -2,7 +2,7 @@
 // Created by eero on 07/04/2021.
 //
 #include <catch.h>
-#include <resultoutput.h>
+#include <resultio.h>
 #include <qlc3d.h>
 
 #include <algorithm>

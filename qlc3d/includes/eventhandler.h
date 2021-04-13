@@ -9,7 +9,7 @@
 #include <lc.h>
 #include <settings.h>
 #include <calcpot3d.h>
-#include <resultoutput.h>
+#include <resultio.h>
 #include <refinfo.h>
 
 

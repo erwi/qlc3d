@@ -1,14 +1,14 @@
 //
 // Created by eero on 09/04/2021.
 //
-#include <resultoutput.h>
+#include <resultio.h>
 #include <fstream>
 #include <stdexcept>
 #include <lc-representation.h>
-void ResultOutput::writeCsvUnstructured(const double *p,
-                                        const SolutionVector &v,
-                                        const SolutionVector &q,
-                                        const std::string &fileName) {
+void ResultIO::writeCsvUnstructured(const double *p,
+                                    const SolutionVector &v,
+                                    const SolutionVector &q,
+                                    const std::string &fileName) {
     std::fstream fs(fileName, fs.out);
     if (!fs.is_open()) {
         throw std::runtime_error("could not open output file:" + fileName);

@@ -11,7 +11,7 @@
 #include <alignment.h>
 #include <meshrefinement.h>
 #include <regulargrid.h>
-#include <resultoutput.h>
+#include <resultio.h>
 
 #include <filesysfun.h>
 #include <qlc3d.h>
@@ -117,7 +117,7 @@ void SimulationContainer::initialise() {
 
     //  LOAD Q FROM RESULT FILE
     if (!simu->getLoadQ().empty()) {
-        LCviewIO::ReadResult(*simu, q);
+        ResultIO::ReadResult(*simu, q);
         setStrongSurfacesQ(&q, alignment.get(), lc.get(), &geom1); // over writes surfaces with user specified values
     }
     q.setFixedNodesQ(alignment.get(), geom1.e);  // set fixed surface anchoring
@@ -148,7 +148,7 @@ void SimulationContainer::initialise() {
     //*
     //********************************************************************
     printf("\nSaving starting configuration (iteration -1)...\n");
-    LCviewIO::CreateSaveDir(*simu);
+    ResultIO::CreateSaveDir(*simu);
     Energy_fid = createOutputEnergyFile(*simu); // done in inits
 
     handleInitialEvents(simulationState_,

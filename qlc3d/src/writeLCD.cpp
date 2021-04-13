@@ -6,10 +6,10 @@
 #include <simu.h>
 #include <filesysfun.h>
 #include <globals.h>
-#include <resultoutput.h>
+#include <resultio.h>
 
 
-namespace LCviewIO {
+namespace ResultIO {
 
 void writeMesh(double *p,
                Mesh *t,
@@ -174,10 +174,10 @@ void ReadResult(Simu &simu, SolutionVector &q) {
     fclose(fid);
     if (isBinary) {
         cout << "Result file format is binary" << endl;
-        LCviewIO::ReadLCD_B(&simu, &q);
+        ResultIO::ReadLCD_B(&simu, &q);
     } else  {
         cout << "Result file format is text" << endl;
-        LCviewIO::ReadLCD_T(simu, q);
+        ResultIO::ReadLCD_T(simu, q);
     }
 }
 
