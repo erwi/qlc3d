@@ -2,6 +2,7 @@ import sys
 import os
 import tempfile as tf
 import shutil
+from qlc3d_test_utils import *
 '''
 In this test a single iteration of Newton method is run with a potential turned on and the result file
 contents are compared to expected values.  
@@ -11,16 +12,6 @@ RESULT_FILE_0 = 'dirstackz0.csv'
 RESULT_FILE_1 = 'dirstackz1.csv'
 EXPECTED_RESULT_FILE_LINES = ['1,1,3,0',
                               '0.998782,0.0348782,0.0348995,0.958484,-4.5476e-08,0.285145,0.998782,-0.0348782,0.0348995']
-
-
-def assert_true(should_be_true, msg=''):
-    if not should_be_true:
-        print("Failing because " + msg)
-        sys.exit(1)
-
-
-def assert_equals(expected, actual):
-    assert_true(expected == actual, '"' + str(actual) + '" should be "' + str(expected) + '"')
 
 
 def check_results(result_dir):
