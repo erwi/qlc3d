@@ -6,19 +6,18 @@
 #include <simu.h>
 #include <filesysfun.h>
 #include <globals.h>
-#include <resultoutput.h>
+#include <resultio.h>
 
 
-namespace LCviewIO {
+namespace ResultIO {
 
-void WriteMesh(Simu *simu,
-               double *p,
+void writeMesh(double *p,
                Mesh *t,
                Mesh *e,
-               idx np) {
+               idx np,
+               const std::string &fileName) {
     idx i;
-    string fname = simu->getMeshFileNameOnly();
-    FILE *fid = fopen(fname.c_str(), "w");
+    FILE *fid = fopen(fileName.c_str(), "w");
     if (fid != NULL) {
         fputs("MESH    dimension 3 ElemType Tetrahedra  Nnode 4\nCoordinates\n", fid);
         for (i = 0; i < np; i++) {
@@ -33,42 +32,42 @@ void WriteMesh(Simu *simu,
         fprintf(fid, "end elements\n");
         fclose(fid);
     } else {
-        printf("error - could not open file for output mesh: %s\n - bye!", fname.c_str());
-        exit(1);
+        throw runtime_error("could not open file for output mesh : " + fileName);
     }
 }
 
-void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q, Simu *simu) {
-    /*!
-      Writes LCview result in text format.
-    */
-    // First write mesh
+/*!
+  Writes LCview result in text format.
+*/
+void writeLCD_T(double *p,
+                Mesh *t,
+                Mesh *e,
+                SolutionVector *v,
+                SolutionVector *q,
+                int currentIteration,
+                double currentTime,
+                const std::string &meshFileName) {
     int np = v->getnDoF();
-    if (simu->IsMeshModified()) {  // only output mesh file if it has changed
-        WriteMesh(simu, p, t, e, np);
-        simu->setMeshModified(false);   // no need to rewrite same mesh again
-    }
-    // MESH FILE WRITTEN - THEN WRITE RESULT
     FILE *fid;
     int i;
     char str[15];
-    // check whether final result in sumlation, if yes, use special filename
-    if (simu->getCurrentIteration() != SIMU_END_SIMULATION)
-        sprintf(str, "result_t%05i", simu->getCurrentIteration());
-    else
+    // check whether final result in simulation, if yes, use special filename
+    if (currentIteration != SIMU_END_SIMULATION) { // TODO: should not be responsibility of this function
+        sprintf(str, "result_t%05i", currentIteration);
+    } else {
         sprintf(str, "result_t_final");
+    }
     string resname = str;
     resname.append(".dat");
     fid = fopen(resname.c_str(), "w");
-    if (fid != NULL) {
+    if (fid != nullptr) {
         int npLC = q->getnDoF();
         double *n = tensortovector(q->Values, npLC); // get vector data
-        sprintf(str, "%f", simu->getCurrentTime());
+        sprintf(str, "%f", currentTime);
         std::string text = "** Result Time :    ";
         text.append(str);
         text.append("\n** z Compression Ratio :  1.00000\n");
-        std::string meshname = simu->getMeshFileNameOnly() + "\n"; // meshfilename
-        text.append(meshname);
+        text.append(meshFileName + "\n");
         fprintf(fid, "%s", text.c_str()); //** Result Time :    0.00000000\n** z Compression Ratio :  1.00000\nmeshout.txt\n");
         for (i = 0; i < np; i++) {
             if (i < npLC)
@@ -79,45 +78,42 @@ void WriteLCD(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
         fclose(fid);
         delete [] n;
     } else {
-        printf("writeLCD - could not open result file %s!\n", resname.c_str());
-        exit(1);
+        throw runtime_error("could not open result file " + resname);
     }
 }
-// end WriteLCD
+// end writeLCD_T
 
-void WriteLCD_B(double *p, Mesh *t, Mesh *e, SolutionVector *v, SolutionVector *q,
-                Simu *simu, LC *lc) {
+void writeLCD_B(double *p,
+                Mesh *t, Mesh *e,
+                SolutionVector *v, SolutionVector *q,
+                int currentIteration,
+                double currentTime,
+                double S0,
+                const std::string &meshFileName) {
     int npLC = q->getnDoF();
     int np = v->getnDoF();
-    // First write mesh
-    if (simu->IsMeshModified()) { // only output mesh file if it has changed
-        WriteMesh(simu, p, t, e, np);
-        simu->setMeshModified(false);   // no need to rewrite same mesh again
-    }
-    // THEN WRITE RESULT FILE
     FILE *fid;
     int i;
     char str[15];
     // check whether final result in simulation, if yes, use special filename
-    if (simu->getCurrentIteration() != SIMU_END_SIMULATION)
-        sprintf(str, "result%05i", simu->getCurrentIteration());
-    else
-        sprintf(str, "result_final");
+    // TODO: pass filename as input arg
+    if (currentIteration != SIMU_END_SIMULATION) {
+        sprintf(str, "result%05i", currentIteration);
+    } else {
+        sprintf(str,"result_final");
+    }
     string resname = str;
     resname.append(".dat");
     fid = fopen(resname.c_str(), "wb");
     char time[20];
-    sprintf(time, "%1.9f\n", simu->getCurrentTime());
+    sprintf(time, "%1.9f\n", currentTime);
     string text = "** Result Time :   ";
     text.append(time);
     fprintf(fid, "%s\n", text.c_str());
     fprintf(fid, "** z Compression Ratio :  1.00000\n");
-    std::string meshname = simu->getMeshFileNameOnly();
-    meshname.append("\n");
-    //cout << "meshname =" << meshname << endl;
-    fprintf(fid, "%s", meshname.c_str());
+    fprintf(fid, "%s\n", meshFileName.c_str());
     fprintf(fid, "RAW FLOAT TRI - S0, np, nsols\n");
-    fprintf(fid, "%g %d %d\r\n", lc->getS0(), np, 6);
+    fprintf(fid, "%g %d %d\r\n", S0, np, 6);
     for (i = 0;  i < np; i++) {
         if (i < npLC) {
             // WRITE LC REGIONS
@@ -178,10 +174,10 @@ void ReadResult(Simu &simu, SolutionVector &q) {
     fclose(fid);
     if (isBinary) {
         cout << "Result file format is binary" << endl;
-        LCviewIO::ReadLCD_B(&simu, &q);
+        ResultIO::ReadLCD_B(&simu, &q);
     } else  {
         cout << "Result file format is text" << endl;
-        LCviewIO::ReadLCD_T(simu, q);
+        ResultIO::ReadLCD_T(simu, q);
     }
 }
 
@@ -297,7 +293,7 @@ void ReadLCD_B(Simu *simu, SolutionVector *q) {
 }
 
 
-
+/*
 void WriteLCViewResult(
     Simu *simu,
     LC *lc,
@@ -311,14 +307,13 @@ void WriteLCViewResult(
 //
     size_t sf = simu->getSaveFormat();
     if (sf & Simu::LCview) {
-        WriteLCD_B(geom->getPtrTop(), geom->t, geom->e, v, q, simu, lc); // WRITES BINARY FILE
+        writeLCD_B(geom->getPtrTop(), geom->t, geom->e, v, q, simu, lc); // WRITES BINARY FILE
     }
     if (sf & Simu::LCviewTXT) {
-        WriteLCD(geom->getPtrTop(), geom->t, geom->e, v, q, simu); // WRITES TEXT FILE
+        writeLCD_T(geom->getPtrTop(), geom->t, geom->e, v, q, simu); // WRITES TEXT FILE
     }
 }
-// end void WriteREsult
-
+ */
 
 void CreateSaveDir(Simu &simu) {
     // CREATES DIRECTORY FOR RESULTS, IF IT DOES NOT
@@ -331,7 +326,7 @@ void CreateSaveDir(Simu &simu) {
         return;             // if succesful, can leave
     else
         // if not succesful:
-        cout << "error - cold not create SaveDir:\n" << simu.getSaveDir() << "\nbye!" << endl;
+        cout << "error - cold not create saveDir_:\n" << simu.getSaveDir() << "\nbye!" << endl;
     exit(1);
 }
 // end void CreateSaveDir

@@ -2,37 +2,29 @@ import sys
 import os
 import tempfile as tf
 import shutil
+from qlc3d_test_utils import *
 '''
 In this test a single iteration of Newton method is run with a potential turned on and the result file
 contents are compared to expected values.  
 '''
 RESULT_BACKUP_CONFIG_FILE = 'settings.qfg'
-RESULT_FILE = 'dirstackz1.csv'
+RESULT_FILE_0 = 'dirstackz0.csv'
+RESULT_FILE_1 = 'dirstackz1.csv'
 EXPECTED_RESULT_FILE_LINES = ['1,1,3,0',
-                              '0.998782,0.0348782,0.0348995,0.958484,-4.57858e-08,0.285145,0.998782,-0.0348782,0.0348995']
-
-
-def assert_true(should_be_true, msg=''):
-    if not should_be_true:
-        print("Failing because " + msg)
-        sys.exit(1)
-
-
-def assert_equals(expected, actual):
-    print(expected)
-    print(actual)
-    assert_true(expected == actual, '"' + str(actual) + '" should be "' + str(expected) + '"')
+                              '0.998782,0.0348782,0.0348995,0.958484,-4.5476e-08,0.285145,0.998782,-0.0348782,0.0348995']
 
 
 def check_results(result_dir):
     print("resultDir:" + result_dir)
     files = os.listdir(result_dir)
     print(str(files))
+    assert_equals(3, len(files))
     assert_true(RESULT_BACKUP_CONFIG_FILE in files, RESULT_BACKUP_CONFIG_FILE + " not found")
-    assert_true(RESULT_FILE in files, RESULT_FILE + " not found")
+    assert_true(RESULT_FILE_0 in files, RESULT_FILE_0 + " not found")
+    assert_true(RESULT_FILE_1 in files, RESULT_FILE_1 + " not found")
 
-    # make sure the file contents are as expected
-    fid = open(result_dir + "/" + RESULT_FILE)
+    # make sure the file contents are as expected, line-by-line
+    fid = open(result_dir + "/" + RESULT_FILE_1)
     count = 0
     for line in fid:
         assert_equals(EXPECTED_RESULT_FILE_LINES[count], line.rstrip())
@@ -55,7 +47,8 @@ def run_test(executable):
     command = executable + " " + settings_file + " " + project_dir
     print("command=" + command)
     sys.stdout.flush()
-    os.system(command)
+    exitCode = os.system(command)
+    assert_equals(0, exitCode)
     print("end")
     sys.stdout.flush()
 

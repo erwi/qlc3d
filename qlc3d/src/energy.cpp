@@ -75,19 +75,18 @@ void init_shape() {
 }// end namespace Energy
 
 
-void CalculateFreeEnergy(FILE *fid, Simu *simu, LC *lc, Geometry *geom, SolutionVector *v, SolutionVector *q) {
+void CalculateFreeEnergy(FILE *fid,
+                         int currentIteration,
+                         double currentTime,
+                         const LC &lc,
+                         Geometry *geom,
+                         SolutionVector *v,
+                         SolutionVector *q) {
     using std::cout;
     using std::endl;
-    if (! simu->getOutputEnergy() == 1) // RETURN IF ENERGY CALCULATION NOT SET TO TRUE
-        return;
     cout << " Calculating free energy..."; fflush(stdout);
-    //if (lc->PhysicsFormulation == LC::BluePhase )
-    //{
-    //    double Ftot = calculateBluePhaseEnergy(*geom, *q, *v, *lc);
-    //    cout << "BLUE PHASE ENERGY = " << Ftot << endl;
-    //}
     // IF FIRST ITERATION, PRINT HEADERS
-    if (simu->getCurrentIteration() == 1) {
+    if (currentIteration == 1) {
         fprintf(fid, "%% columns are:\n");
         fprintf(fid, "%% time[s],splay,twist,bend,thermotropic,dielectric\n");
         fprintf(fid, "F = [ ...\n");
@@ -100,20 +99,20 @@ void CalculateFreeEnergy(FILE *fid, Simu *simu, LC *lc, Geometry *geom, Solution
     using namespace Energy;
     init_shape();
     double e0 = 8.8541878176 * 1e-12;
-    double S0 = lc->S0;
-    double epsav = lc->eps_per / S0;
-    double deleps = (lc->eps_par - lc->eps_per) / S0 ;
-    double A = lc->A;
-    double B = lc->B;
-    double C = lc->C;
-    double efe  = (2.0 / S0 / 3.0) * (lc->e11 + 2 * lc->e33);
-    double efe2 = (4.0 / S0 / 9.0) * (lc->e11 - lc->e33);
+    double S0 = lc.S0();
+    double epsav = lc.eps_per() / S0;
+    double deleps = (lc.eps_par() - lc.eps_per()) / S0 ;
+    double A = lc.A();
+    double B = lc.B();
+    double C = lc.C();
+    double efe  = (2.0 / S0 / 3.0) * (lc.e1() + 2 * lc.e3());
+    double efe2 = (4.0 / S0 / 9.0) * (lc.e1() - lc.e3());
     efe2 += 0; //no warnings...
     double f0 = (3.0 * A / 4.0) * (S0 * S0) + (B / 4.0) * (S0 * S0 * S0) + (9.0 * C / 16.0) * (S0 * S0 * S0 * S0);
     double pi = 3.141569;
     double q0(0);           // CHIRALITY
-    if (lc->p0 > 0.0) {
-        q0 = 2 * pi / lc->p0 ;
+    if (lc.p0() > 0.0) {
+        q0 = 2 * pi / lc.p0() ;
     }
     // IF SINGLE ELASTIC COEFFICIENT
     //double L1(0);
@@ -212,9 +211,9 @@ void CalculateFreeEnergy(FILE *fid, Simu *simu, LC *lc, Geometry *geom, Solution
                 double G6 = 1.0 / (rt2 * rt2 * rt2) * (q2 * (q2x * q2x) * 2.0 + q2 * (q3x * q3x) * 2.0 + q2 * (q4x * q4x) * 2.0 + q2 * (q5x * q5x) * 2.0 - q2 * (q2y * q2y) * 2.0 - q2 * (q3y * q3y) * 2.0 - q2 * (q4y * q4y) * 2.0 - q2 * (q5y * q5y) * 2.0 + q3 * q2x * q2y * 4.0 + q3 * q3x * q3y * 4.0 + q3 * q4x * q4y * 4.0 + q3 * q5x * q5y * 4.0 + q5 * q2x * q2z * 4.0 + q5 * q3x * q3z * 4.0 + q5 * q4x * q4z * 4.0 + q5 * q5x * q5z * 4.0 + q4 * q2y * q2z * 4.0 + q4 * q3y * q3z * 4.0 + q4 * q4y * q4z * 4.0 + q4 * q5y * q5z * 4.0) + (1.0 / (rt6 * rt6) * (q2 * (q1x * q1x) - q2 * (q1y * q1y) + q3 * q1x * q1y * 2.0 + q5 * q1x * q1z * 2.0 + q4 * q1y * q1z * 2.0) * 6.0) / rt2 - q1 * 1.0 / (rt6 * rt6 * rt6) * (q1x * q1x + q1y * q1y - (q1z * q1z) * 2.0) * 6.0 - (q1 * 1.0 / (rt2 * rt2) * (q2x * q2x + q3x * q3x + q4x * q4x + q5x * q5x + q2y * q2y + q3y * q3y + q4y * q4y + q5y * q5y - (q2z * q2z) * 2.0 - (q3z * q3z) * 2.0 - (q4z * q4z) * 2.0 - (q5z * q5z) * 2.0) * 2.0) / rt6;
                 double F_splay =  4 * G2 / (9 * S0 * S0) - 2 * G1 / (27 * S0 * S0) - 4 * G6 / (27 * S0 * S0 * S0);
                 double F_bend  =   2 * G1 / (27.0 * S0 * S0) + 4 * G6 / (27 * S0 * S0 * S0);
-                F11 += 0.5 * lc->K11 * mul * F_splay;
-                F22 += 0.5 * lc->K22 * mul * F_twist;
-                F33 += 0.5 * lc->K33 * mul * F_bend;
+                F11 += 0.5 * lc.K11() * mul * F_splay;
+                F22 += 0.5 * lc.K22() * mul * F_twist;
+                F33 += 0.5 * lc.K33() * mul * F_bend;
                 double Fel_elem = e0 * (-Vx * Vx - Vy * Vy - Vz * Vz) * epsav * 0.5 +
                                   e0 * deleps * (Vx * Vx * q1 * rt6 / 12.0  - Vx * Vx * q2 * rt2 / 4.0 - Vx * Vy * q3 * rt2 / 2.0  -  Vx * Vz * q5 * rt2 / 2.0
                                                  - Vy * Vz * q4 * rt2 / 2.0   - Vz * Vz * q1 * rt6 / 6.0 + Vy * Vy * q2 / 4.0);
@@ -241,7 +240,7 @@ void CalculateFreeEnergy(FILE *fid, Simu *simu, LC *lc, Geometry *geom, Solution
     //    fprintf(fid,"%e\t%e\t%e\t%e;\n", simu->getCurrentTime(), Fd, Fth, Fe);
     //}
     //else{
-    fprintf(fid, "%e\t%e\t%e\t%e\t%e\t%e;\n", simu->getCurrentTime(), F11, F22, F33 , Fth , Fe);
+    fprintf(fid, "%e\t%e\t%e\t%e\t%e\t%e;\n", currentTime, F11, F22, F33 , Fth , Fe);
     //}
     printf("OK\n");
 }

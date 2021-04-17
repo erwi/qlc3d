@@ -3,7 +3,7 @@
 #include <globals.h>
 
 void setGlobalAngles(SolutionVector *q,
-                     LC* lc,
+                     double S0,
                      double tilt,
                      double twist,
                      vector<idx>* ind_nodes)
@@ -18,13 +18,11 @@ void setGlobalAngles(SolutionVector *q,
     double ny = cos(tilt)*sin(twist);
     double nz = sin(tilt);
 
-    double S = lc->getS0();
-
-    double a1 = S*(3* nx * nx - 1)/2.0;
-    double a2 = S*(3* ny * ny - 1)/2.0;
-    double a3 = S*(3* nx * ny)/2.0;
-    double a4 = S*(3* ny * nz)/2.0;
-    double a5 = S*(3* nx * nz)/2.0;
+    double a1 = S0 * (3 * nx * nx - 1) / 2.0;
+    double a2 = S0 * (3 * ny * ny - 1) / 2.0;
+    double a3 = S0 * (3 * nx * ny) / 2.0;
+    double a4 = S0 * (3 * ny * nz) / 2.0;
+    double a5 = S0 * (3 * nx * nz) / 2.0;
 
     // convert tensor basis
     vector <idx>::iterator itr;
@@ -41,27 +39,26 @@ void setGlobalAngles(SolutionVector *q,
 
 
 void setHomeotropic(SolutionVector* q,
-                    LC* lc,
+                    double S0,
                     vector<idx>* ind_nodes,
                     Geometry* geom){
     vector <idx>::iterator i;
-    double S = lc->getS0();
     for (i = ind_nodes->begin(); i != ind_nodes->end() ; ++i) {
         double nx = geom->getNodeNormalsX(*i);
         double ny = geom->getNodeNormalsY(*i);
         double nz = geom->getNodeNormalsZ(*i);
 
-        double a1 = S*(3* nx * nx - 1)/2.0;
-        double a2 = S*(3* ny * ny - 1)/2.0;
-        double a3 = S*(3* nx * ny)/2.0;
-        double a4 = S*(3* ny * nz)/2.0;
-        double a5 = S*(3* nx * nz)/2.0;
+        double a1 = S0 * (3 * nx * nx - 1) / 2.0;
+        double a2 = S0 * (3 * ny * ny - 1) / 2.0;
+        double a3 = S0 * (3 * nx * ny) / 2.0;
+        double a4 = S0 * (3 * ny * nz) / 2.0;
+        double a5 = S0 * (3 * nx * nz) / 2.0;
 
-        q->setValue(*i,0, (a1+a2)*(sqrt(6)/-2) );
-        q->setValue(*i,1, (a1+(a1+a2)/-2)*sqrt(2) );
-        q->setValue(*i,2, a3*sqrt(2) );
-        q->setValue(*i,3, a4*sqrt(2) );
-        q->setValue(*i,4, a5*sqrt(2) );
+        q->setValue(*i, 0, (a1 + a2) * (sqrt(6) / -2));
+        q->setValue(*i, 1, (a1 + (a1 + a2) / -2) * sqrt(2));
+        q->setValue(*i, 2, a3 * sqrt(2));
+        q->setValue(*i, 3, a4 * sqrt(2));
+        q->setValue(*i, 4, a5 * sqrt(2));
     }
 }
 
@@ -86,7 +83,7 @@ void setPolymeriseSurfaces(SolutionVector*q, double Sth){
 
 void setStrongSurfacesQ(SolutionVector *q,
                         Alignment* alignment,
-                        LC* lc,
+                        double S0,
                         Geometry* geom)
 {
     // sets only strong anchoring surfaces
@@ -105,10 +102,10 @@ void setStrongSurfacesQ(SolutionVector *q,
             if (aType == Strong) {
                 double tilt = alignment->surface[i]->getEasyTilt();
                 double twist= alignment->surface[i]->getEasyTwist();
-                setGlobalAngles(q,lc,tilt,twist,&ind_nodes);
+                setGlobalAngles(q, S0, tilt, twist, &ind_nodes);
             }
             else if (aType == Homeotropic) {
-                setHomeotropic(q,lc,&ind_nodes,geom);
+                setHomeotropic(q, S0, &ind_nodes, geom);
             }
             else if (aType == Freeze) {
                 setFrozenSurfaces(q, &ind_nodes);
@@ -119,7 +116,7 @@ void setStrongSurfacesQ(SolutionVector *q,
 //end void setStrongSurfaces
 
 
-void setManualNodesAnchoring(SolutionVector *q, LC* lc, Surface& surf){
+void setManualNodesAnchoring(SolutionVector *q, double S0, Surface& surf){
     /*!
   fixes maually defined nodes to tilt/twist values
   */
@@ -137,11 +134,11 @@ void setManualNodesAnchoring(SolutionVector *q, LC* lc, Surface& surf){
         nodes_idx.push_back( nodeIdx);
         cout << "node idx = " << nodeIdx << endl;
     }
-    setGlobalAngles(q, lc, tilt, twist, &nodes_idx);
+    setGlobalAngles(q, S0, tilt, twist, &nodes_idx);
 }
 
 
-void setSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* geom){
+void setSurfacesQ(SolutionVector *q, Alignment* alignment, double S0,  Geometry* geom){
     /*! sets q-tensor values for all surfaces. */
     vector<idx> ind_nodes;
     
@@ -161,7 +158,7 @@ void setSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* ge
                 cerr << "First available surface for this type is FIXLC"<< alignment->getnSurfaces() + 1<< " - bye!"  << endl;
                 exit(1);
             }
-            setManualNodesAnchoring(q, lc, *(alignment->surface[i]));
+            setManualNodesAnchoring(q, S0, *(alignment->surface[i]));
             continue;
         }
         //
@@ -176,12 +173,12 @@ void setSurfacesQ(SolutionVector *q, Alignment* alignment, LC* lc,  Geometry* ge
                 (aType == Degenerate)) {
                 double tilt = alignment->surface[i]->getEasyTilt();
                 double twist= alignment->surface[i]->getEasyTwist();
-                setGlobalAngles(q,lc,tilt,twist,&ind_nodes);
+                setGlobalAngles(q, S0, tilt, twist, &ind_nodes);
             }
             // if homeotropic OR degenerate with negative strength
             else if ((aType == Homeotropic) ||
                      ((aType == Degenerate) && (strength < 0))) {
-                setHomeotropic(q,lc,&ind_nodes,geom);
+                setHomeotropic(q, S0, &ind_nodes, geom);
             }
             else if (aType == Freeze) {
                 setFrozenSurfaces(q, &ind_nodes);

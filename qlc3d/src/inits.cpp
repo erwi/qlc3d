@@ -3,8 +3,6 @@
 #include <globals.h>
 #include <iostream>
 
-
-
 void validateTriangleMaterials(const idx* const mate, idx ne){
     // goes through all triangle material numbers and tries to check that all is well.
     // if problems are found, error message is printed and program aborted.
@@ -99,6 +97,7 @@ void validateTetrahedralMaterials(const idx* const matt, idx nt){
 
 // FUNCTIONS  BELOW DECALRED IN qlc3d.h
 void prepareGeometry(Geometry& geom,
+                     const std::string &meshFileName,
                      Simu& simu,
                      Alignment& alignment,
                      Electrodes& electrodes) {
@@ -112,17 +111,16 @@ void prepareGeometry(Geometry& geom,
 
     // Check whether to read mesh from text file or binary 'geo'-file
     // determine by file extension
-    std::string filename = simu.MeshName;
-    size_t point = filename.find_last_of('.');  // index to separator point
-    string extension = filename.substr(point + 1);
+    size_t point = meshFileName.find_last_of('.');  // index to separator point
+    string extension = meshFileName.substr(point + 1);
 
     if (extension.compare("geo") == 0 ) { // IF BINARY "SECRET" MESH
         printf(" reading .geo file\n");
-        readBinaryMesh(filename, p ,t, tmat, e, emat, &np, &nt, &ne);
+        readBinaryMesh(meshFileName, p ,t, tmat, e, emat, &np, &nt, &ne);
     }
     else {
         printf(" reading .%s file\n", extension.c_str() );
-        ReadGiDMesh3D(&simu,&p,&np,&t,&nt,&e,&ne,&tmat,&emat);
+        ReadGiDMesh3D(meshFileName,&p,&np,&t,&nt,&e,&ne,&tmat,&emat);
     }
 
     // PEOPLE DO STUPID THINGS IN GiD. NEED TO VALIDATE MATERIAL NUMBERS
@@ -132,16 +130,12 @@ void prepareGeometry(Geometry& geom,
 
     // Count number of electrodes in mesh
     electrodes.setnElectrodes(countElectrodes(emat, ne));
-    //electrodes.setImplicitVariables();
 
-    for (idx i = 0; i < 4*nt; i++)  t[i]--;	// change GiD mesh to zero indexing
-    for (idx i = 0; i < 3*ne; i++)  e[i]--;
     for (idx i = 0; i < np;   i++) {	// scale mesh
         p[3*i + 0] = p[3*i + 0]* simu.getStretchVectorX();
         p[3*i + 1] = p[3*i + 1]* simu.getStretchVectorY();
         p[3*i + 2] = p[3*i + 2]* simu.getStretchVectorZ();
     }
-
 
     geom.setCoordinates(p, (size_t) np);
     if (p) free(p);
@@ -197,34 +191,4 @@ FILE* createOutputEnergyFile(Simu& simu){
         }
     }
     return fid;
-}
-
-
-void selectQMatrixSolver(Simu &simu, const LC &lc)
-{
-    // SELECTS WHICH MATRIX SOLVER TO USE FOR Q-TENSOR
-    // EQUATIONS. IF MATRIX IS SYMMETRIC USE PCG, ELSE
-    // GMRES
-
-    // IF SOLVER HAS ALREADY BEEN CHOSEN IN SETTINGS
-    // FILE, DON'T DO ANYTHING
-    if (simu.getQMatrixSolver()!=Simu::Auto)
-        return;
-
-    bool isSymmetric = true;
-
-    // SINGLE ELASTIC COEFF. EQUATIONS -> SYMMETRIC
-    if (lc.K11 != lc.K22 )
-        isSymmetric = false;
-    if (lc.K11 != lc.K33 )
-        isSymmetric = false;
-
-    // CHIRALITY -> NON-SYMMETRIC
-    if (lc.p0 != 0.0)
-        isSymmetric = false;
-
-    if (isSymmetric)
-        simu.setQMatrixSolver(Simu::PCG);
-    else
-        simu.setQMatrixSolver(Simu::GMRES);
 }

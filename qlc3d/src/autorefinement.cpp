@@ -7,6 +7,7 @@
 #include <lc.h>
 #include <box.h>
 #include <qlc3d.h>
+#include <simulation-state.h>
 
 double getMaxS(SolutionVector &q) {
     int npLC = q.getnDoF();
@@ -171,17 +172,23 @@ idx getMaxRefiterCount(const list<RefInfo> &refInfos) {
     return maxRefIter;
 }
 
-bool autoref(Geometry &geom_orig, Geometry &geom,
-             SolutionVector &q, SolutionVector &qn,
+bool autoref(Geometry &geom_orig,
+             Geometry &geom,
+             SolutionVector &q,
+             SolutionVector &qn,
              SolutionVector &v,
              const list<RefInfo> &refInfos,
-             Simu &simu, Alignment &alignment, Electrodes &electrodes, LC &lc) {
-    bool bRefined(false);   // indicates whether mesh is changed or not
-    unsigned int refiter(0);         // refinement iteration counter
-    unsigned int maxrefiter(0);
+             Simu &simu,
+             SimulationState &simulationState,
+             Alignment &alignment,
+             Electrodes &electrodes,
+             double S0) {
+    bool bRefined{false};   // indicates whether mesh is changed or not
+    unsigned int refiter{0};         // refinement iteration counter
+    unsigned int maxrefiter{0};
     // DETERMINE MAXIMUM REFINEMENT ITERATIONS NUMBER
-    if (!(maxrefiter = getMaxRefiterCount(refInfos))) {   // IF NO REFINEMENT
-        simu.setMeshModified(false);
+    if (maxrefiter != getMaxRefiterCount(refInfos)) {   // IF NO REFINEMENT
+        simulationState.meshModified(false);
         return false;             // LEAVE REFINEMENT FUNCTION NOW
     }
     // CREATE TEMPORARY WORKING COPY OF GEOMETRY
@@ -238,7 +245,7 @@ bool autoref(Geometry &geom_orig, Geometry &geom,
     q.Allocate((idx) geom_temp.getnpLC(), 5);       // ALLOCATE FOR NEW MESH SIZE
     interpolate(q, geom_temp, qn, geom);    // INTERPOLATE FROM PREVIOUS MESH
     // SET BOUNDARY CONDITIONS
-    setStrongSurfacesQ(&q, &alignment, &lc, &geom_temp);
+    setStrongSurfacesQ(&q, &alignment, S0, &geom_temp);
     q.setFixedNodesQ(&alignment, geom_temp.e);
     q.setPeriodicEquNodes(&geom_temp);
     q.EnforceEquNodes(geom_temp);
@@ -249,10 +256,14 @@ bool autoref(Geometry &geom_orig, Geometry &geom,
     cout << "=============done refining mesh=============" << endl;
     cout << "       new nodecount = " << geom.getnp()      << endl;
     cout << "============================================" << endl;
-    if (simu.getdt() > 0)
-        simu.setdt(simu.getMindt());
-    simu.IncrementMeshNumber();     // output mesh name will be appended with this number
-    simu.setMeshModified(true);     // this is a flag set to notify that a new output file needs to be written
+    if (simu.simulationMode() == TimeStepping) {
+        simulationState.dt(simu.getMindt());
+        simulationState.restrictedTimeStep(true);
+    }
+
+    simulationState.incrementMeshNumber();
+    simulationState.meshModified(true);
+
     return bRefined; // WHETHER MESH WAS REFINED
 }
 

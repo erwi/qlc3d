@@ -34,6 +34,10 @@ public:
 };
 }
 
+namespace qlc3d {
+    class TTensor;
+}
+
 class SolutionVector
 {
     static const double BIGNUM;
@@ -122,6 +126,10 @@ assert( n<getnDoF() );
     void setValuesTo(const double* values); // sets all values to those in array 'values'. length of 'values' must be correct
     void setValuesTo(const SolutionVector& other); // copies values from other SolutionVector
     void setValue(const idx n,const idx dim, const double val);// sets nth value of dimension dim to val
+
+    //! set all of the 5 tensor values for te n'th DoF.
+    void setValue(const idx n, const qlc3d::TTensor &t);
+
     void setToFixedValues();
     void setFixedNodes(vector<int> *Material,
                        vector<double> *val ,

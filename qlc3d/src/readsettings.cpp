@@ -6,42 +6,20 @@
 #include <iostream>
 #include <meshrefinement.h>
 #include <refinfo.h>
-#include <filesysfun.h>
 #include <globals.h>
 #include <reader.h>
 #include <settings_file_keys.h>
-#include <simu.h>
 using std::cerr;
 using std::endl;
 
 
-
-
-void readLC(LC& lc,Reader& reader) {
-    try {
-        lc.K11 = reader.get<double>(SFK_K11, LC::DEFAULT_K11);
-        lc.K22 = reader.get<double>(SFK_K22, LC::DEFAULT_K22);
-        lc.K33 = reader.get<double>(SFK_K33, LC::DEFAULT_K33);
-        lc.p0  = reader.get<double>(SFK_p0, LC::DEFAULT_P0);
-        lc.A = reader.get<double>(SFK_A, LC::DEFAULT_A);
-        lc.B = reader.get<double>(SFK_B, LC::DEFAULT_B);
-        lc.C = reader.get<double>(SFK_C, LC::DEFAULT_C);
-        lc.eps_par = reader.get<double>( SFK_EPS_PAR, LC::DEFAULT_EPS_PAR);
-        lc.eps_per = reader.get<double>(SFK_EPS_PER, LC::DEFAULT_EPS_PER);
-        lc.e11 = reader.get<double>(SFK_E1, LC::DEFAULT_E1);
-        lc.e33 = reader.get<double>(SFK_E3, LC::DEFAULT_E3);
-        lc.gamma1 = reader.get<double>(SFK_GAMMA1, LC::DEFAULT_GAMMA1);
-        lc.convert_params_n2Q();
-    } catch (ReaderError e) {
-        e.printError();
-        std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
-    }
-}//end void readLC
-
+// TODO: this while file should be deleted and replaced by the SettingsReader class
+/*! loads values from settings file reader */
+/*
 void readSimu(Simu &simu, EventList &eventList, Reader &reader) {
-    /*! loads values from settings file reader */
+
     try {
-        simu.MeshName = reader.getValueByKey<string>(SFK_MESH_NAME);
+        simu.meshName_ = reader.getValueByKey<string>(SFK_MESH_NAME);
         std::string key;
         // Read optional string values
         simu.setLoadQ(reader.get<string>(SFK_LOAD_Q, Simu::DEFAULT_LOAD_Q));
@@ -52,7 +30,7 @@ void readSimu(Simu &simu, EventList &eventList, Reader &reader) {
         simu.setSaveFormats(reader.get<vector<string> >(SFK_SAVE_FORMAT, Simu::DEFAULT_SAVE_FORMATS));
         // Read optional scalar values
         simu.setEndValue(reader.get<double>(SFK_END_VALUE, Simu::DEFAULT_END_VALUE));
-        simu.setdt(reader.get<double>(SFK_DT, Simu::DEFAULT_DT));
+        simu.initialTimeStep(reader.get<double>(SFK_DT, Simu::DEFAULT_DT));
         simu.setTargetdQ(reader.get<double>(SFK_TARGET_DQ, Simu::DEFAULT_TARGET_DQ));
         simu.setMaxdt(reader.get<double>(SFK_MAX_DT, Simu::DEFAULT_MAX_DT));
         simu.setMaxError(reader.get<double>(SFK_MAX_ERROR, Simu::DEFAULT_MAX_ERROR));
@@ -73,7 +51,7 @@ void readSimu(Simu &simu, EventList &eventList, Reader &reader) {
         e.printError();
     }
 }//end void readSimu
-
+*/
 void readBoxes(Boxes &boxes, Reader& reader) {
     using std::string;
     const int MAX_NUM_BOXES = 100;
@@ -317,19 +295,18 @@ void readSolverSettings(Settings &settings, Reader &reader) {
 
 
 void ReadSettings(string settingsFileName,
-                  Simu &simu,
-                  LC &lc,
                   Boxes &boxes,
                   Alignment &alignment,
                   Electrodes &electrodes,
                   MeshRefinement &meshrefinement, // <--- unused param.
-                  EventList &eventList, Settings &settings) {
+                  EventList &eventList,
+                  Settings &settings) {
     Reader reader;
     reader.setCaseSensitivity(false);
     reader.readSettingsFile(settingsFileName);
     try {
-        readSimu(simu, eventList,reader);
-        readLC(lc, reader);
+        //readSimu(simu, eventList,reader);
+        //readLC(lc, reader);
         readBoxes(boxes, reader);
         readSolverSettings(settings, reader);
         readAlignment(alignment, reader);
@@ -338,8 +315,6 @@ void ReadSettings(string settingsFileName,
     } catch (ReaderError e) {
         e.printError();
     }
-    //std::cout << "EXIT OK " << std::endl;
-    //exit(1);
 }
 // end ReadSettings
 

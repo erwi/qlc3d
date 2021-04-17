@@ -1,11 +1,13 @@
-#include <stdio.h>
+#include <cstdio>
 #include <string>
-#include <string.h>
+#include <cstring>
 #include <fstream>
 #include <iostream>
+#include <filesystem>
+
 #include <simu.h>
 #include <geometry.h>
-//using namespace std;
+
 
 
 #define MAX_DIGITS 	1000000000
@@ -103,10 +105,10 @@ idx CountPrisms( ifstream* fin)// counts number of prisms (for periodic nodes)
 
 }//end int CountPrisms
 
-void ReadNodes(ifstream* fin,idx np, double* dp)
-{
-
-
+/**
+ * Reads coordinate values into dp array.
+ */
+void ReadNodes(ifstream* fin,idx np, double* dp) {
     forwardToLine(fin,"coordinates");
 
     for (idx i = 0 ; i < np ; i++ )
@@ -120,8 +122,8 @@ void ReadNodes(ifstream* fin,idx np, double* dp)
 
     cout << "OK\n";
 }// end void ReadNodes
-void ReadTetrahedra(ifstream* fin, idx nt, idx* dt, idx* dmatt)
-{
+
+void ReadTetrahedra(ifstream* fin, idx nt, idx* dt, idx* dmatt) {
     printf("\tReading %i tetrahedra...", nt); fflush(stdout);
     forwardToLine(fin, "elements");
     char cbuff[256];
@@ -133,16 +135,21 @@ void ReadTetrahedra(ifstream* fin, idx nt, idx* dt, idx* dmatt)
         idx tmp=0;
         bool err = !( ss >> tmp >> dt[i*4] >> dt[i*4+1] >> dt[i*4+2] >> dt[i*4+3] >> dmatt[i]);
 
-        if (err)
-        {
-            std::cout << "\nerror reading tetrahedra, bad format"<< std::endl;
-            std::cout << "expected 6 numbers per line in the following format :" << std::endl;
-            std::cout << "<tet number> <node 1> <node 2> <node 3> <node 4> <tet material>" << std::endl;
-            std::cout << "found:\"" << cbuff << "\" instead" <<std::endl;
-            std::cout << "Bye!" << std::endl;
+        if (err) {
             fin->close();
-            exit(1);
+            std::string errorMsg;
+            errorMsg+= "error reading tetrahedra, bad format\n";
+            errorMsg+= "expected 6 numbers per line in the following format :\n";
+            errorMsg+= "<tet number> <node 1> <node 2> <node 3> <node 4> <tet material>\n";
+            errorMsg+= std::string("found:\"") + cbuff + "\" instead";
+            throw std::runtime_error(errorMsg);
          }
+
+        // GiD mesh files use 1-based indexing, but we want 0-based, so decrement each new index by one.
+        dt[i * 4]--;
+        dt[i * 4 + 1]--;
+        dt[i * 4 + 2]--;
+        dt[i * 4 + 3]--;
     }
 
     printf("OK\n"); fflush(stdout);
@@ -180,21 +187,24 @@ void ReadTriangles(ifstream* fin, idx ne, idx* e, idx* emat)
     printf("\tReading %i triangles...",ne); fflush(stdout);
 
     forwardToLine(fin, "elements");
-    for (idx i =0 ; i<ne ; i++)
-    {
+    for (idx i =0 ; i<ne ; i++) {
         idx temp;
         *fin >> temp; //triangle number - not needed
         *fin >> e[i*3+0];
         *fin >> e[i*3+1];
         *fin >> e[i*3+2];
 
-        if (fin->peek() == 10) // 10 is ASCII FOR NEW LINE
+        // convert from 1-based to 0-based indexing
+        e[i * 3 + 0]--;
+        e[i * 3 + 1]--;
+        e[i * 3 + 2]--;
+        if (fin->peek() == 10) { // 10 is ASCII FOR NEW LINE
             emat[i] = 0; // if newline character ( = no material number assigned), convert to 0
-        else
+        } else {
             *fin >> emat[i];
+        }
     }
     printf("OK\n"); fflush(stdout);
-
 }
 
 bool isTextFile(std::ifstream &fin)
@@ -214,36 +224,40 @@ bool isTextFile(std::ifstream &fin)
     return true;
 }
 
-void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
-                   idx *ne, idx **matt, idx **mate)
+void ReadGiDMesh3D(const std::string &meshFileName,
+                   double **p,
+                   idx *np,
+                   idx **t,
+                   idx *nt,
+                   idx **e,
+                   idx *ne,
+                   idx **matt,
+                   idx **mate)
 {
-
     using namespace std;
+    if (!filesystem::exists(meshFileName)) {
+        throw std::runtime_error("can not read mesh: " + meshFileName + ", it does not exist");
+    }
     idx nperi = 0;
     ifstream fin;
     char *charray 	= (char*)malloc(200*sizeof(char));
 
-    string filename = simu->MeshName;
-    cout <<"Attempting to open mesh file: " << simu->getCurrentDir() + "/" + filename  << endl;
-    fin.open(filename.c_str());
+    cout <<"Attempting to open mesh file: " << meshFileName  << endl;
+    fin.open(meshFileName.c_str());
 
     if (!fin.good() ) {
-        std::cerr << "error - could not find mesh file."<< endl;
-        std::cerr << "was loking for mesh:\n" << simu->getCurrentDir() +"/"+ filename << endl;
-        std::cerr << "check your settings file for mistakes.\nBye!" << endl;
-
-        exit(1);
+        throw std::runtime_error("could not open mesh file " + meshFileName);
     }
-    else{ // FILE OPENED OK
-        printf("Reading GID mesh file: %s \n", filename.c_str()); fflush(stdout);
-        // STUDENTS ARE BAD AT EXPORTING GID MESHES. CHECH WHETHER IT IS TEXT/BINARY FORMAT
+    else{ // File opened OK
+        printf("Reading GID mesh file: %s \n", meshFileName.c_str()); fflush(stdout);
+        // STUDENTS ARE BAD AT EXPORTING GID MESHES. CHECK WHETHER IT IS TEXT/BINARY FORMAT
         if ( !isTextFile(fin) ){
             std::cout << "Error, mesh file contains invalid characters."<< std::endl;
             std::cout << "This usually happens when mesh is not properly exported from GiD." << std::endl;
             std::cout << "Bye!" << std::endl;
             exit(1);
         }
-        //printf("a");
+
         np[0] = 0;
         nt[0] = 0;
         ne[0] = 0;
@@ -256,8 +270,8 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
         while(!fin.eof()){ // count  - while loop
             fin.getline(charray,200);
             string line = charray;
-            if (line.find(Tets) != std::string::npos ){
-                if (np[0] == 0){	// if tets are defined first
+            if (line.find(Tets) != std::string::npos ) {
+                if (np[0] == 0) {	// if tets are defined first
                     np[0] = CountNodes(&fin);
                     tets_first = true;
                 }
@@ -265,13 +279,13 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
             }// end if tets before prisms
 
 
-            else if (line.find(Prisms) != std::string::npos){
+            else if (line.find(Prisms) != std::string::npos) {
                 // if prisms are defined before nodes
                 if (np[0] == 0)
                     np[0] = CountNodes(&fin);
                 nperi = CountPrisms(&fin);
             }
-            else if (line.find(Tris) != std::string::npos){
+            else if (line.find(Tris) != std::string::npos) {
                 if (np[0] == 0){
                     np[0] = CountNodes(&fin);
                 }
@@ -298,7 +312,6 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
                 exit(1);
             }
         }
-
 
         printf("Tets = %u , Tris = %u , Peri = %u, nodes = %u\n", nt[0], ne[0] , nperi, np[0]);
         double *dp 		= (double*) malloc(3*np[0]*sizeof(double));
@@ -339,8 +352,6 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
             }
         } // end read while loop
 
-
-
         // ONLY POSITIVE COORDINATES ALLOWED - MOVE IF NECESSARY
         double xmin,ymin,zmin,xmax,ymax,zmax;
         xmin = 1e9 ; ymin = 1e9 ; zmin = 1e9;
@@ -378,40 +389,7 @@ void ReadGiDMesh3D(Simu* simu,double **p, idx *np, idx **t, idx *nt,idx **e,
      }//end if mesh file opened ok
 }
 
-void writeBinaryMesh(Simu& simu, Geometry& geom){
-    /*! Writes binary representation of geometry geom to file*/
-
-    // MAke output filename.
-    std::string filename = simu.MeshName;
-    size_t ind = filename.find_last_of('.');
-    filename.erase(ind+1);
-    filename.append("geo");
-    printf("binary output filename = %s\n", filename.c_str()); fflush(stdout);
-
-    fstream file ( filename.c_str() , ios::out | ios::binary);
-    if (!file.good() ){
-        printf("error - could not write %s\n", filename.c_str()); fflush(stdout);
-        exit(1);
-    }
-
-    //file << (unsigned int) geom.getnp() << (unsigned int) geom.t->getnElements() << (unsigned int) geom.e->getnElements();
-    unsigned int numbers[3] = { geom.getnp() , geom.t->getnElements() , geom.e->getnElements() };
-    file.write( (char*) numbers , 3*sizeof(unsigned int) );
-    // write coordinates
-    file.write( (char*) geom.getPtrTop(), 3* geom.getnp() * sizeof( double ) );
-    // write tets node indexes
-    file.write( (char*) geom.t->getPtrToElement(0) , 4*numbers[1]*sizeof(int) );
-    // write tris node indexes
-    file.write( (char*) geom.e->getPtrToElement(0) , 3*numbers[2]*sizeof(int) );
-    // write tets materials
-    file.write( (char*) geom.t->getPtrToMaterialNumber(0), numbers[1]*sizeof(int) );
-    // write tris materials
-    file.write( (char*) geom.e->getPtrToMaterialNumber(0), numbers[2]*sizeof(int) );
-    file.close();
-
-    //exit(1);
-}
-
+// TODO: delete
 void readBinaryMesh(std::string filename,
                     double *&p,
                     idx *&t, idx *&tmat,

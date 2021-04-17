@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <stdlib.h>
 #include <omp.h>
+#include <lc-representation.h>
 const double SolutionVector::BIGNUM = 1e99;
 
 
@@ -801,17 +802,18 @@ void SolutionVector::setFaceElim(list <int> &face0,  // face1[i] = face0[i]
 void SolutionVector::setValue(const idx n,
                               const idx dim,
                               const double val) {
-    //#define DEBUG
-#ifdef DEBUG
-    if ((n >= (idx) getnDoF()) || (dim >= (idx) getnDimensions())) {
-        printf("error - SolutionVector::setValue(n, dim, val) - n = %i and dim = %i, bye!\n", n, dim);
-        printf(", when\n");
-        printf(" this->nDimensions = %i\n", this->nDimensions);
-        printf(" this->nDoF = %i\n", this->nDoF);
-        exit(1);
-    }
-#endif
+    assert(n < getnDoF());
+    assert(dim < getnDimensions());
     Values[n + dim * nDoF ] = val;
+}
+
+void SolutionVector::setValue(const idx n, const qlc3d::TTensor &t) {
+    assert(getnDimensions() == 5); // this should be SolutionVector for Q-tensor, not potential solution
+    setValue(n, 0, t.t1());
+    setValue(n, 1, t.t2());
+    setValue(n, 2, t.t3());
+    setValue(n, 3, t.t4());
+    setValue(n, 4, t.t5());
 }
 
 void SolutionVector::AddFixed(int mat, double val, Mesh *mesh) {

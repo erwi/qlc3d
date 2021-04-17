@@ -21,27 +21,23 @@ const idx npt = 4; //Number of Points per Tetrahedra
 double rt2 = sqrt(2.0);
 double rt6 = sqrt(6.0);
 
-//void init_shapes_surf();
-//void potasm(SolutionVector *v, SolutionVector* q, LC* lc,Mesh *mesh, double *p, SparseMatrix *K, double* L);
-
-
 void assemble_volume(double *p,
                      SolutionVector *v,
                      SolutionVector *q,
-                     LC *lc,
+                     const LC &lc,
                      Mesh *mesh,
                      SpaMtrix::IRCMatrix &K,
                      SpaMtrix::Vector &L,
                      Electrodes *electrodes);
+
 void assemble_Neumann(double *p,
                       SolutionVector *v,
                       SolutionVector *q,
-                      LC *lc,
+                      const LC &lc,
                       Mesh *mesh,
                       Mesh *surf_mesh,
                       SpaMtrix::IRCMatrix &K,
                       SpaMtrix::Vector &L);
-
 
 void Pot_GMRES(SpaMtrix::IRCMatrix &K,
                SpaMtrix::Vector &B,
@@ -67,7 +63,7 @@ void calcpot3d(
     SpaMtrix::IRCMatrix &K,
     SolutionVector *v,
     SolutionVector *q,
-    LC *lc,
+    const LC &lc,
     Geometry &geom,
     Settings *settings,
     Electrodes *electrodes) {
@@ -117,19 +113,19 @@ inline void localKL(
     int it,
     Mesh *mesh,
     SolutionVector *q,
-    LC *lc,
+    const LC &lc,
     Electrodes *electrodes,
     const Shape4thOrder &shapes)
 
 {
     idx i, j;
     double eper, deleps;
-    double S0 = lc->getS0();
+    double S0 = lc.S0();
     eper    = 0;
     deleps  = 0;
     if (mesh->getMaterialNumber(it) == MAT_DOMAIN1) { // if LC element
-        eper = lc->eps_per / S0;
-        deleps = (lc->eps_par - lc->eps_per) / S0;
+        eper = lc.eps_per() / S0;
+        deleps = (lc.eps_par() - lc.eps_per()) / S0;
     } else { // otherwise dielectric
         idx ind_de = mesh->getDielectricNumber(it) - 1; // -1 for 0 indexing
         eper = electrodes->getDielectricPermittivity(ind_de);
@@ -228,15 +224,15 @@ void localKL_N(
     Mesh  *mesh,
     Mesh *surf_mesh,
     SolutionVector *q,
-    LC *lc,
+    const LC &lc,
     const ShapeSurf4thOrder &shapes) {
     int i, j;
-    double S0 = lc->getS0();
+    double S0 = lc.S0();
     double eper   = 4.5;
     double deleps = 0.0;    // default for dielectric material
     if (mesh->getMaterialNumber(index_to_Neumann) == MAT_DOMAIN1) {
-        eper   = lc->eps_per / S0;
-        deleps = (lc->eps_par - lc->eps_per) / S0;
+        eper   = lc.eps_per() / S0;
+        deleps = (lc.eps_par() - lc.eps_per()) / S0;
     } else {
         printf("NON LC NEUMANN\n"); // THIS SHOULD NEVER HAPPEN
     }
@@ -321,7 +317,7 @@ void assemble_volume(
     double *p,
     SolutionVector *v,
     SolutionVector *q,
-    LC *lc,
+    const LC &lc,
     Mesh *mesh,
     SpaMtrix::IRCMatrix &K,
     SpaMtrix::Vector &L,
@@ -369,7 +365,7 @@ void assemble_Neumann(
     double *p,
     SolutionVector *v,
     SolutionVector *q,
-    LC *lc,
+    const LC &lc,
     Mesh *mesh,
     Mesh *surf_mesh,
     SpaMtrix::IRCMatrix &K,

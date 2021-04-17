@@ -1,16 +1,12 @@
 #include <settings.h>
-#include <stdlib.h>
-#include <iostream>
 #include <simu.h>
-
 #include <spamtrix_ircmatrix.hpp>
 #include <spamtrix_vector.hpp>
 #include <spamtrix_iterativesolvers.hpp>
 #include <spamtrix_luincpreconditioner.hpp>
 #include <spamtrix_diagpreconditioner.hpp>
 
-
-
+/*
 void solve_QTensor(SpaMtrix::IRCMatrix &K,
                    SpaMtrix::Vector &b,
                    SpaMtrix::Vector &x,
@@ -37,5 +33,5 @@ void solve_QTensor(SpaMtrix::IRCMatrix &K,
             printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",solver.maxIter,solver.toler);
         }
     }
-
 }
+*/
