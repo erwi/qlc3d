@@ -6,71 +6,106 @@
 #include <algorithm>
 #include <reader.h>
 
-
-// Define default material parameter values
-const double LC::DEFAULT_K11     = 10e-12;
-const double LC::DEFAULT_K22     = 10e-12;
-const double LC::DEFAULT_K33     = 10e-12;
-const double LC::DEFAULT_P0      = 0;
-const double LC::DEFAULT_EPS_PAR = 18.5;
-const double LC::DEFAULT_EPS_PER = 7.0;
-const double LC::DEFAULT_A       = -1.2e5;
-const double LC::DEFAULT_B       = -2.1333e6;
-const double LC::DEFAULT_C       = 1.7333e6;
-const double LC::DEFAULT_E1      = 0;
-const double LC::DEFAULT_E3      = 0;
-const double LC::DEFAULT_GAMMA1  = 0.0777;
-
-
-
-LC::LC() {
-    // Load default parameter values by default
-    A = DEFAULT_A;
-    B = DEFAULT_B;
-    C = DEFAULT_C;
-    // elastic coefficients
-    K11 = DEFAULT_K11;
-    K22 = DEFAULT_K22;
-    K33 = DEFAULT_K33;
-    p0 = DEFAULT_P0;
-    // permittivity
-    eps_par = DEFAULT_EPS_PAR;
-    eps_per = DEFAULT_EPS_PER;
-    //flexoelectricity
-    e11 = DEFAULT_E1;
-    e33 = DEFAULT_E3;
-    // rotational viscosity
-    gamma1 = DEFAULT_GAMMA1;
-    convert_params_n2Q(); // converts from "vector" to "tensor" parameter values
+//<editor-fold desc=LC>
+double LC::calculateL1(double K11, double K22, double K33, double A, double B, double C) {
+    double S0 = LC::calculateS0(A, B, C);
+    return 2.0 * (K33 - K11 + 3.0 * K22) / (S0 * S0 * 27.0);
 }
 
-void LC::convert_params_n2Q() {
-    /*!converts paraemters defined in Oseen-Frank vecotr model values
-       to Q-tensor values that take into the account order parameter*/
-    S0 = (-B+sqrt(B*B-24*A*C))/(6*C);
-    if ( (S0<0) || (S0 > 1) ) {
-        std::cerr << "ERROR!, unusual equilibrium order parameter value: "<< S0 << std::endl;
-        std::cerr	<< "Check Thermotropic coefficients, A: " << A
-                    << " B: " << B
-                    << " C: " << C << std::endl;
-        std::exit(1);
-    }
-    // WHERE DOES EXTRA FACTOR OF 2 COME IN L-TERMS?
-    L1=2.0*(K33-K11+3.0*K22)/(S0*S0*27.0);
-    L2=4.0*(K11-K22)/(9.0*S0*S0);
-    L3 = 0;
-    L4 = 0.0;
-    if (p0!=0) {
-        double q0 = 2*3.14159265/p0;
-        L4 = ( 8.0 * q0 * K22 ) / ( S0 * S0 * 9.0 );
-    }
-    L5 = 0;
-    L6=4.0*(K33-K11)/(S0*S0*S0*27.0);
-    // VISCOSITIES
-    u1 = 4*gamma1 / (9 * S0);
+double LC::calculateL2(double K11, double K22, double A, double B, double C) {
+    double S0 = LC::calculateS0(A, B, C);
+    return 4.0 * (K11 - K22) / (9.0 * S0 * S0);
 }
 
-double LC::getS0() {
+double LC::calculateL4(double p0, double K22, double A, double B, double C) {
+    if (p0 == 0.) {
+        return 0;
+    }
+    double S0 = LC::calculateS0(A, B, C);
+    double q0 = 2 * M_PI / p0;
+    return (8.0 * q0 * K22) / (S0 * S0 * 9.0);
+}
+
+double LC::calculateL6(double K11, double K33, double A, double B, double C) {
+    double S0 = LC::calculateS0(A, B, C);
+    return 4.0 * (K33 - K11) / (S0 * S0 * S0 * 27.0);
+}
+
+double LC::calculateU1(double gamma1, double A, double B, double C) {
+    double S0 = LC::calculateS0(A, B, C);
+    return 4 * gamma1 / (9 * S0);
+}
+
+double LC::calculateS0(double A, double B, double C) {
+    double S0 = (-B + sqrt(B * B - 24 * A * C)) / (6 * C);
+    if (S0 < 0 || S0 > 1 || std::isnan(S0)) {
+        std::string msg = "Unwonted value of S0=" + std::to_string(S0) + ". Expected value in range 0 to 1.";
+        msg += "Check thermotropic coefficients A, B, C=" + std::to_string(A)
+               + ", " + std::to_string(B) + ", " + std::to_string(C);
+        throw std::invalid_argument(msg);
+    }
     return S0;
 }
+//</editor-fold>
 
+//<editor-fold desc=LCBuilder>
+LCBuilder &LCBuilder::K11(double K11) {
+    K11_ = K11;
+    return *this;
+}
+
+LCBuilder &LCBuilder::K22(double K22) {
+    K22_ = K22;
+    return *this;
+}
+
+LCBuilder &LCBuilder::K33(double K33) {
+    K33_ = K33;
+    return *this;
+}
+
+LCBuilder &LCBuilder::p0(double p0) {
+    p0_ = p0;
+    return *this;
+}
+
+LCBuilder &LCBuilder::A(double A) {
+    A_ = A;
+    return *this;
+}
+
+LCBuilder &LCBuilder::B(double B) {
+    B_ = B;
+    return *this;
+}
+
+LCBuilder &LCBuilder::C(double C) {
+    C_ = C;
+    return *this;
+}
+
+LCBuilder &LCBuilder::eps_par(double eps_par) {
+    eps_par_ = eps_par;
+    return *this;
+}
+
+LCBuilder &LCBuilder::eps_per(double eps_per) {
+    eps_per_ = eps_per;
+    return *this;
+}
+
+LCBuilder &LCBuilder::e1(double e1) {
+    e1_ = e1;
+    return *this;
+}
+
+LCBuilder &LCBuilder::e3(double e3) {
+    e3_ = e3;
+    return *this;
+}
+
+LCBuilder &LCBuilder::gamma1(double gamma1) {
+    gamma1_ = gamma1;
+    return *this;
+}
+//</editor-fold>

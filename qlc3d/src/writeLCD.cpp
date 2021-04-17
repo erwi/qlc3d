@@ -88,7 +88,7 @@ void writeLCD_B(double *p,
                 SolutionVector *v, SolutionVector *q,
                 int currentIteration,
                 double currentTime,
-                LC *lc,
+                double S0,
                 const std::string &meshFileName) {
     int npLC = q->getnDoF();
     int np = v->getnDoF();
@@ -113,7 +113,7 @@ void writeLCD_B(double *p,
     fprintf(fid, "** z Compression Ratio :  1.00000\n");
     fprintf(fid, "%s\n", meshFileName.c_str());
     fprintf(fid, "RAW FLOAT TRI - S0, np, nsols\n");
-    fprintf(fid, "%g %d %d\r\n", lc->getS0(), np, 6);
+    fprintf(fid, "%g %d %d\r\n", S0, np, 6);
     for (i = 0;  i < np; i++) {
         if (i < npLC) {
             // WRITE LC REGIONS

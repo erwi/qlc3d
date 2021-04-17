@@ -86,7 +86,7 @@ void setHedgehogBox(Box box, std::vector<qlc3d::Director> &dir, double* p, int n
 
 void SetVolumeQ(
 	SolutionVector *q,
-	LC* lc,
+	double S0,
 	Boxes* boxes,
 	double* p){
 /*! Sets initial Q-tensor volume configuration for all boxes*/
@@ -96,7 +96,7 @@ void SetVolumeQ(
     // AFTER THIS, A "T-TENSOR" REPRESENTATION IS THEN CALCULATED FROM THE VECTORS
 
     // By default, when no boxes exist, the director is initialised along (1, 0, 0) at equilibrium order.
-    auto defaultDirector = qlc3d::Director(1, 0, 0, lc->S0);
+    auto defaultDirector = qlc3d::Director(1, 0, 0, S0);
     std::vector<qlc3d::Director> dir(npLC, defaultDirector);
 
     // override the director within each box

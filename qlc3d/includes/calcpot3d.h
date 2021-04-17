@@ -11,7 +11,7 @@ class IRCMatrix;
 void calcpot3d(SpaMtrix::IRCMatrix &Kpot,
                SolutionVector *v,
                SolutionVector *q,
-               LC *lc,
+               const LC &lc,
                Geometry &geom,
                Settings *settings,
                Electrodes *electrodes);

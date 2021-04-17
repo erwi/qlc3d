@@ -27,9 +27,9 @@ Simu::QMatrixSolvers selectQMatrixSolver(const Simu &simu, const LC &lc) {
     // SINGLE ELASTIC COEFF. EQUATIONS -> SYMMETRIC
     // CHIRALITY -> NON-SYMMETRIC
     bool isSymmetric = true;
-    if (lc.K11 != lc.K22 ) { isSymmetric = false; }
-    if (lc.K11 != lc.K33 ) { isSymmetric = false; }
-    if (lc.p0 != 0.0) { isSymmetric = false; }
+    if (lc.K11() != lc.K22() ) { isSymmetric = false; }
+    if (lc.K11() != lc.K33() ) { isSymmetric = false; }
+    if (lc.p0() != 0.0) { isSymmetric = false; }
 
     return isSymmetric ? Simu::PCG : Simu::GMRES;
 }

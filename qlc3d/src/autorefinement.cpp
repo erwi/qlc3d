@@ -182,7 +182,7 @@ bool autoref(Geometry &geom_orig,
              SimulationState &simulationState,
              Alignment &alignment,
              Electrodes &electrodes,
-             LC &lc) {
+             double S0) {
     bool bRefined{false};   // indicates whether mesh is changed or not
     unsigned int refiter{0};         // refinement iteration counter
     unsigned int maxrefiter{0};
@@ -245,7 +245,7 @@ bool autoref(Geometry &geom_orig,
     q.Allocate((idx) geom_temp.getnpLC(), 5);       // ALLOCATE FOR NEW MESH SIZE
     interpolate(q, geom_temp, qn, geom);    // INTERPOLATE FROM PREVIOUS MESH
     // SET BOUNDARY CONDITIONS
-    setStrongSurfacesQ(&q, &alignment, &lc, &geom_temp);
+    setStrongSurfacesQ(&q, &alignment, S0, &geom_temp);
     q.setFixedNodesQ(&alignment, geom_temp.e);
     q.setPeriodicEquNodes(&geom_temp);
     q.EnforceEquNodes(geom_temp);

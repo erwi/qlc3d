@@ -15,9 +15,15 @@ Configuration::Configuration() :
 void Configuration::readSettings() {
     SettingsReader reader(settingsFileName());
     simu_ = reader.simu();
+    lc_ = reader.lc();
 }
 
 std::shared_ptr<Simu> Configuration::simu() const {
     assert(simu_ != nullptr);
     return simu_;
+}
+
+std::shared_ptr<LC> Configuration::lc() const {
+    assert(lc_ != nullptr);
+    return lc_;
 }

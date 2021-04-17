@@ -14,27 +14,6 @@ using std::endl;
 
 
 // TODO: this while file should be deleted and replaced by the SettingsReader class
-
-void readLC(LC& lc,Reader& reader) {
-    try {
-        lc.K11 = reader.get<double>(SFK_K11, LC::DEFAULT_K11);
-        lc.K22 = reader.get<double>(SFK_K22, LC::DEFAULT_K22);
-        lc.K33 = reader.get<double>(SFK_K33, LC::DEFAULT_K33);
-        lc.p0  = reader.get<double>(SFK_p0, LC::DEFAULT_P0);
-        lc.A = reader.get<double>(SFK_A, LC::DEFAULT_A);
-        lc.B = reader.get<double>(SFK_B, LC::DEFAULT_B);
-        lc.C = reader.get<double>(SFK_C, LC::DEFAULT_C);
-        lc.eps_par = reader.get<double>( SFK_EPS_PAR, LC::DEFAULT_EPS_PAR);
-        lc.eps_per = reader.get<double>(SFK_EPS_PER, LC::DEFAULT_EPS_PER);
-        lc.e11 = reader.get<double>(SFK_E1, LC::DEFAULT_E1);
-        lc.e33 = reader.get<double>(SFK_E3, LC::DEFAULT_E3);
-        lc.gamma1 = reader.get<double>(SFK_GAMMA1, LC::DEFAULT_GAMMA1);
-        lc.convert_params_n2Q();
-    } catch (ReaderError e) {
-        e.printError();
-        std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
-    }
-}//end void readLC
 /*! loads values from settings file reader */
 /*
 void readSimu(Simu &simu, EventList &eventList, Reader &reader) {
@@ -316,7 +295,6 @@ void readSolverSettings(Settings &settings, Reader &reader) {
 
 
 void ReadSettings(string settingsFileName,
-                  LC &lc,
                   Boxes &boxes,
                   Alignment &alignment,
                   Electrodes &electrodes,
@@ -328,7 +306,7 @@ void ReadSettings(string settingsFileName,
     reader.readSettingsFile(settingsFileName);
     try {
         //readSimu(simu, eventList,reader);
-        readLC(lc, reader);
+        //readLC(lc, reader);
         readBoxes(boxes, reader);
         readSolverSettings(settings, reader);
         readAlignment(alignment, reader);

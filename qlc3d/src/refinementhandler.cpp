@@ -14,7 +14,7 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
                           SimulationState &simulationState,
                           Alignment& alignment,
                           Electrodes& electrodes,
-                          LC& lc,
+                          double S0,
                           SpaMtrix::IRCMatrix &Kpot,
                           SpaMtrix::IRCMatrix &Kq)
 {
@@ -41,7 +41,7 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
             simulationState,
             alignment,
             electrodes,
-            lc);
+            S0);
 
     // DELETE ALL REFINEMENT EVENTS. ALWAYS
     for (evitr = refEvents.begin() ; evitr != refEvents.end() ; ++evitr){
@@ -69,7 +69,7 @@ void handlePreRefinement(std::list<Event*>& refEvents,
                          SimulationState &simulationState,
                          Alignment& alignment,
                          Electrodes& electrodes,
-                         LC& lc,
+                         double S0,
                          SpaMtrix::IRCMatrix &Kpot,
                          SpaMtrix::IRCMatrix &Kq)
 {
@@ -86,7 +86,7 @@ void handlePreRefinement(std::list<Event*>& refEvents,
                          simulationState,
                          alignment,
                          electrodes,
-                         lc,
+                         S0,
                          Kpot,
                          Kq);
     // "ORIGINAL" MESH IS MODIFIED

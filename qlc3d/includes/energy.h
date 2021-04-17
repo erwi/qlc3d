@@ -6,7 +6,7 @@ class SolutionVector;
 void CalculateFreeEnergy(FILE* fid,
                          int currentIteration,
                          double currentTime,
-                         LC* lc,
+                         const LC &lc,
                          Geometry* geom,
                          SolutionVector* v,
                          SolutionVector* q);

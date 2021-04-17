@@ -88,7 +88,6 @@ class Electrodes;
 class EventList;
 void ReadSettings(
         string settings_filename,
-        LC& lc,
         Boxes &boxes,
         Alignment &alignment,
         Electrodes &electrodes,
@@ -112,13 +111,13 @@ void prepareGeometry(Geometry& geom,    // defined in inits.cpp
                      Electrodes& electrodes);
 FILE* createOutputEnergyFile(Simu& simu); // defined in inits.cpp
 
-void SetVolumeQ(SolutionVector *q, LC* lc, Boxes* boxes, double* p);
+void SetVolumeQ(SolutionVector *q, double S0, Boxes* boxes, double* p);
 
 // Sets all Q-tensor values to those specified in Alignment
 void setSurfacesQ(
 		SolutionVector* q,
 		Alignment* alignment,
-		LC* lc, 
+		double S0,
 		Geometry* geom);
 		
 // Sets Q-tensor values only for fixed nodes (strong, homeotropic anchoring), as specified in Alignment
@@ -126,10 +125,9 @@ void setSurfacesQ(
 void setStrongSurfacesQ(
 		SolutionVector* q,
 		Alignment* alignment,
-		LC* lc, 
+		double S0,
 		Geometry* geom);
-		
-		
+
 int ReorderNodes(double *p, int np,int *t, int nt, int *e, int ne,int *tmat,int *emat);
 double* tensortovector(double *a, int npLC);
 void tensorToEigs(double* a,		// input Q-tensor, traceless basis

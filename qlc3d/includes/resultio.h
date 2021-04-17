@@ -49,7 +49,7 @@ void writeLCD_B(double *p,
                 SolutionVector *v, SolutionVector *q,
                 int currentIteration,
                 double currentTime,
-                LC* lc,
+                double S0,
                 const std::string &meshFileName);
 
 void ReadResult(Simu& simu,         // READS AND LOADS Q-TENSOR VALUES FROM AN EXISTING RESULT FILE

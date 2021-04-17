@@ -34,7 +34,7 @@ void handleElectrodeSwitching(Event *currentEvent,
 
 void handleResultOutput(SimulationState &simulationState,
                         Simu &simu,
-                        LC &lc,
+                        double S0,
                         Geometry &geom,
                         SolutionVector &v,
                         SolutionVector &q) {
@@ -65,7 +65,7 @@ void handleResultOutput(SimulationState &simulationState,
 
         // Write the actual result file
         if (saveFormats.count(Simu::LCview)) {
-            ResultIO::writeLCD_B(geom.getPtrTop(), geom.t, geom.e, &v, &q, currentIteration, currentTime, &lc,
+            ResultIO::writeLCD_B(geom.getPtrTop(), geom.t, geom.e, &v, &q, currentIteration, currentTime, S0,
                                  numberedMeshName);
         }
         if (saveFormats.count(Simu::LCviewTXT)) {
@@ -147,7 +147,7 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
                          Simu &simu,
                          Geometries &geometries,
                          SolutionVectors &solutionvectors,
-                         LC &lc,
+                         const LC &lc,
                          Settings &settings,
                          SpaMtrix::IRCMatrix &Kpot,
                          SpaMtrix::IRCMatrix &Kq
@@ -196,7 +196,7 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
                             simulationState,
                             alignment,
                             electrodes,
-                            lc,
+                            lc.S0(),
                             Kpot,
                             Kq); // defined in refinementhandler.cpp
     }
@@ -205,7 +205,7 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
     calcpot3d(Kpot,
               solutionvectors.v,
               solutionvectors.q,
-              &lc,
+              lc,
               *geometries.geom,
               &settings,
               &electrodes);
@@ -213,7 +213,7 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
     // WRITE INITIAL RESULT FILE. ALWAYS!
     handleResultOutput(simulationState,
                        simu,
-                       lc,
+                       lc.S0(),
                        *geometries.geom,
                        *solutionvectors.v,
                        *solutionvectors.q);
@@ -246,7 +246,7 @@ void handleEvents(EventList &evel,
                   SimulationState& simulationState, // non-const, dt may be modified
                   Geometries &geometries,
                   SolutionVectors &solutionvectors,
-                  LC &lc,
+                  const LC &lc,
                   Settings &settings,
                   SpaMtrix::IRCMatrix &Kpot,
                   SpaMtrix::IRCMatrix &Kq
@@ -323,7 +323,7 @@ void handleEvents(EventList &evel,
                              simulationState,
                              alignment,
                              electrodes,
-                             lc,
+                             lc.S0(),
                              Kpot,
                              Kq); // defined in refinementhandler.cpp
     }
@@ -332,7 +332,7 @@ void handleEvents(EventList &evel,
         calcpot3d(Kpot,
                   solutionvectors.v,
                   solutionvectors.q,
-                  &lc,
+                  lc,
                   *geometries.geom,
                   &settings,
                   &electrodes);
@@ -341,7 +341,7 @@ void handleEvents(EventList &evel,
     if (saveResult) {
         handleResultOutput(simulationState,
                 simu,
-                lc,
+                lc.S0(),
                 *geometries.geom,
                 *solutionvectors.v,
                 *solutionvectors.q);

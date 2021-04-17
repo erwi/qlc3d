@@ -68,18 +68,18 @@ static double A, B, C;
 static double deleps, efe, efe2;
 static unsigned int npLC;
 void init_globals(LC &mat_par, SolutionVector &q) {
-    S0  = mat_par.S0;
-    L1 = mat_par.L1 ;
-    L2 = mat_par.L2 ;
-    L4 = mat_par.L4 ;
-    L6 = mat_par.L6 ;
-    A = mat_par.A;
-    B = mat_par.B;
-    C = mat_par.C;
+    S0  = mat_par.S0();
+    L1 = mat_par.L1() ;
+    L2 = mat_par.L2() ;
+    L4 = mat_par.L4() ;
+    L6 = mat_par.L6() ;
+    A = mat_par.A();
+    B = mat_par.B();
+    C = mat_par.C();
     npLC = (unsigned int) q.getnDoF();
-    deleps = (mat_par.eps_par - mat_par.eps_per) / S0;
-    efe  = (2.0 / S0 / 3.0) * (mat_par.e11 + 2 * mat_par.e33);
-    efe2 = (4.0 / S0 / 9.0) * (mat_par.e11 - mat_par.e33);
+    deleps = (mat_par.eps_par() - mat_par.eps_per()) / S0;
+    efe  = (2.0 / S0 / 3.0) * (mat_par.e1() + 2 * mat_par.e3());
+    efe2 = (4.0 / S0 / 9.0) * (mat_par.e1() - mat_par.e3());
 }
 
 
@@ -510,7 +510,7 @@ inline void localKL(double *p,
                 Mq[4 * 4 + i] += lI[i][j] * qbuff[IND(j, 4)];
             }
         }
-        const double temp = mat_par->u1 / dt;
+        const double temp = mat_par->u1() / dt;
         for (int i = 0; i < 20; i++) {
             lL[i] =  0.5 * lL[i] + Mq[i] * temp; // current RHS
             for (int j = 0 ; j < 20 ; j++) {
@@ -597,7 +597,7 @@ void wk_localKL(
     Alignment *alignment,
     LC *lc ,
     double *NodeNormals) {
-    double Ss = lc->S0;
+    double Ss = lc->S0();
     double  W = alignment->getStrength(FixLCNumber);
     W = W / (3 * Ss); // SCALE TO RP ANCHORING
     double K1   = alignment->getK1(FixLCNumber);
@@ -852,18 +852,18 @@ void assembleQ(
     double dt,
     Alignment *alignment,
     double *NodeNormals) {
-    S0  = mat_par->S0;
-    L1 = mat_par->L1 ;
-    L2 = mat_par->L2 ;
-    L4 = mat_par->L4 ;
-    L6 = mat_par->L6 ;
-    A = mat_par->A;
-    B = mat_par->B;
-    C = mat_par->C;
+    S0  = mat_par->S0();
+    L1 = mat_par->L1() ;
+    L2 = mat_par->L2() ;
+    L4 = mat_par->L4() ;
+    L6 = mat_par->L6() ;
+    A = mat_par->A();
+    B = mat_par->B();
+    C = mat_par->C();
     npLC = (unsigned int) q->getnDoF();
-    deleps = (mat_par->eps_par - mat_par->eps_per) / S0;
-    efe  = (2.0 / S0 / 3.0) * (mat_par->e11 + 2 * mat_par->e33);
-    efe2 = (4.0 / S0 / 9.0) * (mat_par->e11 - mat_par->e33);
+    deleps = (mat_par->eps_par() - mat_par->eps_per()) / S0;
+    efe  = (2.0 / S0 / 3.0) * (mat_par->e1() + 2 * mat_par->e3());
+    efe2 = (4.0 / S0 / 9.0) * (mat_par->e1() - mat_par->e3());
     assemble_volumes(K, L, q,  v, t, p, mat_par, dt);
     //SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
     assemble_Neumann_surfaces(L, q, v, t, e, p);
@@ -1041,7 +1041,7 @@ inline void assemble_local_prev_volumes(double lL[20],
             }
         }
     }
-    double u1 = mat_par.u1;
+    double u1 = mat_par.u1();
     for (int i = 0; i < 20; i++) {
         /* SEGFAULT WITH OPENMP HERE*/
         lL[i] = (lL[i] / 2.0) - (Mq[i] * (u1 / dt)) ;        // ORIGNAL

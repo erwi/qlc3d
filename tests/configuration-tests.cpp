@@ -23,7 +23,7 @@ TEST_CASE("MeshName is required in settings file") {
 }
 
 TEST_CASE("Read Simu from settings file") {
-// ARRANGE
+    // ARRANGE
     std::string contents;
     contents += "MeshName= wowowoo.txt\n";
     contents += "dt=123\n";
@@ -47,11 +47,11 @@ TEST_CASE("Read Simu from settings file") {
 
     auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
 
-// ACT
+    // ACT
     SettingsReader reader(settingsFile.name());
     auto simu = reader.simu();
 
-// ASSERT - check that the read simu matches the file contents specified above
+    // ASSERT - check that the read simu matches the file contents specified above
     REQUIRE(simu->meshName() == "wowowoo.txt");
     REQUIRE(simu->initialTimeStep() == 123);
     REQUIRE(simu->getQMatrixSolver() == Simu::QMatrixSolvers::PCG);
@@ -69,27 +69,76 @@ TEST_CASE("Read Simu from settings file") {
     REQUIRE(simu->getAssemblyThreadCount() == 99);
     REQUIRE(simu->getMatrixSolverThreadCount() == 98);
 
-// check lists
-// dtLimits
+    // check lists
+    // dtLimits
     REQUIRE(simu->getMindt() == 3.2);
     REQUIRE(simu->getMaxdt() == 4.2);
 
-// dtFunction
+    // dtFunction
     double dtf[4]{0, 0, 0, 0};
     simu->getdtFunction(dtf);
     REQUIRE((dtf[0] == 1.2 && dtf[1] == 2.2 && dtf[2] == 3.2 && dtf[3] == 4.2));
 
-// strech vector
+    // strech vector
     REQUIRE(simu->getStretchVectorX() == 1.2);
     REQUIRE(simu->getStretchVectorY() == 2.2);
     REQUIRE(simu->getStretchVectorZ() == 3.2);
 
-// regula grid size
+    // regula grid size
     REQUIRE(simu->getRegularGridXCount() == 2);
     REQUIRE(simu->getRegularGridYCount() == 3);
     REQUIRE(simu->getRegularGridZCount() == 4);
 
-// specified save formats
+    // specified save formats
     REQUIRE(simu->getSaveFormat().count(Simu::RegularVecMat));
     REQUIRE(simu->getSaveFormat().count(Simu::LCviewTXT));
+}
+
+TEST_CASE("read LC from settings file") {
+    // ARRANGE
+    std::string contents;
+    contents += "MeshName = ""wowowoo.msh\n"; // required in every settings file
+    contents += "K11 = 1.23e-12\n";
+    contents += "K22 = 2.23e-12\n";
+    contents += "K33 = 3.33e-12\n";
+    contents += "p0 = 0.01\n";
+    contents += "A = -0.12\n";
+    contents += "B = -2.1333\n";
+    contents += "C = 1.733\n";
+    contents += "eps_par = 12\n";
+    contents += "eps_per = 13\n";
+    contents += "e1 = 1e-11\n";
+    contents += "e3 = -1e-11\n";
+    contents += "gamma1 = 0.101\n";
+    auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+    // ACT:
+    SettingsReader reader(settingsFile.name());
+    auto lc = reader.lc();
+
+    // ASSERT:
+    const double eps = 1e-9;
+    // Explicitly defined values
+    REQUIRE(lc->K11() == Approx(1.23e-12).margin(eps));
+    REQUIRE(lc->K22() == Approx(2.23e-12).margin(eps));
+    REQUIRE(lc->K33() == Approx(3.33e-12).margin(eps));
+    REQUIRE(lc->p0() == Approx(0.01).margin(eps));
+    REQUIRE(lc->A() == Approx(-0.12).margin(eps));
+    REQUIRE(lc->B() == Approx(-2.1333).margin(eps));
+    REQUIRE(lc->C() == Approx(1.733).margin(eps));
+    REQUIRE(lc->eps_par() == Approx(12).margin(eps));
+    REQUIRE(lc->eps_per() == Approx(13).margin(eps));
+    REQUIRE(lc->e1() == Approx(1e-11).margin(eps));
+    REQUIRE(lc->e3() == Approx(-1e-11).margin(eps));
+    REQUIRE(lc->gamma1() == Approx(0.101).margin(eps));
+
+    // Implicit values, calculated in LC constructor from the above explicit values
+    REQUIRE(lc->S0() == Approx(0.50224218371360507).margin(eps));
+    REQUIRE(lc->L1() == Approx(2.5812420611831688e-12).margin(eps));
+    REQUIRE(lc->L2() == Approx(-1.7619399735038694e-12).margin(eps));
+    REQUIRE(lc->L3() == 0);
+    REQUIRE(lc->L4() == Approx(4.9374855277287484e-09).margin(eps));
+    REQUIRE(lc->L5() == 0);
+    REQUIRE(lc->L6() == Approx(2.4557036852882312e-12).margin(eps));
+    REQUIRE(lc->u1() == Approx(0.089376978566352377).margin(eps));
 }

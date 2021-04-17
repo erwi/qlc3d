@@ -22,9 +22,7 @@
 
 SimulationContainer::SimulationContainer(Configuration &config) :
         configuration(config),
-        //simu(new Simu()),
         electrodes(new Electrodes()),
-        lc(new LC()),
         boxes(new Boxes()),
         alignment(new Alignment()),
         meshRefinement(new MeshRefinement()),
@@ -43,11 +41,14 @@ void SimulationContainer::initialise() {
     }
     std::cout << "current working directory " << FilesysFun::getCurrentDirectory() << std::endl;
 
+    // get parameters provided in configuration
     simu = configuration.simu();
+    lc = configuration.lc();
+
     eventList->setSaveIter(simu->getSaveIter());
 
+    // read missing configuration from file. TODO: all parameters to be provided in configuration
     ReadSettings(configuration.settingsFileName(),
-                 *lc,
                  *boxes,
                  *alignment,
                  *electrodes,
@@ -68,15 +69,10 @@ void SimulationContainer::initialise() {
     }
 
     Energy_fid = nullptr; // file for outputting free energy
-
-    //selectQMatrixSolver(*simu, *lc);
-
     // ================================================================
     //	CREATE GEOMETRY
     //	NEED 3 GEOMETRY OBJECTS WHEN USING MESH REFINEMENT
     // ================================================================
-    //Geometry geom1 = Geometry();        // empty working geometry object
-    //Geometry geom_orig = Geometry();    // empty original geom object, loaded from file
     std::string meshName = configuration.currentDirectory() + "/" + simu->meshName(); // TODO
     // mesh file is read and geometry is loaded in this function (in inits.cpp)
     prepareGeometry(geom_orig,
@@ -95,12 +91,11 @@ void SimulationContainer::initialise() {
     //	POTENTIAL SOLUTION DATA
     //
     //================================================
-    cout << "Creating V...";
-    fflush(stdout);
+    std::cout << "Creating V..."; fflush(stdout);
     v = SolutionVector((idx) geom1.getnp());
     v.allocateFixedNodesArrays(geom1);
     v.setPeriodicEquNodes(&geom1); // periodic nodes
-    cout << "OK" << endl;
+    std::cout << "OK" << std::endl;
 
     // =============================================================
     //
@@ -108,23 +103,22 @@ void SimulationContainer::initialise() {
     //
     //==============================================================
     // create vector for 5 * npLC Q-tensor components
-    cout << "Creating Q...";
-    fflush(stdout);
+    std::cout << "Creating Q..."; fflush(stdout);
     q = SolutionVector(geom1.getnpLC(), 5);    //  Q-tensor for current time step
     qn = SolutionVector(geom1.getnpLC(), 5);   //  Q-tensor from previous time step
-    SetVolumeQ(&q, lc.get(), boxes.get(), geom1.getPtrTop());
-    setSurfacesQ(&q, alignment.get(), lc.get(), &geom1);
+    SetVolumeQ(&q, lc->S0(), boxes.get(), geom1.getPtrTop());
+    setSurfacesQ(&q, alignment.get(), lc->S0(), &geom1);
 
     //  LOAD Q FROM RESULT FILE
     if (!simu->getLoadQ().empty()) {
         ResultIO::ReadResult(*simu, q);
-        setStrongSurfacesQ(&q, alignment.get(), lc.get(), &geom1); // over writes surfaces with user specified values
+        setStrongSurfacesQ(&q, alignment.get(), lc->S0(), &geom1); // over writes surfaces with user specified values
     }
     q.setFixedNodesQ(alignment.get(), geom1.e);  // set fixed surface anchoring
     q.setPeriodicEquNodes(&geom1);          // periodic nodes
     q.EnforceEquNodes(geom1);                // makes sure values at periodic boundaies match
     qn = q;                                   // q-previous = q-current in first iteration
-    cout << "OK" << endl;                   // Q-TENSOR CREATED OK
+    std::cout << "OK" << std::endl;                   // Q-TENSOR CREATED OK
 
     // SET CONVENIENCE POINTERS STRUCTURE
     //solutionvectors;
@@ -133,21 +127,19 @@ void SimulationContainer::initialise() {
     solutionVectors.v = &v;
 
     // Make matrices for potential and Q-tensor..
-    cout << "Creating sparse matrix for potential...";
-    fflush(stdout);
+    std::cout << "Creating sparse matrix for potential..."; fflush(stdout);
     Kpot = createPotentialMatrix(geom1, v, 0, *electrodes);
-    cout << "OK" << endl;
+    std::cout << "OK" << std::endl;
 
-    cout << "Creating matrix for Q-tensor...";
-    fflush(stdout);
+    std::cout << "Creating matrix for Q-tensor..."; fflush(stdout);
     Kq = createQMatrix(geom1, q, MAT_DOMAIN1);
-    cout << "OK" << endl;
+    std::cout << "OK" << std::endl;
     //********************************************************************
     //*
     //*		Save Initial configuration and potential
     //*
     //********************************************************************
-    printf("\nSaving starting configuration (iteration -1)...\n");
+    std::cout << "Saving starting configuration..."; fflush(stdout);
     ResultIO::CreateSaveDir(*simu);
     Energy_fid = createOutputEnergyFile(*simu); // done in inits
 
@@ -163,17 +155,7 @@ void SimulationContainer::initialise() {
                         Kpot,
                         Kq
     );
-    printf("OK\n");
-
-    // TEMPORARY ARRAYS, USED IN POTENTIAL CONSISTENCY CALCULATIONS
-    /*
-    simu->setPotCons(Off);
-    if ((simu->getPotCons() != Off) && (simu->simulationMode() == TimeStepping)) {
-        v_cons = std::unique_ptr<double[]>(new double[v.getnDoF()]);
-        q_cons = std::unique_ptr<double[]>(new double[q.getnDoF() * q.getnDimensions()]);
-        qn_cons = std::unique_ptr<double[]>(new double[q.getnDoF() * q.getnDimensions()]);
-    }
-    */
+    std::cout << "OK" << std::endl;
 
     //===============================================
     //	 Start simulation
@@ -232,7 +214,7 @@ void SimulationContainer::runIteration() {
         CalculateFreeEnergy(Energy_fid,
                             simulationState_.currentIteration(),
                             simulationState_.currentTime(),
-                            lc.get(),
+                            *lc,
                             &geom1,
                             &v,
                             &q);
@@ -299,7 +281,7 @@ const SimulationState &SimulationContainer::currentState() const {
 double SimulationContainer::updateSolutions() {
     double maxdq = 0;
 
-    calcpot3d(Kpot, &v, &q, lc.get(), geom1, settings.get(), electrodes.get());
+    calcpot3d(Kpot, &v, &q, *lc.get(), geom1, settings.get(), electrodes.get());
 
     printf("Q");
     int QSolver = settings->getQ_Solver();

@@ -100,7 +100,7 @@ bool autoref(Geometry& geom_orig,
              SimulationState &simulationState,
              Alignment& alignment,
              Electrodes& electrodes,
-             LC& lc);
+             double S0);
 
 // Checks for maximum dq within an element, as specified in meshrefinement.
 // returns true is dq within any element is too large.

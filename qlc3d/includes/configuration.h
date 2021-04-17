@@ -15,6 +15,7 @@ class Configuration {
     std::string currentDirectory_;
 
     std::shared_ptr<Simu> simu_;
+    std::shared_ptr<LC> lc_;
 
 public:
     Configuration();
@@ -22,6 +23,9 @@ public:
     void readSettings();
     [[nodiscard]] std::shared_ptr<Simu> simu() const;
     void simu(Simu *simu) { simu_ = std::shared_ptr<Simu>(simu); }
+
+    [[nodiscard]] std::shared_ptr<LC> lc() const;
+    void lc(LC *lc) { lc_ = std::shared_ptr<LC>(lc); }
 
     /// The file name of the current settings file
     [[nodiscard]] const std::string &settingsFileName() const { return settingsFileName_; };

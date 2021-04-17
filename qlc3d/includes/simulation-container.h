@@ -31,7 +31,7 @@ class SimulationContainer {
 
     std::shared_ptr<Simu> simu;
     std::unique_ptr<Electrodes> electrodes;
-    std::unique_ptr<LC> lc;
+    std::shared_ptr<LC> lc;
     std::unique_ptr<Boxes> boxes;
     std::unique_ptr<Alignment> alignment;
     std::unique_ptr<MeshRefinement> meshRefinement;
