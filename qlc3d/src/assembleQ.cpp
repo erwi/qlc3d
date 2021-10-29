@@ -78,8 +78,8 @@ void init_globals(LC &mat_par, SolutionVector &q) {
     C = mat_par.C();
     npLC = (unsigned int) q.getnDoF();
     deleps = (mat_par.eps_par() - mat_par.eps_per()) / S0;
-    efe  = (2.0 / S0 / 3.0) * (mat_par.e1() + 2 * mat_par.e3());
-    efe2 = (4.0 / S0 / 9.0) * (mat_par.e1() - mat_par.e3());
+    efe  = 2.0 / (9 * S0) * (mat_par.e1() + 2 * mat_par.e3());
+    efe2 = 4.0 / (9 * S0 * S0) * (mat_par.e1() - mat_par.e3());
 }
 
 
@@ -355,17 +355,42 @@ inline void localKL(double *p,
                 temp += (ShR * rt2 * q1x * q1z * D2 + ShR * rt2 * q2x * q2z * D2 + ShR * rt2 * q3x * q3z * D2 + ShR * rt2 * q5x * q5z * D2 + ShR * rt2 * q4x * q4z * D2 - ShRx * q5x * q1 * rt23 * D6 + ShRx * q5x * q2 * rt2 * D2 + ShRx * q3 * rt2 * q5y * D2 + ShRx * q5 * rt2 * q5z * D2 - ShRy * q5y * q1 * rt23 * D6 - ShRy * q5y * q2 * rt2 * D2 + ShRy * q3 * rt2 * q5x * D2 + ShRy * q4 * rt2 * q5z * D2 + ShRz * q5 * rt2 * q5x * D2 + ShRz * q4 * rt2 * q5y * D2 + ShRz * q1 * rt23 * q5z * D3) * L6;
                 lL[i + 16] += temp;
             } // end if 3 elastic contants
-            if ((efe != 0.0) || (efe2 != 0.0)) { // IF FLEXOELECTRIC COEFFICIENTS ARN'T 0
-                double flexo = rt6 * (Vx * ShRx + Vy * ShRy - 2.0 * Vz * ShRz) * efe * 0.16666666666666666666667;
-                lL[i + 0] += flexo;
-                flexo = -0.5 * rt2 * (Vx * ShRx - Vy * ShRy) * efe;
-                lL[i + 4] += flexo;
-                flexo = -0.5 * rt2 * (Vy * ShRx + Vx * ShRy) * efe;
-                lL[i + 8] += flexo;
-                flexo = -0.5 * rt2 * (Vz * ShRy + Vy * ShRz) * efe;
-                lL[i + 12] += flexo;
-                flexo = -0.5 * rt2 * (Vz * ShRx + Vx * ShRz) * efe;
-                lL[i + 16] += flexo;
+            if (efe != 0.0) { // IF FLEXOELECTRIC COEFFICIENTS ARN'T 0
+                lL[i +  0] += (2*Vz*ShRz - Vx*ShRx - Vy*ShRy)*efe/rt6;
+                lL[i +  4] += (Vx*ShRx - Vy*ShRy)*efe/rt2;
+                lL[i +  8] += (Vy*ShRx + Vx*ShRy)*efe/rt2;
+                lL[i + 12] += (Vz*ShRy + Vy*ShRz)*efe/rt2;
+                lL[i + 16] += (Vz*ShRx + Vx*ShRz)*efe/rt2;
+            }
+            if (efe2 != 0.0) { 
+                lL[i +  0] += (-1.0/6.0*(rt3*ShR*Vx*q2x + rt3*ShR*Vx*q3y 
+                    + rt3*ShR*Vx*q5z - rt3*ShR*Vy*q2y + rt3*ShR*Vy*q3x 
+                    + rt3*ShR*Vy*q4z - 2*rt3*ShR*Vz*q4y - 2*rt3*ShR*Vz*q5x 
+                    + rt3*ShRx*Vx*q2 + rt3*ShRx*Vy*q3 + rt3*ShRx*Vz*q5 
+                    + rt3*ShRy*Vx*q3 - rt3*ShRy*Vy*q2 + rt3*ShRy*Vz*q4 
+                    - 2*rt3*ShRz*Vx*q5 - 2*rt3*ShRz*Vy*q4 - ShR*Vx*q1x 
+                    - ShR*Vy*q1y - 4*ShR*Vz*q1z - ShRx*Vx*q1 - ShRy*Vy*q1 
+                    - 4*ShRz*Vz*q1)*efe2);
+                lL[i +  4] += (-1.0/6.0*(rt3*ShR*Vx*q1x - rt3*ShR*Vy*q1y 
+                    + rt3*ShRx*Vx*q1 - rt3*ShRy*Vy*q1 - 3*ShR*Vx*q2x 
+                    - 3*ShR*Vx*q3y - 3*ShR*Vx*q5z - 3*ShR*Vy*q2y + 3*ShR*Vy*q3x 
+                    + 3*ShR*Vy*q4z - 3*ShRx*Vx*q2 - 3*ShRx*Vy*q3 - 3*ShRx*Vz*q5 
+                    + 3*ShRy*Vx*q3 - 3*ShRy*Vy*q2 + 3*ShRy*Vz*q4)*efe2);
+                lL[i +  8] += (-1.0/6.0*(rt3*ShR*Vx*q1y + rt3*ShR*Vy*q1x 
+                    + rt3*ShRx*Vy*q1 + rt3*ShRy*Vx*q1 + 3*ShR*Vx*q2y 
+                    - 3*ShR*Vx*q3x - 3*ShR*Vx*q4z - 3*ShR*Vy*q2x - 3*ShR*Vy*q3y 
+                    - 3*ShR*Vy*q5z - 3*ShRx*Vx*q3 + 3*ShRx*Vy*q2 - 3*ShRx*Vz*q4 
+                    - 3*ShRy*Vx*q2 - 3*ShRy*Vy*q3 - 3*ShRy*Vz*q5)*efe2);
+                lL[i + 12] += (1.0/6.0*(2*rt3*ShR*Vy*q1z - rt3*ShR*Vz*q1y 
+                    + 2*rt3*ShRy*Vz*q1 - rt3*ShRz*Vy*q1 + 3*ShR*Vy*q4y 
+                    + 3*ShR*Vy*q5x - 3*ShR*Vz*q2y + 3*ShR*Vz*q3x + 3*ShR*Vz*q4z 
+                    + 3*ShRy*Vx*q5 + 3*ShRy*Vy*q4 + 3*ShRz*Vx*q3 - 3*ShRz*Vy*q2 
+                    + 3*ShRz*Vz*q4)*efe2);
+                lL[i + 16] += (1.0/6.0*(2*rt3*ShR*Vx*q1z - rt3*ShR*Vz*q1x 
+                    + 2*rt3*ShRx*Vz*q1 - rt3*ShRz*Vx*q1 + 3*ShR*Vx*q4y 
+                    + 3*ShR*Vx*q5x + 3*ShR*Vz*q2x + 3*ShR*Vz*q3y + 3*ShR*Vz*q5z 
+                    + 3*ShRx*Vx*q5 + 3*ShRx*Vy*q4 + 3*ShRz*Vx*q2 + 3*ShRz*Vy*q3 
+                    + 3*ShRz*Vz*q5)*efe2);
             }
             // ADD AND ASSEMBLE MATRIX TERMS
             for (int j = 0 ; j < 4 ; ++j) {
@@ -401,19 +426,19 @@ inline void localKL(double *p,
                     temp = (-ShRx * rt3 * ShCx * D6 + ShRy * rt3 * ShCy * D6) * L2;
                     temp += (ShC * ShRx * q1x * rt2L * D2 - ShC * ShRy * q1y * rt2L * D2 - ShR * rt23 * q2x * ShCx * D6 - ShR * rt23 * q2y * ShCy * D6 + ShR * rt23 * q2z * ShCz * D3) * L6;;
                     lK[i  ][j + 4] += temp;
-                    lK[i + 4][j  ] += temp;
+                    lK[j + 4][i  ] += temp;
                     temp = (-ShRy * rt3 * ShCx * D6 - ShRx * rt3 * ShCy * D6) * L2;
                     temp += (ShC * ShRy * rt2L * q1x * D2 + ShC * ShRx * rt2L * q1y * D2 - ShR * rt23 * q3x * ShCx * D6 - ShR * rt23 * q3y * ShCy * D6 + ShR * rt23 * q3z * ShCz * D3) * L6;
                     lK[i  ][j + 8] += temp;
-                    lK[i + 8][j  ] += temp;
+                    lK[j + 8][i  ] += temp;
                     temp = (ShRz * rt3 * ShCy * D3 - ShRy * rt3 * ShCz * D6) * L2;
                     temp += (ShC * ShRy * rt2L * q1z * D2 + ShC * ShRz * rt2L * q1y * D2 - ShR * rt23 * q4x * ShCx * D6 - ShR * rt23 * q4y * ShCy * D6 + ShR * rt23 * q4z * ShCz * D3) * L6;
                     lK[i   ][j + 12] += temp;
-                    lK[i + 12][j   ] += temp;
+                    lK[j + 12][i   ] += temp;
                     temp = (ShRz * rt3 * ShCx * D3 - ShRx * rt3 * ShCz * D6) * L2;
                     temp += (ShC * ShRx * rt2L * q1z * D2 + ShC * ShRz * rt2L * q1x * D2 - ShR * rt23 * q5x * ShCx * D6 - ShR * rt23 * q5y * ShCy * D6 + ShR * rt23 * q5z * ShCz * D3) * L6;
                     lK[i   ][j + 16] += temp;
-                    lK[i + 16][j   ] += temp;
+                    lK[j + 16][i   ] += temp;
                     // dlL[4]/dq2 -> dlL[4]/dq5 L2 and L6 terms
                     temp = 0.5 * (ShRx * ShCx + ShRy * ShCy) * L2;
                     temp += (ShC * ShRx * rt2L * q2x * D2 - ShC * ShRy * rt2L * q2y * D2 + ShCx * ShR * rt2L * q2x * D2 - ShCx * ShRx * q1 * rt23 * D6 + ShCx * ShRx * q2 * rt2L * D2 + ShCx * ShRy * q3 * rt2L * D2 + ShCx * ShRz * q5 * rt2L * D2 - ShCy * ShR * rt2L * q2y * D2 + ShCy * ShRx * q3 * rt2L * D2 - ShCy * ShRy * q1 * rt23 * D6 - ShCy * ShRy * q2 * rt2L * D2 + ShCy * ShRz * q4 * rt2L * D2 + ShCz * ShRx * q5 * rt2L * D2 + ShCz * ShRy * q4 * rt2L * D2 + ShCz * ShRz * q1 * rt23 * D3) * L6;
@@ -421,15 +446,15 @@ inline void localKL(double *p,
                     temp = 0.5 * (-ShRy * ShCx + ShRx * ShCy) * L2;
                     temp += (ShC * ShRx * q2y * rt2L * D2 + ShC * ShRy * q2x * rt2L * D2 + ShR * rt2L * q3x * ShCx * D2 - ShR * rt2L * q3y * ShCy * D2) * L6;
                     lK[i + 4][j + 8] += temp;
-                    lK[i + 8][j + 4] += temp;
+                    lK[j + 8][i + 4] += temp;
                     temp = -0.5 * ShCz * L2 * ShRy;
                     temp += (ShC * ShRy * q2z * rt2L * D2 + ShC * ShRz * q2y * rt2L * D2 + ShR * rt2L * q4x * ShCx * D2 - ShR * rt2L * q4y * ShCy * D2) * L6;
                     lK[i + 4 ][j + 12] += temp;
-                    lK[i + 12][j + 4 ] += temp;
+                    lK[j + 12][i + 4 ] += temp;
                     temp = 0.5 * ShCz * L2 * ShRx;
                     temp += (ShC * ShRx * q2z * rt2L * D2 + ShC * ShRz * q2x * rt2L * D2 + ShR * rt2L * q5x * ShCx * D2 - ShR * rt2L * q5y * ShCy * D2) * L6;
                     lK[i + 4 ][j + 16] += temp;
-                    lK[i + 16][j + 4 ] += temp;
+                    lK[j + 16][i + 4 ] += temp;
                     // dlL[8] / dq3 -> dlL[8]/dq5 L2 and L6 terms
                     temp = 0.5 * (ShRx * ShCx + ShRy * ShCy) * L2;
                     temp += (ShC * ShRx * rt2L * q3y * D2 + ShC * ShRy * rt2L * q3x * D2 + ShCx * ShR * rt2L * q3y * D2 - ShCx * ShRx * q1 * rt23 * D6 + ShCx * ShRx * q2 * rt2L * D2 + ShCx * ShRy * q3 * rt2L * D2 + ShCx * ShRz * q5 * rt2L * D2 + ShCy * ShR * rt2L * q3x * D2 + ShCy * ShRx * q3 * rt2L * D2 - ShCy * ShRy * q1 * rt23 * D6 - ShCy * ShRy * q2 * rt2L * D2 + ShCy * ShRz * q4 * rt2L * D2 + ShCz * ShRx * q5 * rt2L * D2 + ShCz * ShRy * q4 * rt2L * D2 + ShCz * ShRz * q1 * rt23 * D3) * L6;
@@ -437,11 +462,11 @@ inline void localKL(double *p,
                     temp = ShCz * L2 * ShRx * 0.5;
                     temp += (ShC * ShRy * rt2L * q3z * D2 + ShC * ShRz * rt2L * q3y * D2 + ShR * rt2L * q4y * ShCx * D2 + ShR * rt2L * q4x * ShCy * D2) * L6;
                     lK[i + 8 ][j + 12] += temp;
-                    lK[i + 12][j + 8 ] += temp;
+                    lK[j + 12][i + 8 ] += temp;
                     temp = 0.5 * ShCz * L2 * ShRy;
                     temp += (ShC * ShRx * rt2L * q3z * D2 + ShC * ShRz * rt2L * q3x * D2 + ShR * rt2L * q5y * ShCx * D2 + ShR * rt2L * q5x * ShCy * D2) * L6;
                     lK[i + 8 ][j + 16] += temp;
-                    lK[i + 16][j + 8 ] += temp;
+                    lK[j + 16][i + 8 ] += temp;
                     // dlL[12] / dq4 -> dlL[8]/dq5 L2 and L6 terms
                     temp = 0.5 * (ShRy * ShCy + ShRz * ShCz) * L2;
                     temp += (ShC * ShRy * rt2L * q4z * D2 + ShC * ShRz * rt2L * q4y * D2 - ShCx * ShRx * q1 * rt23 * D6 + ShCx * ShRx * q2 * rt2L * D2 + ShCx * ShRy * q3 * rt2L * D2 + ShCx * ShRz * q5 * rt2L * D2 + ShCy * ShR * rt2L * q4z * D2 + ShCy * ShRx * q3 * rt2L * D2 - ShCy * ShRy * q1 * rt23 * D6 - ShCy * ShRy * q2 * rt2L * D2 + ShCy * ShRz * q4 * rt2L * D2 + ShCz * ShR * rt2L * q4y * D2 + ShCz * ShRx * q5 * rt2L * D2 + ShCz * ShRy * q4 * rt2L * D2 + ShCz * ShRz * q1 * rt23 * D3) * L6;
@@ -449,7 +474,7 @@ inline void localKL(double *p,
                     temp = 0.5 * ShCx * L2 * ShRy;
                     temp += (ShC * ShRx * rt2L * q4z * D2 + ShC * ShRz * rt2L * q4x * D2 + ShR * rt2L * q5z * ShCy * D2 + ShR * rt2L * q5y * ShCz * D2) * L6;
                     lK[i + 12][j + 16] += temp;
-                    lK[i + 16][j + 12] += temp;
+                    lK[j + 16][i + 12] += temp;
                     // dlL[12] / dq5 L2 and L6 terms
                     temp = 0.5 * (ShRx * ShCx + ShRz * ShCz) * L2;
                     temp += (ShC * ShRx * rt2L * q5z * D2 + ShC * ShRz * rt2L * q5x * D2 + ShCx * ShR * rt2L * q5z * D2 - ShCx * ShRx * q1 * rt23 * D6 + ShCx * ShRx * q2 * rt2L * D2 + ShCx * ShRy * q3 * rt2L * D2 + ShCx * ShRz * q5 * rt2L * D2 + ShCy * ShRx * q3 * rt2L * D2 - ShCy * ShRy * q1 * rt23 * D6 - ShCy * ShRy * q2 * rt2L * D2 + ShCy * ShRz * q4 * rt2L * D2 + ShCz * ShR * rt2L * q5x * D2 + ShCz * ShRx * q5 * rt2L * D2 + ShCz * ShRy * q4 * rt2L * D2 + ShCz * ShRz * q1 * rt23 * D3) * L6;
@@ -462,35 +487,87 @@ inline void localKL(double *p,
                     //Kc[0][3] = (ShRx*rt3*ShC/4.0-ShR*rt3*ShCx/4.0)*L4;
                     temp = (ShRx * ShC - ShR * ShCx) * L4 * D4 * rt3;
                     lK[i   ][j + 12] += temp;
-                    lK[i + 12][j + 0 ] -= temp;
+                    lK[j + 12][i + 0 ] += temp;
                     //Kc[0][4] = (-ShRy*rt3*ShC/4.0+ShR*rt3*ShCy/4.0)*L4;
                     temp = (-ShRy * ShC    +   ShR * ShCy) * L4 * D4 * rt3;
                     lK[i   ][j + 16] += temp;
-                    lK[i + 16][j   ] -= temp;
+                    lK[j + 16][i   ] += temp;
                     //Kc[1][2] = (-ShRz*ShC/2.0+ShR*ShCz/2.0)*L4;
                     temp = (-ShRz * ShC   +   ShR * ShCz) * L4 * 0.5;
                     lK[i + 4][j + 8] += temp;
-                    lK[i + 8][j + 4] -= temp;
+                    lK[j + 8][i + 4] += temp;
                     //Kc[1][3] = (ShC*ShRx/4.0-ShCx*ShR/4.0)*L4;
                     temp = (ShC * ShRx -   ShCx * ShR) * L4 * D4;
                     lK[i + 4 ][j + 12] += temp;
-                    lK[i + 12][j + 4 ] -= temp;
+                    lK[j + 12][i + 4 ] += temp;
                     //Kc[1][4] = (ShC*ShRy/4.0-ShCy*ShR/4.0)*L4;    // <----SAME A
                     temp = (ShC * ShRy -   ShCy * ShR) * L4 * D4;
                     lK[i + 4 ][j + 16] += temp;
-                    lK[i + 16][j + 4 ] -= temp;
+                    lK[j + 16][i + 4 ] += temp;
                     //Kc[2][3] = (ShC*ShRy/4.0-ShCy*ShR/4.0)*L4;    // <----SAME A
                     temp = (ShC * ShRy    -   ShCy * ShR) * L4 * D4;
                     lK[i + 8 ][j + 12] += temp;
-                    lK[i + 12][j + 8 ] -= temp;
+                    lK[j + 12][i + 8 ] += temp;
                     //Kc[2][4] = (-ShC*ShRx/4.0+ShCx*ShR/4.0)*L4;
                     temp = (-ShC * ShRx   +   ShCx * ShR) * L4 * D4;
                     lK[i + 8 ][j + 16] += temp;
-                    lK[i + 16][j + 8 ] -= temp;
+                    lK[j + 16][i + 8 ] += temp;
                     //Kc[3][4] = (ShRz*ShC/4.0-ShR*ShCz/4.0)*L4;
                     temp = (ShRz * ShC    -   ShR * ShCz) * L4 * D4;
                     lK[i + 12][j + 16] += temp;
-                    lK[i + 16][j + 12] -= temp;
+                    lK[j + 16][i + 12] += temp;
+                }
+                if (efe2 != 0.0) { // only efe2 (not efe) contributes to lK (2nd order)
+                    double flex_K11 = (1.0/6.0*(ShC*ShRx*Vx + ShC*ShRy*Vy + 4*ShC*ShRz*Vz 
+                                    + ShCx*ShR*Vx + ShCy*ShR*Vy + 4*ShCz*ShR*Vz)*efe2);
+                    double flex_K12 = (-1.0/6.0*(ShC*ShRx*Vx - ShC*ShRy*Vy + ShCx*ShR*Vx 
+                                    - ShCy*ShR*Vy)*rt3*efe2);
+                    double flex_K13 = (-1.0/6.0*(ShC*ShRx*Vy + ShC*ShRy*Vx + ShCx*ShR*Vy 
+                                    + ShCy*ShR*Vx)*rt3*efe2);
+                    double flex_K14 = (-1.0/6.0*(ShC*ShRy*Vz - 2*ShC*ShRz*Vy 
+                                    - 2*ShCy*ShR*Vz + ShCz*ShR*Vy)*rt3*efe2);
+                    double flex_K15 = (-1.0/6.0*(ShC*ShRx*Vz - 2*ShC*ShRz*Vx 
+                                    - 2*ShCx*ShR*Vz + ShCz*ShR*Vx)*rt3*efe2);
+                    double flex_K22 = (0.5*(ShC*ShRx*Vx + ShC*ShRy*Vy + ShCx*ShR*Vx 
+                                    + ShCy*ShR*Vy)*efe2);
+                    double flex_K23 = (0.5*(ShC*ShRx*Vy - ShC*ShRy*Vx - ShCx*ShR*Vy 
+                                    + ShCy*ShR*Vx)*efe2);
+                    double flex_K24 = (-0.5*(ShC*ShRy*Vz + ShCz*ShR*Vy)*efe2);
+                    double flex_K25 = (0.5*(ShC*ShRx*Vz + ShCz*ShR*Vx)*efe2);
+                    double flex_K33 = (0.5*(ShC*ShRx*Vx + ShC*ShRy*Vy + ShCx*ShR*Vx 
+                                    + ShCy*ShR*Vy)*efe2);
+                    double flex_K34 = (0.5*(ShC*ShRx*Vz + ShCz*ShR*Vx)*efe2)
+                    double flex_K35 = (0.5*(ShC*ShRy*Vz + ShCz*ShR*Vy)*efe2)
+                    double flex_K44 = (0.5*(ShC*ShRy*Vy + ShC*ShRz*Vz + ShCy*ShR*Vy 
+                                    + ShCz*ShR*Vz)*efe2);
+                    double flex_K45 = (0.5*(ShC*ShRy*Vx + ShCx*ShR*Vy)*efe2)
+                    double flex_K55 = (0.5*(ShC*ShRx*Vx + ShC*ShRz*Vz + ShCx*ShR*Vx 
+                                    + ShCz*ShR*Vz)*efe2);
+                    lK[i +  0][j +  0] += flex_K11;
+                    lK[i +  0][j +  4] += flex_K12;
+                    lK[i +  0][j +  8] += flex_K13;
+                    lK[i +  0][j + 12] += flex_K14;
+                    lK[i +  0][j + 16] += flex_K15;
+                    lK[j +  4][i +  0] += flex_K12;
+                    lK[i +  4][j +  4] += flex_K22;
+                    lK[i +  4][j +  8] += flex_K23;
+                    lK[i +  4][j + 12] += flex_K24;
+                    lK[i +  4][j + 16] += flex_K25;
+                    lK[j +  8][i +  0] += flex_K13;
+                    lK[j +  8][i +  4] += flex_K23;
+                    lK[i +  8][j +  8] += flex_K33;
+                    lK[i +  8][j + 12] += flex_K34;
+                    lK[i +  8][j + 16] += flex_K35;
+                    lK[j + 12][i +  0] += flex_K14;
+                    lK[j + 12][i +  4] += flex_K24;
+                    lK[j + 12][i +  8] += flex_K34;
+                    lK[i + 12][j + 12] += flex_K44;
+                    lK[i + 12][j + 16] += flex_K45;
+                    lK[j + 16][i +  0] += flex_K15;
+                    lK[j + 16][i +  4] += flex_K25;
+                    lK[j + 16][i +  8] += flex_K35;
+                    lK[j + 16][i + 12] += flex_K45;
+                    lK[i + 16][j + 16] += flex_K55;
                 }
             }//end for j
         } // end for i  - rows
@@ -520,6 +597,8 @@ inline void localKL(double *p,
     }//if(dt!=0)
 }// end void localKL
 
+// Neumann boundary condition: ensure n.grad(Q) = 0
+// To do: only currently works for 1k case, must add 3k terms
 void localKL_NQ(
     double *p,
     idx *tt,
@@ -572,15 +651,74 @@ void localKL_NQ(
             Vy += dSh[i][1] * v->getValue(tt[i]);
             Vz += dSh[i][2] * v->getValue(tt[i]);
         }//end for i
+        // n is the interior normal, conventionally exterior normal is used
+        double nx = n[0], ny = n[1], nz = n[2]; // interior normal?
         double mul = wsurf[igp] * eDet;
         double ShR;
         for (i = 0; i < 4; i++) {
             ShR = sh1[igp][i] * mul;
-            lL[i + 0] += (rt6 * ShR * (Vx * n[0] + Vy * n[1] - 2.0 * Vz * n[2]) * efe / 6.0);
-            lL[i + 4] += (-rt2 * ShR * (Vx * n[0] - Vy * n[1]) * efe / 2.0);
-            lL[i + 8] += (-rt2 * ShR * (Vy * n[0] + Vx * n[1]) * efe / 2.0);
-            lL[i + 12] += (-rt2 * ShR * (Vz * n[1] + Vy * n[2]) * efe / 2.0);
-            lL[i + 16] += (-rt2 * ShR * (Vz * n[0] + Vx * n[2]) * efe / 2.0);
+            lL[i +  0] += ShR*(2*Vz*nz - Vx*nx - Vy*ny)*efe/rt6;
+            lL[i +  4] += ShR*(Vx*nx - Vy*ny)*efe/rt2;
+            lL[i +  8] += ShR*(Vy*nx + Vx*ny)*efe/rt2;
+            lL[i + 12] += ShR*(Vz*ny + Vy*nz)*efe/rt2;
+            lL[i + 16] += ShR*(Vz*nx + Vx*nz)*efe/rt2;
+            
+            lL[i +  0] += (-1.0/6.0*(rt3*Vx*nx*q2 + rt3*Vx*ny*q3 - 2*rt3*Vx*nz*q5 
+                       + rt3*Vy*nx*q3 - rt3*Vy*ny*q2 - 2*rt3*Vy*nz*q4 + rt3*Vz*nx*q5 
+                       + rt3*Vz*ny*q4 - Vx*nx*q1 - Vy*ny*q1 - 4*Vz*nz*q1)*ShR*efe2);
+            lL[i +  4] += (-1.0/6.0*(rt3*Vx*nx*q1 - rt3*Vy*ny*q1 - 3*Vx*nx*q2 + 3*Vx*ny*q3 
+                       - 3*Vy*nx*q3 - 3*Vy*ny*q2 - 3*Vz*nx*q5 + 3*Vz*ny*q4)*ShR*efe2);
+            lL[i +  8] += (-1.0/6.0*(rt3*Vx*ny*q1 + rt3*Vy*nx*q1 - 3*Vx*nx*q3 - 3*Vx*ny*q2 
+                       + 3*Vy*nx*q2 - 3*Vy*ny*q3 - 3*Vz*nx*q4 - 3*Vz*ny*q5)*ShR*efe2);
+            lL[i + 12] += (-1.0/6.0*(rt3*Vy*nz*q1 - 2*rt3*Vz*ny*q1 - 3*Vx*ny*q5 
+                       - 3*Vx*nz*q3 - 3*Vy*ny*q4 + 3*Vy*nz*q2 - 3*Vz*nz*q4)*ShR*efe2);
+            lL[i + 16] += (-1.0/6.0*(rt3*Vx*nz*q1 - 2*rt3*Vz*nx*q1 - 3*Vx*nx*q5 
+                        - 3*Vx*nz*q2 - 3*Vy*nx*q4 - 3*Vy*nz*q3 - 3*Vz*nz*q5)*ShR*efe2);
+
+            for (int j = 0 ; j < 4 ; ++j) {
+                const double ShC = Sh[j];
+                double flex_K11 = (1.0/6.0*(Vx*nx + Vy*ny + 4*Vz*nz)*ShC*ShR*efe2);
+                double flex_K12 = (-1.0/6.0*(Vx*nx - Vy*ny)*rt3*ShC*ShR*efe2);
+                double flex_K13 = (-1.0/6.0*(Vx*ny + Vy*nx)*rt3*ShC*ShR*efe2);
+                double flex_K14 = (1.0/6.0*(2*Vy*nz - Vz*ny)*rt3*ShC*ShR*efe2);
+                double flex_K15 = (1.0/6.0*(2*Vx*nz - Vz*nx)*rt3*ShC*ShR*efe2);
+                double flex_K22 = (0.5*(Vx*nx + Vy*ny)*ShC*ShR*efe2);
+                double flex_K23 = (-0.5*(Vx*ny - Vy*nx)*ShC*ShR*efe2);
+                double flex_K24 = (-0.5*ShC*ShR*Vz*ny*efe2);
+                double flex_K25 = (0.5*ShC*ShR*Vz*nx*efe2);
+                double flex_K33 = (0.5*(Vx*nx + Vy*ny)*ShC*ShR*efe2);
+                double flex_K34 = (0.5*ShC*ShR*Vz*nx*efe2);
+                double flex_K35 = (0.5*ShC*ShR*Vz*ny*efe2);
+                double flex_K44 = (0.5*(Vy*ny + Vz*nz)*ShC*ShR*efe2);
+                double flex_K45 = (0.5*ShC*ShR*Vx*ny*efe2);
+                double flex_K55 = (0.5*(Vx*nx + Vz*nz)*ShC*ShR*efe2);
+
+                lK[i +  0][j +  0] += flex_K11;
+                lK[i +  0][j +  4] += flex_K12;
+                lK[i +  0][j +  8] += flex_K13;
+                lK[i +  0][j + 12] += flex_K14;
+                lK[i +  0][j + 16] += flex_K15;
+                lK[j +  4][i +  0] += flex_K12;
+                lK[i +  4][j +  4] += flex_K22;
+                lK[i +  4][j +  8] += flex_K23;
+                lK[i +  4][j + 12] += flex_K24;
+                lK[i +  4][j + 16] += flex_K25;
+                lK[j +  8][i +  0] += flex_K13;
+                lK[j +  8][i +  4] += flex_K23;
+                lK[i +  8][j +  8] += flex_K33;
+                lK[i +  8][j + 12] += flex_K34;
+                lK[i +  8][j + 16] += flex_K35;
+                lK[j + 12][i +  0] += flex_K14;
+                lK[j + 12][i +  4] += flex_K24;
+                lK[j + 12][i +  8] += flex_K34;
+                lK[i + 12][j + 12] += flex_K44;
+                lK[i + 12][j + 16] += flex_K45;
+                lK[j + 16][i +  0] += flex_K15;
+                lK[j + 16][i +  4] += flex_K25;
+                lK[j + 16][i +  8] += flex_K35;
+                lK[j + 16][i + 12] += flex_K45;
+                lK[i + 16][j + 16] += flex_K55;
+            }//end for j
         }//end for i
     }//end for igp
 }
@@ -862,8 +1000,8 @@ void assembleQ(
     C = mat_par->C();
     npLC = (unsigned int) q->getnDoF();
     deleps = (mat_par->eps_par() - mat_par->eps_per()) / S0;
-    efe  = (2.0 / S0 / 3.0) * (mat_par->e1() + 2 * mat_par->e3());
-    efe2 = (4.0 / S0 / 9.0) * (mat_par->e1() - mat_par->e3());
+    efe  = 2.0 / (9 * S0) * (mat_par->e1() + 2 * mat_par->e3());
+    efe2 = 4.0 / (9 * S0 * S0) * (mat_par->e1() - mat_par->e3());
     assemble_volumes(K, L, q,  v, t, p, mat_par, dt);
     //SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
     assemble_Neumann_surfaces(L, q, v, t, e, p);
@@ -1011,12 +1149,42 @@ inline void assemble_local_prev_volumes(double lL[20],
                 lL[i + 12] +=  L2_4 + L6_4;
                 lL[i + 16] +=  L2_5 + L6_5;
             }
-            if ((efe != 0.0) || (efe2 != 0.0)) { // IF FLEXOELECTRIC COEFFICIENTS ARN'T 0
-                lL[i + 0]  += (rt6 * (Vx * ShRx + Vy * ShRy - 2.0 * Vz * ShRz) * efe / 6.0);
-                lL[i + 4]  += (-rt2 * (Vx * ShRx - Vy * ShRy) * efe / 2.0);
-                lL[i + 8]  += (-rt2 * (Vy * ShRx + Vx * ShRy) * efe / 2.0);
-                lL[i + 12] += (-rt2 * (Vz * ShRy + Vy * ShRz) * efe / 2.0);
-                lL[i + 16] += (-rt2 * (Vz * ShRx + Vx * ShRz) * efe / 2.0);
+            if (efe != 0.0) { // IF FLEXOELECTRIC COEFFICIENTS ARN'T 0
+                lL[i +  0] += (2*Vz*ShRz - Vx*ShRx - Vy*ShRy)*efe/rt6;
+                lL[i +  4] += (Vx*ShRx - Vy*ShRy)*efe/rt2;
+                lL[i +  8] += (Vy*ShRx + Vx*ShRy)*efe/rt2;
+                lL[i + 12] += (Vz*ShRy + Vy*ShRz)*efe/rt2;
+                lL[i + 16] += (Vz*ShRx + Vx*ShRz)*efe/rt2;
+            }
+            if (efe2 != 0.0) { 
+                lL[i +  0] += (-1.0/6.0*(rt3*ShR*Vx*q2x + rt3*ShR*Vx*q3y 
+                    + rt3*ShR*Vx*q5z - rt3*ShR*Vy*q2y + rt3*ShR*Vy*q3x 
+                    + rt3*ShR*Vy*q4z - 2*rt3*ShR*Vz*q4y - 2*rt3*ShR*Vz*q5x 
+                    + rt3*ShRx*Vx*q2 + rt3*ShRx*Vy*q3 + rt3*ShRx*Vz*q5 
+                    + rt3*ShRy*Vx*q3 - rt3*ShRy*Vy*q2 + rt3*ShRy*Vz*q4 
+                    - 2*rt3*ShRz*Vx*q5 - 2*rt3*ShRz*Vy*q4 - ShR*Vx*q1x 
+                    - ShR*Vy*q1y - 4*ShR*Vz*q1z - ShRx*Vx*q1 - ShRy*Vy*q1 
+                    - 4*ShRz*Vz*q1)*efe2);
+                lL[i +  4] += (-1.0/6.0*(rt3*ShR*Vx*q1x - rt3*ShR*Vy*q1y 
+                    + rt3*ShRx*Vx*q1 - rt3*ShRy*Vy*q1 - 3*ShR*Vx*q2x 
+                    - 3*ShR*Vx*q3y - 3*ShR*Vx*q5z - 3*ShR*Vy*q2y + 3*ShR*Vy*q3x 
+                    + 3*ShR*Vy*q4z - 3*ShRx*Vx*q2 - 3*ShRx*Vy*q3 - 3*ShRx*Vz*q5 
+                    + 3*ShRy*Vx*q3 - 3*ShRy*Vy*q2 + 3*ShRy*Vz*q4)*efe2);
+                lL[i +  8] += (-1.0/6.0*(rt3*ShR*Vx*q1y + rt3*ShR*Vy*q1x 
+                    + rt3*ShRx*Vy*q1 + rt3*ShRy*Vx*q1 + 3*ShR*Vx*q2y 
+                    - 3*ShR*Vx*q3x - 3*ShR*Vx*q4z - 3*ShR*Vy*q2x - 3*ShR*Vy*q3y 
+                    - 3*ShR*Vy*q5z - 3*ShRx*Vx*q3 + 3*ShRx*Vy*q2 - 3*ShRx*Vz*q4 
+                    - 3*ShRy*Vx*q2 - 3*ShRy*Vy*q3 - 3*ShRy*Vz*q5)*efe2);
+                lL[i + 12] += (1.0/6.0*(2*rt3*ShR*Vy*q1z - rt3*ShR*Vz*q1y 
+                    + 2*rt3*ShRy*Vz*q1 - rt3*ShRz*Vy*q1 + 3*ShR*Vy*q4y 
+                    + 3*ShR*Vy*q5x - 3*ShR*Vz*q2y + 3*ShR*Vz*q3x + 3*ShR*Vz*q4z 
+                    + 3*ShRy*Vx*q5 + 3*ShRy*Vy*q4 + 3*ShRz*Vx*q3 - 3*ShRz*Vy*q2 
+                    + 3*ShRz*Vz*q4)*efe2);
+                lL[i + 16] += (1.0/6.0*(2*rt3*ShR*Vx*q1z - rt3*ShR*Vz*q1x 
+                    + 2*rt3*ShRx*Vz*q1 - rt3*ShRz*Vx*q1 + 3*ShR*Vx*q4y 
+                    + 3*ShR*Vx*q5x + 3*ShR*Vz*q2x + 3*ShR*Vz*q3y + 3*ShR*Vz*q5z 
+                    + 3*ShRx*Vx*q5 + 3*ShRx*Vy*q4 + 3*ShRz*Vx*q2 + 3*ShRz*Vy*q3 
+                    + 3*ShRz*Vz*q5)*efe2);
             }
             // ASSEMBLE LOCAL MASS MATRIX
             for (int j = 0 ; j < 4 ; j++) {
@@ -1098,5 +1266,3 @@ void assemble_prev_rhs(SpaMtrix::Vector &Ln,
         }//end if LC material
     }//end for it
 }// end function
-
-
