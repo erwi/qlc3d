@@ -19,6 +19,7 @@
 const idx npt = 4; //Number of Points per Tetrahedra
 
 double rt2 = sqrt(2.0);
+double rt3 = sqrt(3.0);
 double rt6 = sqrt(6.0);
 
 void assemble_volume(double *p,
@@ -123,9 +124,12 @@ inline void localKL(
     double S0 = lc.S0();
     eper    = 0;
     deleps  = 0;
+    double efe = 0.0, efe2 = 0.0;
     if (mesh->getMaterialNumber(it) == MAT_DOMAIN1) { // if LC element
         eper = lc.eps_per() / S0;
         deleps = (lc.eps_par() - lc.eps_per()) / S0;
+        efe  = 2.0 / (9 * S0) * (lc.e1() + 2 * lc.e3());
+        efe2 = 4.0 / (9 * S0 * S0) * (lc.e1() - lc.e3());
     } else { // otherwise dielectric
         idx ind_de = mesh->getDielectricNumber(it) - 1; // -1 for 0 indexing
         eper = electrodes->getDielectricPermittivity(ind_de);
@@ -176,6 +180,11 @@ inline void localKL(
         Sh[3] = shapes.sh1[igp][3];
         double e11, e22, e33, e12, e13, e23;
         e11 = 0; e22 = 0; e33 = 0; e12 = 0; e13 = 0; e23 = 0;
+        // Function variables and derivatives
+        double q1 = 0, q2 = 0, q3 = 0, q4 = 0, q5 = 0;
+        double q1x = 0, q2x = 0, q3x = 0, q4x = 0, q5x = 0;
+        double q1y = 0, q2y = 0, q3y = 0, q4y = 0, q5y = 0;
+        double q1z = 0, q2z = 0, q3z = 0, q4z = 0, q5z = 0;
         //if (1){//
         if (mesh->getMaterialNumber(it) != MAT_DOMAIN1) { // if this element is not LC
             // only set diagonal permittivities to non-zero
@@ -186,18 +195,55 @@ inline void localKL(
             }
         } else { // otherwise LC ->
             for (i = 0; i < npt; i++) {
-                e11 += Sh[i] * (((2.0 / 3.0 / S0) * (-q->getValue(tt[i], 0) / rt6 + q->getValue(tt[i], 1) / rt2) + (1.0 / 3.0)) * deleps + eper); //~nx*nx
-                e22 += Sh[i] * (((2.0 / 3.0 / S0) * (-q->getValue(tt[i], 0) / rt6 - q->getValue(tt[i], 1) / rt2) + (1.0 / 3.0)) * deleps + eper); //~ny*ny
-                e33 += Sh[i] * (((2.0 / 3.0 / S0) * (2.0 * q->getValue(tt[i], 0) / rt6)        + (1.0 / 3.0)) * deleps + eper); //~nz*nz
-                e12 += Sh[i] * (2.0 / 3.0 / S0) * (q->getValue(tt[i], 2) / rt2)         * deleps;           //~nx*ny
-                e13 += Sh[i] * (2.0 / 3.0 / S0) * (q->getValue(tt[i], 4) / rt2)         * deleps;           //~nx*nz
-                e23 += Sh[i] * (2.0 / 3.0 / S0) * (q->getValue(tt[i], 3) / rt2)         * deleps;
+                q1 += Sh[i] * q->getValue(tt[i], 0);
+                q2 += Sh[i] * q->getValue(tt[i], 1);
+                q3 += Sh[i] * q->getValue(tt[i], 2);
+                q4 += Sh[i] * q->getValue(tt[i], 3);
+                q5 += Sh[i] * q->getValue(tt[i], 4);
+                q1x += dSh[i][0] * q->getValue(tt[i], 0);
+                q2x += dSh[i][0] * q->getValue(tt[i], 1);
+                q3x += dSh[i][0] * q->getValue(tt[i], 2);
+                q4x += dSh[i][0] * q->getValue(tt[i], 3);
+                q5x += dSh[i][0] * q->getValue(tt[i], 4);
+                q1y += dSh[i][1] * q->getValue(tt[i], 0);
+                q2y += dSh[i][1] * q->getValue(tt[i], 1);
+                q3y += dSh[i][1] * q->getValue(tt[i], 2);
+                q4y += dSh[i][1] * q->getValue(tt[i], 3);
+                q5y += dSh[i][1] * q->getValue(tt[i], 4);
+                q1z += dSh[i][2] * q->getValue(tt[i], 0);
+                q2z += dSh[i][2] * q->getValue(tt[i], 1);
+                q3z += dSh[i][2] * q->getValue(tt[i], 2);
+                q4z += dSh[i][2] * q->getValue(tt[i], 3);
+                q5z += dSh[i][2] * q->getValue(tt[i], 4);
+                
+                e11 += Sh[i] * (((2.0 / 3.0 / S0) * (-q1 / rt6 + q2 / rt2) + (1.0 / 3.0)) * deleps + eper); //~nx*nx
+                e22 += Sh[i] * (((2.0 / 3.0 / S0) * (-q1 / rt6 - q2 / rt2) + (1.0 / 3.0)) * deleps + eper); //~ny*ny
+                e33 += Sh[i] * (((2.0 / 3.0 / S0) * (2.0 * q1 / rt6)        + (1.0 / 3.0)) * deleps + eper); //~nz*nz
+                e12 += Sh[i] * (2.0 / 3.0 / S0) * (q3 / rt2) * deleps;           //~nx*ny
+                e13 += Sh[i] * (2.0 / 3.0 / S0) * (q5 / rt2) * deleps;           //~nx*nz
+                e23 += Sh[i] * (2.0 / 3.0 / S0) * (q4 / rt2) * deleps;
             }
             //cout << "e =" << e11<<","<< e22<<","<< e33 <<","<< e12 <<","<< e13 <<","<< e23 << endl;
         }
         // Local K and L
         double mul = shapes.w[igp] * Jdet;
         for (i = 0; i < 4; i++) {
+            const double ShRx = mul * dSh[i][0];
+            const double ShRy = mul * dSh[i][1];
+            const double ShRz = mul * dSh[i][2];
+    
+            // Flexoelectric polarisation terms, minus, since minus residual formed
+            lL[i] -= -efe*( (ShRx*(q2x + q3y + q5z) + ShRy*(q3x + q4z - q2y) 
+                   + ShRz*(q4y + q5x))/rt2 + (2*ShRz*q1z - ShRx*q1x - ShRy*q1y)/rt6 );
+
+            lL[i] -= -efe2*((ShRx*q1*q1x + ShRy*q1*q1y + 4*ShRz*q1*q1z)/6 
+                   + ( ShRx*(q2*(q2x+q3y+q5z) + q3*(q3x-q2y+q4z) + q5*(q4y+q5x))
+                     + ShRy*(q2*(q2y-q3x-q4z) + q3*(q2x+q3y+q5z) + q4*(q4y+q5x))
+                     + ShRz*(q4*(q4z-q2y+q3x) + q5*(q3y+q2x+q5z)))/2
+                   + ( ShRx*(-q1*(q2x+q3y+q5z) - q2*q1x - q3*q1y + 2*q5*q1z)
+                     + ShRy*( q1*(q2y-q3x-q4z) + q2*q1y - q3*q1x + 2*q4*q1z)
+                     + ShRz*(2*q1*(q4y+q5x) - q4*q1y - q5*q1x))*rt3/6);
+
             for (j = 0; j < 4; j++) {
                 lK[i][j] += mul * (
                                 dSh[i][0] * dSh[j][0] * e11 +
@@ -230,9 +276,12 @@ void localKL_N(
     double S0 = lc.S0();
     double eper   = 4.5;
     double deleps = 0.0;    // default for dielectric material
+    double efe = 0.0, efe2 = 0.0;
     if (mesh->getMaterialNumber(index_to_Neumann) == MAT_DOMAIN1) {
         eper   = lc.eps_per() / S0;
         deleps = (lc.eps_par() - lc.eps_per()) / S0;
+        efe  = 2.0 / (9 * S0) * (lc.e1() + 2 * lc.e3());
+        efe2 = 4.0 / (9 * S0 * S0) * (lc.e1() - lc.e3());
     } else {
         printf("NON LC NEUMANN\n"); // THIS SHOULD NEVER HAPPEN
     }
@@ -290,16 +339,61 @@ void localKL_N(
         Sh[2] = shapes.sh1[igp][2];
         Sh[3] = shapes.sh1[igp][3];
         double e11 = 0, e22 = 0, e33 = 0, e12 = 0, e23 = 0, e13 = 0;
+        // Function variables and derivatives
+        double q1 = 0, q2 = 0, q3 = 0, q4 = 0, q5 = 0;
+        double q1x = 0, q2x = 0, q3x = 0, q4x = 0, q5x = 0;
+        double q1y = 0, q2y = 0, q3y = 0, q4y = 0, q5y = 0;
+        double q1z = 0, q2z = 0, q3z = 0, q4z = 0, q5z = 0;
         for (i = 0; i < 4; i++) {
-            e11 += shapes.sh1[igp][i] * (((2.0 / 3.0 / S0) * (-q->getValue(tt[i], 0) / rt6 + q->getValue(tt[i], 1) / rt2) + (1.0 / 3.0)) * deleps + eper); //~nx*nx
-            e22 += shapes.sh1[igp][i] * (((2.0 / 3.0 / S0) * (-q->getValue(tt[i], 0) / rt6 - q->getValue(tt[i], 1) / rt2) + (1.0 / 3.0)) * deleps + eper); //~ny*ny
-            e33 += shapes.sh1[igp][i] * (((2.0 / 3.0 / S0) * (2.0 * q->getValue(tt[i], 0) / rt6)       + (1.0 / 3.0)) * deleps + eper); //~nz*nz
-            e12 += shapes.sh1[igp][i] * (2.0 / 3.0 / S0) * (q->getValue(tt[i], 2) / rt2)            * deleps;           //~nx*ny
-            e13 += shapes.sh1[igp][i] * (2.0 / 3.0 / S0) * (q->getValue(tt[i], 4) / rt2)            * deleps;           //~nx*nz
-            e23 += shapes.sh1[igp][i] * (2.0 / 3.0 / S0) * (q->getValue(tt[i], 3) / rt2)            * deleps;       //~ny*nz
+            q1 += Sh[i] * q->getValue(tt[i], 0);
+            q2 += Sh[i] * q->getValue(tt[i], 1);
+            q3 += Sh[i] * q->getValue(tt[i], 2);
+            q4 += Sh[i] * q->getValue(tt[i], 3);
+            q5 += Sh[i] * q->getValue(tt[i], 4);
+            q1x += dSh[i][0] * q->getValue(tt[i], 0);
+            q2x += dSh[i][0] * q->getValue(tt[i], 1);
+            q3x += dSh[i][0] * q->getValue(tt[i], 2);
+            q4x += dSh[i][0] * q->getValue(tt[i], 3);
+            q5x += dSh[i][0] * q->getValue(tt[i], 4);
+            q1y += dSh[i][1] * q->getValue(tt[i], 0);
+            q2y += dSh[i][1] * q->getValue(tt[i], 1);
+            q3y += dSh[i][1] * q->getValue(tt[i], 2);
+            q4y += dSh[i][1] * q->getValue(tt[i], 3);
+            q5y += dSh[i][1] * q->getValue(tt[i], 4);
+            q1z += dSh[i][2] * q->getValue(tt[i], 0);
+            q2z += dSh[i][2] * q->getValue(tt[i], 1);
+            q3z += dSh[i][2] * q->getValue(tt[i], 2);
+            q4z += dSh[i][2] * q->getValue(tt[i], 3);
+            q5z += dSh[i][2] * q->getValue(tt[i], 4);
+
+            e11 += shapes.sh1[igp][i] * (((2.0 / 3.0 / S0) * (-q1 / rt6 + q2 / rt2) + (1.0 / 3.0)) * deleps + eper); //~nx*nx
+            e22 += shapes.sh1[igp][i] * (((2.0 / 3.0 / S0) * (-q1 / rt6 - q2 / rt2) + (1.0 / 3.0)) * deleps + eper); //~ny*ny
+            e33 += shapes.sh1[igp][i] * (((2.0 / 3.0 / S0) * (2.0 * q1 / rt6)       + (1.0 / 3.0)) * deleps + eper); //~nz*nz
+            e12 += shapes.sh1[igp][i] * (2.0 / 3.0 / S0) * (q3 / rt2) * deleps;           //~nx*ny
+            e13 += shapes.sh1[igp][i] * (2.0 / 3.0 / S0) * (q5 / rt2) * deleps;           //~nx*nz
+            e23 += shapes.sh1[igp][i] * (2.0 / 3.0 / S0) * (q4 / rt2) * deleps;       //~ny*nz
         }//end for i
         double mul = shapes.w[igp] * eDet;
+        double nx = n[0], ny = n[1], nz = n[2]; // interior normal?
         for (i = 0; i < 4; i++) {
+
+            const double ShR  = mul *  Sh[i][0];
+            const double ShRx = mul * dSh[i][0];
+            const double ShRy = mul * dSh[i][1];
+            const double ShRz = mul * dSh[i][2];
+    
+            // Flexoelectric polarisation terms, minus, since minus residual formed
+            lL[i] -= -efe*ShR*( (nx*(q2x + q3y + q5z) + ny*(q3x + q4z - q2y) 
+                   + nz*(q4y + q5x))/rt2 + (2*nz*q1z - nx*q1x - ny*q1y)/rt6 );
+
+            lL[i] -= -efe2*ShR*((nx*q1*q1x + ny*q1*q1y + 4*nz*q1*q1z)/6 
+                   + ( nx*(q2*(q2x+q3y+q5z) + q3*(q3x-q2y+q4z) + q5*(q4y+q5x))
+                     + ny*(q2*(q2y-q3x-q4z) + q3*(q2x+q3y+q5z) + q4*(q4y+q5x))
+                     + nz*(q4*(q4z-q2y+q3x) + q5*(q3y+q2x+q5z)))/2
+                   + ( nx*(-q1*(q2x+q3y+q5z) - q2*q1x - q3*q1y + 2*q5*q1z)
+                     + ny*( q1*(q2y-q3x-q4z) + q2*q1y - q3*q1x + 2*q4*q1z)
+                     + nz*(2*q1*(q4y+q5x) - q4*q1y - q5*q1x))*rt3/6);
+    
             for (j = 0; j < 4; j++) {
                 lK[i][j] += mul * Sh[i] * (((e11 - 1) * dSh[j][0] + e12 * dSh[j][1] + e13 * dSh[j][2]) * n[0]
                                            + (e12 * dSh[j][0] + (e22 - 1) * dSh[j][1] + e23 * dSh[j][2]) * n[1]
@@ -344,7 +438,7 @@ void assemble_volume(
                     idx nc = v->getEquNode(t[j]);   // INDEX TO CONNECTED NODE DEGREE OF FREEDOM POSITION
                     if (nc != NOT_AN_INDEX) {
                         #pragma omp atomic
-                        L[ nc ] -= lK[i][j] * v->getValue(t[i]); // L = -K*v
+                        L[ nc ] += lL[i] - lK[i][j] * v->getValue(t[i]); // L = -K*v
                     }
                 }
             }// END IF ROW NODE IS FIXED
@@ -402,7 +496,7 @@ void assemble_Neumann(
                         idx cr = v->getEquNode(ti[j]);   // CONNECTED NODE DOF ORDER
                         if (cr != NOT_AN_INDEX) {
                             #pragma omp atomic
-                            L[cr ] -= lK[j][i] * v->getValue(ti[i]);
+                            L[cr ] += lL[i] - lK[j][i] * v->getValue(ti[i]);
                         }
                     }
                 }// END HANDLE FIXED NODE
@@ -476,4 +570,3 @@ void Pot_GMRES(SpaMtrix::IRCMatrix &K,
     if (!solver.gmres(K, X, B, LU))
         printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n", solver.maxIter, solver.toler);
 }
-
