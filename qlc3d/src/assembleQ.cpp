@@ -536,11 +536,11 @@ inline void localKL(double *p,
                     double flex_K25 = (0.5*(ShC*ShRx*Vz + ShCz*ShR*Vx)*efe2);
                     double flex_K33 = (0.5*(ShC*ShRx*Vx + ShC*ShRy*Vy + ShCx*ShR*Vx 
                                     + ShCy*ShR*Vy)*efe2);
-                    double flex_K34 = (0.5*(ShC*ShRx*Vz + ShCz*ShR*Vx)*efe2)
-                    double flex_K35 = (0.5*(ShC*ShRy*Vz + ShCz*ShR*Vy)*efe2)
+                    double flex_K34 = (0.5*(ShC*ShRx*Vz + ShCz*ShR*Vx)*efe2);
+                    double flex_K35 = (0.5*(ShC*ShRy*Vz + ShCz*ShR*Vy)*efe2);
                     double flex_K44 = (0.5*(ShC*ShRy*Vy + ShC*ShRz*Vz + ShCy*ShR*Vy 
                                     + ShCz*ShR*Vz)*efe2);
-                    double flex_K45 = (0.5*(ShC*ShRy*Vx + ShCx*ShR*Vy)*efe2)
+                    double flex_K45 = (0.5*(ShC*ShRy*Vx + ShCx*ShR*Vy)*efe2);
                     double flex_K55 = (0.5*(ShC*ShRx*Vx + ShC*ShRz*Vz + ShCx*ShR*Vx 
                                     + ShCz*ShR*Vz)*efe2);
                     lK[i +  0][j +  0] += flex_K11;
