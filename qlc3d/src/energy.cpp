@@ -225,7 +225,6 @@ void CalculateFreeEnergy(FILE *fid,
                     Fflx += mul * Fflexo;
                 }// end if flexoelectric terms
                 if (efe2 != 0) { // if flexoelectric terms (actually from -f_E)
-                    // N.B. this is identical to old version, just simplified
                     double Fflexo = efe2*( ( Vx*(-q1*(q2x+q3y+q5z) - q2*q1x - q3*q1y + 2*q5*q1z)
                         + Vy*(q1*(q2y-q3x-q4z) + q2*q1y - q3*q1x + 2*q4*q1z)
                         + Vz*(2*q1*(q4y+q5x) - q4*q1y - q5*q1x) )*rt3/6
