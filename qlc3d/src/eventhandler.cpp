@@ -46,6 +46,12 @@ void handleResultOutput(SimulationState &simulationState,
     double *director(NULL); // TODO: use vector
     set<Simu::SaveFormats> saveFormats = simu.getSaveFormat();
 
+    // determine the iteration counter part of output filename.
+    string fileNameNumber =  to_string(simulationState.currentIteration()); // by default it's the current iteration
+    if (simulationState.state() == RunningState::COMPLETED) { // after completion, output filename with special counter value "final"
+        fileNameNumber = "-final";
+    }
+
     if (saveFormats.count(Simu::LCview) || saveFormats.count(Simu::LCviewTXT)) {
         // calculate mesh name with mesh number appended. e.g. mesh.txt -> mesh0.txt
         std::string numberedMeshName(simu.meshName());
@@ -75,12 +81,10 @@ void handleResultOutput(SimulationState &simulationState,
     }
 
     if (saveFormats.count(Simu::RegularVTK)) {
-        std::stringstream ss;
-        std::string filename;
-        ss << "regularvtk" << currentIteration << ".vtk";
-        ss >> filename;
-        if (!director)
+        std::string filename = "regularvtk" + fileNameNumber + ".vtk";
+        if (!director) {
             director = tensortovector(q.Values, geom.getnpLC());
+        }
 
         RegularGrid &rGrid = *geom.regularGrid;
         rGrid.writeVTKGrid(filename.c_str(),
@@ -90,12 +94,10 @@ void handleResultOutput(SimulationState &simulationState,
     }
 
     if (saveFormats.count(Simu::RegularVecMat)) {
-        std::stringstream ss;
-        std::string filename;
-        ss << "regularvec" << currentIteration << ".m";
-        ss >> filename;
-        if (!director)
+        std::string filename = "regularvec" + fileNameNumber + ".m";
+        if (!director) {
             director = tensortovector(q.Values, geom.getnpLC());
+        }
 
         RegularGrid &rGrid = *geom.regularGrid;
         rGrid.writeVecMat(filename.c_str(),       // WRITE REGULAR GRID RESULT FILE
@@ -106,13 +108,10 @@ void handleResultOutput(SimulationState &simulationState,
     }
 
     if (saveFormats.count(Simu::DirStackZ)) {
-        cout << "REGULAR DIR STACKZ" << endl;
-        std::stringstream ss;
-        std::string filename;
-        ss << "dirstackz" << currentIteration << ".csv";
-        ss >> filename;
-        if (!director)
+        std::string filename = "dirstacksz" + fileNameNumber + ".csv";
+        if (!director) {
             director = tensortovector(q.Values, geom.getnpLC());
+        }
         RegularGrid &rGrid = *geom.regularGrid;
         rGrid.writeDirStackZ(filename.c_str(),
                              director,

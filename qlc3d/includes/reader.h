@@ -1,7 +1,5 @@
 #ifndef READER2_H
 #define READER2_H
-
-
 #include <string>
 #include <vector>
 #include <map>
@@ -10,7 +8,7 @@
 #include <typeinfo>
 #include <fstream>
 #include <algorithm>
-#include<regex>
+#include <regex>
 struct ReaderError {
     std::string errorMessage;
     std::string fileName;
@@ -49,6 +47,7 @@ class Reader {
     };
     bool isCaseSensitive_;          // if not case sensitive, all text will be converted to lowercase
     bool isLowerCaseStringValues_;    // whether to convert all returned string values to lowercase
+    bool isEnvironmentVariableSubstitution_; // whether to perform string substitution from environment variables
     // ERROR MESSAGES
     const std::string _R_FILE_OPEN_ERROR_MESSAGE = "Could not open file :";
     const std::string _R_VECTOR_FORMAT_ERROR_MSG = "Bad vector format";
@@ -77,6 +76,8 @@ class Reader {
     inline bool isValidNumber(const std::string &strVal) const;   // returns false if not a valid number
     inline size_t getLineNumberByKey(const std::string &key) const; // find line number in file where a given key is defined
     inline void toLower(std::string &s) const; // converts string to all lower case
+
+    inline std::string envVarSubstitution(std::string &s) const; // performs string substitution on detected environment variables
 
     // SPECIALISATIONS FOR HANDLING DIFFERENT VALUE TYPES
     inline void parseValue(const std::string &strVal, std::string &val) const;
@@ -121,7 +122,7 @@ class Reader {
     }
 public:
 
-    inline Reader(): isCaseSensitive_(true), isLowerCaseStringValues_(false) {}
+    inline Reader(): isCaseSensitive_(true), isLowerCaseStringValues_(false), isEnvironmentVariableSubstitution_(false) {}
     inline void readSettingsFile(const std::string &fileName);
     inline void readValidKeysFile(const std::string &fileName);
     inline bool containsKey(const std::string &key);
@@ -135,6 +136,10 @@ public:
     inline void setCaseSensitivity(bool isCS) { isCaseSensitive_ = isCS; }
     inline bool isLowerCaseStringValues() const { return isLowerCaseStringValues_; }
     inline void setLowerCaseStringValues(bool isLowerCase) { isLowerCaseStringValues_ = isLowerCase; }
+    inline bool isEnvironmentVariableSubstitution() const { return isEnvironmentVariableSubstitution_; }
+    inline void setEnvironmentVariableSubstitution(bool isEnvironmentVariableSubstitution) {
+        isEnvironmentVariableSubstitution_ = isEnvironmentVariableSubstitution;
+    }
 
     inline bool isValidKey(std::string key);
     inline std::vector<std::string> getAllKeys() const; // returns vector containing all keys in file
@@ -151,6 +156,42 @@ inline void Reader::toLower(std::string &s) const {
         s[i] = std::tolower(s[i], loc);
     }
 }
+
+/**
+ * Makes a string substitution from environment variables. For example in the string
+ * "someKey = ${MY_VALUE}", the substring ${MY_VALUE} is replaced with the value of
+ * the environment variable MY_VALUE.
+ * NOTE: this modifies the input string.
+ *
+ * If an environment variable is not defined, an std::runtime_error is thrown.
+ *
+ * @param target string
+ * @return the target string after substitutions
+ */
+inline std::string Reader::envVarSubstitution(std::string &stringIn) const {
+    using namespace std;
+    string s(stringIn);
+    while (s.find('$') != string::npos) {
+        size_t start = s.find_first_of("${");
+        size_t end = s.find_first_of('}') + 1;
+
+        if ((start == string::npos) || (end == string::npos) || (end < start)) {
+            throw runtime_error("Invalid environment variable substitution format");
+        }
+
+        // find the corresponding environment variable
+        string key = s.substr(start + 2, (end - start) - 3);
+        cleanLineEnds(key);
+        char *value = getenv(key.c_str());
+        if (value == nullptr) {
+            throw runtime_error("No such environment variable " + key);
+        }
+
+        s = s.substr(0, start) + value + s.substr(end);
+    }
+    return s;
+}
+
 inline void Reader::cleanLineEnds(std::string &line) const {
     /*! Removes white space from both ends of input string*/
     if (line.size() == 0) {  // empty line
@@ -228,6 +269,14 @@ void Reader::readSettingsFile(const std::string &fileName) {
             lineNumber++;
             continue;
         }
+        if (isEnvironmentVariableSubstitution()) {
+            try {
+                line = envVarSubstitution(line);
+            } catch (std::exception &error) {
+                throw ReaderError(error.what(), fileName, lineNumber, line);
+            }
+        }
+
         // EXTRACT KEY AND VALUES AS STRINGS
         std::string key;
         std::string value;
