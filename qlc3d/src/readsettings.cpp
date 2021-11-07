@@ -303,10 +303,14 @@ void ReadSettings(string settingsFileName,
                   Settings &settings) {
     Reader reader;
     reader.setCaseSensitivity(false);
+    reader.setEnvironmentVariableSubstitution(true);
     reader.readSettingsFile(settingsFileName);
+
     try {
         //readSimu(simu, eventList,reader);
         //readLC(lc, reader);
+        // TODO: work in progress, removing all the reading in this file and pass in the config objects to the app
+        // as arguments
         readBoxes(boxes, reader);
         readSolverSettings(settings, reader);
         readAlignment(alignment, reader);

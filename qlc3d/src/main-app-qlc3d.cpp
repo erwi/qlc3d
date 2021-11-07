@@ -16,6 +16,7 @@ int runSimulation(Configuration &configuration) {
         configuration.readSettings();
         SimulationContainer simulation(configuration);
         simulation.initialise();
+
         while (simulation.hasIteration()) {
             simulation.runIteration();
             // TODO: auto state = simulation.getCurrentState() and do something with it?

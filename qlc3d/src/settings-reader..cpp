@@ -19,6 +19,9 @@ void SettingsReader::read() {
         Reader reader;
         reader.setCaseSensitivity(false);
         reader.setLowerCaseStringValues(true); // all returned string values are lower case.
+
+        // substitute environment variables into the settings file when encountering special formatting string ${ENV_VAR}
+        reader.setEnvironmentVariableSubstitution(true);
         reader.readSettingsFile(fileName_);
 
         readSimu(reader);
