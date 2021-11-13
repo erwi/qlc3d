@@ -91,7 +91,7 @@ public:
     /*!
      * Performs any additional tasks after all simulation iterations have been completed.
      */
-    void postSimulationTasks() const;
+    void postSimulationTasks();
 
     /*!
      * Returns the current simulation state.

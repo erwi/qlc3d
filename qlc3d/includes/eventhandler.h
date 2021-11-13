@@ -83,4 +83,11 @@ void handlePreRefinement(std::list<Event *> &refEvents,
                          double S0,
                          SpaMtrix::IRCMatrix &Kpot,
                          SpaMtrix::IRCMatrix &Kq);
+
+void handleResultOutput(SimulationState &simulationState,
+                        Simu &simu,
+                        double S0,
+                        Geometry &geom,
+                        SolutionVector &v,
+                        SolutionVector &q);
 #endif // EVENTHANDLER_H

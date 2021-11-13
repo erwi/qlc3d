@@ -4,6 +4,10 @@
 #ifndef PROJECT_QLC3D_SIMULATION_STATE_H
 #define PROJECT_QLC3D_SIMULATION_STATE_H
 #include <cassert>
+enum class RunningState {
+    INITIALISING, RUNNING, COMPLETED
+};
+
 struct Progress {
     //! the current iteration
     int iteration_;
@@ -15,6 +19,8 @@ struct Progress {
     double realTime_;
     //! the change_ in Q-tensor at current iteration
     double change_;
+    //! the current running state
+    RunningState runningState_;
 };
 
 struct Events {
@@ -59,6 +65,9 @@ public:
 
     [[nodiscard]] double change() const { return progress_.change_; }
     void change(const double &change) { progress_.change_ = change; }
+
+    [[nodiscard]] RunningState state() const { return progress_.runningState_; }
+    void state(RunningState runningState) { progress_.runningState_ = runningState; }
 
     [[nodiscard]] bool restrictedTimeStep() const { return events_.restrictedTimeStep_; }
     void restrictedTimeStep(bool isRestricted) { events_.restrictedTimeStep_ = isRestricted; }

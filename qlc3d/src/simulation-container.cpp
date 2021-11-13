@@ -34,6 +34,7 @@ SimulationContainer::SimulationContainer(Configuration &config) :
 }
 
 void SimulationContainer::initialise() {
+    simulationState_.state(RunningState::INITIALISING);
     // CHANGE CURRENT DIR TO WORKING DIRECTORY
     if (!FilesysFun::setCurrentDirectory(configuration.currentDirectory())) {
         printf("error, could not set working directory to:\n%s\nbye!", configuration.currentDirectory().c_str());
@@ -199,7 +200,7 @@ bool SimulationContainer::hasIteration() const {
 }
 
 void SimulationContainer::runIteration() {
-
+    simulationState_.state(RunningState::RUNNING);
     time(&t2);
     printf("=======================================================================\n");
     printf("Iteration %i, Time = %1.3es. Real time = %1.2es. dt = %1.3es. \n\b\b",
@@ -272,7 +273,16 @@ if ( (!simu.IsRunning() ) && (needsEndRefinement( geom1, q , meshrefinement ) ) 
      */
 }
 
-void SimulationContainer::postSimulationTasks() const {}
+void SimulationContainer::postSimulationTasks() {
+    simulationState_.state(RunningState::COMPLETED);
+
+    handleResultOutput(simulationState_,
+                       *simu.get(),
+                       lc->S0(),
+                       *geometries.geom,
+                       v,
+                       q);
+}
 
 const SimulationState &SimulationContainer::currentState() const {
     return simulationState_;

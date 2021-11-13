@@ -603,13 +603,16 @@ void localKL_NQ(
     double *p,
     idx *tt,
     double lL[20],
+    double lK[20][20],
     idx it,
     idx index_to_Neumann,
     Mesh  *mesh,
     Mesh *surf_mesh,
-    SolutionVector *v) {
+    SolutionVector *v,
+    SolutionVector *q) {
     int i;
     memset(lL, 0, 20 * sizeof(double));
+    memset(lK, 0, 20 * 20 * sizeof(double));
     double n[3];
     surf_mesh->CopySurfaceNormal(it, &n[0]);
     double eDet = surf_mesh->getDeterminant(it);
@@ -639,17 +642,24 @@ void localKL_NQ(
         dSh[i][2] = sh1r[0][i] * Jinv[0][2] + sh1s[0][i] * Jinv[1][2] + sh1t[0][i] * Jinv[2][2];
     }//end for i
     for (int igp = 0; igp < ngps; igp++) {
-        //double Sh[4];
-        //Sh[0] = sh1[igp][0];
-        //Sh[1] = sh1[igp][1];
-        //Sh[2] = sh1[igp][2];
-        //Sh[3] = sh1[igp][3];
+        double Sh[4];
+        Sh[0] = sh1[igp][0];
+        Sh[1] = sh1[igp][1];
+        Sh[2] = sh1[igp][2];
+        Sh[3] = sh1[igp][3];
         double Vx = 0, Vy = 0, Vz = 0;
+        double q1 = 0, q2 = 0, q3 = 0, q4 = 0, q5 = 0;
         for (i = 0; i < 4; i++) {
             // voltages
             Vx += dSh[i][0] * v->getValue(tt[i]);
             Vy += dSh[i][1] * v->getValue(tt[i]);
             Vz += dSh[i][2] * v->getValue(tt[i]);
+            // q-tensor
+            q1 += Sh[i] * q->getValue(tt[i], 0);
+            q2 += Sh[i] * q->getValue(tt[i], 1);
+            q3 += Sh[i] * q->getValue(tt[i], 2);
+            q4 += Sh[i] * q->getValue(tt[i], 3);
+            q5 += Sh[i] * q->getValue(tt[i], 4);
         }//end for i
         // n is the interior normal, conventionally exterior normal is used
         double nx = n[0], ny = n[1], nz = n[2]; // interior normal?
@@ -676,7 +686,7 @@ void localKL_NQ(
                         - 3*Vx*nz*q2 - 3*Vy*nx*q4 - 3*Vy*nz*q3 - 3*Vz*nz*q5)*ShR*efe2);
 
             for (int j = 0 ; j < 4 ; ++j) {
-                const double ShC = Sh[j];
+                const double ShC = sh1[igp][j];
                 double flex_K11 = (1.0/6.0*(Vx*nx + Vy*ny + 4*Vz*nz)*ShC*ShR*efe2);
                 double flex_K12 = (-1.0/6.0*(Vx*nx - Vy*ny)*rt3*ShC*ShR*efe2);
                 double flex_K13 = (-1.0/6.0*(Vx*ny + Vy*nx)*rt3*ShC*ShR*efe2);
@@ -877,6 +887,7 @@ void assemble_volumes(
 // end void assemble_volumes
 
 void assemble_Neumann_surfaces(
+    SpaMtrix::IRCMatrix &K,
     SpaMtrix::Vector &L,
     SolutionVector *q,
     SolutionVector *v,
@@ -894,6 +905,7 @@ void assemble_Neumann_surfaces(
         if ((index_to_Neumann > -1) &&                              // IF CONNECTED TO LC TET
                 (surf_mesh->getMaterialNumber(it) != MAT_PERIODIC)) {  // IF THIS IS NOT A PERIODIC TRIANGLE
             double lL[20];
+            double lK[20][20];
             // ELEMENT NODE NUMBERS ARE RE-ORDERED SO THAT t[4] IS NOT PART OF TRI ELEMENT
             idx ee[3] = {   surf_mesh->getNode(it, 0) ,
                             surf_mesh->getNode(it, 1) ,
@@ -914,7 +926,7 @@ void assemble_Neumann_surfaces(
             idx ti[4] = { ee[0], ee[1], ee[2], tt[intr] }; // REORDER LOCAL TET ELEMENT
             // NODE-NUMBERING SO THAT
             // INTERNAL NODE IS ALWAYS LAST
-            localKL_NQ(p, tt, lL , it , index_to_Neumann, mesh, surf_mesh, v);
+            localKL_NQ(p, tt, lL , lK, it , index_to_Neumann, mesh, surf_mesh, v, q);
             for (unsigned int i = 0; i < 20; i++) { // LOOP OVER ROWS
                 idx ri = ti[i % 4] + npLC * (i / 4);
                 idx eqr = q->getEquNode(ri);
@@ -923,6 +935,13 @@ void assemble_Neumann_surfaces(
                     #pragma omp atomic
 #endif
                     L[eqr] += lL[i] * BIGNUM;
+                    for (int j = 0 ; j < 20 ; j++) { // LOOP OVER COLUMNS
+                        idx rj = ti[j %4] + npLC * (j / 4);
+                        idx eqc = q->getEquNode(rj);
+                        if (eqc != NOT_AN_INDEX) {  // IF NOT FIXED
+                            K.sparse_add(eqr, eqc, lK[i][j]*BIGNUM);
+                        }
+                    } // end for j
                 }
             }//end for i
         }//end if LC
@@ -1004,7 +1023,7 @@ void assembleQ(
     efe2 = 4.0 / (9 * S0 * S0) * (mat_par->e1() - mat_par->e3());
     assemble_volumes(K, L, q,  v, t, p, mat_par, dt);
     //SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
-    assemble_Neumann_surfaces(L, q, v, t, e, p);
+    assemble_Neumann_surfaces(K, L, q, v, t, e, p);
     if (alignment->WeakSurfacesExist())   // if weak anchoring surfaces exist
         assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
 }

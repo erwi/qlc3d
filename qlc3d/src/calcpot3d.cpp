@@ -376,8 +376,7 @@ void localKL_N(
         double mul = shapes.w[igp] * eDet;
         double nx = n[0], ny = n[1], nz = n[2]; // interior normal?
         for (i = 0; i < 4; i++) {
-
-            const double ShR  = mul *  Sh[i][0];
+            const double ShR  = mul * Sh[i];
             const double ShRx = mul * dSh[i][0];
             const double ShRy = mul * dSh[i][1];
             const double ShRz = mul * dSh[i][2];

@@ -12,7 +12,8 @@ add_executable(cpp-test
         cpp-test.cpp
         configuration-tests.cpp
         meshio-tests.cpp
-        math-tests.cpp)
+        math-tests.cpp
+        reader-test.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 

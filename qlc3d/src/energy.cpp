@@ -43,6 +43,7 @@ static double sh1s[ngp][4]; // P1 Shape functions s-derivatives
 static double sh1t[ngp][4]; //P1 shape functions t-derivative
 
 static double rt2 = sqrt(2.0);
+static double rt3 = sqrt(3.0);
 static double rt6 = sqrt(6.0);
 
 //static double rt3 = sqrt(3.0);
@@ -105,9 +106,8 @@ void CalculateFreeEnergy(FILE *fid,
     double A = lc.A();
     double B = lc.B();
     double C = lc.C();
-    double efe  = (2.0 / S0 / 3.0) * (lc.e1() + 2 * lc.e3());
-    double efe2 = (4.0 / S0 / 9.0) * (lc.e1() - lc.e3());
-    efe2 += 0; //no warnings...
+    double efe  = 2.0 / (9 * S0) * (lc.e1() + 2 * lc.e3());
+    double efe2 = 4.0 / (9 * S0 * S0) * (lc.e1() - lc.e3());
     double f0 = (3.0 * A / 4.0) * (S0 * S0) + (B / 4.0) * (S0 * S0 * S0) + (9.0 * C / 16.0) * (S0 * S0 * S0 * S0);
     double pi = 3.141569;
     double q0(0);           // CHIRALITY
@@ -218,10 +218,19 @@ void CalculateFreeEnergy(FILE *fid,
                                   e0 * deleps * (Vx * Vx * q1 * rt6 / 12.0  - Vx * Vx * q2 * rt2 / 4.0 - Vx * Vy * q3 * rt2 / 2.0  -  Vx * Vz * q5 * rt2 / 2.0
                                                  - Vy * Vz * q4 * rt2 / 2.0   - Vz * Vz * q1 * rt6 / 6.0 + Vy * Vy * q2 / 4.0);
                 Fe += mul * Fel_elem;
-                if (efe != 0) { // if flexoelectric terms
-                    double Fflexo = efe * (2.0 / 3.0) * (Vx * ((-1.0 / 6.0) * q1x * rt6 + 0.5 * q2x * rt2 + 0.5 * q3y * rt2 + 0.5 * q5z * rt2)
-                                                         + Vy * (0.5 * q3x * rt2 - (1.0 / 6.0) * q1y * rt6 - 0.5 * q2y * rt2 + 0.5 * q4z * rt2)
-                                                         + Vz * (0.5 * q1x * rt2 + 0.5 * q4y * rt2 + (1.0 / 3) * q1z * rt6));
+                if (efe != 0) { // if flexoelectric terms (actually from -f_E)
+                    // N.B. this is identical to old version, just simplified
+                    double Fflexo = efe*( (2*Vz*q1z - Vx*q1x - Vy*q1y)/rt6
+                                  + (Vx*(q2x+q3y+q5z) + Vy*(-q2y+q3x+q4z) + Vz*(q4y+q5x))/rt2 );
+                    Fflx += mul * Fflexo;
+                }// end if flexoelectric terms
+                if (efe2 != 0) { // if flexoelectric terms (actually from -f_E)
+                    double Fflexo = efe2*( ( Vx*(-q1*(q2x+q3y+q5z) - q2*q1x - q3*q1y + 2*q5*q1z)
+                        + Vy*(q1*(q2y-q3x-q4z) + q2*q1y - q3*q1x + 2*q4*q1z)
+                        + Vz*(2*q1*(q4y+q5x) - q4*q1y - q5*q1x) )*rt3/6
+                        + Vx*(q2*(q2x+q3y+q5z) + q3*(-q2y+q3x+q4z) + q5*(q4y+q5x))/2
+                        + (Vy*q2-Vz*q4)*(q2y-q3x-q4z)/2 + (Vy*q3+Vz*q5)*(q2x+q3y+q5z)/2
+                        + Vy*q4*(q4y+q5x)/2 + q1*(Vx*q1x + 4*Vz*q1z + Vy*q1y)/6 );
                     Fflx += mul * Fflexo;
                 }// end if flexoelectric terms
                 double Fth_elem = A * (R) / 2.0 +
