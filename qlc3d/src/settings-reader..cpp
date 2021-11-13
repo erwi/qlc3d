@@ -82,6 +82,7 @@ void SettingsReader::readSimu(Reader &reader) {
     if (auto v = reader.getOptional<int>(SFK_OUTPUT_ENERGY)) { builder.outputEnergy(v.value()); }
     //if (auto v = reader.getOptional<int>(SFK_SAVE_FORMAT)) { builder.saveFormat(v.value()); } // TODO list of enum
     if (auto v = reader.getOptional<int>(SFK_SAVE_ITER)) { builder.saveIter(v.value()); }
+    if (auto v = reader.getOptional<double>(SFK_SAVE_TIME)) { builder.saveTime(v.value()); }
     if (auto v = reader.getOptional<int>(SFK_NUM_ASSEMBLY_THREADS)) { builder.numAssemblyThreads(v.value()); }
     if (auto v = reader.getOptional<int>(SFK_NUM_MATRIX_SOLVER_THREADS)) { builder.numMatrixSolverThreads(v.value()); }
 

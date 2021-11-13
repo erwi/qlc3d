@@ -24,6 +24,7 @@ const std::string SFK_MAX_ERROR = "MaxError";
 const std::string SFK_OUTPUT_ENERGY = "outputEnergy";
 const std::string SFK_OUTPUT_FORMAT = "outputFormat";
 const std::string SFK_SAVE_ITER ="SaveIter";
+const std::string SFK_SAVE_TIME ="SaveTime";
 const std::string SFK_NUM_ASSEMBLY_THREADS = "NumAssemblyThreads";
 const std::string SFK_NUM_MATRIX_SOLVER_THREADS = "NumMatrixSolverThreads";
 const std::string SFK_STRETCH_VECTOR = "stretchVector";

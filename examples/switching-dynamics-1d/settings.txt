@@ -1,0 +1,44 @@
+MeshName = ../meshes/thin1d.msh
+
+EndCriterion = Time           # What criterion to use to determine whether to stop
+EndValue = 10e-3              # Run for 10 milliseconds
+dt = 1e-9                     # initial time step
+SaveIter = 0                  # save result this often (number of steps)
+SaveTime=1e-4                 # save result this often (simulated time)
+SaveFormat = [DirStackZ]      # save as csv file of regular grid points
+RegularGridSize = [1, 1, 1]   # just one point, located in middle of cell
+saveDir=res
+targetdQ = 1e-2
+maxError = 1e-3
+
+K11 = 6.2e-12                 # material params for 5CB
+K22 = 3.9e-12
+K33 = 8.2e-12
+A = -0.0867e5
+B = -2.133e6
+C = 1.733e6
+eps_par = 18.5
+eps_per = 7.0
+gamma1 = 0.0777
+
+BOX1.Type = Normal                 # Initial bulk orientation region1
+BOX1.Params = [1.0000 , 0.0000 ]   # region X, Y, Z limits
+BOX1.X = [0.0, 1.0]
+BOX1.Y = [0.0, 1.0]
+BOX1.Z = [0.0, 1.0]
+BOX1.Tilt  = [5, 0]            # 5 degrees tilt through the whole cell
+BOX1.Twist = [0, 90]           # 0 to 90 degrees twist
+
+FIXLC1.Anchoring = Strong      # Strong anchoring
+FIXLC1.Easy = [5.0, 90.0, 0.0] # easy tilt, twist, rotation angles
+
+FIXLC2.Anchoring = Strong      # Strong anchoring
+FIXLC2.Easy = [5.0, 0.0, 0.0]  # easy tilt, twist, rotation angles
+
+E1.Time = [0, 3e-3]            # initially 2V, then at 3ms no potential 
+E1.Pot =  [2, 0]
+
+E2.Time = [0]
+E2.Pot = [0]
+
+Q_GMRES_Maxiter = 50000

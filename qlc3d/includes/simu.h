@@ -64,6 +64,7 @@ public:
     const static int DEFAULT_OUTPUT_ENERGY;
     const static int DEFAULT_OUTPUT_FORMAT;
     const static int DEFAULT_SAVE_ITER;
+    const static double DEFAULT_SAVE_TIME;
     const static int DEFAULT_NUM_ASSEMBLY_THREADS;
     const static int DEFAULT_NUM_MATRIX_SOLVER_THREADS;
     // default vectors
@@ -92,6 +93,7 @@ private:
     const int	outputEnergy_;	        // boolean whether or not to calculate energy
     const int	outputFormat_;          // 0/1 -> binary/text (for SaveFormat = LCview) // TODO should be part of list of save formats? Looks like not used anywhere
     const int	saveIter_;              // determines frequency of saving intermediate result files !! CAN THIS BE REMOVED FROM SIMU??
+    const double saveTime_;             // determines frequence of saving intermediate result file, frequency expressed in untis of time
     const set<Simu::SaveFormats> saveFormat_;
     const unsigned int numAsseblyThreads_;
     const unsigned int numMatrixSolverThreads_;
@@ -103,7 +105,7 @@ public:
          EndCriteria endCriterion, const std::string &loadQ,
          const std::string &saveDir, double endValue,
          const double stretchVector[3], const size_t regularGridSize[3],
-         int outputEnergy, int outputFormat, int saveIter,
+         int outputEnergy, int outputFormat, int saveIter, double saveTime,
          const set<Simu::SaveFormats> saveFormat,
          unsigned int numAsseblyThreads, unsigned int numMatrixSolverThreads
 
@@ -115,7 +117,7 @@ public:
          stretchVector_{stretchVector[0], stretchVector[1], stretchVector[2]},
          regularGridSize_{regularGridSize[0], regularGridSize[1], regularGridSize[2]},
          outputEnergy_(outputEnergy), outputFormat_(outputFormat),
-         saveIter_(saveIter), saveFormat_(saveFormat), numAsseblyThreads_(numAsseblyThreads),
+         saveIter_(saveIter), saveTime_(saveTime), saveFormat_(saveFormat), numAsseblyThreads_(numAsseblyThreads),
          numMatrixSolverThreads_(numMatrixSolverThreads)
     {}
 
@@ -143,6 +145,7 @@ public:
     double getStretchVectorZ()const {return stretchVector_[2];}
 
     int getSaveIter() const{ return saveIter_;}
+    double getSaveTime() const { return saveTime_; }
     int getOutputEnergy()const{return outputEnergy_;}
     int getOutputFormat()const{return outputFormat_;}
     const set<Simu::SaveFormats> &getSaveFormat() const { return saveFormat_; }
@@ -171,6 +174,7 @@ class SimuBuilder {
     int outputEnergy_;
     int outputFormat_;
     int saveIter_;
+    double saveTime_;
     //size_t saveFormat_;
     set<Simu::SaveFormats> saveFormat_;
     unsigned int numAssemblyThreads_;
@@ -186,7 +190,7 @@ public:
     saveDir_(Simu::DEFAULT_SAVE_DIR), endValue_(Simu::DEFAULT_END_VALUE),
     stretchVector_{1., 1., 1.}, regularGridSize_{0, 0, 0},
     outputEnergy_(Simu::DEFAULT_OUTPUT_ENERGY),
-    outputFormat_(Simu::DEFAULT_OUTPUT_FORMAT), saveIter_(Simu::DEFAULT_SAVE_ITER),
+    outputFormat_(Simu::DEFAULT_OUTPUT_FORMAT), saveIter_(Simu::DEFAULT_SAVE_ITER), saveTime_(Simu::DEFAULT_SAVE_TIME),
     saveFormat_{}, numAssemblyThreads_(Simu::DEFAULT_NUM_ASSEMBLY_THREADS),
     numMatrixSolverThreads_(Simu::DEFAULT_NUM_MATRIX_SOLVER_THREADS)
     {}
@@ -207,6 +211,7 @@ public:
     SimuBuilder &outputEnergy(int outputEnergy);
     SimuBuilder &outputFormat(int outputFormat);
     SimuBuilder &saveIter(int saveIter);
+    SimuBuilder &saveTime(double saveTime);
     SimuBuilder &saveFormat(const set<std::string> &saveFormats);
     SimuBuilder &numAssemblyThreads(unsigned int n);
     SimuBuilder &numMatrixSolverThreads(unsigned int n);

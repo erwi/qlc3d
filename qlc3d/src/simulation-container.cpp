@@ -47,7 +47,7 @@ void SimulationContainer::initialise() {
     lc = configuration.lc();
 
     eventList->setSaveIter(simu->getSaveIter());
-
+    eventList->setSaveTime(simu->getSaveTime());
     // read missing configuration from file. TODO: all parameters to be provided in configuration
     ReadSettings(configuration.settingsFileName(),
                  *boxes,

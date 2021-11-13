@@ -27,7 +27,8 @@ const vector<double> Simu::DEFAULT_DT_FUNCTION = {0.5, 0.8, 1.2, 10};
 const vector<idx> Simu::DEFAULT_REGULAR_GRID_SIZE = {0, 0, 0};
 const int Simu::DEFAULT_OUTPUT_ENERGY = 0;
 const int Simu::DEFAULT_OUTPUT_FORMAT = SIMU_OUTPUT_FORMAT_BINARY; // TODO: Get rid of this
-const int Simu::DEFAULT_SAVE_ITER = 1;
+const int Simu::DEFAULT_SAVE_ITER = 0;
+const double Simu::DEFAULT_SAVE_TIME = 0;
 const int Simu::DEFAULT_NUM_ASSEMBLY_THREADS = 0;
 const int Simu::DEFAULT_NUM_MATRIX_SOLVER_THREADS = 0;
 const Simu::EndCriteria Simu::DEFAULT_END_CRITERION = Simu::EndCriteria::Time;
@@ -55,7 +56,7 @@ Simu *SimuBuilder::build() const {
                     loadQ_, saveDir_,
                     endValue_, stretchVector_,
                     regularGridSize_, outputEnergy_,
-                    outputFormat_, saveIter_,
+                    outputFormat_, saveIter_, saveTime_,
                     saveFormat_, numAssemblyThreads_,
                     numMatrixSolverThreads_);
 }
@@ -172,6 +173,13 @@ SimuBuilder &SimuBuilder::saveIter(int saveIter) {
     saveIter_ = saveIter;
     return *this;
 }
+
+SimuBuilder &SimuBuilder::saveTime(double saveTime) {
+    assertTrue(saveTime >= 0, "saveTime should not be negative");
+    saveTime_ = saveTime;
+    return *this;
+}
+
 
 SimuBuilder &SimuBuilder::saveFormat(const set<std::string> &saveFormats) {
     int numValidFormats = Simu::VALID_SAVE_FORMATS.size();

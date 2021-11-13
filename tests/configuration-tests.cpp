@@ -37,6 +37,7 @@ TEST_CASE("Read Simu from settings file") {
     contents += "outputEnergy=1\n";
     contents += "outputformat=123\n";
     contents += "saveiter=13\n";
+    contents += "saveTime=6e-6\n";
     contents += "saveFormat=[regularvecmat, LCviewTXT]\n";
     contents += "numAssemblyThreads=99\n";
     contents += "numMatrixSolverThreads=98\n";
@@ -66,6 +67,7 @@ TEST_CASE("Read Simu from settings file") {
     REQUIRE(simu->getOutputEnergy() == 1);
     REQUIRE(simu->getOutputFormat() == 123);
     REQUIRE(simu->getSaveIter() == 13);
+    REQUIRE(simu->getSaveTime() == 6e-6);
     REQUIRE(simu->getAssemblyThreadCount() == 99);
     REQUIRE(simu->getMatrixSolverThreadCount() == 98);
 

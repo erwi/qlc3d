@@ -47,7 +47,9 @@ void handleResultOutput(SimulationState &simulationState,
     set<Simu::SaveFormats> saveFormats = simu.getSaveFormat();
 
     // determine the iteration counter part of output filename.
-    string fileNameNumber =  to_string(simulationState.currentIteration()); // by default it's the current iteration
+    char numberChar[9];
+    sprintf(numberChar, "%08d", simulationState.currentIteration());
+    string fileNameNumber(numberChar);
     if (simulationState.state() == RunningState::COMPLETED) { // after completion, output filename with special counter value "final"
         fileNameNumber = "-final";
     }
@@ -272,7 +274,7 @@ void handleEvents(EventList &evel,
     bool saveResult = false;
     bool refineMesh = false;
 
-    // CHECK WHICH EVENTS ARE OCCURRING *NOW* AND SET CORRESPONFING
+    // CHECK WHICH EVENTS ARE OCCURRING *NOW* AND SET CORRESPONDING
     // FLAGS + OTHER PRE-EVENT PROCESSING
     std::list<Event *> refEvents; // STORES REF-EVENTS THAT NEED TO BE EXECUTED
 
