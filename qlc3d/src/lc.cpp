@@ -33,7 +33,7 @@ double LC::calculateL6(double K11, double K33, double A, double B, double C) {
 
 double LC::calculateU1(double gamma1, double A, double B, double C) {
     double S0 = LC::calculateS0(A, B, C);
-    return 4 * gamma1 / (9 * S0);
+    return 2 * gamma1 / (9 * S0 * S0);
 }
 
 double LC::calculateS0(double A, double B, double C) {
