@@ -63,7 +63,7 @@ const double rt6 = sqrt(6.0);
 const double rt3 = sqrt(3.0);
 
 static double S0;
-static double L1, L2, L4, L6;
+static double L1, L2, L3, L4, L6;
 static double A, B, C;
 static double deleps, efe, efe2;
 static unsigned int npLC;
@@ -71,6 +71,7 @@ void init_globals(LC &mat_par, SolutionVector &q) {
     S0  = mat_par.S0();
     L1 = mat_par.L1() ;
     L2 = mat_par.L2() ;
+    L3 = mat_par.L3() ;
     L4 = mat_par.L4() ;
     L6 = mat_par.L6() ;
     A = mat_par.A();
@@ -335,23 +336,28 @@ inline void localKL(double *p,
                 const double rt23 = rt2 * rt3;
                 //L2 and L6 q1 terms
                 temp = (ShRx * q1x * D6 - ShRx * rt3 * q2x * D6 - ShRx * rt3 * q3y * D6 - ShRx * rt3 * q5z * D6 - ShRy * q3x * rt3 * D6 + ShRy * q1y * D6 + ShRy * rt3 * q2y * D6 - ShRy * rt3 * q4z * D6 + ShRz * q5x * rt3 * D3 + ShRz * q4y * rt3 * D3 + 2.0 * D3 * ShRz * q1z)    * L2;
+                temp += L3/6*( (ShRx*(2*q5z-q2x-q3y) + ShRy*(q2y-q3x+2*q4z) - ShRz*(q4y+q5x))*rt3 + (ShRx*q1x + ShRy*q1y + 4*ShRz*q1z) );
                 // L6 q1 term
                 temp += (-ShRx * q1x * q1 * rt23 * D6 - ShRy * q1y * q1 * rt23 * D6 + ShRz * q1 * rt23 * q1z * D3 - ShR * rt23 * q5y * q5y * D2 * D6 + ShRx * q5 * rt2 * q1z * D2 + ShRy * q3 * rt2 * q1x * D2 + ShRy * q4 * rt2 * q1z * D2 + ShRz * q5 * rt2 * q1x * D2 - ShR * rt23 * q4x * q4x * D6 * D2 - ShR * rt23 * q4y * q4y * D6 * D2 - ShR * rt23 * q3x * q3x * D2 * D6 - ShR * rt23 * q2y * q2y * D2 * D6 + ShR * rt23 * q2z * q2z * D6 + ShR * rt23 * q3z * q3z * D6 + ShR * rt23 * q5z * q5z * D6 + ShR * rt23 * q4z * q4z * D6 + ShR * rt23 * q1z * q1z * D6 + ShRz * q4 * rt2 * q1y * D2 - ShR * rt23 * q1x * q1x * D2 * D6 - ShR * rt23 * q3y * q3y * D2 * D6 - ShR * rt23 * q2x * q2x * D2 * D6 - ShR * rt23 * q1y * q1y * D2 * D6 + ShRx * q1x * q2 * rt2 * D2 + ShRx * q3 * rt2 * q1y * D2 - ShRy * q1y * q2 * rt2 * D2 - ShR * rt23 * q5x * q5x * D2 * D6) * L6;
                 lL[i + 0] += temp;
                 // L2 and L6 q2 term
                 temp = (-ShRx * q1x * rt3 * D6 + q2x * ShRx * D2 + q3y * ShRx * D2 + q5z * ShRx * D2 - q3x * ShRy * D2 + ShRy * q1y * rt3 * D6 + q2y * ShRy * D2 - q4z * ShRy * D2) * L2;
+                temp += L3/2*(ShRx*(q2x-q3y-q1x/rt3) + ShRy*(q2y+q3x+q1y/rt3) + ShRz*(q5x-q4y));
                 temp += (-ShR * rt2 * q5y * q5y * D4 - ShR * rt2 * q1y * q1y * D4 + ShR * rt2 * q4x * q4x * D4 + ShR * rt2 * q1x * q1x * D4 - ShR * rt2 * q3y * q3y * D4 + ShR * rt2 * q2x * q2x * D4 + ShR * rt2 * q5x * q5x * D4 + ShR * rt2 * q3x * q3x * D4 - ShR * rt2 * q4y * q4y * D4 - ShR * rt2 * q2y * q2y * D4 - ShRx * q1 * rt23 * q2x * D6 + ShRx * rt2 * q2 * q2x * D2 + ShRx * q3 * q2y * rt2 * D2 + ShRx * q5 * q2z * rt2 * D2 - ShRy * q1 * rt23 * q2y * D6 - ShRy * rt2 * q2 * q2y * D2 + ShRy * q3 * q2x * rt2 * D2 + ShRy * q4 * q2z * rt2 * D2 + ShRz * q5 * q2x * rt2 * D2 + ShRz * q4 * q2y * rt2 * D2 + ShRz * q1 * rt23 * q2z * D3) * L6;
                 lL[i + 4] += temp;
                 // L2 and L6 q3 terms
                 temp = (ShRx * q3x * D2 - ShRx * q1y * rt3 * D6 - ShRx * q2y * D2 + ShRx * q4z * D2 - ShRy * q1x * rt3 * D6 + ShRy * q2x * D2 + ShRy * q3y * D2 + ShRy * q5z * D2) * L2;
+                temp += L3/2*(ShRx*(q2y+q3x-q1y/rt3) + ShRy*(q3y-q2x-q1x/rt3) + ShRz*(q4x+q5y));
                 temp += (ShR * rt2 * q1x * q1y * D2 + ShR * rt2 * q2x * q2y * D2 + ShR * rt2 * q3x * q3y * D2 + ShR * rt2 * q5x * q5y * D2 + ShR * rt2 * q4x * q4y * D2 - ShRx * q3x * q1 * rt23 * D6 + ShRx * q3x * q2 * rt2 * D2 + ShRx * q3 * rt2 * q3y * D2 + ShRx * q5 * rt2 * q3z * D2 - ShRy * q3y * q1 * rt23 * D6 - ShRy * q3y * q2 * rt2 * D2 + ShRy * q3 * rt2 * q3x * D2 + ShRy * q4 * rt2 * q3z * D2 + ShRz * q5 * rt2 * q3x * D2 + ShRz * q4 * rt2 * q3y * D2 + ShRz * q1 * rt23 * q3z * D3) * L6;
                 lL[i + 8] += temp;
                 // L2 and L6 q4 terms
                 temp = (ShRy * q5x * D2 + ShRy * q4y * D2 + ShRy * q1z * rt3 * D3 + ShRz * q3x * D2 - ShRz * q1y * rt3 * D6 - ShRz * q2y * D2 + ShRz * q4z * D2) * L2;
+                temp += L3/2*(ShRx*(q3z+q5y) + ShRy*(q4y-q2z-q1z/rt3) + ShRz*(q4z+2*q1y/rt3));
                 temp += (ShR * rt2 * q1y * q1z * D2 + ShR * rt2 * q2y * q2z * D2 + ShR * rt2 * q3y * q3z * D2 + ShR * rt2 * q5y * q5z * D2 + ShR * rt2 * q4y * q4z * D2 - ShRx * q4x * q1 * rt23 * D6 + ShRx * q4x * q2 * rt2 * D2 + ShRx * q3 * rt2 * q4y * D2 + ShRx * q5 * rt2 * q4z * D2 - ShRy * q4y * q1 * rt23 * D6 - ShRy * q4y * q2 * rt2 * D2 + ShRy * q3 * rt2 * q4x * D2 + ShRy * q4 * rt2 * q4z * D2 + ShRz * q5 * rt2 * q4x * D2 + ShRz * q4 * rt2 * q4y * D2 + ShRz * q1 * rt23 * q4z * D3) * L6;
                 lL[i + 12] += temp;
                 // L2 and L6 q5 terms
                 temp = (ShRx * q5x * D2 + ShRx * q4y * D2 + ShRx * q1z * rt3 * D3 - ShRz * q1x * rt3 * D6 + ShRz * q2x * D2 + ShRz * q3y * D2 + ShRz * q5z * D2) * L2;
+                temp += L3/2*(ShRx*(q2z+q5x-q1z/rt3) + ShRy*(q3z+q4x) + ShRz*(q5z+2*q1x/rt3));
                 temp += (ShR * rt2 * q1x * q1z * D2 + ShR * rt2 * q2x * q2z * D2 + ShR * rt2 * q3x * q3z * D2 + ShR * rt2 * q5x * q5z * D2 + ShR * rt2 * q4x * q4z * D2 - ShRx * q5x * q1 * rt23 * D6 + ShRx * q5x * q2 * rt2 * D2 + ShRx * q3 * rt2 * q5y * D2 + ShRx * q5 * rt2 * q5z * D2 - ShRy * q5y * q1 * rt23 * D6 - ShRy * q5y * q2 * rt2 * D2 + ShRy * q3 * rt2 * q5x * D2 + ShRy * q4 * rt2 * q5z * D2 + ShRz * q5 * rt2 * q5x * D2 + ShRz * q4 * rt2 * q5y * D2 + ShRz * q1 * rt23 * q5z * D3) * L6;
                 lL[i + 16] += temp;
             } // end if 3 elastic contants
@@ -421,62 +427,77 @@ inline void localKL(double *p,
                     const double D6 = 0.16666666666666666666666666667; \
                     // dlL[0]/dq1 -> dlL[0]/dq5 L2 and L6 terms
                     temp = (ShRx * ShCx * D6 + ShRy * ShCy * D6 + 2.0 * D3 * ShRz * ShCz) * L2;
+                    temp += L3/6*(ShCx*ShRx + ShCy*ShRy + 4*ShCz*ShRz);
                     temp += (-ShC * ShRx * q1x * rt23 * D6 - ShC * ShRy * q1y * rt23 * D6 + ShC * ShRz * rt23 * q1z * D3 - ShCx * ShRx * q1 * rt23 * D6 + ShCx * ShRy * q3 * rt2L / 2.0 + ShCx * ShRz * q5 * rt2L * D2 - ShCx * ShR * rt23 * q1x * D6 + ShCx * ShRx * q2 * rt2L * D2 - ShCy * ShRy * q1 * rt23 * D6 + ShCy * ShRz * q4 * rt2L * D2 - ShCy * ShR * rt23 * q1y * D6 + ShCy * ShRx * q3 * rt2L * D2 - ShCy * ShRy * q2 * rt2L * D2 + ShCz * ShRz * q1 * rt23 * D3 + ShCz * ShRx * q5 * rt2L * D2 + ShCz * ShRy * q4 * rt2L * D2 + ShCz * ShR * rt23 * q1z * D3) * L6;
                     lK[i][j   ] += temp;
                     temp = (-ShRx * rt3 * ShCx * D6 + ShRy * rt3 * ShCy * D6) * L2;
+                    temp += L3*rt3/6*(ShCy*ShRy - ShCx*ShRx);
                     temp += (ShC * ShRx * q1x * rt2L * D2 - ShC * ShRy * q1y * rt2L * D2 - ShR * rt23 * q2x * ShCx * D6 - ShR * rt23 * q2y * ShCy * D6 + ShR * rt23 * q2z * ShCz * D3) * L6;;
                     lK[i  ][j + 4] += temp;
                     lK[j + 4][i  ] += temp;
                     temp = (-ShRy * rt3 * ShCx * D6 - ShRx * rt3 * ShCy * D6) * L2;
+                    temp += -L3*rt3/6*(ShCx*ShRy + ShCy*ShRx);
                     temp += (ShC * ShRy * rt2L * q1x * D2 + ShC * ShRx * rt2L * q1y * D2 - ShR * rt23 * q3x * ShCx * D6 - ShR * rt23 * q3y * ShCy * D6 + ShR * rt23 * q3z * ShCz * D3) * L6;
                     lK[i  ][j + 8] += temp;
                     lK[j + 8][i  ] += temp;
                     temp = (ShRz * rt3 * ShCy * D3 - ShRy * rt3 * ShCz * D6) * L2;
+                    temp += L3*rt3/6*(2*ShCz*ShRy - ShCy*ShRz);
                     temp += (ShC * ShRy * rt2L * q1z * D2 + ShC * ShRz * rt2L * q1y * D2 - ShR * rt23 * q4x * ShCx * D6 - ShR * rt23 * q4y * ShCy * D6 + ShR * rt23 * q4z * ShCz * D3) * L6;
                     lK[i   ][j + 12] += temp;
                     lK[j + 12][i   ] += temp;
                     temp = (ShRz * rt3 * ShCx * D3 - ShRx * rt3 * ShCz * D6) * L2;
+                    temp += L3*rt3/6*(2*ShCz*ShRx - ShCx*ShRz);
                     temp += (ShC * ShRx * rt2L * q1z * D2 + ShC * ShRz * rt2L * q1x * D2 - ShR * rt23 * q5x * ShCx * D6 - ShR * rt23 * q5y * ShCy * D6 + ShR * rt23 * q5z * ShCz * D3) * L6;
                     lK[i   ][j + 16] += temp;
                     lK[j + 16][i   ] += temp;
                     // dlL[4]/dq2 -> dlL[4]/dq5 L2 and L6 terms
                     temp = 0.5 * (ShRx * ShCx + ShRy * ShCy) * L2;
+                    temp += L3/2*(ShCx*ShRx + ShCy*ShRy);
                     temp += (ShC * ShRx * rt2L * q2x * D2 - ShC * ShRy * rt2L * q2y * D2 + ShCx * ShR * rt2L * q2x * D2 - ShCx * ShRx * q1 * rt23 * D6 + ShCx * ShRx * q2 * rt2L * D2 + ShCx * ShRy * q3 * rt2L * D2 + ShCx * ShRz * q5 * rt2L * D2 - ShCy * ShR * rt2L * q2y * D2 + ShCy * ShRx * q3 * rt2L * D2 - ShCy * ShRy * q1 * rt23 * D6 - ShCy * ShRy * q2 * rt2L * D2 + ShCy * ShRz * q4 * rt2L * D2 + ShCz * ShRx * q5 * rt2L * D2 + ShCz * ShRy * q4 * rt2L * D2 + ShCz * ShRz * q1 * rt23 * D3) * L6;
                     lK[i + 4][j + 4] += temp;
                     temp = 0.5 * (-ShRy * ShCx + ShRx * ShCy) * L2;
+                    temp += L3/2*(ShCx*ShRy - ShCy*ShRx);
                     temp += (ShC * ShRx * q2y * rt2L * D2 + ShC * ShRy * q2x * rt2L * D2 + ShR * rt2L * q3x * ShCx * D2 - ShR * rt2L * q3y * ShCy * D2) * L6;
                     lK[i + 4][j + 8] += temp;
                     lK[j + 8][i + 4] += temp;
                     temp = -0.5 * ShCz * L2 * ShRy;
+                    temp += -L3/2*ShCy*ShRz;
                     temp += (ShC * ShRy * q2z * rt2L * D2 + ShC * ShRz * q2y * rt2L * D2 + ShR * rt2L * q4x * ShCx * D2 - ShR * rt2L * q4y * ShCy * D2) * L6;
                     lK[i + 4 ][j + 12] += temp;
                     lK[j + 12][i + 4 ] += temp;
                     temp = 0.5 * ShCz * L2 * ShRx;
+                    temp + L3/2*ShCx*ShRz;
                     temp += (ShC * ShRx * q2z * rt2L * D2 + ShC * ShRz * q2x * rt2L * D2 + ShR * rt2L * q5x * ShCx * D2 - ShR * rt2L * q5y * ShCy * D2) * L6;
                     lK[i + 4 ][j + 16] += temp;
                     lK[j + 16][i + 4 ] += temp;
                     // dlL[8] / dq3 -> dlL[8]/dq5 L2 and L6 terms
                     temp = 0.5 * (ShRx * ShCx + ShRy * ShCy) * L2;
+                    temp += L3/2*(ShCx*ShRx + ShCy*ShRy);
                     temp += (ShC * ShRx * rt2L * q3y * D2 + ShC * ShRy * rt2L * q3x * D2 + ShCx * ShR * rt2L * q3y * D2 - ShCx * ShRx * q1 * rt23 * D6 + ShCx * ShRx * q2 * rt2L * D2 + ShCx * ShRy * q3 * rt2L * D2 + ShCx * ShRz * q5 * rt2L * D2 + ShCy * ShR * rt2L * q3x * D2 + ShCy * ShRx * q3 * rt2L * D2 - ShCy * ShRy * q1 * rt23 * D6 - ShCy * ShRy * q2 * rt2L * D2 + ShCy * ShRz * q4 * rt2L * D2 + ShCz * ShRx * q5 * rt2L * D2 + ShCz * ShRy * q4 * rt2L * D2 + ShCz * ShRz * q1 * rt23 * D3) * L6;
                     lK[i + 8][j + 8] += temp;
                     temp = ShCz * L2 * ShRx * 0.5;
+                    temp += L3/2*ShCx*ShRz;
                     temp += (ShC * ShRy * rt2L * q3z * D2 + ShC * ShRz * rt2L * q3y * D2 + ShR * rt2L * q4y * ShCx * D2 + ShR * rt2L * q4x * ShCy * D2) * L6;
                     lK[i + 8 ][j + 12] += temp;
                     lK[j + 12][i + 8 ] += temp;
                     temp = 0.5 * ShCz * L2 * ShRy;
+                    temp += L3/2*ShCy*ShRz;
                     temp += (ShC * ShRx * rt2L * q3z * D2 + ShC * ShRz * rt2L * q3x * D2 + ShR * rt2L * q5y * ShCx * D2 + ShR * rt2L * q5x * ShCy * D2) * L6;
                     lK[i + 8 ][j + 16] += temp;
                     lK[j + 16][i + 8 ] += temp;
                     // dlL[12] / dq4 -> dlL[8]/dq5 L2 and L6 terms
                     temp = 0.5 * (ShRy * ShCy + ShRz * ShCz) * L2;
+                    temp += L3/2*(ShCy*ShRy + ShCz*ShRz);
                     temp += (ShC * ShRy * rt2L * q4z * D2 + ShC * ShRz * rt2L * q4y * D2 - ShCx * ShRx * q1 * rt23 * D6 + ShCx * ShRx * q2 * rt2L * D2 + ShCx * ShRy * q3 * rt2L * D2 + ShCx * ShRz * q5 * rt2L * D2 + ShCy * ShR * rt2L * q4z * D2 + ShCy * ShRx * q3 * rt2L * D2 - ShCy * ShRy * q1 * rt23 * D6 - ShCy * ShRy * q2 * rt2L * D2 + ShCy * ShRz * q4 * rt2L * D2 + ShCz * ShR * rt2L * q4y * D2 + ShCz * ShRx * q5 * rt2L * D2 + ShCz * ShRy * q4 * rt2L * D2 + ShCz * ShRz * q1 * rt23 * D3) * L6;
                     lK[i + 12][j + 12] += temp;
                     temp = 0.5 * ShCx * L2 * ShRy;
+                    temp += L3/2*ShCy*ShRx;
                     temp += (ShC * ShRx * rt2L * q4z * D2 + ShC * ShRz * rt2L * q4x * D2 + ShR * rt2L * q5z * ShCy * D2 + ShR * rt2L * q5y * ShCz * D2) * L6;
                     lK[i + 12][j + 16] += temp;
                     lK[j + 16][i + 12] += temp;
                     // dlL[12] / dq5 L2 and L6 terms
                     temp = 0.5 * (ShRx * ShCx + ShRz * ShCz) * L2;
+                    temp += L3/2*(ShCx*ShRx + ShCz*ShRz);
                     temp += (ShC * ShRx * rt2L * q5z * D2 + ShC * ShRz * rt2L * q5x * D2 + ShCx * ShR * rt2L * q5z * D2 - ShCx * ShRx * q1 * rt23 * D6 + ShCx * ShRx * q2 * rt2L * D2 + ShCx * ShRy * q3 * rt2L * D2 + ShCx * ShRz * q5 * rt2L * D2 + ShCy * ShRx * q3 * rt2L * D2 - ShCy * ShRy * q1 * rt23 * D6 - ShCy * ShRy * q2 * rt2L * D2 + ShCy * ShRz * q4 * rt2L * D2 + ShCz * ShR * rt2L * q5x * D2 + ShCz * ShRx * q5 * rt2L * D2 + ShCz * ShRy * q4 * rt2L * D2 + ShCz * ShRz * q1 * rt23 * D3) * L6;
                     lK[i + 16][j + 16] += temp;
                 } // end if 3 elastic contants
@@ -1151,22 +1172,28 @@ inline void assemble_local_prev_volumes(double lL[20],
             }
             if (three_elastic_constants) {
                 double L2_1, L2_2, L2_3, L2_4, L2_5; //L2 elastic RHS  terms;
+                double L3_1, L3_2, L3_3, L3_4, L3_5; //L2 elastic RHS  terms;
                 double L6_1, L6_2, L6_3, L6_4, L6_5; //L6 elastic RHS  terms;
                 L2_1 = (ShRx * q1x / 6.0 - ShRx * rt3 * q2x / 6.0 - ShRx * rt3 * q3y / 6.0 - ShRx * rt3 * q5z / 6.0 - ShRy * q3x * rt3 / 6.0 + ShRy * q1y / 6.0 + ShRy * rt3 * q2y / 6.0 - ShRy * rt3 * q4z / 6.0 + ShRz * q5x * rt3 / 3.0   + ShRz * q4y * rt3 / 3.0 + 2.0 / 3.0 * ShRz * q1z) * L2;
                 L2_2 = (-ShRx * q1x * rt3 / 6.0 + q2x * ShRx / 2.0 + q3y * ShRx / 2.0 + q5z * ShRx / 2.0 - q3x * ShRy / 2.0 + ShRy * q1y * rt3 / 6.0 + q2y * ShRy / 2.0 - q4z * ShRy / 2.0) * L2;
                 L2_3 = (ShRx * q3x / 2.0 - ShRx * q1y * rt3 / 6.0 - ShRx * q2y / 2.0 + ShRx * q4z / 2.0 - ShRy * q1x * rt3 / 6.0 + ShRy * q2x / 2.0 + ShRy * q3y / 2.0 + ShRy * q5z / 2.0) * L2;
                 L2_4 = (ShRy * q5x / 2.0 + ShRy * q4y / 2.0 + ShRy * q1z * rt3 / 3.0 + ShRz * q3x / 2.0 -    ShRz * q1y * rt3 / 6.0 - ShRz * q2y / 2.0 + ShRz * q4z / 2.0) * L2;
                 L2_5 = (ShRx * q5x / 2.0 + ShRx * q4y / 2.0 + ShRx * q1z * rt3 / 3.0 - ShRz * q1x * rt3 / 6.0 + ShRz * q2x / 2.0 + ShRz * q3y / 2.0 + ShRz * q5z / 2.0) * L2;
+                L3_1 = L3/6*( (ShRx*(2*q5z-q2x-q3y) + ShRy*(q2y-q3x+2*q4z) - ShRz*(q4y+q5x))*rt3 + (ShRx*q1x + ShRy*q1y + 4*ShRz*q1z) );
+                L3_2 = L3/2*(ShRx*(q2x-q3y-q1x/rt3) + ShRy*(q2y+q3x+q1y/rt3) + ShRz*(q5x-q4y));
+                L3_3 = L3/2*(ShRx*(q2y+q3x-q1y/rt3) + ShRy*(q3y-q2x-q1x/rt3) + ShRz*(q4x+q5y));
+                L3_4 = L3/2*(ShRx*(q3z+q5y) + ShRy*(q4y-q2z-q1z/rt3) + ShRz*(q4z+2*q1y/rt3));
+                L3_5 = L3/2*(ShRx*(q2z+q5x-q1z/rt3) + ShRy*(q3z+q4x) + ShRz*(q5z+2*q1x/rt3));
                 L6_1 = (-ShRx * q1x * q1 * rt2 * rt3 / 6.0 - ShRy * q1y * q1 * rt2 * rt3 / 6.0 + ShRz * q1 * rt2 * rt3 * q1z / 3.0 - ShR * rt2 * rt3 * q5y * q5y / 12.0 + ShRx * q5 * rt2 * q1z / 2.0 + ShRy * q3 * rt2 * q1x / 2.0 + ShRy * q4 * rt2 * q1z / 2.0 + ShRz * q5 * rt2 * q1x / 2.0 - ShR * rt2 * rt3 * q4x * q4x / 12.0 - ShR * rt2 * rt3 * q4y * q4y / 12.0 - ShR * rt2 * rt3 * q3x * q3x / 12.0 - ShR * rt2 * rt3 * q2y * q2y / 12.0 + ShR * rt2 * rt3 * q2z * q2z / 6.0 + ShR * rt2 * rt3 * q3z * q3z / 6.0 + ShR * rt2 * rt3 * q5z * q5z / 6.0 + ShR * rt2 * rt3 * q4z * q4z / 6.0 + ShR * rt2 * rt3 * q1z * q1z / 6.0 + ShRz * q4 * rt2 * q1y / 2.0 - ShR * rt2 * rt3 * q1x * q1x / 12.0 - ShR * rt2 * rt3 * q3y * q3y / 12.0 - ShR * rt2 * rt3 * q2x * q2x / 12.0 - ShR * rt2 * rt3 * q1y * q1y / 12.0 + ShRx * q1x * q2 * rt2 / 2.0 + ShRx * q3 * rt2 * q1y / 2.0 - ShRy * q1y * q2 * rt2 / 2.0 - ShR * rt2 * rt3 * q5x * q5x / 12.0) * L6;
                 L6_2 = (-ShR * rt2 * q5y * q5y / 4.0 - ShR * rt2 * q1y * q1y / 4.0 + ShR * rt2 * q4x * q4x / 4.0 + ShR * rt2 * q1x * q1x / 4.0 - ShR * rt2 * q3y * q3y / 4.0 + ShR * rt2 * q2x * q2x / 4.0 + ShR * rt2 * q5x * q5x / 4.0 + ShR * rt2 * q3x * q3x / 4.0 - ShR * rt2 * q4y * q4y / 4.0 - ShR * rt2 * q2y * q2y / 4.0 - ShRx * q1 * rt2 * rt3 * q2x / 6.0 + ShRx * rt2 * q2 * q2x / 2.0 + ShRx * q3 * q2y * rt2 / 2.0 + ShRx * q5 * q2z * rt2 / 2.0 - ShRy * q1 * rt2 * rt3 * q2y / 6.0 - ShRy * rt2 * q2 * q2y / 2.0 + ShRy * q3 * q2x * rt2 / 2.0 + ShRy * q4 * q2z * rt2 / 2.0 + ShRz * q5 * q2x * rt2 / 2.0 + ShRz * q4 * q2y * rt2 / 2.0 + ShRz * q1 * rt2 * rt3 * q2z / 3.0) * L6;
                 L6_3 = (ShR * rt2 * q1x * q1y / 2.0 + ShR * rt2 * q2x * q2y / 2.0 + ShR * rt2 * q3x * q3y / 2.0 + ShR * rt2 * q5x * q5y / 2.0 + ShR * rt2 * q4x * q4y / 2.0 - ShRx * q3x * q1 * rt2 * rt3 / 6.0 + ShRx * q3x * q2 * rt2 / 2.0 + ShRx * q3 * rt2 * q3y / 2.0 + ShRx * q5 * rt2 * q3z / 2.0 - ShRy * q3y * q1 * rt2 * rt3 / 6.0 - ShRy * q3y * q2 * rt2 / 2.0 + ShRy * q3 * rt2 * q3x / 2.0 + ShRy * q4 * rt2 * q3z / 2.0 + ShRz * q5 * rt2 * q3x / 2.0 + ShRz * q4 * rt2 * q3y / 2.0 + ShRz * q1 * rt2 * rt3 * q3z / 3.0) * L6;
                 L6_4 = (ShR * rt2 * q1y * q1z / 2.0 + ShR * rt2 * q2y * q2z / 2.0 + ShR * rt2 * q3y * q3z / 2.0 + ShR * rt2 * q5y * q5z / 2.0 + ShR * rt2 * q4y * q4z / 2.0 - ShRx * q4x * q1 * rt2 * rt3 / 6.0 + ShRx * q4x * q2 * rt2 / 2.0 + ShRx * q3 * rt2 * q4y / 2.0 + ShRx * q5 * rt2 * q4z / 2.0 - ShRy * q4y * q1 * rt2 * rt3 / 6.0 - ShRy * q4y * q2 * rt2 / 2.0 + ShRy * q3 * rt2 * q4x / 2.0 + ShRy * q4 * rt2 * q4z / 2.0 + ShRz * q5 * rt2 * q4x / 2.0 + ShRz * q4 * rt2 * q4y / 2.0 + ShRz * q1 * rt2 * rt3 * q4z / 3.0) * L6;
                 L6_5 = (ShR * rt2 * q1x * q1z / 2.0 + ShR * rt2 * q2x * q2z / 2.0 + ShR * rt2 * q3x * q3z / 2.0 + ShR * rt2 * q5x * q5z / 2.0 + ShR * rt2 * q4x * q4z / 2.0 - ShRx * q5x * q1 * rt2 * rt3 / 6.0 + ShRx * q5x * q2 * rt2 / 2.0 + ShRx * q3 * rt2 * q5y / 2.0 + ShRx * q5 * rt2 * q5z / 2.0 - ShRy * q5y * q1 * rt2 * rt3 / 6.0 - ShRy * q5y * q2 * rt2 / 2.0 + ShRy * q3 * rt2 * q5x / 2.0 + ShRy * q4 * rt2 * q5z / 2.0 + ShRz * q5 * rt2 * q5x / 2.0 + ShRz * q4 * rt2 * q5y / 2.0 + ShRz * q1 * rt2 * rt3 * q5z / 3.0) * L6;
-                lL[i + 0]  +=  L2_1 + L6_1;
-                lL[i + 4]  +=  L2_2 + L6_2;
-                lL[i + 8]  +=  L2_3 + L6_3;
-                lL[i + 12] +=  L2_4 + L6_4;
-                lL[i + 16] +=  L2_5 + L6_5;
+                lL[i + 0]  +=  L2_1 + L3_1 + L6_1;
+                lL[i + 4]  +=  L2_2 + L3_2 + L6_2;
+                lL[i + 8]  +=  L2_3 + L3_3 + L6_3;
+                lL[i + 12] +=  L2_4 + L3_4 + L6_4;
+                lL[i + 16] +=  L2_5 + L3_5 + L6_5;
             }
             if (efe != 0.0) { // IF FLEXOELECTRIC COEFFICIENTS ARN'T 0
                 lL[i +  0] += (2*Vz*ShRz - Vx*ShRx - Vy*ShRy)*efe/rt6;
