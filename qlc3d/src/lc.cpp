@@ -17,6 +17,11 @@ double LC::calculateL2(double K11, double K22, double A, double B, double C) {
     return 4.0 * (K11 - K22) / (9.0 * S0 * S0);
 }
 
+double LC::calculateL3(double K24, double A, double B, double C) {
+    double S0 = LC::calculateS0(A, B, C);
+    return 4.0 * K24 / (9.0 * S0 * S0);
+}
+
 double LC::calculateL4(double p0, double K22, double A, double B, double C) {
     if (p0 == 0.) {
         return 0;
@@ -61,6 +66,11 @@ LCBuilder &LCBuilder::K22(double K22) {
 
 LCBuilder &LCBuilder::K33(double K33) {
     K33_ = K33;
+    return *this;
+}
+
+LCBuilder &LCBuilder::K24(double K24) {
+    K24_ = K24;
     return *this;
 }
 
