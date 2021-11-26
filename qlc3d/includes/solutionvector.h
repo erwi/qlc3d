@@ -171,7 +171,8 @@ assert(i < getnDoF()*getnDimensions() );
     }
     bool test();
 
-
+    /** pointer to start of raw data values */
+    [[nodiscard]] const double* getValues() const { return Values; }
 };
 
 #endif

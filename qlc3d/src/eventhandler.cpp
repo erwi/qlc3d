@@ -127,6 +127,18 @@ void handleResultOutput(SimulationState &simulationState,
         ResultIO::writeCsvUnstructured(geom.getPtrTop(), v, q, filename);
     }
 
+    if (saveFormats.count(Simu::VTKUnstructuredAsciiGrid)) {
+        std::string fileName = "unstructured" + fileNameNumber + ".vtk";
+        cout << "VtkUnstructuredAsciiGrid " << fileName << endl;
+
+        if (!director) {
+            director = tensortovector(q.Values, geom.getnpLC());
+        }
+
+        ResultIO::writeVtkUnstructuredAsciiGrid(
+                geom.getPtrTop(), geom.getnp(), geom.getnpLC(), geom.getTetrahedra(), v, director, fileName);
+    }
+
     if (director) { // TODO: use vector
         delete[] director;
     }

@@ -7,14 +7,14 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-namespace vtkIOFun
-{
+#include <vector>
 
-    extern const char* const ID_STRNIG;
+class Mesh;
+
+namespace vtkIOFun {
+
+    extern const char* const ID_STRING;
     enum FileFormat {ASCII , BINARY};
-
-
-
 
     bool writeID(std::fstream& fid); // writes file identifier
 
@@ -38,6 +38,28 @@ namespace vtkIOFun
                          const double* vec_data2,
                          const double* vec_data3);
 
+    /**
+     * Writes VTK unstructured grid compatible file. See https://kitware.github.io/vtk-examples/site/VTKFileFormats/
+     * for more info about the format.
+     */
+    class UnstructuredGridWriter {
+        void writePoints(std::ostream &os, size_t numPoints, const double *points) const;
+        void writeTetrahedra(std::ostream &os, const Mesh &tetrahedra, size_t numPoints) const;
+        void writePotentials(std::ostream &os, size_t numPotentials, const double *potentials) const;
+        void writeLiquidCrystal(std::ostream &os, size_t numLcPoints, const double *nx, const double *ny, const double *nz) const;
+
+    public:
+        void write(const std::string &fileName,
+                   size_t numPoints,
+                   size_t numLcPoints,
+                   const double *points,
+                   const Mesh &tetrahedra,
+                   const double *potentials,
+                   const double *nx,
+                   const double *ny,
+                   const double *nz
+                   ) const;
+    };
 }//end namespace
 
 #endif // VTKIOFUN_H

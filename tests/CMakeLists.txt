@@ -13,7 +13,8 @@ add_executable(cpp-test
         configuration-tests.cpp
         meshio-tests.cpp
         math-tests.cpp
-        reader-test.cpp)
+        reader-test.cpp
+        vtk-unstructured-grid-writer-tests.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 

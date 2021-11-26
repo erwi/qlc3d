@@ -66,13 +66,15 @@ public:
     void AllocateMemory();
     void setConnectedVolume(Mesh *vol);     // sets indexes to connected LC volume elements
     void setDeterminant(idx i, double det);         // sets determinant i to value det
-    void setAllNodes(idx *nodes);           // copies node data to array Elem
+
+    /** copy all node values to the mesh */
+    void setAllNodes(idx *nodes);
     void setAllMaterials(idx *mat);         // copies material numbers to array Mat
     void setSurfaceNormal(idx i, double norm[3]);   // sets normal of elementt i to norm
     void setDimension(idx i);                       // set mesh dimension
     void setnElements(idx nnelem);                  // set numbero of elements
     void setnNodes(idx nnodes);                     // set number of nodes / element
-    inline void setMaxNodeNumber(const idx mn) {
+    inline void setMaxNodeNumber(const idx mn) { // TODO: this should probably not be set externally, but found from the values
         MaxNodeNumber = mn;
     }
     void removeElements(std::set <idx> &index);         // removes elements in index. index must be sorted in ascending order
@@ -111,7 +113,7 @@ public:
     void gen_neighbour_list(vector < vector <idx> > &neigh) const;   // neighbour list of elements. ordered according to local node order.
     // index number of non-existent neighbours elements equals total number of elements
     // i.e. 1 too large to use as an index
-    Mesh(idx n, idx nNodes);
+    Mesh(idx numElements, idx numNodes);
     Mesh();
     ~Mesh();
 };

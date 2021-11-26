@@ -129,11 +129,15 @@ void setStrongSurfacesQ(
 		Geometry* geom);
 
 int ReorderNodes(double *p, int np,int *t, int nt, int *e, int ne,int *tmat,int *emat);
+
+/*! tensortovector returns the director and two order parameters in an array.
+ *  The returned vector must be freed outside this function.
+ *  TODO: make the return a shared_ptr
+ *  @param a Q-tensor in traceless base
+ *  @param npLC number of LC nodes (= 5x length of a)
+ *  @return the vector representation of the LC. The first npLC elements are nx, then ny, nz, S1, S2.
+ */
 double* tensortovector(double *a, int npLC);
-void tensorToEigs(double* a,		// input Q-tensor, traceless basis
-				  double* eigVal,	// result eigenvalues
-				  double* eigVec    // result eigenvectors
-				  );
 
 // THESE SHOULD BE DEFINED AS FRIEND FUNCTIONS TO CLASS SparseMatrix ?
 //SparseMatrix* createSparseMatrix(const Geometry& geom, const SolutionVector& sol, const int& MatNum = 0); // sparse matrix for selected domain = LC only

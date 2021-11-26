@@ -4,6 +4,9 @@
 #include "test-util.h"
 
 #include <filesystem>
+#include <vector>
+#include <fstream>
+
 using namespace TestUtil;
 
 //<editor-fold desc=TemporaryFile>
@@ -28,5 +31,18 @@ TestUtil::TemporaryFile TemporaryFile::withContents(const std::string &fileConte
     fprintf(fid, "%s", fileContents.c_str());
     fclose(fid);
     return f;
+}
+
+std::vector<std::string> TemporaryFile::readContentsAsText() const {
+    using namespace std;
+    ifstream fin(name());
+
+    vector<string> lines;
+    string line;
+    while (getline(fin, line)) {
+        lines.emplace_back(string(line));
+    }
+    fin.close();
+    return lines;
 }
 //</editor-fold>

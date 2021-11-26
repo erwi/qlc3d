@@ -66,12 +66,30 @@ void ReadLCD_T(Simu& simu, SolutionVector& q); // LOADS TEXT FORMAT LCVIEW RESUL
  * This file format is compatible, for example, with ParaView. See e.g. https://www.paraview.org/Wiki/ParaView/Data_formats.
  * @param p point coordinates
  * @param v potential solution
- * @param n LC director vector
+ * @param q Q-tensor
  * @param fileName output file name
  */
 void writeCsvUnstructured(const double *p, // defined in resultoutput.cpp
                           const SolutionVector &v,
                           const SolutionVector &q,
                           const std::string &fileName);
+/**
+ *
+ * @param p coordinate xyz values
+ * @param numPoints number of points in p (= 3 x length of p)
+ * @param numLcPoints number of LC points in the geometry (numLcPoints <= numPoints)
+ * @param tetMesh
+ * @param v
+ * @param director the liquid crystal director vector
+ * @param fileName
+ */
+void writeVtkUnstructuredAsciiGrid(
+        const double *p,
+        size_t numPoints,
+        size_t numLcPoints,
+        const Mesh &tetMesh,
+        const SolutionVector &v,
+        const double *director,
+        const std::string &fileName);
 }
 #endif // RESULTOUTPUT_H

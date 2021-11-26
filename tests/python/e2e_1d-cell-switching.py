@@ -16,13 +16,13 @@ def check_results(result_dir):
     """
     print("resultDir:" + result_dir)
 
-    # Expect the reslt directory to contain 16 files. "settings.qfg" and dirstackz0.csv to dirstackz14.csv. The last
-    # result should be in file dirstackz14.csv.
-    final_result_file = 'dirstackz14.csv'
+    # Expect the reslt directory to contain 15 files. "settings.qfg" and dirstackz0.csv to dirstackz12.csv. The last
+    # result should be in file dirstackz-final.csv.
+    final_result_file = 'dirstacksz-final.csv'
     files = os.listdir(result_dir)
     print(str(files))
-    assert_equals(16, len(files))
-    assert_true(final_result_file in files)
+    assert_equals(15, len(files))
+    assert_true(final_result_file in files, "{} should contain the file {}".format(str(files), final_result_file))
 
     # Read the final result file. The first line contains header info and the second line contains the
     # mid-cell director x, y, z, values.
@@ -35,7 +35,7 @@ def check_results(result_dir):
     print("mid-cell tilt angle degrees = " + str(tilt_degrees))
     print("expected mid-cell tilt angle degrees = " + str(EXPECTED_MID_CELL_TILT_DEGREES))
     tilt_error = math.fabs(EXPECTED_MID_CELL_TILT_DEGREES - tilt_degrees)
-    assert_true(tilt_error < 0.05)
+    assert_true(tilt_error < 0.05, "mid-cell tilt error {} >= {}".format(str(tilt_error), str(0.05)))
 
 
 def run_test(qlc3d_executable):

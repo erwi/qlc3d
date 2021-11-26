@@ -38,15 +38,13 @@ Mesh::~Mesh()
         ConnectedVolume = NULL;
     }
 }
-Mesh::Mesh(idx n,idx nNod)
-{
-
-    nElements = n;
-    nNodes = nNod;
+Mesh::Mesh(idx numElements, idx numNodes) {
+    nElements = numElements;
+    nNodes = numNodes;
     // allocate memory for mesh
-    Elem = (idx*)malloc(n * nNodes * sizeof(idx));
-    Mat  = (idx*)malloc(n * sizeof(idx));
-    Determinant = (double*)malloc(n * sizeof(double));
+    Elem = (idx*)malloc(nElements * nNodes * sizeof(idx));
+    Mat  = (idx*)malloc(nElements * sizeof(idx));
+    Determinant = (double*)malloc(nElements * sizeof(double));
     SurfaceNormal = NULL;
     ConnectedVolume = NULL;
 }
@@ -150,18 +148,16 @@ void Mesh::setSurfaceNormal(idx i, double norm[3])
     SurfaceNormal[i*3 + 2] = norm[2];
 
 }
-void Mesh::setAllNodes(idx *nodes) // copies all values from array nodes to this->Elem
-{
-    if ((nElements>0) && (Elem!=NULL) ) // make sure mesh is initialised
-    {
-        for (idx i = 0 ; i < nElements*nNodes ; i++)
+void Mesh::setAllNodes(idx *nodes) { // copies all values from array nodes to this->Elem
+    if ((nElements>0) && (Elem!=NULL)) { // make sure mesh is initialised
+        for (idx i = 0 ; i < nElements*nNodes ; i++) {
             Elem[i] = nodes[i];
+        }
     }
     else{
-        printf("error in Mesh::SetAllNodes - mesh not initilised\n");
-        exit(1);
+        throw "error in Mesh::SetAllNodes - mesh not initialised";
     }
-}// end void SetAllNodes
+}
 
 void Mesh::setAllMaterials(idx *mat)
 {

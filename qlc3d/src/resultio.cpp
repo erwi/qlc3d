@@ -1,10 +1,10 @@
-//
-// Created by eero on 09/04/2021.
-//
 #include <resultio.h>
 #include <fstream>
 #include <stdexcept>
 #include <lc-representation.h>
+#include <vtkiofun.h>
+#include <assert.h>
+
 void ResultIO::writeCsvUnstructured(const double *p,
                                     const SolutionVector &v,
                                     const SolutionVector &q,
@@ -31,4 +31,24 @@ void ResultIO::writeCsvUnstructured(const double *p,
     }
 
     fs.close();
+}
+
+void ResultIO::writeVtkUnstructuredAsciiGrid(
+        const double *p,
+        size_t numPoints,
+        size_t numLcPoints,
+        const Mesh &tetMesh,
+        const SolutionVector &v,
+        const double *director,
+        const std::string &fileName) {
+
+    assert(numLcPoints <= numPoints);
+
+    using namespace vtkIOFun;
+    const double *nx = director;
+    const double *ny = director + numLcPoints;
+    const double *nz = director + 2 * numLcPoints;
+
+    UnstructuredGridWriter writer;
+    writer.write(fileName, numPoints, numLcPoints, p, tetMesh, v.getValues(), nx, ny, nz);
 }
