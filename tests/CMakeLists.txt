@@ -9,13 +9,14 @@ add_subdirectory(testutil)
 
 # tests written in c++, using catch
 add_executable(cpp-test
-        cpp-test.cpp
-        configuration-tests.cpp
-        meshio-tests.cpp
-        math-tests.cpp
-        reader-test.cpp
-        vtk-unstructured-grid-writer-tests.cpp
-        gmsh-read-test.cpp cpp/io/meshreader-test.cpp)
+        cpp/cpp-test.cpp
+        cpp/configuration-tests.cpp
+        cpp/io/meshio-tests.cpp
+        cpp/math-tests.cpp
+        cpp/io/reader-test.cpp
+        cpp/io/vtk-unstructured-grid-writer-tests.cpp
+        cpp/io/gmsh-read-test.cpp
+        cpp/io/meshreader-test.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 
