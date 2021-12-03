@@ -14,7 +14,8 @@ add_executable(cpp-test
         meshio-tests.cpp
         math-tests.cpp
         reader-test.cpp
-        vtk-unstructured-grid-writer-tests.cpp)
+        vtk-unstructured-grid-writer-tests.cpp
+        gmsh-read-test.cpp cpp/io/meshreader-test.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 

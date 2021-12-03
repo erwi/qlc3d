@@ -1,6 +1,3 @@
-//
-// Created by eero on 07/04/2021.
-//
 #ifndef PROJECT_QLC3D_TEST_UTIL_H
 #define PROJECT_QLC3D_TEST_UTIL_H
 
@@ -8,6 +5,10 @@
 #include <vector>
 
 namespace TestUtil {
+
+    const std::string RESOURCE_THIN_GID_MESH = "resources/thin.msh";
+    const std::string RESOURCE_SMALL_CUBE_GMSH_MESH = "resources/gmsh-small-cube.msh";
+
     /**
      * TemporaryFile is a file created in the OS temp directory. It deletes itself when going out of scope.
      */

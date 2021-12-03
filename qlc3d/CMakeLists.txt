@@ -21,7 +21,7 @@ add_library(lib-qlc3d STATIC
         ${SOURCE_FILES}
         src/simulation-container.cpp
         src/eventhandler.cpp
-        src/resultio.cpp includes/lc-representation.h src/lc-representation.cpp)
+        src/resultio.cpp includes/lc-representation.h src/lc-representation.cpp includes/gmsh-read.h src/gmsh-read.cpp includes/io/meshreader.h src/io/meshreader.cpp)
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 target_include_directories(lib-qlc3d
         PUBLIC includes)

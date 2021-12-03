@@ -207,6 +207,7 @@ void ReadTriangles(ifstream* fin, idx ne, idx* e, idx* emat)
     printf("OK\n"); fflush(stdout);
 }
 
+/*
 bool isTextFile(std::ifstream &fin)
 {
     // CHECKS UP TO 100 BYTES OF THE FILE TO TRY TO CHECK WHETHER
@@ -223,6 +224,7 @@ bool isTextFile(std::ifstream &fin)
     fin.seekg(0, ios::beg);
     return true;
 }
+*/
 
 void ReadGiDMesh3D(const std::string &meshFileName,
                    double **p,
@@ -250,13 +252,6 @@ void ReadGiDMesh3D(const std::string &meshFileName,
     }
     else{ // File opened OK
         printf("Reading GID mesh file: %s \n", meshFileName.c_str()); fflush(stdout);
-        // STUDENTS ARE BAD AT EXPORTING GID MESHES. CHECK WHETHER IT IS TEXT/BINARY FORMAT
-        if ( !isTextFile(fin) ){
-            std::cout << "Error, mesh file contains invalid characters."<< std::endl;
-            std::cout << "This usually happens when mesh is not properly exported from GiD." << std::endl;
-            std::cout << "Bye!" << std::endl;
-            exit(1);
-        }
 
         np[0] = 0;
         nt[0] = 0;

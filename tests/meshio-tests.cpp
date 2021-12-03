@@ -4,8 +4,7 @@
 #include <catch.h>
 #include <resultio.h>
 #include <qlc3d.h>
-
-#include <algorithm>
+#include <test-util.h>
 
 TEST_CASE("Read GiD mesh file") {
     double *p;
@@ -19,7 +18,7 @@ TEST_CASE("Read GiD mesh file") {
 
     // TODO: this fails when running target "All CTest", the mesh is not found
     // Create a ResourceFile class that manages the resource file paths?
-    ReadGiDMesh3D("resources/thin.msh", &p, &np, &t, &nt, &e, &ne, &matt, &mate);
+    ReadGiDMesh3D(TestUtil::RESOURCE_THIN_GID_MESH, &p, &np, &t, &nt, &e, &ne, &matt, &mate);
 
     SECTION("Correct number of vertices and elements should have been read") {
         REQUIRE(np == 2092);
