@@ -32,24 +32,6 @@ namespace SpaMtrix{
 
 class Configuration;
 
-void ReadGiDMesh3D(const std::string &fileName,
-                   double **p,
-                   idx *np,
-                   idx **t,
-                   idx *nt,
-                   idx **e,
-                   idx *ne,
-                   idx **matt,
-                   idx **mate);
-
-
-//void writeBinaryMesh(Simu& simu, Geometry& geom); // writes mesh in binary format. in definition in "ReadGiDMesh3D.cpp"
-void readBinaryMesh(std::string filename ,  // same as above
-                    double *&p,
-                    idx *&t, idx *&tmat,
-                    idx *&e, idx *&emat,
-                    idx *np, idx *nt, idx *ne);
-
 // Assembles previous time step part of RHS when doing non-linear Crank-Nicholson
 void assemble_prev_rhs(SpaMtrix::Vector &Ln,
 		       SolutionVector& qn,

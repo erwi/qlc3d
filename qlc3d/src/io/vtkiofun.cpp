@@ -1,5 +1,5 @@
 
-#include <vtkiofun.h>
+#include <io/vtkiofun.h>
 #include <mesh.h>
 #include <assert.h>
 namespace vtkIOFun {

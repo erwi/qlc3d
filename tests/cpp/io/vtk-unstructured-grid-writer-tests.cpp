@@ -1,5 +1,5 @@
 #include <catch.h>
-#include <vtkiofun.h>
+#include <io/vtkiofun.h>
 #include <mesh.h>
 #include <test-util.h>
 

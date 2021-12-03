@@ -1,4 +1,4 @@
-#include <gmsh-read.h>
+#include <io/gmsh-read.h>
 
 #include <cassert>
 #include <filesystem>

@@ -1,5 +1,5 @@
 #include <catch.h>
-#include <gmsh-read.h>
+#include <io/gmsh-read.h>
 
 TEST_CASE("throw exception when") {
     GmshFileReader reader;

@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <fstream>
 #include <iostream>
-#include <vtkiofun.h>
-#include <matlabiofun.h>
+#include <io/vtkiofun.h>
+#include <io/matlabiofun.h>
 #include <globals.h>
 #include <assert.h>
 

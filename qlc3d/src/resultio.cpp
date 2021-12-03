@@ -2,7 +2,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <lc-representation.h>
-#include <vtkiofun.h>
+#include <io/vtkiofun.h>
 #include <assert.h>
 
 void ResultIO::writeCsvUnstructured(const double *p,

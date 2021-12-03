@@ -2,8 +2,7 @@
 // Created by eero on 07/04/2021.
 //
 #include <catch.h>
-#include <resultio.h>
-#include <qlc3d.h>
+#include <io/meshreader.h>
 #include <test-util.h>
 
 TEST_CASE("Read GiD mesh file") {

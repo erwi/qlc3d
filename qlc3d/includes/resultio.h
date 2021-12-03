@@ -2,7 +2,7 @@
 #define RESULTOUTPUT_H
 
 
-#include <vtkiofun.h>
+#include <io/vtkiofun.h>
 #include <regulargrid.h>
 #include <simu.h>
 #include <lc.h>

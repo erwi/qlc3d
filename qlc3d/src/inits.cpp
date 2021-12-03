@@ -1,7 +1,8 @@
+#include <iostream>
 #include <qlc3d.h>
 #include <simu.h>
 #include <globals.h>
-#include <iostream>
+#include <io/meshreader.h>
 
 void validateTriangleMaterials(const idx* const mate, idx ne){
     // goes through all triangle material numbers and tries to check that all is well.

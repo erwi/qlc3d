@@ -1,4 +1,4 @@
-#include <matlabiofun.h>
+#include <io/matlabiofun.h>
 
 
 bool MatlabIOFun::writeNumberArray(std::ofstream &fid,
