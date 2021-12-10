@@ -1,7 +1,9 @@
 // Define GiD material numbers
+#include <unordered_map>
 #ifndef MATERIAL_NUMBERS_H
 #define MATERIAL_NUMBERS_H
 
+#define MAT_INVALID 0
 #define MAT_DOMAIN1 4       // bit 3
 #define MAT_DOMAIN2 8       // 4
 #define MAT_DOMAIN3 12
@@ -41,7 +43,41 @@ static const unsigned int MAT_MAX_ELECTRODES_COUNT = 9;
 
 #define MAT_PERIODIC 3
 #define MAT_NEUMANN 2   // 0x
-
+namespace qlc3d {
+    static const std::unordered_map<std::string, int> MATERIAL_NUMBER_BY_NAME = {
+            {"domain1",     MAT_DOMAIN1},
+            {"periodic",    MAT_PERIODIC},
+            {"neumann",     MAT_NEUMANN},
+            // dielectric volumes 1 - 7
+            {"dielectric1", MAT_DIELECTRIC1},
+            {"dielectric2", MAT_DIELECTRIC2},
+            {"dielectric3", MAT_DIELECTRIC3},
+            {"dielectric4", MAT_DIELECTRIC4},
+            {"dielectric5", MAT_DIELECTRIC5},
+            {"dielectric6", MAT_DIELECTRIC6},
+            {"dielectric7", MAT_DIELECTRIC7},
+            // electrodes 1 - 9
+            {"electrode1",  MAT_ELECTRODE1},
+            {"electrode2",  MAT_ELECTRODE2},
+            {"electrode3",  MAT_ELECTRODE3},
+            {"electrode4",  MAT_ELECTRODE4},
+            {"electrode5",  MAT_ELECTRODE5},
+            {"electrode6",  MAT_ELECTRODE6},
+            {"electrode7",  MAT_ELECTRODE7},
+            {"electrode8",  MAT_ELECTRODE8},
+            {"electrode9",  MAT_ELECTRODE9},
+            // fixlc alignment layers 1 - 9
+            {"fixlc1",      MAT_FIXLC1},
+            {"fixlc2",      MAT_FIXLC2},
+            {"fixlc3",      MAT_FIXLC3},
+            {"fixlc4",      MAT_FIXLC4},
+            {"fixlc5",      MAT_FIXLC5},
+            {"fixlc6",      MAT_FIXLC6},
+            {"fixlc7",      MAT_FIXLC7},
+            {"fixlc8",      MAT_FIXLC8},
+            {"fixlc9",      MAT_FIXLC9},
+    };
+}
 inline
 int FIXLCN_TO_MATNUM(const int &n) {
     /*! converts fixlc number to material number. e.g. 1 -> 2048 etc.*/

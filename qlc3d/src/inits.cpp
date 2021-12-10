@@ -102,7 +102,6 @@ void prepareGeometry(Geometry& geom,
                      Simu& simu,
                      Alignment& alignment,
                      Electrodes& electrodes) {
-
     idx np,nt,ne;
     double *p;
     idx *t;
@@ -110,19 +109,8 @@ void prepareGeometry(Geometry& geom,
     idx *emat;
     idx *tmat;
 
-    // Check whether to read mesh from text file or binary 'geo'-file
-    // determine by file extension
-    size_t point = meshFileName.find_last_of('.');  // index to separator point
-    string extension = meshFileName.substr(point + 1);
-
-    if (extension.compare("geo") == 0 ) { // IF BINARY "SECRET" MESH
-        printf(" reading .geo file\n");
-        readBinaryMesh(meshFileName, p ,t, tmat, e, emat, &np, &nt, &ne);
-    }
-    else {
-        printf(" reading .%s file\n", extension.c_str() );
-        ReadGiDMesh3D(meshFileName,&p,&np,&t,&nt,&e,&ne,&tmat,&emat);
-    }
+    // read mesh data from file. Allocates the data arrays.
+    MeshReader::readMesh(meshFileName, &p, &np, &t, &nt, &e, &ne, &tmat, &emat);
 
     // PEOPLE DO STUPID THINGS IN GiD. NEED TO VALIDATE MATERIAL NUMBERS
     // IF VALIDATION FAILS, ERROR MESSAGE IS PRINTED AND PROGRAM ABORTED

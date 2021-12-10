@@ -1,15 +1,16 @@
 #include <io/gmsh-read.h>
-
+#include <material_numbers.h>
 #include <cassert>
 #include <filesystem>
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <algorithm>
 
 
 using namespace std;
 
-void split(const string &str, const string &pattern, vector<string> &destination) {
+void GmshFileReader::split(const string &str, const string &pattern, vector<string> &destination) const {
     size_t pos = 0;
     destination.clear();
 
@@ -23,8 +24,76 @@ void split(const string &str, const string &pattern, vector<string> &destination
     }
 }
 
-void log(const string &str) {
+void GmshFileReader::log(const string &str) const {
     cout << str << endl;
+}
+
+/**
+ * Convert Gmsh physical names into qlc3d material numbers
+ * @param physicalNamesByTag
+ * @return map
+ */
+std::unordered_map<size_t, int> GmshPhysicalNamesMapper::mapPhysicalNamesToNumbers(
+        const std::unordered_map<size_t, std::string> &physicalNamesByTag) {
+    // qlc3d material number by gmsh physical name tag
+    unordered_map<size_t, int> materialNumberByTag;
+
+    for (auto &entry : physicalNamesByTag) {
+        size_t tag = entry.first;
+        string name = entry.second;
+        int materialNumber = qlc3d::MATERIAL_NUMBER_BY_NAME.at(name);
+        materialNumberByTag.emplace(tag, materialNumber);
+    }
+    return materialNumberByTag;
+}
+
+std::vector<unsigned int> GmshPhysicalNamesMapper::mapTriangleNamesToMaterialNumbers() {
+    auto materialNumberByTag = mapPhysicalNamesToNumbers(_physicalNames->_physicalNames);
+
+    vector<unsigned int> triangleMaterialsOut(_elements->_numTriangles, MAT_INVALID);
+    for (size_t i = 0; i < _elements->_numTriangles; i++) {
+        // the surface should have one or maybe two physical names. E.g "periodic" or "fixlc1" and "electrode1"
+        int surfaceTagNumber = _elements->_triangleEntityTags[i];
+        SurfaceTag st = _entities->_surfaceTags.at(surfaceTagNumber);
+        const auto &physicalTags = st._physicalTags;
+
+        if (physicalTags.empty() || physicalTags.size() > 2) {
+            throw runtime_error("surface " + to_string(surfaceTagNumber) + " should have 1 or 2 physical names" +
+            ", but found " + to_string(physicalTags.size()));
+        }
+
+        // if multiple physical names exist, sum them together when converting to qlc3d material number
+        int materialNumber = 0;
+        for (auto &p : physicalTags) {
+            materialNumber += materialNumberByTag.at(p);
+        }
+
+        triangleMaterialsOut[i] = materialNumber;
+    }
+
+    return triangleMaterialsOut;
+}
+
+std::vector<unsigned int> GmshPhysicalNamesMapper::maptTetrahedraNamesToMaterialNumbers() {
+    auto materialNumberByTag = GmshPhysicalNamesMapper::mapPhysicalNamesToNumbers(_physicalNames->_physicalNames);
+
+    vector<unsigned int> tetrahedraMaterialsOut(_elements->_numTetrahedra, MAT_INVALID);
+    for (size_t i = 0; i < _elements->_numTetrahedra; i++) {
+        // the volume should have exactly one physical name, "domain1" or "dielectricX"
+        int volumeTagNumber = _elements->_tetrahedraEntityTags[i];
+        VolumeTag vt = _entities->_volumeTags.at(volumeTagNumber);
+        const auto &physicalTags = vt._physicalTags;
+
+        if (physicalTags.size() != 1) {
+            throw runtime_error("volume " + to_string(volumeTagNumber) + " should have 1 physical name, but found "
+                + to_string(physicalTags.size()));
+        }
+
+        int materialNumber = materialNumberByTag.at(physicalTags[0]);
+        tetrahedraMaterialsOut[i] = materialNumber;
+    }
+
+    return tetrahedraMaterialsOut;
 }
 
 std::runtime_error GmshFileReader::fileReadException(const std::string &message) {
@@ -72,8 +141,16 @@ std::unique_ptr<SectionPhysicalNames> GmshFileReader::readPhysicalNames() {
         // remove leading and trailing double quotes
         string physicalName = splits[2];
         size_t start = physicalName.find_first_of('\"') + 1;
-        size_t end = physicalName.find_last_of('\"') - 1;
+        size_t end = physicalName.find_last_of('\"');
         physicalName = physicalName.substr(start, end - start);
+
+        // convert the physical name to all-lowercase
+        std::transform(physicalName.begin(), physicalName.end(), physicalName.begin(),
+                       [](unsigned char c) { return std::tolower(c); });
+
+        if (qlc3d::MATERIAL_NUMBER_BY_NAME.count(physicalName) == 0) {
+            throw fileReadException("physical name = \"" + physicalName + "\" not recognised");
+        }
 
         materials[physicalTag] = physicalName;
     }
@@ -149,7 +226,6 @@ std::unique_ptr<SectionEntities> GmshFileReader::readEntities() {
 }
 
 std::unique_ptr<SectionNodes> GmshFileReader::readNodes() {
-    log("reading nodes");
     string line;
     vector<string> splits;
 
@@ -160,6 +236,7 @@ std::unique_ptr<SectionNodes> GmshFileReader::readNodes() {
     size_t numNodes = stoul(splits[1]);
     size_t minNodeTag = stoul(splits[2]);
     size_t maxNodeTag = stoul(splits[3]);
+    log("reading " + to_string(numNodes) + " nodes");
 
     if (minNodeTag != 1) {
         throw fileReadException("expected minNodeTag = 1 , got " + to_string(minNodeTag));
@@ -170,32 +247,26 @@ std::unique_ptr<SectionNodes> GmshFileReader::readNodes() {
     }
 
     // read the actual coordinate values
-    vector<double> coordinates(3 * numNodes, 0);
+    vector<double> coordinates(3 * numNodes, std::numeric_limits<double>::quiet_NaN()); // initialise all coordinates as NaN
 
-    size_t nodeIndex = -1; // index on next node coordinates
-    size_t nodeCounter = 0;
     // read until end of $Nodes section
+    size_t counter = 0;
     while(readLine(line)) {
         if (line.find("$EndNodes") == 0) {
-            assert(nodeCounter == numNodes);
+            assert(coordinates.size() / 3 == numNodes);
             return make_unique<SectionNodes>(numEntityBlocks, numNodes, minNodeTag, maxNodeTag, std::move(coordinates));
         }
 
         split(line, " ", splits);
-
         // if line contains :
         //  1 number, it indicates the next coordinate index
         //  3 numbers, it contains the coordinate xyz value
-        //  4 numbers, it contains [entityDim(int) entityTag(int) parametric(int; 0 or 1)
-        //    numNodesInBlock(size_t)], but these are currently ignored
-        if (splits.size() == 1) {
-            nodeIndex = stoul(splits[0]) - 1;
-        }
-        else if (splits.size() == 3) {
-            nodeCounter ++;
-            coordinates[3 * nodeIndex + 0] = stod(splits[0]);
-            coordinates[3 * nodeIndex + 1] = stod(splits[1]);
-            coordinates[3 * nodeIndex + 2] = stod(splits[2]);
+        //  4 numbers, it contains [entityDim(int) entityTag(int) parametric(int; 0 or 1) numNodesInBlock(size_t)],
+
+        if (splits.size() == 3) {
+            coordinates[counter++] = stod(splits[0]);
+            coordinates[counter++] = stod(splits[1]);
+            coordinates[counter++] = stod(splits[2]);
         }
     }
 
@@ -224,15 +295,24 @@ std::unique_ptr<SectionElements> GmshFileReader::readElements() {
     }
 
     // Read the rest of the $Elements section
-    vector<size_t> triangles;
-    vector<size_t> tetrahedra;
+    vector<size_t> triangles;   // node indices to triangles
+    vector<size_t> tetrahedra;  // node indices to tetrahedra
+    vector<int> triangleTags;   // surface tag used in geometry creation
+    vector<int> tetrahedraTags; // volume tag used geometry creation
 
     while (readLine(line)) {
         if (line.find("$EndElements") == 0) {
+            size_t numTriangles = triangles.size() / 3;
+            size_t numTetrahedra = tetrahedra.size() / 4;
+            log("triangles count = " + to_string(numTriangles) + " tetrahedra count = " + to_string(numTetrahedra));
+
             return make_unique<SectionElements>(
                     triangles.size() / 3,
-                    tetrahedra.size() / 4
-                    );
+                    tetrahedra.size() / 4,
+                    std::move(triangles),
+                    std::move(triangleTags),
+                    std::move(tetrahedra),
+                    std::move(tetrahedraTags));
         }
 
         split(line, " ", splits);
@@ -253,18 +333,20 @@ std::unique_ptr<SectionElements> GmshFileReader::readElements() {
                 if (splits.size() != 4) {
                     throw fileReadException("expected 4 values when reading triangle element, got " + to_string(splits.size()));
                 }
-                triangles.push_back(stoul(splits[1]));
-                triangles.push_back(stoul(splits[2]));
-                triangles.push_back(stoul(splits[3]));
+                triangles.push_back(stoul(splits[1]) - 1);
+                triangles.push_back(stoul(splits[2]) - 1);
+                triangles.push_back(stoul(splits[3]) - 1);
+                triangleTags.push_back(entityTag);
             } else if (elementType == SectionElements::ELEMENT_TYPE_TETRAHEDRON_4_NODES) {
                 split(line, " ", splits);
                 if (splits.size() != 5) {
                     throw fileReadException("expected 5 values when reading tetrahedron element, got " + to_string(splits.size()));
                 }
-                tetrahedra.push_back(stoul(splits[1]));
-                tetrahedra.push_back(stoul(splits[2]));
-                tetrahedra.push_back(stoul(splits[3]));
-                tetrahedra.push_back(stoul(splits[4]));
+                tetrahedra.push_back(stoul(splits[1]) - 1);
+                tetrahedra.push_back(stoul(splits[2]) - 1);
+                tetrahedra.push_back(stoul(splits[3]) - 1);
+                tetrahedra.push_back(stoul(splits[4]) - 1);
+                tetrahedraTags.push_back(entityTag);
             } else {
                 // do nothing, we don't care about this element type
             }
@@ -316,6 +398,10 @@ std::shared_ptr<GmshFileData> GmshFileReader::readGmsh(const string &fileName) {
     // Check that all required sections were loaded
     if (data->getMeshFormat() == nullptr) {
         throw fileReadException("No $MeshFormat section found");
+    }
+
+    if (data->getPhysicalNames() == nullptr) {
+        throw fileReadException("No $PhysicalNames section found");
     }
 
     if (data->getNodes() == nullptr) {

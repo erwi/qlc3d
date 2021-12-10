@@ -1,7 +1,7 @@
 #include <io/meshreader.h>
+#include <io/gmsh-read.h>
 #include <filesystem>
-#include <fstream>
-
+#include <iostream>
 using namespace std;
 
 /**
@@ -67,5 +67,82 @@ MeshFormat MeshFormatInspector::inspectFormat(const std::string &fileName) {
     }
     else {
         return MeshFormat::UNKNOWN_FORMAT;
+    }
+}
+
+void MeshReader::copyGmshCoordinateData(const GmshFileData &data, double **pointsOut, idx *numPointsOut) {
+    const shared_ptr<SectionNodes> &nodesData = data.getNodes();
+    *numPointsOut = nodesData->_numNodes;
+
+    auto coordinates = nodesData->_coordinates;
+    *pointsOut = (double*) malloc(3 * (*numPointsOut) * sizeof(double));
+    std::copy(coordinates.begin(), coordinates.end(), *pointsOut);
+}
+
+void MeshReader::copyGmshTriangleData(const GmshFileData &data, idx **trisOut, idx **triMaterialsOut, idx *numTrisOut) {
+    auto &elements = data.getElements();
+    *numTrisOut = elements->_numTriangles;
+
+    // element indices
+    *trisOut = (idx*) malloc(3 * (*numTrisOut) * sizeof(idx));
+    std::copy(elements->_triangleIndices.begin(), elements->_triangleIndices.end(), *trisOut);
+
+    // material numbers
+    GmshPhysicalNamesMapper mapper(data.getPhysicalNames(), data.getEntities(), data.getElements());
+    auto materialNumbers = mapper.mapTriangleNamesToMaterialNumbers();
+    *triMaterialsOut = (idx*) malloc(*numTrisOut * sizeof(idx));
+    std::copy(materialNumbers.begin(), materialNumbers.end(), *triMaterialsOut);
+}
+
+void MeshReader::copyGmshTetData(const GmshFileData &data, idx **tetsOut, idx **tetMaterialsOut, idx *numTetsOut) {
+    auto &elements = data.getElements();
+    *numTetsOut = elements->_numTetrahedra;
+
+    // element indices
+    *tetsOut = (idx*) malloc(4 * (*numTetsOut) * sizeof (idx));
+    std::copy(elements->_tetrahedraIndices.begin(), elements->_tetrahedraIndices.end(), *tetsOut);
+
+    // material numbers
+    GmshPhysicalNamesMapper mapper(data.getPhysicalNames(), data.getEntities(), data.getElements());
+    auto materialNumbers = mapper.maptTetrahedraNamesToMaterialNumbers();
+    *tetMaterialsOut = (idx*) malloc(*numTetsOut * sizeof(idx));
+    std::copy(materialNumbers.begin(), materialNumbers.end(), *tetMaterialsOut);
+}
+
+void MeshReader::readGmsMesh(const std::string &fileName, double **pointsOut, idx *numPointsOut, idx **tetsOut, idx *numTetsOut, idx **trisOut, idx *numTrisOut,
+                             idx **tetMaterials, idx **triMaterials) {
+    GmshFileReader reader;
+    auto meshData = reader.readGmsh(fileName);
+
+    // copy gmsh data into output arrays
+    copyGmshCoordinateData(*meshData, pointsOut, numPointsOut);
+    copyGmshTriangleData(*meshData, trisOut, triMaterials, numTrisOut);
+    copyGmshTetData(*meshData, tetsOut, tetMaterials, numTetsOut);
+}
+
+void MeshReader::readMesh(const std::string &fileName,
+                          double **pointsOut,
+                          idx *numPointsOut,
+                          idx **tetsOut,
+                          idx *numTetsOut,
+                          idx **trisOut,
+                          idx *numTrisOut,
+                          idx **tetMaterialsOut,
+                          idx **triMaterialsOut) {
+    MeshFormat format = MeshFormatInspector::inspectFormat(fileName);
+
+    switch (format) {
+        case MeshFormat::GID_MESH:
+            cout << "reading GiD mesh from " << fileName << endl;
+            ReadGiDMesh3D(fileName, pointsOut, numPointsOut, tetsOut, numTetsOut, trisOut, numTrisOut, tetMaterialsOut, triMaterialsOut);
+            break;
+        case MeshFormat::GMSH_ASCII:
+            cout << "reading Gmsh mesh from " << fileName << endl;
+            readGmsMesh(fileName, pointsOut, numPointsOut, tetsOut, numTetsOut, trisOut, numTrisOut, tetMaterialsOut, triMaterialsOut);
+            break;
+        case MeshFormat::UNKNOWN_FORMAT:
+            throw runtime_error("Could not determine mesh format of file " + fileName);
+        default:
+            throw runtime_error("Unhandled mesh format - did not read mesh from " + fileName);
     }
 }

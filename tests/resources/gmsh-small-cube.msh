@@ -2,11 +2,12 @@ $MeshFormat
 4.1 0 8
 $EndMeshFormat
 $PhysicalNames
-5
+6
 2 667 "Periodic"
 2 668 "FixLC1"
 2 669 "Electrode1"
-2 670 "FixLC2-Electrode2"
+2 670 "FixLC2"
+2 671 "Electrode2"
 3 666 "Domain1"
 $EndPhysicalNames
 $Entities
@@ -35,7 +36,7 @@ $Entities
 2 0 1 0 1 1 1 1 667 4 6 4 -8 -2 
 3 0 0 0 0 1 1 1 667 4 1 10 -2 -9 
 4 1 0 0 1 1 1 1 667 4 3 12 -4 -11 
-5 0 0 1 1 1 1 1 670 4 7 12 -8 -10 
+5 0 0 1 1 1 1 2 670 671 4 7 12 -8 -10 
 6 0 0 0 1 1 0 2 668 669 4 5 11 -6 -9 
 1 0 0 0 1 1 1 1 666 6 3 1 6 4 5 2 
 $EndEntities

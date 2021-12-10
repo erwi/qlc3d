@@ -20,12 +20,12 @@ public:
 struct SectionPhysicalNames {
     /** number of defined physical names */
     const size_t _numNames;
+    /** human readable names by name id tag */
     const std::unordered_map<size_t, std::string> _physicalNames;
     SectionPhysicalNames(size_t numNames, std::unordered_map<size_t, std::string> &physicalNames) :
             _numNames {numNames},
             _physicalNames {physicalNames}{}
 };
-
 
 // "Tag" lines within the Entities section. The tags for points and lines exist, but are not declared here
 // as we ignore them and just skip over them when reading the file. We're only interested in surfaces and
@@ -92,9 +92,24 @@ struct SectionElements {
     const size_t _numTriangles;
     const size_t _numTetrahedra;
 
-    SectionElements(size_t numTriangles, size_t numTetrahedra) :
-        _numTriangles{numTriangles}, _numTetrahedra{numTetrahedra} { }
+    const std::vector<size_t> _triangleIndices;
+    /** id tag to geometry surface */
+    const std::vector<int> _triangleEntityTags;
 
+    const std::vector<size_t> _tetrahedraIndices;
+    /** id tag to geometry volume */
+    const std::vector<int> _tetrahedraEntityTags;
+
+    SectionElements(size_t numTriangles, size_t numTetrahedra,
+                    std::vector<size_t> &&triangleIndices,
+                    std::vector<int> &&triangleEntityTags,
+                    std::vector<size_t> &&tetrahedraIndices,
+                    std::vector<int> &&tetrahedraEntityTags) :
+        _numTriangles{numTriangles}, _numTetrahedra{numTetrahedra},
+        _triangleIndices { triangleIndices },
+        _triangleEntityTags { triangleEntityTags },
+        _tetrahedraIndices { tetrahedraIndices },
+        _tetrahedraEntityTags { tetrahedraEntityTags } { }
 };
 
 class GmshFileData {
@@ -118,15 +133,51 @@ public:
     [[nodiscard]] const std::shared_ptr<SectionElements> &getElements() const { return _elements; }
 };
 
+class GmshPhysicalNamesMapper {
+    const std::shared_ptr<SectionPhysicalNames> _physicalNames;
+    const std::shared_ptr<SectionEntities> _entities;
+    const std::shared_ptr<SectionElements> _elements;
+
+    static std::unordered_map<size_t, int> mapPhysicalNamesToNumbers(const std::unordered_map<size_t, std::string> &physicalNamesByTag);
+public:
+    GmshPhysicalNamesMapper(const std::shared_ptr<SectionPhysicalNames> physicalNames,
+                            const std::shared_ptr<SectionEntities> entities,
+                            const std::shared_ptr<SectionElements> elements) :
+        _physicalNames { physicalNames }, _entities { entities }, _elements { elements } { }
+
+    /**
+     * Convert Gmsh "PhysicalNames" strings to qlc3d material number arrays
+     * @return vector of same size as number of triangles. The values in the vector correspond to the
+     * material number of the triangle element with same ordinal.
+     */
+    std::vector<unsigned int> mapTriangleNamesToMaterialNumbers();
+
+    /**
+     * Convert Gmsh "PhysicalNames" strings to qlc3d material number arrays
+     * @return vector of same size as number of tetrahedra. The values in the vector correspond to the
+     * material number of the tetrahedron element with same ordinal.
+     */
+    std::vector<unsigned int> maptTetrahedraNamesToMaterialNumbers();
+};
+
+/**
+ * Reads the raw data from a Gmsh (ASCII) mesh file. Not all available data, supported by the file format is read,
+ * only whatever is needed by qlc3d, i.e. nodes, triangles, tetrahedra, and material definitions.
+ *
+ * See https://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format for more details about the Gmsh file format.
+ */
 class GmshFileReader {
     std::string _fileName;
     size_t _lineNumber = 0;
     std::ifstream _fin;
 
+
+    std::runtime_error fileReadException(const std::string &message);
+    void split(const std::string &in, const std::string &pattern, std::vector<std::string> &splitsOut) const;
+    void log(const std::string &str) const;
+
     /** Read one line of text into input arg line. Return true on success, false if failed (e.g. EOF) */
     bool readLine(std::string &line);
-    std::runtime_error fileReadException(const std::string &message);
-
     std::unique_ptr<SectionMeshFormat> readMeshFormat();
     std::unique_ptr<SectionPhysicalNames> readPhysicalNames();
     std::unique_ptr<SectionEntities> readEntities();
@@ -136,7 +187,5 @@ class GmshFileReader {
 public:
     std::shared_ptr<GmshFileData> readGmsh(const std::string &fileName);
 };
-//void readGmsh(const std::string &fileName);
-
 
 #endif //PROJECT_QLC3D_GMSH_READ_H
