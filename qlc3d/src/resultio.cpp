@@ -48,7 +48,7 @@ void ResultIO::writeVtkUnstructuredAsciiGrid(
     const double *nx = director;
     const double *ny = director + numLcPoints;
     const double *nz = director + 2 * numLcPoints;
-
+    const double *S = director + 3 * numLcPoints;
     UnstructuredGridWriter writer;
-    writer.write(fileName, numPoints, numLcPoints, p, tetMesh, v.getValues(), nx, ny, nz);
+    writer.write(fileName, numPoints, numLcPoints, p, tetMesh, v.getValues(), nx, ny, nz, S);
 }

@@ -107,7 +107,8 @@ namespace vtkIOFun {
                                        const double *potentials,
                                        const double *nx,
                                        const double *ny,
-                                       const double *nz) const {
+                                       const double *nz,
+                                       const double *S) const {
         assert(numLcPoints <= numPoints);
 
         using namespace std;
@@ -123,7 +124,7 @@ namespace vtkIOFun {
         writeTetrahedra(os, tetrahedra, numPoints);
 
         writePotentials(os, numPoints, potentials);
-        writeLiquidCrystal(os, numLcPoints, nx, ny, nz);
+        writeLiquidCrystal(os, numPoints, numLcPoints, nx, ny, nz, S);
 
         os.close();
     }
@@ -175,16 +176,32 @@ namespace vtkIOFun {
         }
     }
 
-    void UnstructuredGridWriter::writeLiquidCrystal(std::ostream &os, size_t numLcPoints, const double *nx,
-                                                    const double *ny, const double *nz) const {
+    void UnstructuredGridWriter::writeLiquidCrystal(std::ostream &os, size_t numPoints, size_t numLcPoints, const double *nx,
+                                                    const double *ny, const double *nz, const double *S) const {
         os << "\n";
         os << "VECTORS director float" << "\n";
         for (int i = 0; i < numLcPoints; i++) {
             os << nx[i] << " " << ny[i] << " " << nz[i] << "\n";
         }
+
+        // for dielectric regions, write director with zero length.
+        for (int i = numLcPoints; i < numPoints; i++) {
+            os << "0 0 0\n";
+        }
+
+        // write order parameter
+        os << "\n";
+        os << "SCALARS S float 1\n";
+        os << "LOOKUP_TABLE default\n";
+        for (int i = 0; i < numLcPoints; i++) {
+            os << S[i] << "\n";
+        }
+
+        // for dielectric regions, write S = 1. This makes it easier to find low order regions than using 0
+        for (int i = numLcPoints; i < numPoints; i++) {
+            os << "1\n";
+        }
     }
-
-
 }// end namespace vtkIOFun
 
 
