@@ -425,6 +425,7 @@ REFINEMENTi.<key> = <value>
 Where i is a number in the range 1-99, specifying the `REFINEMENT` object number, <key> is a property name string and <value> is the corresponding value (string, number or array).
 
 The following key-value pairs can be defined:
+
 |Key|Value Type|Description|
 |---|---|---|
 |Type|String|Sets the type of the corresponding REFINEMENT object. This will define how the other key/value pairs are interpreted for this object. See examples below for possible values.|
