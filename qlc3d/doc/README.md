@@ -125,18 +125,21 @@ Optional (default value EndValue = 5 TODO:check this).
 Defines the numerical threshold value used in conjunction with the `EndCriterion` parameter to determine when to end a simulation.  The meaning of this value depends on the value used for `EndCriterion`:
 
 Example 1: Simulate for 1000 iterations or time steps:
+
 ```
 	EndCriterion = Iterations
 	EndValue = 1000
-```	
+```
 
 Example 2. Simulate a 15 ms time period:
+
 ```
 	EndCriterion = Time
 	EndValue = 15e-3
-```	
+```
 
 Example3. Simulate until largest change in Q-tensor is below 6 significant digits:
+
 ```
 	EndCriterion = Change
 	EndValue = 1e-6
@@ -170,12 +173,13 @@ When trying to directly solve for a steady state solution using the Newton metho
 
 ### **dtFunction = [0.25, 0.8, 1.2, 10]** ##
 Array of length 4. The value of the current time step size `dt` is changed according to `dt(n+1) = S(R) * dt(n)`, where `R` is the ratio `R = dQ/TargetdQ`, `n` is time-step number and `S` is a piecewise linear function whose extreme values are limited between 0 and 2.
+
 ```	
 	dtFunction[0] = value of R where S = 0;
 	dtFunction[1] = minimum value of R where S = R;
 	dtFunction[2] = maximum value of R where S = R;
 	dtFunction[3] = value of R where S = 2;
-```	
+```
 
 Additionally, the limits set in `dtLimits` are enforced.
 
@@ -240,40 +244,50 @@ Optional string variable specifying the filename of a previous result. The Q-ten
 Liquid Crystal Material parameters are defined using the key/value pairs specified  below:
 
 Splay, twist and bend elastic coefficients:
+
 ```
 	K11 = 1.0000e-11
 	K22 = 1.0000e-11
 	K33 = 1.0000e-11
-```	
-Chiral pitch length, measured in metres:	
+```
+
+Chiral pitch length, measured in metres:
+
 ```
 	p0  = 0.0e-6
-```	
+```
+
 This is a optional parameter. If not assigned (or assigned 0), no chirality is assumed.
 
 Thermotropic coefficients:
+
 ```
 	A   = -1.2000e+05
 	B   = -2.1333e+06
 	C   = 1.7333e+06
-```	
+```
 
 Relative dielectric permittivities parallel and perpendicular to the director:
+
 ```
 	eps_par = 18.5000
 	eps_per = 7.0000
-```	
-Flexoelectric splay and bend coefficients (which sign convention?):	
+```
+	
+Flexoelectric splay and bend coefficients (which sign convention?):
+	
 ```
 	e1     = 0.0000e+00
 	e3     = 0.0000e+00
-```	
+```
+
 These are optional coefficients. If not assigned (or assigned 0), no flexoelectricity is assumed.
 
 Rotational viscosity:
+
 ```
 	gamma1  = 0.0777
-```	
+```
 
 ---
 ## Initial LC Orientation ##
@@ -320,7 +334,7 @@ Liquid crystal alignment or anchoring is set using a number of `FIXLC` structure
 Anchoring is a string that describes the type of anchoring. Possible values are Homeotropic, Strong, Weak, Degenerate, Freeze or Polymerise.
 
 |`FIXLCn.Anchoring`|Description|
-|---| ---|
+|---:|:---|
 |Strong		|Fixes the LC orientation to the easy direction.|
 |Weak		|Weak anchoring (strength determined by the `FIXLCn.Strength` parameter) in the easy direction.|
 |Homeotropic|Fixes the LC along the local surface normal.|
@@ -381,7 +395,7 @@ E1.Pot  = [3.0, 0.0]
 A uniform electric field may be defined by setting the x, y and z-components of the EField vector. The units of the vector are V/μm. For example, the following defines a constant field of 1.3 V / μm throughout the structure.
 
 ```
-EField = [0 , 0 , 1.3]`
+EField = [0 , 0 , 1.3]
 ```
 
 Uniform electric fields can be defined in structures that do not contain any electrodes. Uniform electric fields are not functions of time, i.e. swithing on/off during a simulation is not currently supported.
@@ -406,11 +420,11 @@ Mesh adaptation is optional, and is controlled by specifying `REFINEMENT` object
 The frequency of repeated mesh adaptation is specified by assigning a value to either variable `RefRefIter` or `RepRefTime`:
 ```
 	RepRefIter = iteration number
-```	
+```
 or
 ```
 	RepRefTime = time period [milliseconds]. # not working!!
-```	
+```
 
 If `RepRefIter` or `RepRefTime` are not specified, or if they are both set to a zero value, the mesh is not adapted periodically. However, it is still possible to specify explicit iteration/time instances to do this in the individual REFINEMENT objects.
 
@@ -427,7 +441,7 @@ Where i is a number in the range 1-99, specifying the `REFINEMENT` object number
 The following key-value pairs can be defined:
 
 |Key|Value Type|Description|
-|---|---|---|
+|---:|:---:|:---|
 |Type|String|Sets the type of the corresponding REFINEMENT object. This will define how the other key/value pairs are interpreted for this object. See examples below for possible values.|
 |Values|Array of numbers|Interpretation depends on Type. See Examples below.|
 |Iterations|Array of numbers|Explicit Iteration numbers when adaptation described by this object is performed.|
@@ -460,7 +474,7 @@ Example:
 	REFINEMENT1.X = [0, 0.1, 0, 0.05]
 	REFINEMENT1.Y = [0, 0.1, 0, 0.05]
 	REFINEMENT1.Z = [0, 0.1, 0, 0.05]
-```	
+```
 Performs two refinement iterations, selecting elements within the two cubes ranging from x, y, z = 0 to 0.1 microns for the first cube and x,y,z = 0 to 0.05 microns for the second one (the second cube is inside the first one in this case).
 
 ### `REFINEMENTi.Type = Change` ###
@@ -473,7 +487,6 @@ Example:
 	REFINEMENT1.Values = [0.2, 0.2]
 ```
 Performs two refinement iterations, selecting any elements within the whole modelled structure where the Q-tensor change exceeds the value 0.2. This refinement is applied globally to any elements in the whole structure.
-
 
 ---
 ## Solver Settings ##
@@ -531,7 +544,6 @@ The dynamics of the Q-tensor involves multiple sub-iterations per time step. If 
 	V_GMRES_Restart	= 50;
 	V_GMRES_Toler	= 1e-6;
 ```
-
 
 ---
 ## Settings File Example ##
