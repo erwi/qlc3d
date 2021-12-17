@@ -569,7 +569,7 @@ SaveIter = 5 # write result to file every 5 iterations
 K11 = 6.2e-12 # LC elastic coefficients
 K22 = 3.9e-12
 K33 = 8.2e-12
-p0 =  2.0e-6  # no chiral doping
+p0 =  2.0e-6  # chiral pitch length is 2 microns
 
 A = -0.240000e6 # -2 degrees
 B = -2.133300e6
@@ -592,20 +592,20 @@ FIXLC1.anchoring =strong
 FIXLC1.Strength = 1e-4
 FIXLC1.K1 = 1.0
 FIXLC1.K2 = 1.0
-FIXLC1.Easy = [10, 0,0]
+FIXLC1.Easy = [10, 0, 0]
 
 # FIXLC2 surface at 1 degree tilt, 90 degrees twist
 FIXLC2.anchoring =strong 
 FIXLC2.Strength = 1e-4
 FIXLC2.K1 = 1.0
 FIXLC2.K2 = 1.0
-FIXLC2.Easy = [1.0, 90,0]
+FIXLC2.Easy = [1.0, 90, 0]
 
 # specify potentials for two electrodes
 E1.Time = [0]
 E1.Pot = [0]
 
-E2.Time = [0, 5e-3]
+E2.Time = [0, 5e-3] # 5V at start, but switch off to 0 at 5 milliseconds
 E2.Pot = [5, 0]
 
 # mesh contains 2 different dielectric regions. 
