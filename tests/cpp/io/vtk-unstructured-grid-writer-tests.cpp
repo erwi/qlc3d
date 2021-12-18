@@ -15,7 +15,7 @@ TEST_CASE("write VTK unstructured ascii grid") {
     size_t numPoints = 4;
     size_t numLcPoints = 4;
 
-    // mesh node coordinates
+    // 4 mesh node coordinates
     double points[] = {
             0, 0, 0,
             1, 0, 0,
@@ -28,6 +28,11 @@ TEST_CASE("write VTK unstructured ascii grid") {
             1, 0, -1, 0, // 4x nx
             0, 1, 0, -1, // 4x ny
             0, 0, 0, 0   // 4x nz
+    };
+
+    // 4 order parameter values
+    double S[] = {
+            0.1, 0.2, 0.3, 0.4
     };
 
     double potentials[] = {0, 0.1, 0.2, 0.3};
@@ -49,7 +54,8 @@ TEST_CASE("write VTK unstructured ascii grid") {
                  &potentials[0],
                  &director[0],
                  &director[4],
-                 &director[8]);
+                 &director[8],
+                 &S[0]);
 
     // ASSERT: check the file contents
     // Read the file contents and
@@ -88,4 +94,13 @@ TEST_CASE("write VTK unstructured ascii grid") {
     REQUIRE(lines[directorStartLine + 2] == "0 1 0");
     REQUIRE(lines[directorStartLine + 3] == "-1 0 0");
     REQUIRE(lines[directorStartLine + 4] == "0 -1 0");
+
+    // check order parameter data section
+    int orderParamStartLine = 31;
+    REQUIRE(lines[orderParamStartLine] == "SCALARS S float 1");
+    REQUIRE(lines[orderParamStartLine + 1] == "LOOKUP_TABLE default");
+    REQUIRE(lines[orderParamStartLine + 2] == "0.1");
+    REQUIRE(lines[orderParamStartLine + 3] == "0.2");
+    REQUIRE(lines[orderParamStartLine + 4] == "0.3");
+    REQUIRE(lines[orderParamStartLine + 5] == "0.4");
 }
