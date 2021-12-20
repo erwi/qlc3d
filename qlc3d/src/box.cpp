@@ -77,7 +77,7 @@ void Box::setTwist(std:: vector<double> twt) {
         exit(1);
     }
 }
-bool Box::isInBox(double *coords) {
+bool Box::contains(double *coords) {
     double x = coords[0];
     double y = coords[1];
     double z = coords[2];
@@ -102,6 +102,14 @@ void Box::setBoxType(const std::string &bt) {
         std::exit(1);
     }
 }
+
+std::string Box::toString() const {
+    return "Type=" + TypeString + ", bounds=["
+    + std::to_string(X[0]) + ", " + std::to_string(X[1]) + ", "
+    + std::to_string(Y[0]) + ", " + std::to_string(Y[1]) + ", "
+    + std::to_string(Z[0]) + ", " + std::to_string(Z[1]) + "]";
+}
+
 //===================================================================
 Boxes::Boxes() {
     n_Boxes = 0;

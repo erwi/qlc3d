@@ -33,7 +33,7 @@ add_library(lib-qlc3d STATIC
         src/io/matlabiofun.cpp
         includes/io/vtkiofun.h
         src/io/vtkiofun.cpp
-        )
+        includes/inits.h)
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 target_include_directories(lib-qlc3d
         PUBLIC includes)

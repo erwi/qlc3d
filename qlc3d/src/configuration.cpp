@@ -16,6 +16,7 @@ void Configuration::readSettings() {
     SettingsReader reader(settingsFileName());
     simu_ = reader.simu();
     lc_ = reader.lc();
+    refinement_ = reader.refinement();
 }
 
 std::shared_ptr<Simu> Configuration::simu() const {
@@ -26,4 +27,9 @@ std::shared_ptr<Simu> Configuration::simu() const {
 std::shared_ptr<LC> Configuration::lc() const {
     assert(lc_ != nullptr);
     return lc_;
+}
+
+std::shared_ptr<MeshRefinement> Configuration::refinement() const {
+    assert(refinement_ != nullptr);
+    return refinement_;
 }

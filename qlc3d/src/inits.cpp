@@ -1,7 +1,10 @@
 #include <iostream>
-#include <qlc3d.h>
+#include <inits.h>
 #include <simu.h>
 #include <globals.h>
+#include <eventlist.h>
+#include <refinement.h>
+#include <refinfo.h>
 #include <io/meshreader.h>
 
 void validateTriangleMaterials(const idx* const mate, idx ne){
@@ -38,7 +41,6 @@ void validateTriangleMaterials(const idx* const mate, idx ne){
         exit(1);
     }
 }// end void validateTriangleMatrials
-
 
 size_t countElectrodes(const idx* mate, idx ne) {
     /*!
@@ -96,7 +98,6 @@ void validateTetrahedralMaterials(const idx* const matt, idx nt){
     }
 }
 
-// FUNCTIONS  BELOW DECALRED IN qlc3d.h
 void prepareGeometry(Geometry& geom,
                      const std::string &meshFileName,
                      Simu& simu,
@@ -180,4 +181,56 @@ FILE* createOutputEnergyFile(Simu& simu){
         }
     }
     return fid;
+}
+
+void createMeshRefinementEvents(const MeshRefinement &meshRefinement,
+                                EventList &eventListOut) {
+    const unsigned int repRefIter = meshRefinement.getRepRefIter();
+    const double repRefTime = meshRefinement.getRepRefTime();
+    bool hasPeriodicRefinement = repRefIter > 0 || repRefTime > 0;
+    cout << "periodic mesh refinement at every " << repRefIter << " iterations, " << repRefTime << " seconds" << endl;
+    eventListOut.setRepRefIter(repRefIter);
+    eventListOut.setRepRefTime(repRefTime);
+
+    if (hasPeriodicRefinement) {
+        // create refinement event for periodically occurring mesh refinement.
+        // These have no explicitly defined iterations or times
+        for (auto &ref : meshRefinement.getRefinementConfig()) {
+            if (!ref.occursPeriodically()) {
+                continue;
+            }
+            RefInfo *info = RefInfo::ofPeriodicMeshRefinement(ref.type_, ref.values_, ref.x_, ref.y_, ref.z_);
+            Event *event = Event::ofPeriodicMeshRefinement(info);
+            eventListOut.addRepRefInfo(event);
+        }
+
+        // e.g. if user has defined RepRefIter > 0 or RepRefTime > 0, but no refinement objects with
+        // empty explicit times/iterations lists
+        if (eventListOut.getNumPeriodicRefinementObjects() == 0) {
+            throw runtime_error("no refinement objects defined for periodic mesh refinement");
+        }
+    }
+
+    // add refinement events occurring at explicitly defined iterations/times
+    for (auto &ref : meshRefinement.getRefinementConfig()) {
+        if (ref.occursPeriodically()) {
+            continue;
+        }
+
+        // convert each explicitly defined refinement iteration to an *Event and add to event list
+        for (unsigned int iter : ref.iterations_) {
+            RefInfo * refInfo = RefInfo::make(ref.type_, iter, -1,
+                                              ref.values_, ref.x_, ref.y_, ref.z_);
+            auto *event = new Event(EVENT_REFINEMENT, iter, (void*) refInfo);
+            eventListOut.insertIterEvent(event);
+        }
+
+        // convert each explicitly defined refinement time to an *Event adn add to event list
+        for (double time : ref.times_) {
+            RefInfo *refInfo = RefInfo::make(ref.type_, -1, time,
+                                             ref.values_, ref.x_, ref.y_, ref.z_);
+            auto *event = new Event(EVENT_REFINEMENT, time, (void*) refInfo);
+            eventListOut.insertTimeEvent(event);
+        }
+    }
 }

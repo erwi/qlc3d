@@ -126,6 +126,9 @@ public:
     inline void readSettingsFile(const std::string &fileName);
     inline void readValidKeysFile(const std::string &fileName);
     inline bool containsKey(const std::string &key);
+
+    /** check whether a key that starts with the given prefix exists */
+    inline bool containsKeyWithPrefix(const std::string &keyPrefix);
     template<class T> inline T getValueByKey(const std::string &key) const;
     template<class T> inline T get() const; // access by last used key
     template<class T> inline std::optional<T> getOptional(const std::string &key);
@@ -399,9 +402,6 @@ size_t Reader::getLineNumberByKey(const std::string &key) const {
 }
 
 bool Reader::containsKey(const std::string &key) {
-    /*!
-     * Returns true if key has been defined.
-     */
     _recentKey.clear();
     // validate key format
     std::string tkey(key);
@@ -415,6 +415,15 @@ bool Reader::containsKey(const std::string &key) {
     } else {
         return false;
     }
+}
+
+bool Reader::containsKeyWithPrefix(const std::string &keyPrefix) {
+    std::string prefix(keyPrefix);
+    if (!isCaseSensitive()) { // keys are already converted to lowercase
+        toLower(prefix);
+    }
+    return std::any_of(_keyValues.begin(), _keyValues.end(),
+                [&prefix](const auto &keyVal) { return keyVal.first.find(prefix) == 0; });
 }
 
 void Reader::printAll() const {

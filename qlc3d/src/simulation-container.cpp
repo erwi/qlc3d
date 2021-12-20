@@ -15,6 +15,7 @@
 
 #include <filesysfun.h>
 #include <qlc3d.h>
+#include <inits.h>
 #include <calcpot3d.h> // TODO: create PotentialSolver class?
 
 #include <spamtrix_ircmatrix.hpp>
@@ -25,7 +26,6 @@ SimulationContainer::SimulationContainer(Configuration &config) :
         electrodes(new Electrodes()),
         boxes(new Boxes()),
         alignment(new Alignment()),
-        meshRefinement(new MeshRefinement()),
         regGrid(new RegularGrid()),
         eventList(new EventList()),
         settings(new Settings()) {
@@ -48,12 +48,14 @@ void SimulationContainer::initialise() {
 
     eventList->setSaveIter(simu->getSaveIter());
     eventList->setSaveTime(simu->getSaveTime());
+
+    createMeshRefinementEvents(*configuration.refinement(), *eventList);
+
     // read missing configuration from file. TODO: all parameters to be provided in configuration
     ReadSettings(configuration.settingsFileName(),
                  *boxes,
                  *alignment,
                  *electrodes,
-                 *meshRefinement,
                  *eventList,
                  *settings);
 
@@ -92,11 +94,10 @@ void SimulationContainer::initialise() {
     //	POTENTIAL SOLUTION DATA
     //
     //================================================
-    std::cout << "Creating V..."; fflush(stdout);
+    std::cout << "Creating initial electric potential"<< endl;
     v = SolutionVector((idx) geom1.getnp());
     v.allocateFixedNodesArrays(geom1);
     v.setPeriodicEquNodes(&geom1); // periodic nodes
-    std::cout << "OK" << std::endl;
 
     // =============================================================
     //
@@ -104,7 +105,7 @@ void SimulationContainer::initialise() {
     //
     //==============================================================
     // create vector for 5 * npLC Q-tensor components
-    std::cout << "Creating Q..."; fflush(stdout);
+    std::cout << "Creating initial Q tensor" << endl;
     q = SolutionVector(geom1.getnpLC(), 5);    //  Q-tensor for current time step
     qn = SolutionVector(geom1.getnpLC(), 5);   //  Q-tensor from previous time step
     SetVolumeQ(&q, lc->S0(), boxes.get(), geom1.getPtrTop());
@@ -119,7 +120,6 @@ void SimulationContainer::initialise() {
     q.setPeriodicEquNodes(&geom1);          // periodic nodes
     q.EnforceEquNodes(geom1);                // makes sure values at periodic boundaies match
     qn = q;                                   // q-previous = q-current in first iteration
-    std::cout << "OK" << std::endl;                   // Q-TENSOR CREATED OK
 
     // SET CONVENIENCE POINTERS STRUCTURE
     //solutionvectors;

@@ -52,10 +52,12 @@ void setRandomBox(Box &box, std::vector<qlc3d::Director> &dir, double* p, int np
         }
     }
 }
-
-void setHedgehogBox(Box box, std::vector<qlc3d::Director> &dir, double* p, int npLC){
-/*! Sets the Q-tensor/director initial orientation bithin a box volume. The orientation is set
-  so that a single hedgehog (+1) defect is located at the centre of the box*/
+/*!
+ * Sets the Q-tensor/director initial orientation within a box volume. The orientation is set
+ * so that a single hedgehog (+1) defect is located at the centre of the box
+*/
+void setHedgehogBox(Box box, std::vector<qlc3d::Director> &dir, double* p, int npLC) {
+//    cout << "setting initial orientation"
     // Director componenets are set to equal vectors from box cetre to director node location
     // resulting in a hedgehog defect
     // Calculate centre coordinates of this box
@@ -67,7 +69,7 @@ void setHedgehogBox(Box box, std::vector<qlc3d::Director> &dir, double* p, int n
         double S = dir[i].S();
         double *pl = &p[i*3]; // shortcut to coordinates of node i
 
-        if ( box.isInBox(pl) ) { // if node i is inside box
+        if (box.contains(pl) ) { // if node i is inside box
 
             // calculate vector from box centre to this node
             double v[3] = {pl[0] - cc[0] ,
@@ -83,13 +85,15 @@ void setHedgehogBox(Box box, std::vector<qlc3d::Director> &dir, double* p, int n
         }
     }
 }
-
+/*!
+ * Sets initial Q-tensor volume configuration for all boxes
+ */
 void SetVolumeQ(
 	SolutionVector *q,
 	double S0,
 	Boxes* boxes,
-	double* p){
-/*! Sets initial Q-tensor volume configuration for all boxes*/
+	double* p) {
+    cout << "Setting initial LC configuration for " << boxes->n_Boxes << " boxes" << endl;
 
     int npLC = q->getnDoF() ;
     // LC TILT AND TWIST IS FIRST CALCULATED AS VECTORS
@@ -102,6 +106,7 @@ void SetVolumeQ(
     // override the director within each box
     for (int i = 0; i < boxes->n_Boxes; i++) {
         Box &b = *boxes->box[i];
+        cout << "BOX" << i + 1 << ":" + b.toString() << endl;
         switch (b.Type) {
             case Box::Normal:
                 setNormalBox(b, dir, p, npLC);

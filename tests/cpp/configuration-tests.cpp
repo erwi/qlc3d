@@ -1,6 +1,3 @@
-//
-// Created by eero on 07/04/2021.
-//
 #include <catch.h>
 
 #include <settings-reader.h>
@@ -143,4 +140,44 @@ TEST_CASE("read LC from settings file") {
     REQUIRE(lc->L5() == 0);
     REQUIRE(lc->L6() == Approx(2.4557036852882312e-12).margin(eps));
     REQUIRE(lc->u1() == Approx(0.089376978566352377).margin(eps));
+}
+
+TEST_CASE("read REFINEMENT from settings file") {
+    std::string contents;
+    contents += "MeshName = test.msh\n"; // required in every settings file
+    contents += "REFINEMENT1.TYPE = Sphere\n";
+    contents += "REFINEMENT1.X=[0.0]\n";
+    contents += "REFINEMENT1.Y=[0.2]\n";
+    contents += "REFINEMENT1.Z=[0.4]\n";
+    contents += "REFINEMENT1.Iterations = [3]\n";
+    contents += "REFINEMENT1.Times = [1, 2]\n";
+    contents += "REFINEMENT1.Values = [0.12]\n";
+
+    contents += "RepRefIter=10 \n";
+    contents += "RepRefTime = 2e-9\n";
+
+    auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+    SettingsReader reader(settingsFile.name());
+    auto refinement = reader.refinement();
+    const vector<RefinementConfig> &refs = refinement->getRefinementConfig();
+
+
+    REQUIRE(refinement->getRepRefIter() == 10);
+    REQUIRE(refinement->getRepRefTime() == 2e-9);
+
+    REQUIRE(refs.size() == 1);
+
+    auto ref = refs[0];
+
+    REQUIRE(ref.type_ == "sphere");
+
+    REQUIRE((ref.x_.size() == 1 && ref.x_[0] == 0));
+    REQUIRE((ref.y_.size() == 1 && ref.y_[0] == 0.2));
+    REQUIRE((ref.z_.size() == 1 && ref.z_[0] == 0.4));
+
+    REQUIRE((ref.iterations_.size() == 1 && ref.iterations_[0] == 3));
+    REQUIRE((ref.times_.size() == 2 && ref.times_[0] == 1 && ref.times_[1] == 2));
+    REQUIRE((ref.iterations_.size() == 1 && ref.iterations_[0] == 3));
+    REQUIRE((ref.values_.size() == 1 && ref.values_[0] == 0.12));
 }

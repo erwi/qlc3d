@@ -1,7 +1,6 @@
 #include <eventlist.h>
 #include <math.h>
 #include <refinfo.h>
-#include <reader.h>
 #include <simulation-state.h>
 
 const char *Event::getEventString(const EventType e) {
@@ -38,6 +37,10 @@ Event::~Event() {
             exit(1);
         }
     }
+}
+
+Event * Event::ofPeriodicMeshRefinement(RefInfo *refInfo) {
+    return new Event(EVENT_REFINEMENT, 0., (void*) refInfo);
 }
 
 bool compare_timeptr(const Event *first, const Event *second) {

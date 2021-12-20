@@ -34,7 +34,6 @@ class SimulationContainer {
     std::shared_ptr<LC> lc;
     std::unique_ptr<Boxes> boxes;
     std::unique_ptr<Alignment> alignment;
-    std::unique_ptr<MeshRefinement> meshRefinement;
     std::unique_ptr<RegularGrid> regGrid;
     std::unique_ptr<EventList> eventList;
     std::unique_ptr<Settings> settings;

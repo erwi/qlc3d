@@ -75,7 +75,7 @@ RefInfo::RefInfo(const RefInfo &other):
 
 
 
-void RefInfo::setValues(std::vector<double> &values) {
+void RefInfo::setValues(const std::vector<double> &values) {
     _values.clear();
     _values.insert(_values.begin(), values.begin(), values.end());
     this->setRefIter();
@@ -186,17 +186,17 @@ void RefInfo::validate(const RefInfo &refinfo) {
 RefInfo *RefInfo::make(const std::string &type,
                        long iteration,
                        double time,
-                       std::vector<double> &values,
-                       std::vector<double> &x,
-                       std::vector<double> &y,
-                       std::vector<double> &z) {
+                       const std::vector<double> &values,
+                       const std::vector<double> &x,
+                       const std::vector<double> &y,
+                       const std::vector<double> &z) {
     // convenience factory method for making and validating
     // RefInfo object pointers.
     // TODO: should return a smart pointer instead
     //
     // A refinement event cannot happen both on a given iteration
     // AND given time instance
-    if (time != 0 && iteration != 0) {
+    if (time > 0.0 && iteration > 0) {
         std::cerr << "error, cannot have both iteration and time as non-zero in "
                   << __PRETTY_FUNCTION__ << std::endl;
         std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
@@ -210,4 +210,11 @@ RefInfo *RefInfo::make(const std::string &type,
     validate(*ret);
     return ret;
 }
+
+RefInfo* RefInfo::ofPeriodicMeshRefinement(const std::string &type, const std::vector<double> &values,
+                                           const std::vector<double> &x, const std::vector<double> &y,
+                                           const std::vector<double> &z) {
+    return RefInfo::make(type, -1, -1, values, x, y, z);
+}
+
 

@@ -73,7 +73,6 @@ void ReadSettings(
         Boxes &boxes,
         Alignment &alignment,
         Electrodes &electrodes,
-        MeshRefinement &meshrefinement,
         EventList &eventlist,
         Settings &settings
 	);
@@ -85,14 +84,6 @@ void CreateSaveDir(Simu* simu); //creates new save dir, if needed
 // INITIALISATION FUCTIONS
 //
 // -----------------------------
-
-void prepareGeometry(Geometry& geom,    // defined in inits.cpp
-                     const std::string &meshFileName,
-                     Simu& simu,
-                     Alignment& ali,
-                     Electrodes& electrodes);
-FILE* createOutputEnergyFile(Simu& simu); // defined in inits.cpp
-
 void SetVolumeQ(SolutionVector *q, double S0, Boxes* boxes, double* p);
 
 // Sets all Q-tensor values to those specified in Alignment

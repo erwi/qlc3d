@@ -4,11 +4,11 @@
 #include <string>
 #include <vector>
 #include <stdio.h>
-
+/*!
+ * The Box class is used when defining initial LC orientations. It represents a cuboidal sub region within the modelled
+ * volume, where the LC orientation properties are set prior to starting the simulation proper.
+ */
 class Box {
-/*!The Box class is used when defining initial LC orientations. It
-represents a cuboidal sub region within the modelled volume, where
-the LC orientation properties are set prior to starting the simulation proper.*/
 public:
     // Declare default box types
     const static std::vector<std::string> VALID_TYPES;   // list of valid type strings
@@ -35,8 +35,9 @@ public:
     void setZ(std::vector<double> z);
     void setTilt(std::vector<double> tlt);
     void setTwist(std::vector<double> twt);
-    bool isInBox(double *coords);           // checks whether [x,y,z] coordinates in array of size 3 are inside the box
+    bool contains(double *coords);           // checks whether [x,y,z] coordinates in array of size 3 are inside the box
     void setBoxType(const std::string &bt);
+    std::string toString() const;
 };
 
 

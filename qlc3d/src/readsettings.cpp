@@ -226,6 +226,7 @@ void readRefinement(Reader &reader,
                                                       iter, 0,
                                                       valuesValue,
                                                       xValue, yValue, zValue)));
+                    evli.insertIterEvent(e);
                 }
             } else if (!timesValue.empty()) {
                 for (auto time : timesValue) {
@@ -298,7 +299,6 @@ void ReadSettings(string settingsFileName,
                   Boxes &boxes,
                   Alignment &alignment,
                   Electrodes &electrodes,
-                  MeshRefinement &meshrefinement, // <--- unused param.
                   EventList &eventList,
                   Settings &settings) {
     Reader reader;
@@ -315,7 +315,6 @@ void ReadSettings(string settingsFileName,
         readSolverSettings(settings, reader);
         readAlignment(alignment, reader);
         readElectrodes( electrodes, eventList, reader);
-        readRefinement(reader, eventList);
     } catch (ReaderError e) {
         e.printError();
     }

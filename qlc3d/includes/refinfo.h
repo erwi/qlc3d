@@ -7,6 +7,12 @@
 #include <stdio.h>
 #include <vector>
 #include <iostream>
+
+/**
+ * This class contains information about a mesh region that may need refinement. It is used by the
+ * mesh refinement algorithm. This is also the the void pointer "eventData", in the Event class, for mesh
+ * refinement events.
+ */
 class RefInfo
 {
 public:
@@ -27,11 +33,13 @@ private:
     void setRefIter();
     void setIteration(const long int i){_iter = i;}
     void setTime(const double t){_time = t;}
-    void setValues(std::vector<double>& values);
+    /** set values as deep copy */
+    void setValues(const std::vector<double>& values);
+    /** set coordinates as deep copy */
     void setCoords(const std::vector<double>& x,
                    const std::vector<double>& y,
                    const std::vector<double>& z);
-        static void validate(const RefInfo& refinfo );  // TRIES TO VALIDATE TO MAKE SURE INFO PROVIDED MAKES SENSE
+    static void validate(const RefInfo& refinfo );  // TRIES TO VALIDATE TO MAKE SURE INFO PROVIDED MAKES SENSE
 public:
     RefInfo(const RefInfo& other);      // COPY CONSTRUCTOR
 
@@ -47,9 +55,16 @@ public:
     static RefInfo *make(const std::string& type,       // A Factory method. simplified creation
                          long int iteration,            // sets values and calls validate()
                          double time,
-                         std::vector<double> &values,
-                         std::vector<double> &x,
-                         std::vector<double> &y,
-                         std::vector<double> &z);
+                         const std::vector<double> &values,
+                         const std::vector<double> &x,
+                         const std::vector<double> &y,
+                         const std::vector<double> &z);
+
+    /** Factory method that creates raw pointer to RefInfo configured to occur periodically */
+    static RefInfo* ofPeriodicMeshRefinement(const std::string &type,
+                                             const std::vector<double> &values,
+                                             const std::vector<double> &x,
+                                             const std::vector<double> &y,
+                                             const std::vector<double> &z);
 };
 #endif // REFINFO_H

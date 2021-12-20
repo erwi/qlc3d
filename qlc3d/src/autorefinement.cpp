@@ -1,5 +1,6 @@
 #include <refinement.h>
 #include <meshrefinement.h>
+#include <refinfo.h>
 #include <geometry.h>
 #include <solutionvector.h>
 #include <algorithm>
@@ -185,9 +186,9 @@ bool autoref(Geometry &geom_orig,
              double S0) {
     bool bRefined{false};   // indicates whether mesh is changed or not
     unsigned int refiter{0};         // refinement iteration counter
-    unsigned int maxrefiter{0};
-    // DETERMINE MAXIMUM REFINEMENT ITERATIONS NUMBER
-    if (maxrefiter != getMaxRefiterCount(refInfos)) {   // IF NO REFINEMENT
+    unsigned int maxrefiter = getMaxRefiterCount(refInfos);
+
+    if (maxrefiter == 0) {   // IF NO REFINEMENT
         simulationState.meshModified(false);
         return false;             // LEAVE REFINEMENT FUNCTION NOW
     }

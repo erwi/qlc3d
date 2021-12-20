@@ -3,21 +3,17 @@
 #include <list>
 #include <vector>
 #include <string>
-#include <stdio.h>
-#include <stdlib.h>
 #include <iostream>
 #include <material_numbers.h>
-using std::vector;
-using std::list;
-using std::cout;
-using std::endl;
 
 enum RefReg_Type { RefReg_Sphere , RefReg_Line, RefReg_Box, RefReg_Surface};
 
+/*!
+ * RefReg is a refinement region. It can be of dfferent types. The different types
+ * provide different shapes and functionalities
+*/
+/*
 class RefReg {
-    /*! RefReg is a refinement region. It can be of dfferent types. The different types
-    provide different shapes and functionalities
-    */
 
 public:
     RefReg_Type     Type;
@@ -54,9 +50,9 @@ public:
     void addZ(const double &z) {
         Z.push_back(z);
     }
-    void addX(const vector <double> &x);
-    void addY(const vector <double> &y);
-    void addZ(const vector <double> &z);
+    void addX(const std::vector <double> &x);
+    void addY(const std::vector <double> &y);
+    void addZ(const std::vector <double> &z);
     void PrintRefinementRegion();
 
     int getNumIterations(); // number of refinement iterations applied to same region
@@ -67,10 +63,11 @@ public:
         return Type;
     }
 };
-
+*/
+/*
 enum AutoRef_Type {Change};
 class AutoRef {
-    vector <double> MaxValue;
+    std::vector <double> MaxValue;
     double  MinSize; // minimum element size that can be selected as a red tet
     int RefIter;
 public:
@@ -121,23 +118,60 @@ public:
         EndRefIteration ++;
     }
 };
+*/
 
+class RefInfo;
+/**
+ * RefinementConfig represents the data in a settings file for a single REFINEMENT object. These
+ * are later translated into refinement events.
+ */
+class RefinementConfig {
+    /** throws exception if an invalid RefinementConfig is detected */
+    void validate();
+public:
+    const std::string type_;
+    const std::vector<int> iterations_;
+    const std::vector<double> times_;
+    const std::vector<double> values_;
+    const std::vector<double> x_;
+    const std::vector<double> y_;
+    const std::vector<double> z_;
 
-// forward declaration of Reader
-class Reader;
+    RefinementConfig(std::string type, std::vector<int> iterations, std::vector<double> times,
+                     std::vector<double> values,
+                     std::vector<double> x, std::vector<double> y, std::vector<double> z) :
+            type_ { type },
+            iterations_ { iterations },
+            times_ { times },
+            values_ { values },
+            x_ { x }, y_ { y }, z_ { z } {
+        validate();
+    }
+
+    /**
+     * if no iteration or time is defined, then this is assumed to occur periodically, with a period defined as
+     * repRefIter and/or repRefTime
+     */
+    bool occursPeriodically() const { return iterations_.empty() && times_.empty(); }
+};
 
 class MeshRefinement {
     unsigned int    refiter;        // mesh refinement counter
     bool            needs_new_mesh; // true if mesh file has been modified
+    unsigned int repRefIter_ = 0;    // iteration period for repeating mesh refinement
+    double repRefTime_ = 0;          // time period for repeating mesh refinement
+
+    std::vector<RefinementConfig> refinementConfigs_;
+
 public:
-    vector <RefReg> RefinementRegion;
-    vector <AutoRef> AutoRefinement;
-    vector <EndRef> EndRefinement;
+    //std::vector <RefReg> RefinementRegion;
+    //std::vector <AutoRef> AutoRefinement;
+    //std::vector <EndRef> EndRefinement;
     MeshRefinement();
-    ~MeshRefinement();
-    void addRefinementRegion(const RefReg reg);
-    void addAutorefinement(AutoRef reg);
-    void addEndrefinement(EndRef reg);
+    //~MeshRefinement() = default;
+    //void addRefinementRegion(const RefReg reg);
+    //void addAutorefinement(AutoRef reg);
+    //void addEndrefinement(EndRef reg);
     void PrintRefinementRegions();
     int getMaxNumRefIterations();
     int getMaxNumAutoRefIterations();
@@ -152,7 +186,15 @@ public:
     void setNeedsNewMesh(bool n) {
         needs_new_mesh = n;
     }
-    bool isRefinementIteration(const int &iteration);  // checks if this iteration is an refinement iteration
 
+    void setRepRefIter(unsigned int iter) { repRefIter_ = iter; }
+    [[nodiscard]] unsigned int getRepRefIter() const { return repRefIter_; }
+
+    void setRepRefTime(double time) { repRefTime_ = time; };
+    [[nodiscard]] double getRepRefTime() const { return repRefTime_; }
+
+    void setRefinementConfig(std::vector<RefinementConfig> &&ref);
+    [[nodiscard]] const std::vector<RefinementConfig>& getRefinementConfig() const { return refinementConfigs_; }
+    //bool isRefinementIteration(const int &iteration);  // checks if this iteration is an refinement iteration
 };
 #endif

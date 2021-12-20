@@ -17,6 +17,7 @@ class Configuration {
     std::shared_ptr<Simu> simu_;
     std::shared_ptr<LC> lc_;
 
+    std::shared_ptr<MeshRefinement> refinement_;
 public:
     Configuration();
 
@@ -26,6 +27,8 @@ public:
 
     [[nodiscard]] std::shared_ptr<LC> lc() const;
     void lc(LC *lc) { lc_ = std::shared_ptr<LC>(lc); }
+
+    [[nodiscard]] std::shared_ptr<MeshRefinement> refinement() const;
 
     /// The file name of the current settings file
     [[nodiscard]] const std::string &settingsFileName() const { return settingsFileName_; };

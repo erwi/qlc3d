@@ -3,6 +3,7 @@
 //
 #include <settings-reader.h>
 #include <settings_file_keys.h>
+#include <meshrefinement.h>
 #include <reader.h> // reads our custom key/value based settings file format
 #include <utility>
 #include <cassert>
@@ -33,6 +34,7 @@ void SettingsReader::read() {
         //readAlignment(alignment, reader);
         //readElectrodes( electrodes, eventList, reader);
         //readRefinement(reader, eventList);
+        readRefinement(reader);
     } catch (ReaderError &e) {
         e.printError();
         throw e;
@@ -47,6 +49,11 @@ std::unique_ptr<Simu> SettingsReader::simu() {
 std::unique_ptr<LC> SettingsReader::lc() {
     assert(lc_ != nullptr);
     return std::move(lc_);
+}
+
+std::unique_ptr<MeshRefinement> SettingsReader::refinement() {
+    assert(meshRefinement_ != nullptr);
+    return std::move(meshRefinement_);
 }
 
 // <editor-fold desc="Private Methods">
@@ -134,4 +141,44 @@ void SettingsReader::readLC(Reader &reader) {
 
     lc_.reset(builder.build());
 }
+
+void SettingsReader::readRefinement(Reader &reader) {
+    using namespace std;
+
+    meshRefinement_ = std::make_unique<MeshRefinement>();
+
+    // read periodically repeating refinement times/iterations
+    meshRefinement_->setRepRefIter(reader.getOptional<unsigned int>("RepRefIter").value_or(0));
+    meshRefinement_->setRepRefTime(reader.getOptional<double>("RepRefTime").value_or(0));
+
+    // read all refinement objects
+    vector<RefinementConfig> refinement;
+    const vector<double> emptyDoubles;
+    const vector<int> emptyInts;
+
+    if (reader.containsKeyWithPrefix("REFINEMENT")) {
+        cout << "reading refinement" << endl;
+
+        for (int i = 1; i <= 99; i++) {
+            string keyBase = "REFINEMENT" + to_string(i);
+
+            if (!reader.containsKeyWithPrefix(keyBase)) {
+                break;
+            }
+
+            auto type = reader.getValueByKey<string>(keyBase + ".Type"); // required, the other may be optional, depending on type
+            auto x = reader.getOptional<vector<double>>(keyBase + ".X").value_or(emptyDoubles);
+            auto y = reader.getOptional<vector<double>>(keyBase + ".Y").value_or(emptyDoubles);
+            auto z = reader.getOptional<vector<double>>(keyBase + ".Z").value_or(emptyDoubles);
+
+            auto iterations = reader.getOptional<vector<int>>(keyBase + ".Iterations").value_or(emptyInts);
+            auto times = reader.getOptional<vector<double>>(keyBase + ".Times").value_or(emptyDoubles);
+            auto values = reader.getOptional<vector<double>>(keyBase + ".Values").value_or(emptyDoubles);
+
+            refinement.emplace_back(type, iterations, times, values, x, y, z);
+        }
+    }
+    meshRefinement_->setRefinementConfig(std::move(refinement));
+}
+
 // </editor-fold>
