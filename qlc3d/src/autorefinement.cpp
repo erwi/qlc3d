@@ -1,6 +1,5 @@
 #include <refinement.h>
 #include <meshrefinement.h>
-#include <refinfo.h>
 #include <geometry.h>
 #include <solutionvector.h>
 #include <algorithm>

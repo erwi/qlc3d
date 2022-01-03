@@ -4,7 +4,6 @@
 #include <globals.h>
 #include <eventlist.h>
 #include <refinement.h>
-#include <refinfo.h>
 #include <io/meshreader.h>
 
 void validateTriangleMaterials(const idx* const mate, idx ne){

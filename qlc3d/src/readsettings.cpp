@@ -5,7 +5,6 @@
 #include <vector>
 #include <iostream>
 #include <meshrefinement.h>
-#include <refinfo.h>
 #include <globals.h>
 #include <reader.h>
 #include <settings_file_keys.h>

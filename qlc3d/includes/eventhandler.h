@@ -10,8 +10,6 @@
 #include <settings.h>
 #include <calcpot3d.h>
 #include <resultio.h>
-#include <refinfo.h>
-
 
 // SPAMTRIX FORWARD DECLARATIONS
 namespace SpaMtrix {

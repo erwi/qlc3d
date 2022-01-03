@@ -1,4 +1,3 @@
-#include <refinfo.h>
 #include <refinement.h>
 #include <algorithm>
 #include <globals.h>
@@ -94,8 +93,7 @@ void findTets_Sphere(const RefInfo& refinfo,
 
     double rad = refinfo.getValue( refiter ); // SPHERE RADIUS
     rad*=rad;                                 // ARDIUS SQUARED
-    double centre[3] = {0,0,0};
-    refinfo.getCoord( centre[0], centre[1], centre[2] );
+    double centre[3] = { refinfo.getX()[0], refinfo.getY()[0],refinfo.getZ()[0] };
 
     // MAKE INDEX OF ALL POINTS THAT ARE SUFFICIENTLY CLOSE
     std::vector<idx> p_close;
@@ -121,10 +119,9 @@ void findTets_Box(const RefInfo& refinfo,
     // FINDS INDEX TO ALL TETS THAT ARE WITHIN A BOX DEFINED FOR THIS REFITER
 
     // GET CORRECT COORDINATE VALUES FOR THIS REFITER
-    std::vector<double> x;
-    std::vector<double> y;
-    std::vector<double> z;
-    refinfo.getCoords(x,y,z);
+    auto x = refinfo.getX();
+    auto y = refinfo.getY();
+    auto z = refinfo.getZ();
 
     // BOX LIMITS [min,max]
     double xLim[2] = {x[refiter*2], x[refiter*2 +1]};

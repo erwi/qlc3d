@@ -1,6 +1,5 @@
 #include <eventlist.h>
 #include <eventhandler.h>
-#include <refinfo.h>
 #include <refinement.h> // declares autorefinement etc.
 #include <list>
 #include <qlc3d.h>
