@@ -184,6 +184,7 @@ void Geometry::setnpLC(int n)   {
     npLC = n;
 }
 void Geometry::setNodeNormals() {
+    std::cout << "calculating surface normals for alignment layers" << std::endl;
     // CALCULATES NODE NORMALS BASED ON CONNECTED TRIANGLE NORMALS
     if (e->getnElements() == 0) {
         printf("error - Geometry::setNodeNormals() - surface mesh not defined, bye!\n");
@@ -195,7 +196,6 @@ void Geometry::setNodeNormals() {
     double tempn[3] = {0, 0, 0};
     for (idx i = 0 ; i < e->getnElements() ; i ++) { // add neighbouring surface normals
         int m = e->getMaterialNumber(i);
-        //if ((m != MAT_PERIODIC) && (m!= MAT_NEUMANN))//if element is not periodic or neuman surface <---SHOULD THIS BE FIXLC ONLY?? ARE NODE NORMALS USED BESIDES IN ANCHORING?
         if (MATNUM_TO_FIXLC_NUMBER(m)) { // IF FIXLC SURFACE
             e->CopySurfaceNormal(i, &tempn[0]); // copy surface triangle normal to temp normal
             for (idx j = 0; j < e->getnNodes() ; j++) {
@@ -682,6 +682,7 @@ void Geometry::makePeriEquNodes() {
 }// end void MakePEriEquNodes()
 
 void Geometry::checkForPeriodicGeometry() {
+    std::cout << "initialising periodic surfaces" << std::endl;
     // CHECKS FOR TYPES OF PERIODICITY PRESENT IN CURRENT STRUCTURE.
     // POSSIBLE PERIODIC SURFACES ARE:
     //      LEFT/RIGHT
@@ -1111,6 +1112,7 @@ void Geometry::isValidNodeIndex(const unsigned int &i) const {
 void Geometry::genIndWeakSurfaces(Alignment &alignment) {
     // GENERATES INDEX TO WEAK SURFACE ELEMENTS
     // FIRST MAKE TEMPORARY VECTOR OF WEAK SURFACES
+    std::cout << "creating index to " << alignment.getnSurfaces() << " alignment surfaces" << std::endl;
     std::vector<size_t> ws;
     for (idx i = 0 ; i < (idx) e->getnElements() ; i++) {
         int FixLCNum = e->getFixLCNumber((int) i); // MATERIAL NUMBER / FIXLC1

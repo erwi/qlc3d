@@ -95,7 +95,7 @@ void SimulationContainer::initialise() {
     //
     //================================================
     std::cout << "Creating initial electric potential"<< endl;
-    v = SolutionVector((idx) geom1.getnp());
+    v = SolutionVector((idx) geom1.getnp(), 1);
     v.allocateFixedNodesArrays(geom1);
     v.setPeriodicEquNodes(&geom1); // periodic nodes
 

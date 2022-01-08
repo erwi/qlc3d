@@ -99,28 +99,11 @@ SolutionVector::SolutionVector():
     Elim(NULL),
     EquNodes(NULL),
     nFreeNodes(0),
-    IsVector(false),  // <-- is this used anywhere ??
     FixedNodes(NULL),
     FixedValues(NULL),
     Values(NULL) {
 }
-SolutionVector::SolutionVector(idx np):
-    nDoF(np),
-    nFixed(0),
-    nDimensions(1),
-    FixedNodeMaterial(NULL),
-    IsFixed(NULL),
-    Elim(NULL),
-    EquNodes(NULL),
-    nFreeNodes(np),
-    IsVector(false),  // <-- is this used anywhere ??
-    FixedNodes(NULL),
-    FixedValues(NULL),
-    Values(NULL)
 
-{
-    Allocate((unsigned int) np , (unsigned int) nDimensions);
-}
 SolutionVector::SolutionVector(idx np, idx dim):
     nDoF(np),
     nFixed(0),
@@ -130,7 +113,6 @@ SolutionVector::SolutionVector(idx np, idx dim):
     Elim(NULL),
     EquNodes(NULL),
     nFreeNodes(np),
-    IsVector(true),  // <-- is this used anywhere ??
     FixedNodes(NULL),
     FixedValues(NULL),
     Values(NULL) {
@@ -141,14 +123,8 @@ void SolutionVector::Allocate(const idx np, const idx ndim) {
     Resize(np , ndim); // OOPS. TWO NAMES, ONE FUNCTION, SOUNDS FAMILIAR...
 }
 
-void SolutionVector::setnDoF(idx n) {
-    nDoF = n;
-}
 void SolutionVector::setnFixed(idx n) {
     nFixed = n;
-}
-void SolutionVector::setnDimensions(idx n) {
-    nDimensions = n;
 }
 
 void SolutionVector::setValuesTo(const double &value) {

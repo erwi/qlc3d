@@ -67,20 +67,18 @@ private:
                       const int& norm, // face normal, 0,1,2 -> x,y,z
                       double* coords); // pointer to node coordinates
 public:
-
-    //static const int FIXED_NODE = -1;  // INDEX VALUE OF A FIXED NODE
-
-    // DATA
-    bool IsVector;
     idx *FixedNodes;        // INDEX TO EACH FIXED NODE
     double *FixedValues;    // HOLDS NODE VALUE FOR EACH FIXED NODE
     double *Values;
-    // END DATA
-
 
     ~SolutionVector();
     SolutionVector();
-    SolutionVector(idx np);
+
+    /**
+     * Solution vector with total of values np * dim values.
+     * @param np number of points
+     * @param dim number of values/dimensions per point. E.g. 1 for scalar potential, or 5 for Q-tensor.
+     */
     SolutionVector(idx np, idx dim);
 
     SolutionVector& operator=(const SolutionVector&);
@@ -118,10 +116,8 @@ assert( n<getnDoF() );
         return Values[n + dim*nDoF];
     }
 
-    void setnDoF(idx n);
     void setnFixed(idx n);
     void Allocate(const idx np, const idx ndim = 1);
-    void setnDimensions(idx n);
     void setValuesTo(const double& value); // sets all values to value
     void setValuesTo(const double* values); // sets all values to those in array 'values'. length of 'values' must be correct
     void setValuesTo(const SolutionVector& other); // copies values from other SolutionVector

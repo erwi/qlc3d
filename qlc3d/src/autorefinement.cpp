@@ -254,7 +254,9 @@ bool autoref(Geometry &geom_orig,
     // NEW MESH FILE NEEDS TO BE WRITTEN WHEN RESULTS ARE OUTPUT
     // LET REST OF PROGRAM KNOW THAT GEOMETRY HAS BEEN MODIFIED
     cout << "=============done refining mesh=============" << endl;
-    cout << "       new nodecount = " << geom.getnp()      << endl;
+    cout << "       new node count = " << geom.getnp()      << endl;
+    cout << "       new tetrahedral count = " << geom.getTetrahedra().getnElements() << endl;
+    cout << "       new triangles count = " << geom.getTriangles().getnElements() << endl;
     cout << "============================================" << endl;
     if (simu.simulationMode() == TimeStepping) {
         simulationState.dt(simu.getMindt());

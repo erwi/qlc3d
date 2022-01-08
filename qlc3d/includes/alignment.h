@@ -13,9 +13,6 @@ enum AnchoringType {Strong = 0, Weak = 1, Homeotropic = 2,
                      Degenerate = 3, Freeze = 5, Polymerise = 6,
                      ManualNodes = 7, AnchoringTypesCount};
 
-
-using std::string;
-using std::vector;
 class Surface {
     /*!The surface class represents a single FIXLC anchoring surface.*/
 private:
@@ -35,13 +32,13 @@ private:
     bool isFixed;                       // whether this surface is fixed or not
     void calcV1V2();                    // calculates v1 and v2 values from easy angles
 public:
-    static const vector<string> VALID_ANCHORING_TYPES;
-    static const string DEFAULT_ANCHORING_TYPE;
+    static const std::vector<std::string> VALID_ANCHORING_TYPES;
+    static const std::string DEFAULT_ANCHORING_TYPE;
     static const double DEFAULT_ANCHORING_STRENGTH;
     static const double DEFAULT_ANCHORING_K1;
     static const double DEFAULT_ANCHORING_K2;
-    static const vector<double> DEFAULT_ANCHORING_EASY;
-    static const vector<double> DEFAULT_ANCHORING_PARAMS;
+    static const std::vector<double> DEFAULT_ANCHORING_EASY;
+    static const std::vector<double> DEFAULT_ANCHORING_PARAMS;
     int FixLCNumber;
     std::vector<double> Params;         // holds optional parameters, but is mostly empty
     Surface(int fxlcnum);
@@ -53,9 +50,8 @@ public:
     void setv1(double v[3]);
     void setv2(double v[3]);
     void setEasyVector(double v[3]);
-    void calcEasyVector();              // calculates Easy Vector from easy angles
 
-    string getAnchoringTypeName() const;
+    std::string getAnchoringTypeName() const;
     AnchoringType getAnchoringType() const;
     double getStrength() const;
     double getK1() const;
@@ -76,29 +72,30 @@ class Reader; // forward declaration of reader class
 class Alignment {
     /*! A collection of Surface objects, each representing a FIXLC surface*/
 private:
-    int n_surfaces;
+    int n_surfaces; // TODO: why not just return surface.size() ??
     void addSurface(Surface *s);
+    void setnSurfaces(int n);
 public:
-    vector<Surface *> surface;
+    std::vector<Surface *> surface;
     Alignment();
     ~Alignment();
 
     void addSurface(const int fixLcNumber,
-                    const string &anchoring,
+                    const std::string &anchoring,
                     const double &strength,
-                    const vector<double> &easy,
+                    const std::vector<double> &easy,
                     const double &k1,
                     const double &k2,
-                    const vector<double> &params);
+                    const std::vector<double> &params);
     const Surface & getSurface(const idx& i) const; // returns read-only reference to i'th surface
-    void setnSurfaces(int n);
+
     double getStrength(int n);  // get strength of FixLCn
     double getK1(int n);        // get K1 of FixLCn
     double getK2(int n);        // get K2 of FixLCn
     double *getPtrTov1(int n);  // get pointer to v1 of FixLCn
     double *getPtrTov2(int n);  // get pointer to v2 of FicLCn
     int getnSurfaces();
-    bool IsStrong(int n);       // is surface n strong?
+    bool IsStrong(int n) const;       // is surface n strong?
     //unsigned int getAnchoringNum(const int &n); // // returns anchoring number of alignment surface n
     AnchoringType getTypeOfSurface(const idx &n) const; //returns type of n'th surface
     bool getUsesSurfaceNormal(int n); // if n uses surface normal instead of v1 and v2 ?
