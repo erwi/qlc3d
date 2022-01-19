@@ -6,6 +6,7 @@
 #include <geometry.h>
 #include <solutionvector.h>
 #include <shapefunction3d.h>
+#include <util/logging.h>
 namespace Energy {
 #define SIGN(x)     (x)>=0 ? 1:-1
 
@@ -83,9 +84,8 @@ void CalculateFreeEnergy(FILE *fid,
                          Geometry *geom,
                          SolutionVector *v,
                          SolutionVector *q) {
-    using std::cout;
-    using std::endl;
-    cout << " Calculating free energy..."; fflush(stdout);
+    Log::info("Calculating free energy.");
+
     // IF FIRST ITERATION, PRINT HEADERS
     if (currentIteration == 1) {
         fprintf(fid, "%% columns are:\n");
@@ -245,13 +245,8 @@ void CalculateFreeEnergy(FILE *fid,
     //
     //  END BULK ENERGY
     //
-    //if (L1){
-    //    fprintf(fid,"%e\t%e\t%e\t%e;\n", simu->getCurrentTime(), Fd, Fth, Fe);
-    //}
-    //else{
+
     fprintf(fid, "%e\t%e\t%e\t%e\t%e\t%e;\n", currentTime, F11, F22, F33 , Fth , Fe);
-    //}
-    printf("OK\n");
 }
 
 void closeEnergyFile(FILE *fid, Simu &simu) {

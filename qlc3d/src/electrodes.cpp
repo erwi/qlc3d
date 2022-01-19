@@ -1,8 +1,7 @@
 #include <electrodes.h>
 #include <algorithm>
-#include <iostream>
-using std::cerr;
-using std::endl;
+#include <util/exception.h>
+#include <fmt/format.h>
 
 // SET MAGIC CONSTANT FOR INDICATING UNIFORM ELECTRIC FIELD
 const size_t SwitchingInstance::UNIFORM_E_FIELD = numeric_limits<size_t>::max();
@@ -25,9 +24,7 @@ double Electrodes:: getDielectricPermittivity(int i) const {
 	if (i < (int) eps_dielectric.size() )
 		return eps_dielectric[i];
     else {
-        cerr << "error - Electrodes::getDielectricPermittivity - trying to access dielectric "
-             << i << "  when only "<< eps_dielectric.size() << " exist " << endl;
-        std::exit(1);
+        RUNTIME_ERROR(fmt::format("Trying to access dielectic {} when only {} dielected materials exist.", i, eps_dielectric.size()));
     }
 }
 
@@ -55,8 +52,7 @@ bool Electrodes::isEField() const {
 }
 void Electrodes::setEField(std::vector<double> const &vec3) {
     if (vec3.size() != 3) {
-        cerr << "error - specified electric filed must havse 3 components, got " << vec3.size() << endl;
-        std::exit(1);
+        RUNTIME_ERROR(fmt::format("Specified electric field must have 3 components, got {}."))
     }
     this->EField[0] = vec3[0];
     this->EField[1] = vec3[1];
@@ -65,9 +61,8 @@ void Electrodes::setEField(std::vector<double> const &vec3) {
 
 void Electrodes::setElectrodePotential(const size_t &electrodeNumber, const double &potentialValue) {
 /*! SETS THE CURRENT POTENTIAL OF ELECTRODE electrodeNumbe TO VALUE potentialValue */
-    if ( electrodeNumber >= getnElectrodes() ) {
-        std::cerr << "error in " << __func__ << " Electrode " << electrodeNumber + 1 << " does not exist\nbye!" << std::endl;
-        std::exit(1);
+    if (electrodeNumber >= getnElectrodes()) {
+        RUNTIME_ERROR(fmt::format("Electrode {} does not exist.", electrodeNumber + 1));
     }
     currentElectrodePotentials[electrodeNumber] = potentialValue;
 }
@@ -75,10 +70,8 @@ void Electrodes::setElectrodePotential(const size_t &electrodeNumber, const doub
 double Electrodes::getCurrentElectrodePotential(const size_t &eNum) const {
 // RETURNS THE CURRENT POTENTIAL OF ELECTRODE eln
     if ( eNum >= getnElectrodes() ) {
-        printf("\nerror in %s, can't find potential for electrode %u.\n",__func__, (unsigned int) eNum + 1 );
-        printf("Potentials have been specified for only %u electrodes.\n", (unsigned int) getnElectrodes());
-        printf("Check your settings file - bye!\n");
-        exit(1);
+        RUNTIME_ERROR(fmt::format("Can't find potential for electrode {}. Potentials have been specified only "
+                                  "for {} electrodes.", eNum + 1, getnElectrodes()));
     }
     return currentElectrodePotentials[eNum];
 }

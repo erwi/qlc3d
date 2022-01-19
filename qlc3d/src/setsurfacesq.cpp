@@ -1,6 +1,8 @@
 #include "../includes/qlc3d.h"
 #include <math.h>
 #include <globals.h>
+#include <util/logging.h>
+#include <util/exception.h>
 
 void setGlobalAngles(SolutionVector *q,
                      double S0,
@@ -13,7 +15,6 @@ void setGlobalAngles(SolutionVector *q,
     tilt = tilt * PI / 180.0;
     twist= twist* PI / 180.0;
 
-    //printf(" tilt = %f, twist = %i\n",tilt,twist);
     double nx = cos(tilt)*cos(twist);
     double ny = cos(tilt)*sin(twist);
     double nz = sin(tilt);
@@ -27,7 +28,6 @@ void setGlobalAngles(SolutionVector *q,
     // convert tensor basis
     vector <idx>::iterator itr;
 
-    //printf("setting angles for %i nodes\n", (int) ind_nodes->size() );
     for (itr = ind_nodes->begin() ; itr != ind_nodes->end() ; ++itr) {
         q->setValue(*itr,0, (a1+a2)*(sqrt(6)/-2) );
         q->setValue(*itr,1, (a1+(a1+a2)/-2)*sqrt(2) );
@@ -68,8 +68,6 @@ void setFrozenSurfaces(SolutionVector* q, vector<idx>* ind_nodes){
     // frozen surfaces don't need anything done
     q = q; // SUPPRESS WARNINGS
     ind_nodes = ind_nodes;
-    printf("frozen surface\n");
-
 }
 
 void setPolymeriseSurfaces(SolutionVector*q, double Sth){
@@ -128,11 +126,10 @@ void setManualNodesAnchoring(SolutionVector *q, double S0, Surface& surf){
     vector<idx> nodes_idx;
     for (size_t i = 0 ; i < surf.Params.size() ; i++){
         if ( (surf.Params[i] < 0 ) ){
-            cerr << "error - negative node index setting ManualNodesAnchoring, check your settings file - bye!" << endl;
+            RUNTIME_ERROR("Negative node index when setting ManualNodesAnchoring.");
         }
         idx nodeIdx = static_cast<idx>(surf.Params[i]);
         nodes_idx.push_back( nodeIdx);
-        cout << "node idx = " << nodeIdx << endl;
     }
     setGlobalAngles(q, S0, tilt, twist, &nodes_idx);
 }
@@ -150,13 +147,12 @@ void setSurfacesQ(SolutionVector *q, Alignment* alignment, double S0,  Geometry*
         geom->e->listFixLCSurfaces(ind_nodes, i+1);
         // MANUAL NODES HAVE NO SURFACE TRIANGLES IN MESH AND MUST BE HANDLED SEPARATELY
         if (surf.getAnchoringType() == ManualNodes) {
-            cout << "FIXLC"<<i+1 << " is MANUAL NODES ANCHIORING" << endl;
+            Log::info("FIXLC{} is manual nodes anchoring.", i + 1);
             // MANUAL NODES SHOULD NOT DE DEFINED FOR A FIXLC# THAT IS PRESENT IN THE MESH
-            if (!ind_nodes.empty()){
-                cerr << "error setting ManualNodes for FIXLC"<<i+1 << endl;
-                cerr << "Manual nodes should not be defined for a FIXLC number that is present in the mesh" << endl;
-                cerr << "First available surface for this type is FIXLC"<< alignment->getnSurfaces() + 1<< " - bye!"  << endl;
-                exit(1);
+            if (!ind_nodes.empty()) {
+                RUNTIME_ERROR(fmt::format("Can not set ManualNodes for FIXLC{}. Manual nodes should not be defined for a "
+                              "FIXLC number that is present in the mesh. First available surface for this type is FIXLC{}",
+                              i + 1, alignment->getnSurfaces() + 1));
             }
             setManualNodesAnchoring(q, S0, *(alignment->surface[i]));
             continue;
@@ -188,15 +184,12 @@ void setSurfacesQ(SolutionVector *q, Alignment* alignment, double S0,  Geometry*
                 setPolymeriseSurfaces(q,Sth);
             }
             else {
-                std::cerr << "error in " <<__func__<< " unhandled anchoring type: " << surf.getAnchoringTypeName() << std::endl;
-                std::exit(1);
+                RUNTIME_ERROR("Unhandled anchoring type " + surf.getAnchoringTypeName() + ".")
             }
         } else {
-            std::cerr << "\nerror setting anchoring surfaces in " <<__func__<< std::endl;
-            std::cerr << "FIXLC" << (i+1) << " has been defined in settings file, but no such surface found in mesh.\nbye!" << std::endl;
-            std::exit(1);
+            RUNTIME_ERROR(fmt::format("FIXLC{} has ben defined in settings file, but no such surface found in "
+                                      "the mesh.", i + 1));
     }
-
 }// end for loop over alignment surfaces
 
 

@@ -1,6 +1,7 @@
 #include <math.h>
 #include <qlc3d.h>
 #include <lc-representation.h>
+#include <util/logging.h>
 using namespace std;
 
 void setNormalBox(  Box &box,
@@ -57,7 +58,6 @@ void setRandomBox(Box &box, std::vector<qlc3d::Director> &dir, double* p, int np
  * so that a single hedgehog (+1) defect is located at the centre of the box
 */
 void setHedgehogBox(Box box, std::vector<qlc3d::Director> &dir, double* p, int npLC) {
-//    cout << "setting initial orientation"
     // Director componenets are set to equal vectors from box cetre to director node location
     // resulting in a hedgehog defect
     // Calculate centre coordinates of this box
@@ -93,7 +93,7 @@ void SetVolumeQ(
 	double S0,
 	Boxes* boxes,
 	double* p) {
-    cout << "Setting initial LC configuration for " << boxes->n_Boxes << " boxes" << endl;
+    Log::info("Setting initial LC configuration for {} boxes.", boxes->n_Boxes);
 
     int npLC = q->getnDoF() ;
     // LC TILT AND TWIST IS FIRST CALCULATED AS VECTORS
@@ -106,7 +106,7 @@ void SetVolumeQ(
     // override the director within each box
     for (int i = 0; i < boxes->n_Boxes; i++) {
         Box &b = *boxes->box[i];
-        cout << "BOX" << i + 1 << ":" + b.toString() << endl;
+        Log::info("BOX{}:{}.", i + 1, b.toString());
         switch (b.Type) {
             case Box::Normal:
                 setNormalBox(b, dir, p, npLC);

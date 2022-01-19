@@ -17,9 +17,11 @@
 #include <qlc3d.h>
 #include <inits.h>
 #include <calcpot3d.h> // TODO: create PotentialSolver class?
+#include <eventhandler.h>
+#include <util/logging.h>
+#include <util/exception.h>
 
 #include <spamtrix_ircmatrix.hpp>
-#include <eventhandler.h>
 
 SimulationContainer::SimulationContainer(Configuration &config) :
         configuration(config),
@@ -37,10 +39,9 @@ void SimulationContainer::initialise() {
     simulationState_.state(RunningState::INITIALISING);
     // CHANGE CURRENT DIR TO WORKING DIRECTORY
     if (!FilesysFun::setCurrentDirectory(configuration.currentDirectory())) {
-        printf("error, could not set working directory to:\n%s\nbye!", configuration.currentDirectory().c_str());
-        exit(1);
+        RUNTIME_ERROR("Could not set working directory to " + configuration.currentDirectory());
     }
-    std::cout << "current working directory " << FilesysFun::getCurrentDirectory() << std::endl;
+    Log::info("current working directory is {}", FilesysFun::getCurrentDirectory());
 
     // get parameters provided in configuration
     simu = configuration.simu();
@@ -68,7 +69,7 @@ void SimulationContainer::initialise() {
     // TODO: this should contain all the data, not jst a simple copy of the file. Full data, including default values,
     // will make results more repeatable in future and debugging easier.
     if (!FilesysFun::copyFile(configuration.settingsFileName(), simu->getSaveDir(), "settings.qfg")) {
-        throw runtime_error("error, could not back up settings file");
+        RUNTIME_ERROR("Could not back up settings file.");
     }
 
     Energy_fid = nullptr; // file for outputting free energy
@@ -94,7 +95,7 @@ void SimulationContainer::initialise() {
     //	POTENTIAL SOLUTION DATA
     //
     //================================================
-    std::cout << "Creating initial electric potential"<< endl;
+    Log::info("creating initial electric potential");
     v = SolutionVector((idx) geom1.getnp(), 1);
     v.allocateFixedNodesArrays(geom1);
     v.setPeriodicEquNodes(&geom1); // periodic nodes
@@ -105,7 +106,7 @@ void SimulationContainer::initialise() {
     //
     //==============================================================
     // create vector for 5 * npLC Q-tensor components
-    std::cout << "Creating initial Q tensor" << endl;
+    Log::info("Creating initial Q tensor");
     q = SolutionVector(geom1.getnpLC(), 5);    //  Q-tensor for current time step
     qn = SolutionVector(geom1.getnpLC(), 5);   //  Q-tensor from previous time step
     SetVolumeQ(&q, lc->S0(), boxes.get(), geom1.getPtrTop());
@@ -128,19 +129,17 @@ void SimulationContainer::initialise() {
     solutionVectors.v = &v;
 
     // Make matrices for potential and Q-tensor..
-    std::cout << "Creating sparse matrix for potential..."; fflush(stdout);
+    Log::info("Creating sparse matrix for potential");
     Kpot = createPotentialMatrix(geom1, v, 0, *electrodes);
-    std::cout << "OK" << std::endl;
 
-    std::cout << "Creating matrix for Q-tensor..."; fflush(stdout);
+    Log::info("Creating matrix for Q-tensor");
     Kq = createQMatrix(geom1, q, MAT_DOMAIN1);
-    std::cout << "OK" << std::endl;
     //********************************************************************
     //*
     //*		Save Initial configuration and potential
     //*
     //********************************************************************
-    std::cout << "Saving starting configuration..."; fflush(stdout);
+    Log::info("Saving starting configuration");
     ResultIO::CreateSaveDir(*simu);
     Energy_fid = createOutputEnergyFile(*simu); // done in inits
 
@@ -156,13 +155,7 @@ void SimulationContainer::initialise() {
                         Kpot,
                         Kq
     );
-    std::cout << "OK" << std::endl;
 
-    //===============================================
-    //	 Start simulation
-    //
-    //===============================================
-    //simu->setCurrentIteration(1);
     simulationState_.currentIteration(1);
     simulationState_.currentTime(0);
     simulationState_.change(0);
@@ -188,7 +181,7 @@ bool SimulationContainer::hasIteration() const {
 
         double currentChange = simulationState_.change();
         if (simu->simulationMode() == TimeStepping) {
-            printf("\tdQ / dt = %1.3e , EndValue = %1.3e\n", fabs(currentChange), endValue); // TODO: delete
+            Log::info("|dQ| = {}, EndValue = {}", fabs(currentChange), endValue);
         }
         if (currentChange <= endValue) {
             return false;
@@ -202,13 +195,11 @@ bool SimulationContainer::hasIteration() const {
 void SimulationContainer::runIteration() {
     simulationState_.state(RunningState::RUNNING);
     time(&t2);
-    printf("=======================================================================\n");
-    printf("Iteration %i, Time = %1.3es. Real time = %1.2es. dt = %1.3es. \n\b\b",
+    Log::info("Iteration {}, Time = {}s. Real time = {}s. dt = {}s.",
            simulationState_.currentIteration(),
            simulationState_.currentTime(),
            (float) t2 - t1,
            simulationState_.dt());
-    fflush(stdout);
 
     // mve this to event handling/result output
     if (simu->getOutputEnergy()) {
@@ -247,30 +238,6 @@ void SimulationContainer::runIteration() {
 
     // TODO: should this be done together with incrementing time?
     simulationState_.currentIteration(simulationState_.currentIteration() + 1);
-
-    // if need end-refinement
-    /*
-if ( (!simu.IsRunning() ) && (needsEndRefinement( geom1, q , meshrefinement ) ) )
-{
-    printf("End refinement\n");
-
-    delete Kpot;
-    delete Kq;
-
-    autoref(geom_orig, geom_prev, geom1, q, qn, v,  meshrefinement, simu,alignment, electrodes, lc);
-    Kpot = createSparseMatrix(geom1, v );
-    Kq   = createSparseMatrix(geom1, q, MAT_DOMAIN1);
-    calcpot3d(Kpot,&v,&q,&lc,geom1, &settings, &electrodes);
-
-    FilesysFun::setCurrentDirectory( simu.getSaveDir() );
-    WriteResults::WriteResult(&simu, &lc, &geom1, &v, &q, &meshrefinement);
-    FilesysFun::setCurrentDirectory( simu.getCurrentDir() );
-
-    if ( simu.getdt() > 0.0 )
-    {
-        simu.setdt( simu.getMindt() );
-    }
-     */
 }
 
 void SimulationContainer::postSimulationTasks() {
@@ -293,7 +260,6 @@ double SimulationContainer::updateSolutions() {
 
     calcpot3d(Kpot, &v, &q, *lc.get(), geom1, settings.get(), electrodes.get());
 
-    printf("Q");
     int QSolver = settings->getQ_Solver();
     switch (QSolver) {
         case Q_Solver_PCG: // TODO: cleanup. Exactly same calcQ3d function is called in both cases.
@@ -303,14 +269,11 @@ double SimulationContainer::updateSolutions() {
             maxdq = calcQ3d(&q, &qn, &v, geom1, lc.get(), simu.get(), simulationState_, Kq, settings.get(), alignment.get());
             break;
         case Q_Solver_Explicit:
-            //maxdq = calcQExplicit(q, v, *Kq, geom1, lc, alignment, simu, settings );
-            break;
+            RUNTIME_ERROR("Q_Solver_Explicit is not implemented yet.");
         default:
-            cout << "error in " << __func__ << " unknown Q_Solver value : " << QSolver << " - bye!" << endl;
-            exit(1);
+            RUNTIME_ERROR("Unknown Q_Solver value");
     }
-//maxdq = calcQ3d(&q,&qn,&v,geom1,&lc, &simu, Kq, &settings, &alignment );
-    printf("OK\n");
+
     return maxdq;
 }
 
@@ -363,10 +326,12 @@ void SimulationContainer::adjustTimeStepSize() {
         S = RLmax + k * dr;
         if (S > Smax) S = Smax;
     }
-    std::cout << " scaling dt by: " << S << std::endl;
+
+    Log::info("Scaling dt by {}.", S);
     double newdt = dt * S;
     if (newdt < simu->getMindt()) {
         newdt = simu->getMindt();
     }
+
     simulationState_.dt(newdt);
 }

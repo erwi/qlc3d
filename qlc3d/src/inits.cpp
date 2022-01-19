@@ -5,41 +5,32 @@
 #include <eventlist.h>
 #include <refinement.h>
 #include <io/meshreader.h>
-
-void validateTriangleMaterials(const idx* const mate, idx ne){
-    // goes through all triangle material numbers and tries to check that all is well.
-    // if problems are found, error message is printed and program aborted.
-    using std::cout;
-    using std::endl;
-    bool isBad = false;
-    idx m;
-    for (idx i = 0 ; i < ne ; ++i){
-        m = mate[i];
-        if ( (m == MAT_PERIODIC) || (m == MAT_NEUMANN)){
+#include <util/logging.h>
+#include <util/exception.h>
+/**
+ * Goes through all triangle material numbers and tries to check that all is well.
+ * @param mate triangle material numbers
+ * @param ne number of triangles
+ */
+void validateTriangleMaterials(const idx* const mate, idx ne) {
+    for (idx i = 0; i < ne; ++i) {
+        idx m = mate[i];
+        if ((m == MAT_PERIODIC) || (m == MAT_NEUMANN)) {
             continue;
         }
         size_t eNum = MATNUM_TO_ELECTRODE_NUMBER((size_t) m);
         size_t fNum = MATNUM_TO_FIXLC_NUMBER((size_t) m);
-        if (m < MAT_ELECTRODE1){
-            isBad = true;
-            break;
+        if (m < MAT_ELECTRODE1) {
+            RUNTIME_ERROR(fmt::format("Triangle {}, invalid material number {} < {}.", i, m, MAT_ELECTRODE1));
         }
-        else if (eNum > 9){
-            cout << "\nbad electrode number detected " << eNum << endl;
-            isBad = true;
-            break;
+        else if (eNum > 9) {
+            RUNTIME_ERROR(fmt::format("Triangle {}, invalid Electrode number {} > 9", i, m));
         }
-        else if (fNum > 9){
-            cout << "\nerror, bad FixLC number detected " << fNum << endl;
-            isBad = true;
-            break;
+        else if (fNum > 9) {
+            RUNTIME_ERROR(fmt::format("Triangle {}, invalid FixLC number {} > 9", i, m));
         }
     }
-    if (isBad){
-        cout << "error, bad triangle material number " << m << " found in mesh - bye!" << endl;
-        exit(1);
-    }
-}// end void validateTriangleMatrials
+}
 
 size_t countElectrodes(const idx* mate, idx ne) {
     /*!
@@ -67,21 +58,22 @@ size_t countElectrodes(const idx* mate, idx ne) {
         //
         // detect error, non-contiguous electrodes definitions
         if ((eFoundFlag[i] > 0) && (eFoundFlag[i-1] == 0)) {
-            std::cerr << "\nerror in " << __func__ << std::endl;
-            std::cerr << "Found error in mesh file: non-contiguously numbered electrode surfaces." << std::endl;
-            std::cerr << "Electrode " << i << " (at least) is missing although "<< i+1 << " exists.\nbye!" << std::endl;
-            std::exit(1);
+            RUNTIME_ERROR(fmt::format("Non-contiguously numbered electrode surface. "
+                                      "Electrode{} is missing although Electrode{} exists.", i, i + 1));
         }
     }
    return eCount+1;
 }
 
-void validateTetrahedralMaterials(const idx* const matt, idx nt){
-    // goes through each material number for tetrahedra. if bad ones are
-    // found, error is printed and program terminated
-    using std::cout;
-    using std::endl;
-    for (idx i = 0 ; i < nt ; ++i){
+/**
+ * Goes through each material number for tetrahedra. Throws runtime_exception if invalid ones are found.
+ * @param matt tetrahdra material numbers
+ * @param nt number of tetrahedra
+ */
+void validateTetrahedralMaterials(const idx* const matt, idx nt) {
+    using namespace std;
+    using namespace fmt;
+    for (idx i = 0; i < nt; ++i) {
         const idx m = matt[i];
         if ((m == MAT_DOMAIN1) ||
                 (m==MAT_DIELECTRIC1) || (m==MAT_DIELECTRIC2) || (m==MAT_DIELECTRIC3) ||
@@ -89,10 +81,9 @@ void validateTetrahedralMaterials(const idx* const matt, idx nt){
                 (m==MAT_DIELECTRIC7) ){
             continue;
         }
-        else{
-            cout << "error, bad tetrahedral (volume) material number " << m <<" found in mesh." << endl;
-            cout << "valid volume material are Domain1 and Dielectrics 1-7. Goodbye!" << endl;
-            exit(1);
+        else {
+            RUNTIME_ERROR(fmt::format("Invalid material number {} found in mesh for tetrahedron {}. "
+                                       "Valid material numbers are Domain1 and Dielectrics 1-7.", m, i));
         }
     }
 }
@@ -112,8 +103,7 @@ void prepareGeometry(Geometry& geom,
     // read mesh data from file. Allocates the data arrays.
     MeshReader::readMesh(meshFileName, &p, &np, &t, &nt, &e, &ne, &tmat, &emat);
 
-    // PEOPLE DO STUPID THINGS IN GiD. NEED TO VALIDATE MATERIAL NUMBERS
-    // IF VALIDATION FAILS, ERROR MESSAGE IS PRINTED AND PROGRAM ABORTED
+    // Throw exception if invalid element material numbers are detected.
     validateTriangleMaterials(emat, ne);
     validateTetrahedralMaterials(tmat, nt);
 
@@ -167,16 +157,13 @@ void prepareGeometry(Geometry& geom,
                          simu.getRegularGridZCount());
 }
 
-FILE* createOutputEnergyFile(Simu& simu){
-
-    FILE* fid = NULL;
-
-    if (simu.getOutputEnergy() == 1){
+FILE* createOutputEnergyFile(Simu& simu) {
+    FILE* fid = nullptr;
+    if (simu.getOutputEnergy() == 1) {
         string energy_fn = simu.getSaveDir() + "/" + "energy.m";
-        fid = fopen( energy_fn.c_str() , "w");
-        if (fid == NULL)	{
-            printf("error - could not open output file for free energy- bye ! \n");
-            exit(0);
+        fid = fopen( energy_fn.c_str(), "w");
+        if (fid == nullptr) {
+            throw std::runtime_error(fmt::format("could not open output file for free energy by filename = {}.", energy_fn));
         }
     }
     return fid;
@@ -187,7 +174,7 @@ void createMeshRefinementEvents(const MeshRefinement &meshRefinement,
     const unsigned int repRefIter = meshRefinement.getRepRefIter();
     const double repRefTime = meshRefinement.getRepRefTime();
     bool hasPeriodicRefinement = repRefIter > 0 || repRefTime > 0;
-    cout << "periodic mesh refinement at every " << repRefIter << " iterations, " << repRefTime << " seconds" << endl;
+    Log::info("Creating periodic mesh refinement events at every {} iterations, {} seconds", repRefIter, repRefTime);
     eventListOut.setRepRefIter(repRefIter);
     eventListOut.setRepRefTime(repRefTime);
 
@@ -206,7 +193,7 @@ void createMeshRefinementEvents(const MeshRefinement &meshRefinement,
         // e.g. if user has defined RepRefIter > 0 or RepRefTime > 0, but no refinement objects with
         // empty explicit times/iterations lists
         if (eventListOut.getNumPeriodicRefinementObjects() == 0) {
-            throw runtime_error("no refinement objects defined for periodic mesh refinement");
+            RUNTIME_ERROR("No refinement objects defined for periodic mesh refinement");
         }
     }
 

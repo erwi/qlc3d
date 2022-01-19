@@ -2,6 +2,8 @@
 #include <math.h>
 #include <meshrefinement.h>
 #include <simulation-state.h>
+#include <util/logging.h>
+#include <util/exception.h>
 
 const char *Event::getEventString(const EventType e) {
     switch (e) {
@@ -16,7 +18,7 @@ const char *Event::getEventString(const EventType e) {
     }
 }
 
-Event::~Event() {
+Event::~Event() noexcept(false) {
     // IF THIS EVENT CONTAINS A DATA POINTER, DELETE IT
     if (eventData_) {
         switch (eventType_) {
@@ -33,8 +35,7 @@ Event::~Event() {
             break;
         }
         default:    // THIS SHOULD NEVER HAPPEN
-            printf("something went wrong in %s - bye!", __func__);
-            exit(1);
+            RUNTIME_ERROR("Unhandled event type.");
         }
     }
 }
@@ -70,25 +71,19 @@ EventList::~EventList() {
     // ITERATE THROUGH LISTS DELETING REMAINING EVENT OBJECT POINTERS
     list<Event *> :: iterator itr;
     if (!timeEvents_.empty()) {
-#ifdef DEBUG
-        printf("unhandled time Events \n");
-#endif
+        Log::warn("There are {} unhandled time events in the queue.", timeEvents_.size());
         for (itr = timeEvents_.begin(); itr != timeEvents_.end(); itr++) {
             delete *itr;
         }
     }
     if (!iterationEvents_.empty()) {
-#ifdef DEBUG
-        std::cout << "WARNING: There are " << iterationEvents_.size() << " unhandled event inn the queue" << std:: endl;
-#endif
+        Log::warn("There are {} unhandled iteration events in the queue.", iterationEvents_.size());
         for (itr = iterationEvents_.begin(); itr != iterationEvents_.end(); itr++) {
             delete *itr;
         }
     }
     if (!repRefinements_.empty()) {
-#ifdef DEBUG
-        printf("unhandled repRef Events \n");
-#endif
+        Log::warn("There are {} unhandled repeating refinement event in the queue.", repRefinements_.size());
         for (itr = repRefinements_.begin(); itr != repRefinements_.end(); itr++) {
             delete *itr;
         }
@@ -118,8 +113,7 @@ Event *EventList::getCurrentEvent(const SimulationState &simulationState) {
 // FIRST CHECK TIME EVENTS
     if (nextTimeEvent_ == simulationState.currentTime()) {
         if (timeEvents_.empty()) {
-            printf("error in %s, no time events in queue - bye!\n", __func__);
-            exit(1);
+            RUNTIME_ERROR("Time events queue is empty.");
         }
         Event *eve =  *timeEvents_.begin();   // MAKE A POINTER TO OBJECT ON HEAP
         timeEvents_.erase(timeEvents_.begin());           // REMOVE EVENT POINTER FROM QUEUE FRONT
@@ -134,8 +128,7 @@ Event *EventList::getCurrentEvent(const SimulationState &simulationState) {
 // IF NO CURRENT TIME EVENTS LEFT, CHECK ITER EVENTS
     else if (nextIterEvent_ == (size_t) simulationState.currentIteration()) {
         if (iterationEvents_.empty()) {
-            printf("error in %s, no iteration event is queue - bye !\n", __func__);
-            exit(1);
+            RUNTIME_ERROR("Iteration events queue is empty.");
         }
         Event *eve = *iterationEvents_.begin(); // MAKE A POINTER TO OBJECT ON HEAP
         iterationEvents_.erase(iterationEvents_.begin());          // REMOVE EVENT POINTER FROM QUEUE FRONT
@@ -148,19 +141,16 @@ Event *EventList::getCurrentEvent(const SimulationState &simulationState) {
         return eve;
     } else {
         // ERROR. SOMETHING HAS GONE WRONG. NO CURRENT EVENT
-        printf("error in %s. No current events - bye !\n", __func__);
-        exit(1);
+        RUNTIME_ERROR("No event available currently.");
     }
 }
-
 
 void EventList::setSaveTime(const double &st) {
 // CHECK AND SET REOCCURING SAVE EVENT TIME
     if (st >= 0) {
         saveTime_ = st;
     } else {
-        printf("error in %s. Bad SaveTime = %e - bye!\n", __func__ , st);
-        exit(1);
+        RUNTIME_ERROR(fmt::format("Negative save time {}", st));
     }
 }
 
@@ -168,8 +158,7 @@ void EventList::insertTimeEvent(Event *tEvent) {
 // ADDS TIMED EVENT TO CORRECT POSITION IN EVENT QUEUE
     // MAKE SURE OCCURRENCE IS TIME
     if (tEvent->getEventOccurrence() != EVENT_TIME) {
-        printf("error in %s, expected 'time' event - bye!\n", __func__);
-        exit(1);
+        RUNTIME_ERROR("Time event expected.");
     }
     timeEvents_.push_back(tEvent);
     timeEvents_.sort(compare_timeptr);      // USE COMPARISON OF *POINTERS* TO TIME EVENT (OTHERWISE SORTING BY ADDRESS VALUE)
@@ -182,8 +171,7 @@ void EventList::insertIterEvent(Event *iEvent) {
 // ADDS ITERATION EVENT TO CORRECT POSITION IN EVENT QUEUE
     // MAKE SURE OCCURENCE IN ITERATIONS
     if (iEvent->getEventOccurrence() != EVENT_ITERATION) {
-        printf("error in %s, expected 'itertion' event - bye!\n", __func__);
-        exit(1);
+        RUNTIME_ERROR("Iteration event expected.");
     }
     iterationEvents_.push_back(iEvent);
     iterationEvents_.sort(compare_iterptr);
@@ -237,8 +225,7 @@ void EventList::manageReoccurringEvents(int currentIteration, double currentTime
     }
     // REOCCURRING REFINEMENT TIME
     if (repRefTime_ > 0) {
-        printf("RepRefTime has not been implemented yet in %s\n", __func__);
-        exit(1);
+        RUNTIME_ERROR("\"RepRefTime\" has not been implemented yet.");
     }
 }
 
@@ -246,16 +233,13 @@ void EventList::prependReoccurringIterEvent(Event *iEvent) {
     // ADDS NEW EVENT AT FRONT OF QUEUE
     //MAKE SURE EVENT OCCURRENCE IS ITERATIONS
     if (iEvent->getEventOccurrence() != EVENT_ITERATION) {
-        printf("error in %s, event occurrence is not 'iterations' - bye!\n", __func__);
-        exit(1);
+        RUNTIME_ERROR("Expected event occurrence to be iteration");
     }
     // MAKE SURE ADDED EVENT REALLY BELONGS TO FRONT OF QUEUE
     if (nextIterEvent_ < iEvent->iteration) {
-        printf("error in %s. Trying to add event with iteration number %u to front of queue when first existing event has number %u - bye!\n",
-               __func__,
-               (unsigned int) iEvent->iteration,
-               (unsigned int) nextIterEvent_);
-        exit(1);
+        RUNTIME_ERROR(fmt::format("Trying to add event with iteration number {} to front of queue "
+                                  "when first event in queue has number {}. ",
+                                  (unsigned int) iEvent->iteration, (unsigned int) nextIterEvent_));
     }
     iterationEvents_.push_front(iEvent);
     nextIterEvent_ = iEvent->iteration;

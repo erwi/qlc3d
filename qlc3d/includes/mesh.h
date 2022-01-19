@@ -82,21 +82,13 @@ public:
     //void addElements(idx* new_Elements, idx* new_Materials , idx num_new);    // adds num_new new elements. these must have same # of nodes/element as existing ones
     void addElements(vector <idx> &m_new, vector <idx> &mat_new);    //adds new elements and materials, assuming element types match existing elements (nodes/per element)
 
-    // creates list of all elements of material numebr mat
-    void listElementsOfMaterial(std::vector <idx> &elems, const idx mat) const;
     // Creates list of all nodes belonging to elements of material mat
     void listNodesOfMaterial(std::vector <idx> &nodes, const idx mat) const;
     void listFixLCSurfaces(std::vector <idx> &nodes, const idx FixLCNum) const; // list all nodes of given FixLC surface number (FixLCNum = 1,2,3...)
-    bool ContainsAllNodes(idx elem, idx n, idx *nodes) const; // checks if element elem, contains all n nodes in array nodes
     void ContainsNodes(list <idx> *elems , list <idx> *points);  // adds element number to elemes that contain any node in list points
     bool ContainsCoordinate(const idx elem, const double *p, const double *coord) const; // checks whether coordinate is within element elem
-    bool ContainsCoordinate(const idx elem, const double *p, const double *coord, double &dist) const; // checks whether coordinate is within element element and also calcultes distance between coord and element centre
     void CompleteNodesSet(const idx elem, std::vector<idx> &nodes) const; // completes nodes vector with those from element, if nodes is empty returns all elements
-    void PrintElements()const;       // prints all elements
-    void PrintElement(idx e) const;  // prints element e
-    void PrintNormals() const;       // prints element surface normals, if present
     void CalculateDeterminants3D(double *p);
-    // void FindIndexToMaterialNodes(idx mat, vector<idx> *index) const;
     void CalculateSurfaceNormals(double *p, Mesh *tets = NULL);
     void CopySurfaceNormal(idx i, double *norm); // copies value of surface normal of element i to norm (which must be array of size3)
     void CopyMesh(Mesh *rhs);   // makes this a copy of Mesh* rhs - why does operator= overloading not work???
@@ -104,13 +96,7 @@ public:
     void CalcLocCoords(const idx elem, double *p, double *coord, double *loc); // calculates 4 local coordinates of coordinate cord in element elem
     void CalcElemBary(const idx elem, const double *p, double *bary) const; // calculates barycentre coords of element elem
     double CalcBaryDistSqr(const double *p, const idx elem, const double *coord) const;
-    bool isOnXPlane(idx e, double X, double *p) const;  // checks if all nodes of triangle e are on x = X plane
-    bool isOnYPlane(idx e, double Y, double *p) const;  // checks if all nodes of triangle e are on y = Y plane
-    bool isOnZPlane(idx e, double Z, double *p) const;  // checks if all nodes of triangle e are on z = Z plane
-    //bool isOnBackSurface(int e, Geometry* geom);  //
-    bool isNeighbours(const idx el1, const idx el2) const; // checks whether el1 and el2 are neighbours
     void gen_p_to_elem(vector<set <idx> > &p_to_elem) const; // generates index from points to mesh elements
-    void gen_neighbour_list(vector < vector <idx> > &neigh) const;   // neighbour list of elements. ordered according to local node order.
     // index number of non-existent neighbours elements equals total number of elements
     // i.e. 1 too large to use as an index
     Mesh(idx numElements, idx numNodes);

@@ -5,7 +5,7 @@
 
 TEST_CASE("throw exception when") {
     GmshFileReader reader;
-    REQUIRE_THROWS_AS(reader.readGmsh("path/to/missing/file"), std::invalid_argument);
+    REQUIRE_THROWS_AS(reader.readGmsh("path/to/missing/file"), std::runtime_error);
 }
 
 TEST_CASE("read Gmsh mesh raw data") {

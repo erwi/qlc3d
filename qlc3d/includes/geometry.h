@@ -53,7 +53,6 @@ public:
     Geometry();
     ~Geometry();
     void setCoordinates(double *coords, const size_t &np);  // copies coords to p, sizeof(coords) is 3 * np
-    void addCoordinates(double *coords, const size_t &np);  // adds new coordinates to existing ones by extending p
     void addCoordinates(vector<double> &coords);   // adds new coordinates to end of existing ones
     void setNodeNormals();      // calculates surface node normals
     void setnp(int n);
@@ -61,7 +60,6 @@ public:
     void ReorderDielectricNodes();  // reorder nodes so that dielectric material nodes are last
     void makePeriEquNodes();    // generates periodic equivalent nodes index
     void ClearGeometry();       // clears all data for geometry
-    void CreateOctree();
     bool getleft_right_is_periodic();
     bool getfront_back_is_periodic();
     bool gettop_bottom_is_periodic();
@@ -83,8 +81,6 @@ public:
                                       std::set<size_t> &tetHistory,
                                       const bool &requireLCElement = false   // only LC elements are considered
                                      );
-
-    bool getContainingTet(vector<set< unsigned int> > &p_to_t, double crd[3], unsigned int &t0);
 
     void makeRegularGrid(const size_t &nx, // GENERATES REGULAR GRID LOOKUP INDEXES AND WEIGHTS
                          const size_t &ny,
@@ -125,20 +121,12 @@ public:
     double getAbsZDist(int i , double z);   //
     double getAbsDistSqr(const unsigned int i , const double *const coord) const;
     double *getPtrToNodeNormals();
-    size_t getTotalSize(); // returns memory consumption
-    void getTetBaryCentre(double *x, const unsigned int &it);  // calculates barycentre x,y,z components of tetrahedron it, x must be array of length 3
-    void isValidNodeIndex(const unsigned int &i) const;
     void genIndWeakSurfaces(Alignment &alignment);  // generates index to weak surface elements
     //
     // NodeNormal methods
     double getNodeNormalsX(int i);
     double getNodeNormalsY(int i);
     double getNodeNormalsZ(int i);
-    void PrintNodeNormals();
-    void PrintNodes();
-    void PrintNode(unsigned int i);
-    void PrintPeriodicNodes();
-    bool checkForOverlapingNodes(); // Debug function that checks makes sure not nodes are overlapping. Returns TRUE if some are, false if everyting is OK
     void countNodeReferences(vector <int> &refc, Mesh &mesh); // counts the number of times each node is used in mesh. DEBUG
 
     [[nodiscard]] const Mesh& getTetrahedra() const { return *t; }

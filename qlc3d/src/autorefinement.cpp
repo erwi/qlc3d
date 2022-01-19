@@ -8,6 +8,7 @@
 #include <box.h>
 #include <qlc3d.h>
 #include <simulation-state.h>
+#include <util/logging.h>
 
 double getMaxS(SolutionVector &q) {
     int npLC = q.getnDoF();
@@ -44,32 +45,19 @@ void interpolate(SolutionVector &qnew,
     // Loop over all new nodes and set Q-tensor
     qnew.Allocate(geom_new.getnpLC(), 5);
     for (size_t ind = 0 ; ind < (size_t) geom_new.getnpLC() ; ind++) { // for all new nodes
-        //#ifdef DEBUG
-        if (geom_old.t->getMaterialNumber(pint[ind]) != MAT_DOMAIN1) {
-            printf("error in intepolate (autorefinement.cpp)  \n");
-            printf("new node %i, at coordinate %e,%e,%e in old structure\n", (int) ind, geom_new.getpX(ind) , geom_new.getpY(ind) , geom_new.getpZ(ind));
-            printf("the material of found tet is %i, which is not DOMAIN1 \n", geom_old.t->getMaterialNumber(pint[ind]));
-            exit(1);
-        }
-        //#endif
+        // only LC volumes are interpolated
+        assert(geom_old.getTetrahedra().getMaterialNumber(pint[ind]) == MAT_DOMAIN1);
+
         double loc[4]; // LOCAL ELEMENT COORDS
         double *coord = geom_new.getPtrTop() + (3 * ind); // pointer to this nodes coordinates
         // calculate local element coordinates loc of global coordinate coord.
         geom_old.t->CalcLocCoords(pint[ind], geom_old.getPtrTop(), coord, loc);
-        int n[4];
+        size_t n[4];
         n[0] = geom_old.t->getNode(pint[ind], 0);
         n[1] = geom_old.t->getNode(pint[ind], 1);
         n[2] = geom_old.t->getNode(pint[ind], 2);
         n[3] = geom_old.t->getNode(pint[ind], 3);
-#ifdef DEBUG
-        int max_node = *max_element(n, n + 3);
-        if (max_node >= (int)   npLC_old) {
-            printf("error - node is larger than npLC(= %i)\n", npLC_old);
-            printf(" interpolate in autorefinement.cpp\n");
-            geom_old.t->PrintElement(pint[ind]);
-            exit(1);
-        }
-#endif
+
         // IF MAXIMUM LOCAL COORDINATE VALUE is more or less 1 -> the node is an exsiting one
         size_t ind_max = max_element(loc, loc + 4) - loc ;
         if (loc[ ind_max ] >= 0.99999) {// EXISTING CORNER NODE, STRAIGHT COPY OF OLD VALUES
@@ -139,27 +127,26 @@ void get_index_to_tred(Geometry &geom_curr, // CURRENT CALCULATION GEOMETRY
         // DIFERENT REFINFO TYPES REQUIRE DIFFERENT ELEMENT SEARCHES
         // ELEMENT SEARCH FUCNTIONS DEFINED IN findrefelems.cpp
         switch ((*ritr).getType()) {
-        case (RefInfo::Change): {
-            printf("SEARCHING FOR TYPE = CHANGE TETS\n");
-            findTets_Change((*ritr) , i_tet, refiter, geom_work , q_temp);
-            break;
+            case (RefInfo::Change): {
+                Log::info("Searching for tetrahedra by refinement type = CHANGE");
+                findTets_Change((*ritr) , i_tet, refiter, geom_work , q_temp);
+                break;
+            }
+            case (RefInfo::Sphere): {
+                Log::info("Searching for tetrahedra by refinement type = SPHERE");
+                findTets_Sphere((*ritr) , i_tet, refiter, geom_work);
+                break;
+            }
+            case (RefInfo::Box): {
+                Log::info("Searching for tetrahedra by refinement type = BOX");
+                findTets_Box((*ritr), i_tet, refiter, geom_work);
+                break;
+            }
+            default: {
+                throw std::runtime_error(fmt::format("error in {}, {}, unhandled refinement type", __FILE__, __func__));
+            }
         }
-        case (RefInfo::Sphere): {
-            printf("SEARCHING FOR TYPE = SPHERE TETS\n");
-            findTets_Sphere((*ritr) , i_tet, refiter, geom_work);
-            break;
-        }
-        case (RefInfo::Box): {
-            printf("SEARCHING FOR TYPE = BOX TETS\n");
-            findTets_Box((*ritr), i_tet, refiter, geom_work);
-            break;
-        }
-        default: {
-            printf("error in %s, unhandled refinement type - bye!\n", __func__);
-            exit(1);
-        }
-        } // end switch/case
-    }// end for all refinfo objects
+    }
 }
 
 idx getMaxRefiterCount(const list<RefInfo> &refInfos) {
@@ -198,11 +185,9 @@ bool autoref(Geometry &geom_orig,
     //=====================================
     // DO REFINEMENT ITERATIONS, SPLIT TETS
     //=====================================
-    printf("=========================================== \n");
-    printf("Doing a maximum of %i refinement iterations \n", maxrefiter);
-    printf("=========================================== \n");
+    Log::info("Doing a maximum of {} refinement iterations.", maxrefiter);
     for (refiter = 0 ; refiter < maxrefiter ; refiter ++) { // for max refiter
-        printf("Refinement iteration %i of %i\n", refiter + 1 , maxrefiter);
+        Log::info("Refinement iteration {} of {}.", refiter + 1, maxrefiter);
         // GET INDEX TO RED TETS IN geom
         vector <idx> i_tet(geom_temp.t->getnElements(), 0);  // REFINEMENT TYPE INDICATOR
         // SELECT RED TETS
@@ -215,14 +200,14 @@ bool autoref(Geometry &geom_orig,
                           false);//IsEndRefinement);
         // LEAVE REF LOOP IF NO REFINABLE TETS FOUND
         if (*max_element(i_tet.begin() , i_tet.end()) < RED_TET) {
-            printf("   No refinement this iteration\n");
+            Log::info("No tetrahedra requiring refinement found during iteration {}.", refiter + 1);
             continue;
         }
         Refine(geom_temp  , i_tet);
         bRefined = true;                        // YES, MESH HAS BEEN CHANGED
-        printf("New node count: %i\n", geom_temp.getnp());
-        printf("Done refinement iteration = %i of %i \n", refiter, maxrefiter);
-    }// end for max refiters
+        Log::info("Completed refinement iteration {} of {}. New node count is {}",
+                  refiter + 1, maxrefiter, geom_temp.getnp());
+    }
     //=============================================================
     //  DONE WITH REFINEMENT.
     //  DO CLEANUP AND INTERPOLATE RESULT ON NEW MESH.
@@ -253,11 +238,9 @@ bool autoref(Geometry &geom_orig,
     geom.setTo(&geom_temp);
     // NEW MESH FILE NEEDS TO BE WRITTEN WHEN RESULTS ARE OUTPUT
     // LET REST OF PROGRAM KNOW THAT GEOMETRY HAS BEEN MODIFIED
-    cout << "=============done refining mesh=============" << endl;
-    cout << "       new node count = " << geom.getnp()      << endl;
-    cout << "       new tetrahedral count = " << geom.getTetrahedra().getnElements() << endl;
-    cout << "       new triangles count = " << geom.getTriangles().getnElements() << endl;
-    cout << "============================================" << endl;
+    Log::info("Completed mesh refinement. New node count = {}, tetrahedron count = {}, triangle count = {}",
+              geom.getnp(), geom.getTetrahedra().getnElements(), geom.getTriangles().getnElements());
+
     if (simu.simulationMode() == TimeStepping) {
         simulationState.dt(simu.getMindt());
         simulationState.restrictedTimeStep(true);

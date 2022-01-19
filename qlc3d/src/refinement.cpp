@@ -5,21 +5,10 @@
 #include <line.h>
 #include <set>
 #include <globals.h>
+#include <util/exception.h>
+#include <util/logging.h>
 using std::set;
 
-/*
-void find_unique_nodes( Mesh* m , set <unsigned int>& ind_m , set <unsigned int>& i_p){
-    i_p.clear();
-    set <unsigned int> :: iterator m_itr; // iterator to index of chosen tets
-    int nnodes = m->getnNodes();
-    for ( m_itr = ind_m.begin() ; m_itr != ind_m.end() ; m_itr++ ) { // loop over each element in mesh
- for ( int n = 0 ; n < nnodes ; n++){ // loop over each node in this element. assumes same number of nodes per element
-     i_p.insert( m->getNode(*m_itr , n) );
- }// end for loop over nodes
-    }// end for loop over elements
-}
-*/
-//*
 void find_all_core_lines( vector<Line>& lines, const vector <unsigned int>& i_tet, Mesh* m){
     // creates unique set of lines from all bisectable lines of red tets
     // only works for tets!
@@ -166,14 +155,11 @@ void fix_green3_red_confusions( vector <idx>& i_tet,        // tets line counter
                 // THIS ELEMENT IS ACTUALLY RED. MAKE IT SO!
                 i_tet[i] = 6; // 6 is magic for red
             }
-#ifdef DEBUG
-            else if ( nodes.size() != 3) // debug
-            {
-                cout << " error in fix_green_red_confusions - this should not happen "<< endl;
-                cout << " something has gone badly wrong - bye!" << endl;
-                exit(1);
+
+            else if ( nodes.size() != 3) {
+                RUNTIME_ERROR(fmt::format("Expected 3 nodes, got {}.", nodes.size()));
             }
-# endif
+
         }
     }// end for all tets
 }// end fix_green3_red_confusions
@@ -349,11 +335,8 @@ void expand_periodic_boundaries(vector <Line>& lines, // lines to split
                     }
                 }
 
-            if (!found)
-            {
-                printf("error - could not find periodic front/back face line - bye!\n");
-                litr->PrintLine(&geom);
-                exit(1);
+            if (!found) {
+                RUNTIME_ERROR("Could not find periodic front/back face line.")
             }
 
         }// end if front/back
@@ -381,11 +364,8 @@ void expand_periodic_boundaries(vector <Line>& lines, // lines to split
                         found = true;
                     }
                 }
-            if (!found)
-            {
-                printf("error - could not find periodic left/right face line - bye!\n");
-                litr->PrintLine(&geom);
-                exit(1);
+            if (!found) {
+                RUNTIME_ERROR("Could not find periodic left/right face line.")
             }
 
 
@@ -419,10 +399,8 @@ void expand_periodic_boundaries(vector <Line>& lines, // lines to split
                     cc++;
                 }
 
-                if ( cc != 3)
-                {
-                    printf("error - problem finding periodic top-bottom corner lines - bye!\n");
-                    exit(1);
+                if ( cc != 3) {
+                    RUNTIME_ERROR("Problem finding periodic top-bottom corner lines.")
                 }
             }// end if vertical corner
         }// end if left/right
@@ -452,11 +430,8 @@ void expand_periodic_boundaries(vector <Line>& lines, // lines to split
                         found = true;
                     }
                 }
-            if (!found)
-            {
-                printf("error - could not find periodic top/bottom line - bye\n");
-                litr->PrintLine(&geom);
-                exit(1);
+            if (!found) {
+                RUNTIME_ERROR("Could not find periodic top/bottom line.")
             }
 
             // in case of top/bottom periodicity (=fully periodic),
@@ -489,10 +464,8 @@ void expand_periodic_boundaries(vector <Line>& lines, // lines to split
                     newlines.push_back(*lotr);
                     cc++;
                 }
-                if ( cc != 3)
-                {
-                    printf("error - problem finding periodic front-back corner lines - bye!\n");
-                    exit(1);
+                if ( cc != 3) {
+                    RUNTIME_ERROR("Problem finding periodic front-back corner lines.")
                 }
 
             }// end horizontal corner along y
@@ -521,16 +494,11 @@ void expand_periodic_boundaries(vector <Line>& lines, // lines to split
                         newlines.push_back(*lotr);
                         cc++;
                     }
-                    if ( cc != 3)
-                    {
-                        printf("error - problem finding periodic left-right corner lines - bye!\n");
-                        exit(1);
+                    if ( cc != 3) {
+                        RUNTIME_ERROR("Problem finding periodic left-right corner lines.")
                     }
                 }// end horizontal corner along X
-
-            printf(" top/bottom periodicity not implemented in mesh refinement yet - bye!\n");
-            printf(" do it in refinement.cpp, expand_periodic_boundaries!\n");
-            exit(1);
+                RUNTIME_ERROR("Top-bottom periodicity not implemented in mesh refineement yet.");
         }// end if top/bottom surface is periodic
     }//end for i loop over each line
 
@@ -660,11 +628,11 @@ void Refine(Geometry& geom,                 // SOURCE (OLD) GEOMETRY
     Num_Ref_Tet nrt;    // TYPE COUNTERS
     find_tet_refinement_types( i_tet, nrt); // COUNTS HOW MANY OF EACH EXIST
 
-    if (nrt.red ==  0){ // EXIT IF NO RED TETS
-        printf("error int %s, no red tetrahedra selected - bye!\n", __func__);
-        exit(1);
+    if (nrt.red ==  0) { // EXIT IF NO RED TETS
+        RUNTIME_ERROR("No red tetrahedra selected.")
     }
-    std::cout << nrt.red << " tetrahedra selected" << std::endl;
+    Log::info("{} Red tetrahedra selected.", nrt.red);
+
     //=================================
     //	2.  EXPAND REFINEMENT REGION TO SATISFY
     //      PERIODICITY OF STRUCTURE

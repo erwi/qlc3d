@@ -9,6 +9,7 @@
 #include <geometry.h>
 #include <shapefunction3d.h>
 #include <shapefunction2d.h>
+#include <util/logging.h>
 
 // SPAMTRIX INCLUDES
 #include <spamtrix_ircmatrix.hpp>
@@ -44,18 +45,6 @@ void Pot_GMRES(SpaMtrix::IRCMatrix &K,
                SpaMtrix::Vector &B,
                SpaMtrix::Vector &X,
                Settings *settings);
-
-
-// DEBUG FUNCTION FOR PRINTING VALUES OF LOCAL MATRIX
-void printlK(double *lK , int size) {
-    for (int r = 0 ; r < size ; r++) {
-        for (int c = 0 ; c < size ; c++) {
-            cout << lK[r + size * c] << " ";
-        }
-        cout << endl;
-    } //end for r
-}
-
 
 // DECLARATION ONLY
 void setUniformEField(Electrodes &electrodes, SolutionVector &v, double *p);
@@ -134,12 +123,10 @@ inline void localKL(
         idx ind_de = mesh->getDielectricNumber(it) - 1; // -1 for 0 indexing
         eper = electrodes->getDielectricPermittivity(ind_de);
     }
-    //printf("deleps = %e\n", deleps);
+
     memset(lK, 0, 4 * 4 * sizeof(double));
     memset(lL, 0, 4 * sizeof(double));
-    //cout << "element:"<< it << endl;
-    //printlK( &lK[0][0] , 4);
-    //printf("gettin")
+
     double Jdet = mesh->getDeterminant(it);
     // Jacobian
     double xr, xs, xt, yr, ys, yt, zr, zs, zt;
@@ -223,7 +210,6 @@ inline void localKL(
                 e13 += Sh[i] * (2.0 / 3.0 / S0) * (q5 / rt2) * deleps;           //~nx*nz
                 e23 += Sh[i] * (2.0 / 3.0 / S0) * (q4 / rt2) * deleps;
             }
-            //cout << "e =" << e11<<","<< e22<<","<< e33 <<","<< e12 <<","<< e13 <<","<< e23 << endl;
         }
         // Local K and L
         double mul = shapes.w[igp] * Jdet;
@@ -283,26 +269,22 @@ void localKL_N(
         efe  = 2.0 / (9 * S0) * (lc.e1() + 2 * lc.e3());
         efe2 = 4.0 / (9 * S0 * S0) * (lc.e1() - lc.e3());
     } else {
-        printf("NON LC NEUMANN\n"); // THIS SHOULD NEVER HAPPEN
+        throw std::runtime_error(fmt::format("Expected DOMAIN1 material in {}, {}.", __FILE__, __func__));
     }
     memset(lK, 0, npt * npt * sizeof(double));
     memset(lL, 0, 4 * sizeof(double));
     double n[3];
     surf_mesh->CopySurfaceNormal(it, n);
-#ifdef DEBUG
-    if (abs(n[0]*n[0] + n[1]*n[1] + n[2]*n[2] - 1.0) > 0.01) {
-        printf("bad triangle normal in neumann tri %i ", it);
-        exit(1);
-    }
-#endif
     double eDet = surf_mesh->getDeterminant(it);
     double Jdet = mesh->getDeterminant(index_to_Neumann);
 #ifdef DEBUG
-    if (eDet <= 0)
-        printf("ZERO EDET\n");
-    if (Jdet <= 0)
-        printf("ZERO JDET\n");
+    assert(eDet > 0);
+    assert(Jdet > 0);
+    if (abs(n[0]*n[0] + n[1]*n[1] + n[2]*n[2] - 1.0) > 0.01) {
+        throw std::runtime_error(fmt::format("Surface normal vector for triangle {} is not of unit length.", it));
+    }
 #endif
+
     double xr, xs, xt, yr, ys, yt, zr, zs, zt;
     xr = xs = xt = yr = ys = yt = zr = zs = zt = 0.0;
     for (i = 0; i < 4; i++) {
@@ -550,13 +532,13 @@ void setUniformEField(Electrodes &electrodes, SolutionVector &v, double *p) {
     }
 }
 
+/**
+ * Solves the Linear simulatenous equation Ax=b using the GMRES method.
+ */
 void Pot_GMRES(SpaMtrix::IRCMatrix &K,
                SpaMtrix::Vector &B,
                SpaMtrix::Vector &X,
                Settings *settings) {
-    /*!
-        Solves the Linear simulatenous equation Ax=b using the GMRES method
-    */
     idx size = K.getNumRows();
     idx maxiter     = settings->getV_GMRES_Maxiter();
     idx restart     = settings->getV_GMRES_Restart();
@@ -566,6 +548,8 @@ void Pot_GMRES(SpaMtrix::IRCMatrix &K,
     SpaMtrix::LUIncPreconditioner LU(K); // DOES THIS HAVE TO BE RECOMPUTED EACH TIME??
     //SpaMtrix::DiagPreconditioner LU(K);
     SpaMtrix::IterativeSolvers solver(maxiter, restart, toler);
-    if (!solver.gmres(K, X, B, LU))
-        printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n", solver.maxIter, solver.toler);
+    if (!solver.gmres(K, X, B, LU)) {
+        Log::warn("GMRES did not converge in {} iterations when solving for potential. Tolerance achieved is {}.",
+                  solver.maxIter, solver.toler);
+    }
 }

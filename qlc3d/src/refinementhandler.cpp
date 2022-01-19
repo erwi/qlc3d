@@ -3,6 +3,7 @@
 #include <refinement.h> // declares autorefinement etc.
 #include <list>
 #include <qlc3d.h>
+#include <util/logging.h>
 
 #include <spamtrix_ircmatrix.hpp>
 
@@ -17,8 +18,8 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
                           SpaMtrix::IRCMatrix &Kpot,
                           SpaMtrix::IRCMatrix &Kq)
 {
+    Log::info("Doing {} mesh refinements.", refEvents.size());
 
-    cout << refEvents.size() << " REFINEMENTS NOW\n" << endl;
     // MAKE LIST OF ALL REFINFO OBJECTS THAT ARE HANDLES NOW
     std::list<RefInfo> refInfos;
     std::list<Event*>::iterator evitr = refEvents.begin();
@@ -26,8 +27,8 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
         RefInfo* ref = static_cast<RefInfo*>( (*evitr)->getEventDataPtr() );
         refInfos.push_back( *ref );
     }
+    Log::info("{} Refinement objects.", refInfos.size());
 
-    cout << refInfos.size() << "Refinement objects" << endl;
     // TRY TO DO REFINEMENT
     bool isRefined(false);
     isRefined = autoref(*geometries.geom_orig,
@@ -49,14 +50,14 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
     // IF MESH HAS BEEN REFINED NEED TO RECREATE MATRIXES
     // FOR Q-TENSOR AND POTENTIAL
     if (isRefined){
-        std::cout << "creating new matrixes, V..."; fflush(stdout);
+        Log::info("Creating new matrices for potential and Q-tensor solutions.");
+
         Kpot = createPotentialMatrix(*geometries.geom,
                                      *solutionvectors.v,
                                      0,
                                      electrodes);
-        std::cout << "Q..."; fflush(stdout);
+
         Kq = createQMatrix(*geometries.geom, *solutionvectors.q);
-        std::cout << "OK" << std::endl;
     }
 }
 
@@ -76,7 +77,7 @@ void handlePreRefinement(std::list<Event*>& refEvents,
 // REST OF THE SIMULATION. THAT IS, THE INITIAL GEOMETRY IS
 // MODIFIED TOO
 
-    printf("PRE-REFINEMENT\n");
+    Log::info("Doing pre-refinement.");
     // MAKE LIST OF ALL REFINFO OBJECTS
     handleMeshRefinement(refEvents,
                          geometries,

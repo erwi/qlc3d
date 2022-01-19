@@ -1,9 +1,8 @@
-
 #include <geometry.h>
+#include <util/logging.h>
 
 const idx Geometry::NOT_AN_INDEX = std::numeric_limits<idx>::max();
-
-
+//using fmt::format;
 
 Geometry::Geometry():
     numWeakSurf(0),
@@ -42,7 +41,6 @@ Geometry::~Geometry() {
 }
 void Geometry::setTo(Geometry *geom) {
     this->ClearGeometry();
-    //printf("is equal %i\n" , geom->getnp());
     np      = geom->getnp();                        // number of nodes
     npLC    = geom->getnpLC();                  // number of LC nodes
     Xmin    = geom->getXmin();
@@ -102,13 +100,13 @@ void Geometry::ClearGeometry() {
 }
 
 void Geometry::setCoordinates(double *coords, const size_t &np) {
-    if (p != NULL) free(p);
-    if (NodeNormals != NULL) free(NodeNormals);
+    if (p != nullptr) free(p);
+    if (NodeNormals != nullptr) free(NodeNormals);
     p = (double *)malloc(3 * np * sizeof(double));
     NodeNormals = (double *)malloc(3 * np * sizeof(double));
-    if ((p == NULL) || (NodeNormals == NULL)) {
-        printf("error - Geometry::setCoordintes - could not allocate memtory - bye!\n");
-        exit(1);
+    if ((p == nullptr) || (NodeNormals == nullptr)) {
+        throw std::runtime_error(fmt::format("could not allocate for node coordinates or normal vectors in {}, {}",
+                                        __FILE__, __func__ ));
     }
     memset(NodeNormals, 0, 3 * np * sizeof(double)); //reset node normals to all zero
     Xmin = 1e9; Xmax = -1e9;
@@ -128,24 +126,7 @@ void Geometry::setCoordinates(double *coords, const size_t &np) {
     setnp(np);
     setnpLC(np);
 }
-void Geometry::addCoordinates(double *coords, const size_t &npn) {
-    // APPENDS npn NEW COORDIANTES IN coords TO this->p
-    if ((npn > 0) && (coords)) {    // don't do anything if no new coordinates
-        size_t np_new = np + npn;
-        double *pnew = (double *) malloc(3 * np_new * sizeof(double));
-        // first copy old coordinates
-        for (size_t i = 0 ; i < 3 * np ; i++)
-            pnew[i] = p[i];
-        // then add new ones
-        for (size_t i = 0 ; i < 3 * npn ; i ++)
-            pnew[3 * np + i] = coords[i];
-        // set p to point to new extended cordinates
-        if (p != NULL) free(p);
-        p = pnew;
-        np = np_new;
-        setnpLC(np_new); /// needs reordering after this
-    }// end if no new coords
-}
+
 void Geometry::addCoordinates(vector<double> &coords) {
     if (coords.size() > 0) {
         int np_new = np + coords.size() / 3 ;
@@ -184,16 +165,16 @@ void Geometry::setnpLC(int n)   {
     npLC = n;
 }
 void Geometry::setNodeNormals() {
-    std::cout << "calculating surface normals for alignment layers" << std::endl;
-    // CALCULATES NODE NORMALS BASED ON CONNECTED TRIANGLE NORMALS
-    if (e->getnElements() == 0) {
-        printf("error - Geometry::setNodeNormals() - surface mesh not defined, bye!\n");
-        exit(1);
-    }
-    if (NodeNormals != NULL) free(NodeNormals);                     // ALLOCATE
+    assert(e != nullptr);
+    assert(e->getnElements() > 0);
+
+    Log::info("Calculating surface normals for {} alignment layer triangles", e->getnElements());
+
+    if (NodeNormals != NULL) free(NodeNormals);
     NodeNormals = (double *)malloc(3 * np * sizeof(double));
     memset(NodeNormals, 0, 3 * np * sizeof(double));
     double tempn[3] = {0, 0, 0};
+
     for (idx i = 0 ; i < e->getnElements() ; i ++) { // add neighbouring surface normals
         int m = e->getMaterialNumber(i);
         if (MATNUM_TO_FIXLC_NUMBER(m)) { // IF FIXLC SURFACE
@@ -206,6 +187,7 @@ void Geometry::setNodeNormals() {
             tempn[0] = 0; tempn[1] = 0; tempn[2] = 0;
         }// end if not periodic
     }// end for i
+
     for (size_t i = 0 ; i < np ; i ++) { // normalise length
         double len = sqrt(NodeNormals[i * 3 + 0] * NodeNormals[i * 3 + 0] +
                           NodeNormals[i * 3 + 1] * NodeNormals[i * 3 + 1] +
@@ -217,29 +199,23 @@ void Geometry::setNodeNormals() {
         }
     } // end normalise loop, i
 }
-void Geometry::PrintNodeNormals() {
-    printf("going to print %i node normals\n", np);
-    fflush(stdout);
-    for (size_t i = 0 ; i < np ; i ++) {
-        printf("NodeNormals[%u] = [%f,%f,%f]\n", (idx) i, NodeNormals[i * 3], NodeNormals[i * 3 + 1], NodeNormals[i * 3 + 2]);
-        fflush(stdout);
-    }
-}
 
 void Geometry::ReorderDielectricNodes() {
-    if ((t->getnElements() <= 0) || (getnp() <= 0) || (t->getPtrToMaterialNumber(0) == NULL)) {
-        printf("error - Geometry::ReorderDielectricNodes - geometry not fully defined yet - bye!\n");
-        exit(1);
-    }
+    assert(t != nullptr);
+    assert(t->getnElements() > 0);
+    assert(t->getPtrToMaterialNumber(0) != nullptr);
+    assert(getPtrTop() != nullptr);
+    assert(getnp() > 0);
+
     // check if dielectric elements exist
     bool DE_exist = false;
-    //int npLC = np;
     idx *tmat = t->getPtrToMaterialNumber(0);
-    for (idx i = 0 ; i < t->getnElements() ; i++)
+    for (idx i = 0 ; i < t->getnElements() ; i++) {
         if (tmat[i] >= MAT_DIELECTRIC1) { // if material nuber > LC number
             DE_exist = true;
             break;
         }
+    }
     setnpLC(getnp());
     if (!DE_exist) { // if no dielectric materials -> no need to reorder = exit
         this->updateMaxNodeNumbers();
@@ -267,15 +243,14 @@ void Geometry::ReorderDielectricNodes() {
     for (size_t i = 0; i < getnp() ; i++) // then add all non-LC nodes
         if (lcde[i] == 0)
             v_mat_index.push_back(i);
-    //printf("np = %i, npLC = %i\n",np, npLC);
+
     free(lcde);
     //make inverse map
     vector <int> v_invmap;
     v_invmap.resize(v_mat_index.size() , -1);
     for (size_t i = 0 ; i < getnp() ; i ++)
         v_invmap[v_mat_index[i]] = i; //v_mat_index[i];//= i;
-    //for( int i  = 0 ; i < getnp() ; i ++ )
-    //printf("%i <->  %i\n", v_invmap[i] , v_mat_index[i] );
+
     //REORDER NODES
     double *newp = (double *)malloc(3 * getnp() * sizeof(double)); // memory for reordered node coordinates
     for (size_t i = 0 ; i < getnp() ; i++) {
@@ -293,7 +268,7 @@ void Geometry::ReorderDielectricNodes() {
     }
     t->setAllNodes(newt);  // copy node numbers
     free(newt);
-    //exit(1);
+
     //REORDER TRIANGLES
     idx *newe = (idx *)malloc(e->getnElements() * e->getnNodes() * sizeof(idx));
     for (idx i = 0 ; i < e->getnElements() ; i++) {
@@ -326,10 +301,10 @@ void Geometry::setFacePeriNodes(list<size_t> &face0,
     int fc, bc; // debug counters
     for (F0 = face0.begin(), fc = 0; F0 != face0.end() ; ++F0, ++fc) { // LOOP OVER FACE 0
         bool found = false;
-#ifdef DEBUG
+
         int ind_n  = 0;     // index to neares (debug)
         double dist = 1000000;
-#endif
+
         double f1 = p[3 * (*F0) + ind1 ]; // coordinates of node F2 in face0
         double f2 = p[3 * (*F0) + ind2 ];
         for (F1 = face1.begin() , bc = 0; F1 != face1.end() ; ++F1, ++bc) {
@@ -339,12 +314,12 @@ void Geometry::setFacePeriNodes(list<size_t> &face0,
             double dist1 = fabs(f1 - fa); // distances in plane
             double dist2 = fabs(f2 - fb);
             double tdist = dist1 * dist1 + dist2 * dist2;
-#ifdef DEBUG
+
             if (tdist < dist) { // debug info only, keep track of nearest found node
                 dist = tdist; // nearest distance
                 ind_n = *F1;  // index to nearest distance
             }
-#endif
+
             if (tdist < eps * eps) { // compare squared distances
                 this->periNodes_[*F1] = *F0;
                 found = true;
@@ -352,19 +327,15 @@ void Geometry::setFacePeriNodes(list<size_t> &face0,
             }
         }// end for B
         if (!found) {
-            printf("error, periodic boundaries do not seem to match - bye!\n");
-#ifdef DEBUG
             double *c0 = getPtrTop() + *F0;  // coordinates of face 0 coords
             double *c1 = getPtrTop() + ind_n;  // face 1 coords
-            printf("error - in file %s, function %s.\n", __FILE__, __func__);
-            cout << "normal = " << norm << endl;
-            cout << "coordinate " << *F0 << " FACE0: " << *c0 << "," << *(c0 + 1) << "," << *(c0 + 2) << endl;
-            cout << "nearest match in FACE1: index " << ind_n << " , dist = " << dist << endl;
-            cout << "coordinate: " << *c1 << "," << *(c1 + 1) << "," << *(c1 + 2) << endl;
-#endif
-            exit(1);
+            Log::error("normal={}.", norm);
+            Log::error("coordinate {} FACE0: [{}, {}, {}].", *F0, *c0, *(c0 + 1), *(c0 + 2));
+            Log::error("nearest match in FACE1: index {}, distance = {}, at [{}, {}, {}].",
+                       ind_n, dist, *c1, *(c1 + 1), *(c1 + 2));
+            throw std::runtime_error(fmt::format("Periodic boundaries do not match in {}, {}", __FILE__, __func__));
         }
-    }//end for F
+    }
 }
 
 
@@ -399,11 +370,10 @@ void Geometry::setEdgePeriNodes(list<size_t> &edge0,
             }
         }
         if (!found) {
-            printf("error - edge node 1 not found - bye\n");
-            printf("edge node 0 = %u,\tat [%e,%e,%e]\n", (unsigned int)*e0, p[*e0 * 3 + 0], p[*e0 * 3 + 1], p[*e0 * 3 + 2]);
-            printf("nearest node  = %u,\tat [%e,%e,%e]\n", (unsigned int)iNearest, p[iNearest * 3 + 0], p[iNearest * 3 + 1], p[iNearest * 3 + 2]);
-            printf("distance = %e\n", minDist);
-            exit(1);
+            Log::error("Edge node 1 not found.");
+            Log::error("Edge node 0 index = {}, coordinates = [{}, {}, {}].", *e0, p[*e0 * 3 + 0], p[*e0 * 3 + 1], p[*e0 * 3 + 2]);
+            Log::error("Nearest node index = {}, coordinates = [{}, {}, {}].", iNearest, p[iNearest * 3 + 0], p[iNearest * 3 + 1], p[iNearest * 3 + 2]);
+            throw std::runtime_error(fmt::format("Edge node 1 not found in {}, {}.", __FILE__, __func__));
         }
     }// end loop over all nodes in edge0
 }
@@ -452,16 +422,15 @@ void Geometry::makePeriEquNodes() {
             } else if (BACK) { // check if node i is on back surface
                 back.push_back(n);
             } else { // ERROR
-                printf("error in %s, CASE 1 - bye \n", __func__);
-                exit(1);
+                throw std::runtime_error(fmt::format("Expected node {} on front/back surface in {}, {}.",
+                                                n, __FILE__, __func__));
             }
         }//end for i
         /// MAKE SURE EQUAL NUMBER OF NODES HAVE BEEN FOUND ON BOTH SURFACES
         if (front.size() != back.size()) {
-            printf("error - SolutionVector::setPeriosdicEquNodes\n");
-            printf("front and back surfaces do not have same number of nodes\n");
-            printf("front = %i , back = %i - bye!\n " , (int) front.size() , (int) back.size());
-            exit(1);
+            throw std::runtime_error(fmt::format("Periodic front surface contains {} nodes and back surface {} in {}, {}",
+                                            front.size(), back.size(), __FILE__, __func__ ));
+
         }
         // SEARCH FOR NODE EQUIVALENCIES BY COMPARING X AND Z COORDINATES
         // BACK NODES MAP TO FRONT NODES
@@ -506,10 +475,12 @@ void Geometry::makePeriEquNodes() {
                 (edge0.size() != edge3.size())  ||
                 (left.size() != right.size()) ||
                 (front.size() != back.size())) {
-            printf("error, different number of periodic boundary nodes\n");
-            printf("corners 0,1,2,3 = %i,%i,%i,%i\n", (int) edge0.size() , (int) edge1.size() , (int) edge2.size() , (int) edge3.size());
-            printf("front/back , left/right = %i/%i , %i/%i \n", (int) front.size() , (int) back.size() , (int) left.size() , (int) right.size());
-            exit(1);
+            Log::error("Periodic node counts don't match.");
+            Log::error("Corners 0, 1, 2, 3 contain [{}, {}, {}, {}] nodes.",
+                       edge0.size(), edge1.size(), edge2.size(), edge3.size());
+            Log::error("Front/back, left/right surfaces contain {}/{}, {}/{} nodes.",
+                       front.size(), back.size(), left.size(), right.size());
+            throw std::runtime_error(fmt::format("Periodic node counts don't match in {}, {}", __FILE__, __func__ ));
         }
         setEdgePeriNodes(edge0, edge1, 2);
         setEdgePeriNodes(edge0, edge2, 2);
@@ -612,8 +583,8 @@ void Geometry::makePeriEquNodes() {
             } else if (TOP) { // top surface
                 top.push_back(n);
             } else {
-                printf("error in %s, periodic node not on external surface - bye!\n", __func__);
-                exit(1);
+                throw std::runtime_error(fmt::format("Periodic node {} is not on an external surface in {}, {}.",
+                                                n, __FILE__, __func__));
             }
         }// end for i, loop over all nodes
         // CHECK THAT OPPOSITE FACES HAVE EQUAL NUMBER OF NODES
@@ -621,40 +592,40 @@ void Geometry::makePeriEquNodes() {
             // start dummy scope
             int mincorner = *min_element(corner_nodes, corner_nodes + 8);
             if (mincorner < 0) {
-                printf(" error - corner nodes not found - bye!\n");
-                printf("indexes are = [%i,%i,%i,%i,%i,%i,%i,%i]\n", corner_nodes[0], corner_nodes[1], corner_nodes[2], corner_nodes[3],
-                       corner_nodes[4], corner_nodes[5], corner_nodes[6], corner_nodes[7]);
-                exit(1);
+                throw std::runtime_error(fmt::format("Periodic corner nodes not found in {}, {}. "
+                                                     "Indices are [{}. {}, {}, {}, {}, {}, {}, {}].",
+                                                __FILE__, __func__, corner_nodes[0], corner_nodes[1], corner_nodes[2],
+                                                corner_nodes[3], corner_nodes[4], corner_nodes[5], corner_nodes[6], corner_nodes[7]));
             }
             if (top.size() != bottom.size()) {
-                printf("error - top and bottom surfaces do not match - bye!\n");
-                printf("sizes are top,bottom = %i,%i\n", (int) top.size(), (int) bottom.size());
-                exit(1);
+                throw std::runtime_error(fmt::format("Periodic top/bottom surfaces contain {}/{} nodes in {}, {}.",
+                                                top.size(), bottom.size(), __FILE__, __func__));
             }
             if (left.size() != right.size()) {
-                printf("error - left and right surfaces do not match - bye!\n");
-                exit(1);
+                throw std::runtime_error(fmt::format("Periodic left/right surfaces contain {}/{} nodes in {}, {}.",
+                                                left.size(), right.size(), __FILE__, __func__));
             }
             if (front.size() != back.size()) {
-                printf("error - front and back surfaces do not match - bye!\n");
-                exit(1);
+                throw std::runtime_error(fmt::format("Periodic front/back surfaces contain {}/{} nodes in {}, {}.",
+                                                front.size(), back.size(), __FILE__, __func__));
+
             }
             // CHECK ALL CORNERS HAVE CORRECT NUMBER OF NODES
             size_t s0, s1, s2, s3;
             s0 = edge0.size(); s1 = edge1.size(); s2 = edge2.size() ; s3 = edge3.size();
             if ((s1 != s0) || (s2 != s0) || (s3 != s0)) {
-                printf("error - vertical corner node counts do not match\n");
-                exit(1);
+                throw std::runtime_error(fmt::format("Periodic edges along z contain {}, {}, {}, {} nodes in {}, {}",
+                                                s0, s1, s2, s3, __FILE__, __func__));
             }
             s0 = edgea.size(); s1 = edgeb.size(); s2 = edgec.size(); s3 = edged.size();
             if ((s1 != s0) || (s2 != s0) || (s3 != s0)) {
-                printf("error - horizontal corner (along x) node counts do not match\n");
-                exit(1);
+                throw std::runtime_error(fmt::format("Periodic edges along x contain {}, {}, {}, {} nodes in {}, {}",
+                                                s0, s1, s2, s3, __FILE__, __func__));
             }
             s0 = edgeA.size(); s1 = edgeB.size(); s2 = edgeC.size(); s3 = edgeD.size();
             if ((s1 != s0) || (s2 != s0) || (s3 != s0)) {
-                printf("error - horizontal corner (along y) node counts do not match\n");
-                exit(1);
+                throw std::runtime_error(fmt::format("Periodic edges along y contain {}, {}, {}, {} nodes in {}, {}",
+                                                s0, s1, s2, s3, __FILE__, __func__));
             }
         }// end dummy scope
         // set corner nodes
@@ -682,7 +653,7 @@ void Geometry::makePeriEquNodes() {
 }// end void MakePEriEquNodes()
 
 void Geometry::checkForPeriodicGeometry() {
-    std::cout << "initialising periodic surfaces" << std::endl;
+    Log::info("Initialising peridioc surfaces");
     // CHECKS FOR TYPES OF PERIODICITY PRESENT IN CURRENT STRUCTURE.
     // POSSIBLE PERIODIC SURFACES ARE:
     //      LEFT/RIGHT
@@ -702,8 +673,8 @@ void Geometry::checkForPeriodicGeometry() {
                     if (fabs(fabs(snorm[2]) - 1.0) < EPS) {
                         top_bottom_is_periodic = true;
                     } else {
-                        printf("error - checkForPeriodicGeometry() - periodic surface element %i has invalid normal:\n [%f, %f, %f] - bye!\n", i, snorm[0] , snorm[1], snorm[2]);
-                        exit(1);
+                        throw std::runtime_error(fmt::format("Periodic surface element {} has invalid normal [{}, {}, {}] in {}, {}.",
+                                                        i, snorm[0], snorm[1], snorm[2], __FILE__, __func__ ));
                     }
             // IF ALL SURFACES HAVE ALREADY BEEN IDENTIFIED AS PERIODIC
             // NO NEED TO CHECK FURTHER TRIANGLES
@@ -727,13 +698,17 @@ void Geometry::makeRegularGrid(const size_t &nx,
                                const size_t &nz) {
     // CREATES REUGLAR GRID OBJECT USED FOR INTERPOLATING VALUES FROM
     // TETRAHEDRAL MESH ONTO REGULARLY SPACED GRID
-    printf("generating regular grid lookup..."); fflush(stdout);
-    if (regularGrid) delete regularGrid;
-    regularGrid = new RegularGrid();
-    if (!nx || !ny || !nz)      // IF NO REGULAR GRID SIZE IS DEFINED. DONT MAKE ONE
+    if (nx == 0 || ny == 0 || nz == 0) {
         return;
+    }
+    Log::info("Generating regular grid lookup with grid size nx={}, ny={}, nz={}", nx, ny, nz);
+
+    if (regularGrid) {
+        delete regularGrid;
+    }
+    regularGrid = new RegularGrid();
+
     regularGrid->createFromTetMesh(nx, ny, nz, this);
-    printf("OK\n"); fflush(stdout);
 }
 
 bool Geometry::brute_force_search(unsigned int &ind,             // return index
@@ -759,69 +734,12 @@ bool Geometry::brute_force_search(unsigned int &ind,             // return index
     }// end for loop over all elems
     // IF COORDINATE WAS NOT FOUND APPLICATION MAY NEED TO BE TERMINATED
     if (terminateOnError) {
-        printf("error - brute_force_search could not find coord %f,%f,%f - bye ! \n", coord[0], coord[1], coord[2]);
-        exit(1);
+        throw std::runtime_error(fmt::format("Brute force search could not find coordinate at {}, {}, {} in {}, {}",
+                                             coord[0], coord[1], coord[2], __FILE__, __func__));
     }
     // SIGNAL A NON-FOUND COORDINATE BY RETURNING FALSE
     return false;
 }
-
-bool Geometry::getContainingTet(vector< set < unsigned int> > &p_to_t,
-                                double crd[3],  // coords to search
-                                unsigned int &t0) { // start tet
-    // TRIENS TO FIND INDEX TO TETRAHEDRON THAT CONTAINS THE POINT
-    // WITH CORRDINATES DEFINED IN crd. USING A NEIGHBOUR SEARCH.
-    // STARTS FROM INITIAL TET t0, AND ADVANCES TO ITS NEIGHBOUR WHOSE
-    // BARYCENTRE IS CLOSEST TO crd.
-    // SOMETIMES THIS FAILS AND A BRUTE FORCE SEARCH MAY BE NEEDED
-    bool found = false;
-    unsigned int t_prev = t->getnElements();
-    for (size_t i = 0 ; i < (size_t) t->getnElements() ; i++) { // for all elements
-        if (t->ContainsCoordinate(t0, p , crd)) {    // if element t0 contains coordinate
-            found = true;
-            break;
-        }
-        set<unsigned int> :: iterator nitr;
-        set<unsigned int> setneighs;
-        vector <unsigned int> vecneighs;
-        // make UNIQUE list of all tets sharing nodes with t0
-        setneighs.insert(p_to_t[ t->getNode(t0, 0) ].begin(), p_to_t[ t->getNode(t0, 0) ].end());
-        setneighs.insert(p_to_t[ t->getNode(t0, 1) ].begin(), p_to_t[ t->getNode(t0, 1) ].end());
-        setneighs.insert(p_to_t[ t->getNode(t0, 2) ].begin(), p_to_t[ t->getNode(t0, 2) ].end());
-        setneighs.insert(p_to_t[ t->getNode(t0, 3) ].begin(), p_to_t[ t->getNode(t0, 3) ].end());
-        // MAKE RANDOM ACCESS COPY OF UNIQUE NEIGHBOUR LIST
-        vecneighs.insert(vecneighs.end(), setneighs.begin(), setneighs.end());
-        // CALCULATE DISTANCES FOR EACH NEIGBOUR
-        vector <double > dst;
-        for (unsigned int d = 0 ; d < vecneighs.size() ; d++) {
-            dst.push_back(t->CalcBaryDistSqr(p , vecneighs[d], crd));
-        }
-        // FIND INDEX TO MINIMUM DISTANCE AND SET t0 TO THAT
-        unsigned int ind_min = min_element(dst.begin(), dst.end()) - dst.begin();
-        t_prev = t0;
-        t0 = vecneighs[ind_min];
-        // SEARCH MAY GET STUCK WHEN POINT IS CLOSE TO A CORNER NODE OF A LONG THIN
-        // TET CONTAINING THE COORD. IN THAT CASE, THE BARYCENTRE OF A NEIGHBORING
-        // TET MAY BE CLOSER -> SEARCH WILL NOT FIND THE ACTUAL TET
-        if (t_prev == t0) { // IF STUCK, TRY ALL NEIGHBOURS IN ORDER OF DISTANCE
-            dst[ind_min] = DBL_MAX; // SET CURRENT t0 TO MAXIMUM POSSIBLE DISTANCE AS DEFINED IN <float.h>
-            for (size_t ind = 0 ; ind < vecneighs.size() ; ind++) { // LOOP OVER ALL NEIGHBOURS
-                ind_min = min_element(dst.begin(), dst.end()) - dst.begin();  // refind new closest value
-                if (t->ContainsCoordinate(vecneighs[ind_min], p, crd)) {      // If contains coordinate
-                    found = true;
-                    t0 = vecneighs[ind_min];
-                    break;
-                } else {
-                    dst[ind_min] = DBL_MAX; // STILL NOT FOUND?, TRY AGAIN WITH TET THAT IS NEXT CLOSEST
-                }
-            }// end for all neighbours
-            // IF REALLY STUCK EXIT AND TEST USING BRUTE FORCE
-            break;
-        } // end if stuck
-    }// end for all tets
-    return found;
-}
-
 
 size_t Geometry::recursive_neighbour_search(double crd[3],
         const vector<set<unsigned int> > &p_to_t,
@@ -963,8 +881,8 @@ void Geometry::genIndToTetsByCoords(vector<unsigned int> &ind,   // return index
                 ind[n] = bfind;
             } else { // BRUTE FORCE FAIL IS ALLOWED (NODE MAY BE OUTSIDE MESH)
                 ind[n] = Geometry::NOT_AN_INDEX; // MARK INDEX AS INVALID
-                cout << "could not find regular grid point " << n << "in tetrahedral mesh. Continuing" << endl;
-                cout << crd[0] << ", " << crd[1] << ", " << crd[2] << endl;
+                Log::info("Could not find regular grid point {} at ({}, {}, {}) in volume mesh. "
+                          "Assuming it is outside the mesh and continuing.", n, crd[0], crd[1], crd[2]);
             }
         }
     }// end for each coord
@@ -975,19 +893,19 @@ double *Geometry::getPtrTop()   {
 }
 double Geometry::getpX(int i) const {
 #ifdef DEBUG
-    isValidNodeIndex(i);
+    assert(i < np);
 #endif
     return p[i * 3 + 0];
 }
 double Geometry::getpY(int i) const {
 #ifdef DEBUG
-    isValidNodeIndex(i);
+    assert(i < np);
 #endif
     return p[i * 3 + 1];
 }
 double Geometry::getpZ(int i)   const {
 #ifdef DEBUG
-    isValidNodeIndex(i);
+    assert(i < np);
 #endif
     return p[i * 3 + 2];
 }
@@ -1007,31 +925,6 @@ double Geometry::getAbsDistSqr(const unsigned int i, const double *const coord) 
     return ((pp[0] - coord[0]) * (pp[0] - coord[0]) +
             (pp[1] - coord[1]) * (pp[1] - coord[1]) +
             (pp[2] - coord[2]) * (pp[2] - coord[2])) ;
-}
-
-size_t Geometry::getTotalSize() {
-    size_t size_p = np * 3 * sizeof(double);
-    size_t size_NodeNormals = np * 3 * sizeof(double);
-    // Tetrahedra mesh
-    size_t sze_t_Elem = this->t->getnElements() * this->t->getnNodes() * sizeof(int);
-    size_t sze_t_Mat  = this->t->getnElements() * sizeof(int);
-    size_t sze_t_Det  = this->t->getnElements() * sizeof(double);
-    // Triangle mesh
-    size_t sze_e_Elem = this->e->getnElements() * this->e->getnNodes() * sizeof(int);
-    size_t sze_e_Mat  = this->e->getnElements() * sizeof(int);
-    size_t sze_e_Det  = this->e->getnElements() * sizeof(double);
-    size_t sze_e_Con  = this->e->getnElements() * sizeof(int);
-    size_t sze_e_Norm = this->e->getnElements() * 3 * sizeof(double);
-    int MB = 1048576;
-    printf("size/MB : \np = %i\nNodeNormals=%i\n", (int) size_p / MB, (int) size_NodeNormals / MB);
-    printf("t Elements %i\n Mat %i\n Det %i\n", (int) sze_t_Elem / MB, (int) sze_t_Mat / MB, (int)sze_t_Det / MB);
-    printf("e Elements %i\n Mat %i\n Det %i\n Con %i\n Norm %i\n", (int)sze_e_Elem / MB ,
-           (int) sze_e_Mat / MB, (int) sze_e_Det / MB, (int)sze_e_Con / MB, (int)sze_e_Norm / MB);
-    size_t sze_total =  size_p + size_NodeNormals +
-                        sze_t_Elem + sze_t_Mat + sze_t_Det +
-                        sze_e_Elem + sze_e_Mat + sze_e_Det + sze_e_Con + sze_e_Norm;
-    printf("Total Size = %i\n", (int) sze_total / MB);
-    return sze_total;
 }
 
 bool Geometry::getleft_right_is_periodic() {
@@ -1075,44 +968,10 @@ double Geometry::getZmax()  {
     return Zmax;
 }
 
-void Geometry::PrintNodes() {
-    printf("printting %i nodes:\n", getnp());
-    for (unsigned int i = 0 ; i < getnp() ; i ++) {
-        printf("\t%u = [%f,%f,%f]\n", i , getpX(i) , getpY(i) , getpZ(i));
-    }
-}
-void Geometry::PrintNode(unsigned int i) {
-    printf("node %u = [%f,%f,%f]\n", i , getpX(i) , getpY(i) , getpZ(i));
-}
-void Geometry::PrintPeriodicNodes() {
-    for (unsigned int i = 0 ; i < periNodes_.size() ; i++)
-        cout << "periNodes_[" << i << "] = " << periNodes_[i] << endl;
-}
-
-void Geometry::getTetBaryCentre(double *x, const unsigned int &it) {
-    x[0] = 0; x[1] = 0; x[2] = 0;
-    unsigned int nn = this->t->getnNodes();
-    for (unsigned int i = 0 ; i < nn ; i++) {  // sums all coords or element it
-        unsigned int n = this->t->getNode(it, i);
-        x[0] += this->getpX(n);
-        x[1] += this->getpY(n);
-        x[2] += this->getpZ(n);
-    }
-    x[0] /= (double)nn; // = average x,y,z-coords
-    x[1] /= (double)nn;
-    x[2] /= (double)nn;
-}
-void Geometry::isValidNodeIndex(const unsigned int &i) const {
-// DEBUG ASSERTION TO MAKE SURE A VALID NODE IS ACCESSED
-    if (i > (unsigned int) np) {
-        std::cout << "error, requesting node " << i << " , when np is: " << np << " - bye!" << std::endl;
-        exit(1);
-    }
-}
 void Geometry::genIndWeakSurfaces(Alignment &alignment) {
     // GENERATES INDEX TO WEAK SURFACE ELEMENTS
     // FIRST MAKE TEMPORARY VECTOR OF WEAK SURFACES
-    std::cout << "creating index to " << alignment.getnSurfaces() << " alignment surfaces" << std::endl;
+    Log::info("Creating index to {} alignment surface.", alignment.getnSurfaces());
     std::vector<size_t> ws;
     for (idx i = 0 ; i < (idx) e->getnElements() ; i++) {
         int FixLCNum = e->getFixLCNumber((int) i); // MATERIAL NUMBER / FIXLC1
@@ -1130,30 +989,6 @@ void Geometry::genIndWeakSurfaces(Alignment &alignment) {
     }
 }
 
-
-bool Geometry::checkForOverlapingNodes() {
-    //bool isOK = true;
-    double mindist = 100000000;
-    unsigned int mini = 0 , minj = 0;
-    for (unsigned int i = 0 ; i < (unsigned int) this->getnp() ; i++) {
-        for (unsigned int j = i ; j < (unsigned int) this->getnp() ; j++) {
-            double *pi = getPtrTop() + j * 3;
-            if (i != j) {
-                double dist = getAbsDistSqr(i, pi);
-                if (dist < mindist) {
-                    mindist = dist;
-                    mini = i;
-                    minj = j;
-                }
-                //printf("dist %i - %i = %e\n", i,j,dist);
-            }
-        }
-    }
-    printf("mindist = %e, i,j = %u,%u \n", mindist, mini, minj);
-    this->PrintNode(mini);
-    this->PrintNode(minj);
-    return false;
-}
 void Geometry::countNodeReferences(vector <int> &refc, Mesh &mesh) {
     refc.clear();
     refc.reserve((size_t) this->getnp());

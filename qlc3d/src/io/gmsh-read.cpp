@@ -6,7 +6,8 @@
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
-
+#include <util/logging.h>
+#include <util/exception.h>
 
 using namespace std;
 
@@ -22,10 +23,6 @@ void GmshFileReader::split(const string &str, const string &pattern, vector<stri
 
         pos = end + 1;
     }
-}
-
-void GmshFileReader::log(const string &str) const {
-    cout << str << endl;
 }
 
 /**
@@ -96,12 +93,9 @@ std::vector<unsigned int> GmshPhysicalNamesMapper::maptTetrahedraNamesToMaterial
     return tetrahedraMaterialsOut;
 }
 
-std::runtime_error GmshFileReader::fileReadException(const std::string &message) {
-    return runtime_error("error reading line " + to_string(_lineNumber) + " of file " + _fileName + " : " + message);
-}
-
 std::unique_ptr<SectionMeshFormat> GmshFileReader::readMeshFormat() {
-    log("reading mesh format");
+    Log::info("Reading mesh format");
+
     string line;
     readLine(line);
 
@@ -114,14 +108,14 @@ std::unique_ptr<SectionMeshFormat> GmshFileReader::readMeshFormat() {
 
     readLine(line);
     if (line.find("$EndMeshFormat")) {
-        throw fileReadException("expected $EndMeshFormat, but found "  + line);
+        RUNTIME_ERROR("Expected $EndMeshFormat, but found " + line)
     }
 
     return std::make_unique<SectionMeshFormat>(fileVersion, fileType, dataSize);
 }
 
 std::unique_ptr<SectionPhysicalNames> GmshFileReader::readPhysicalNames() {
-    log("reading physical names");
+    Log::info("Reading physical names.");
     string line;
     vector<string> splits;
 
@@ -149,19 +143,19 @@ std::unique_ptr<SectionPhysicalNames> GmshFileReader::readPhysicalNames() {
                        [](unsigned char c) { return std::tolower(c); });
 
         if (qlc3d::MATERIAL_NUMBER_BY_NAME.count(physicalName) == 0) {
-            throw fileReadException("physical name = \"" + physicalName + "\" not recognised");
+            RUNTIME_ERROR("Physical name = \"" + physicalName + "\" not recognised.")
         }
 
         materials[physicalTag] = physicalName;
     }
 
-    throw fileReadException("expected $EndPhysicalNames tag");
+    RUNTIME_ERROR("Expected $EndPhysicalNames tag.")
 }
 
 std::unique_ptr<SectionEntities> GmshFileReader::readEntities() {
     // Entities are points, lines, faces, and volumes of the geometry. They
     // are different from nodes and elements of the mesh.
-    log("reading entities");
+    Log::info("Reading entities.");
     string line;
     vector<string> splits;
 
@@ -218,7 +212,7 @@ std::unique_ptr<SectionEntities> GmshFileReader::readEntities() {
     // the next line should indicate end of entities
     readLine(line);
     if (line.find("$EndEntities") == string::npos) {
-        throw fileReadException("expected $EndEntities tag");
+        RUNTIME_ERROR("Expected $EndEntities tag.")
     }
     return std::make_unique<SectionEntities>(numPoints, numCurves, numSurfaces, numVolumes,
                                              std::move(surfaceTags),
@@ -236,14 +230,14 @@ std::unique_ptr<SectionNodes> GmshFileReader::readNodes() {
     size_t numNodes = stoul(splits[1]);
     size_t minNodeTag = stoul(splits[2]);
     size_t maxNodeTag = stoul(splits[3]);
-    log("reading " + to_string(numNodes) + " nodes");
+    Log::info("Reading {} nodes.", numNodes);
 
     if (minNodeTag != 1) {
-        throw fileReadException("expected minNodeTag = 1 , got " + to_string(minNodeTag));
+        RUNTIME_ERROR("Expected minNodeTag = 1, got " + to_string(minNodeTag))
     }
 
     if (maxNodeTag != numNodes) {
-        throw fileReadException("expected maxNodeTag = " + to_string(numNodes) + ", got " + to_string(maxNodeTag));
+        RUNTIME_ERROR(fmt::format("Expected maxNodeTag = {}, got {}.", numNodes, maxNodeTag))
     }
 
     // read the actual coordinate values
@@ -271,11 +265,11 @@ std::unique_ptr<SectionNodes> GmshFileReader::readNodes() {
     }
 
     // no end of Nodes section tag found
-    throw fileReadException("expected $EndNodes tag");
+    RUNTIME_ERROR("Expected $EndNodes tag.")
 }
 
 std::unique_ptr<SectionElements> GmshFileReader::readElements() {
-    log("reading elements");
+    Log::info("Reading elements.");
     string line;
     vector<string> splits;
 
@@ -288,10 +282,10 @@ std::unique_ptr<SectionElements> GmshFileReader::readElements() {
     size_t maxElementTag = stoul(splits[3]);
 
     if (minElementTag != 1) {
-        throw fileReadException("expected minElementTag = 1, got " + to_string(minElementTag));
+        RUNTIME_ERROR(fmt::format("Expected minElementTag = 1, got {}.", minElementTag))
     }
     if (maxElementTag != numElements) {
-        throw fileReadException("expected maxElementTag = " + to_string(numElements) + ", got " + to_string(maxElementTag));
+        RUNTIME_ERROR(fmt::format("Expected maxElementTag = {}, got {}.", numElements, maxElementTag))
     }
 
     // Read the rest of the $Elements section
@@ -304,7 +298,7 @@ std::unique_ptr<SectionElements> GmshFileReader::readElements() {
         if (line.find("$EndElements") == 0) {
             size_t numTriangles = triangles.size() / 3;
             size_t numTetrahedra = tetrahedra.size() / 4;
-            log("triangles count = " + to_string(numTriangles) + " tetrahedra count = " + to_string(numTetrahedra));
+            Log::info("Triangles count = {}, tetrahedra count = {}.", numTriangles, numTetrahedra);
 
             return make_unique<SectionElements>(
                     triangles.size() / 3,
@@ -317,7 +311,7 @@ std::unique_ptr<SectionElements> GmshFileReader::readElements() {
 
         split(line, " ", splits);
         if (splits.size() != 4) {
-            throw fileReadException("expected element block descriptor with 4 values, got " + to_string(splits.size()) + " values");
+            RUNTIME_ERROR("Expected element block descriptor with 4 values, got " + to_string(splits.size()) + " values.")
         }
 
         // int entityDim = stoi(splits[0]); // 1, 2, or 3
@@ -331,7 +325,7 @@ std::unique_ptr<SectionElements> GmshFileReader::readElements() {
             if (elementType == SectionElements::ELEMENT_TYPE_TRIANGLE_3_NODES) {
                 split(line, " ", splits);
                 if (splits.size() != 4) {
-                    throw fileReadException("expected 4 values when reading triangle element, got " + to_string(splits.size()));
+                    RUNTIME_ERROR("Expected 4 values when reading triangle element, got " + to_string(splits.size()) + ".")
                 }
                 triangles.push_back(stoul(splits[1]) - 1);
                 triangles.push_back(stoul(splits[2]) - 1);
@@ -340,7 +334,7 @@ std::unique_ptr<SectionElements> GmshFileReader::readElements() {
             } else if (elementType == SectionElements::ELEMENT_TYPE_TETRAHEDRON_4_NODES) {
                 split(line, " ", splits);
                 if (splits.size() != 5) {
-                    throw fileReadException("expected 5 values when reading tetrahedron element, got " + to_string(splits.size()));
+                    RUNTIME_ERROR("Expected 5 values when reading tetrahedron element, got " + to_string(splits.size()) + ".")
                 }
                 tetrahedra.push_back(stoul(splits[1]) - 1);
                 tetrahedra.push_back(stoul(splits[2]) - 1);
@@ -354,7 +348,7 @@ std::unique_ptr<SectionElements> GmshFileReader::readElements() {
     }
 
     // no end of Elements section tag found
-    throw fileReadException("expected $EndElements tag");
+    RUNTIME_ERROR("Expected $EndElements tag")
 }
 
 bool GmshFileReader::readLine(std::string &line) {
@@ -367,7 +361,7 @@ std::shared_ptr<GmshFileData> GmshFileReader::readGmsh(const string &fileName) {
     _lineNumber = 0;
 
     if (!std::filesystem::exists(fileName)) {
-        throw std::invalid_argument("no such mesh file " + fileName);
+        RUNTIME_ERROR("No such mesh file " + fileName + ".")
     }
     _fin.open(fileName);
 
@@ -397,19 +391,19 @@ std::shared_ptr<GmshFileData> GmshFileReader::readGmsh(const string &fileName) {
 
     // Check that all required sections were loaded
     if (data->getMeshFormat() == nullptr) {
-        throw fileReadException("No $MeshFormat section found");
+        RUNTIME_ERROR("No $MeshFormat section found")
     }
 
     if (data->getPhysicalNames() == nullptr) {
-        throw fileReadException("No $PhysicalNames section found");
+        RUNTIME_ERROR("No $PhysicalNames section found")
     }
 
     if (data->getNodes() == nullptr) {
-        throw fileReadException("No $Nodes section found");
+        RUNTIME_ERROR("No $Nodes section found")
     }
 
     if (data->getElements() == nullptr) {
-        throw fileReadException("No $Elements section found");
+        RUNTIME_ERROR("No $Elements section found.")
     }
 
     return data;

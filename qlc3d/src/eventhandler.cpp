@@ -3,6 +3,7 @@
 #include <qlc3d.h>
 #include <simulation-state.h>
 #include <filesystem>
+#include <util/logging.h>
 
 void handleElectrodeSwitching(Event *currentEvent,
                               Electrodes &electr,
@@ -46,7 +47,7 @@ void handleResultOutput(SimulationState &simulationState,
     double *director(NULL); // TODO: use vector
     set<Simu::SaveFormats> saveFormats = simu.getSaveFormat();
 
-    // determine the iteration counter part of output filename.
+    // determine the iteration counter part of output filename. TODO: use libformat for this
     char numberChar[9];
     sprintf(numberChar, "%08d", simulationState.currentIteration());
     string fileNameNumber(numberChar);
@@ -122,14 +123,12 @@ void handleResultOutput(SimulationState &simulationState,
     }
 
     if (saveFormats.count(Simu::CsvUnstructured)) {
-        cout << "CsvUnstructured" << endl;
         std::string filename = "unstructured.csv." + std::to_string(simulationState.currentIteration());
         ResultIO::writeCsvUnstructured(geom.getPtrTop(), v, q, filename);
     }
 
     if (saveFormats.count(Simu::VTKUnstructuredAsciiGrid)) {
         std::string fileName = "unstructured" + fileNameNumber + ".vtk";
-        cout << "VtkUnstructuredAsciiGrid " << fileName << endl;
 
         if (!director) {
             director = tensortovector(q.Values, geom.getnpLC());
@@ -197,8 +196,7 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
                 refineMesh = true;
                 break;
             default:
-                printf("error in %s, unknown event type - bye !\n", __func__);
-                exit(1);
+                throw std::runtime_error(fmt::format("Unknown event type in {}, {}.", __FILE__, __func__));
         }
     }
     if (refineMesh) {
@@ -317,8 +315,7 @@ void handleEvents(EventList &evel,
                 refEvents.push_back(currentEvent);
                 break;
             default:
-                printf("error in %s, unknown event type - bye !\n", __func__);
-                exit(1);
+                throw std::runtime_error(fmt::format("Unknown event type in {}, {}", __FILE__, __func__));
         }
     }
 

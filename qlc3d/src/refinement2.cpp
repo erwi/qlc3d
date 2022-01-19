@@ -4,7 +4,7 @@
 #include <line.h>
 #include <vector>
 #include <qlc3d.h>
-#include <globals.h>
+#include <util/logging.h>
 
 #include <spamtrix_ircmatrix.hpp>
 #include <spamtrix_matrixmaker.hpp>
@@ -61,7 +61,7 @@ void create_new_coordinates( Geometry& geom,
         double xn = ( x1 + x2 ) / 2.0;
         double yn = ( y1 + y2 ) / 2.0;
         double zn = ( z1 + z2 ) / 2.0;
-        //printf( "new %f %f %f\n", xn, yn, zn);
+
         new_p.push_back( xn );
         new_p.push_back( yn );
         new_p.push_back( zn );
@@ -123,16 +123,13 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
     unodes.insert( lines[*itr].L[1] );
     no.insert( no.end() , unodes.begin() , unodes.end() ); // unique nodes
 
-
     // CHECK FOR NUMBER OF UNIQUE NODES RECOVERED FROM LINES
     // THIS DETERMINES WHETHER THIS IS green2a OR green2b
     idx nunique = (idx) unodes.size();
     idx* tet	= new idx[nunique * 4];
     idx* mat	= new idx[nunique];
 
-    if ( nunique == 4 ){
-        //cout << "TET 2 B" << endl;
-
+    if ( nunique == 4 ) {
         // RESET OLD NODES FROM LINES. THIS PRESERVES A-B, C-D NODE NUMBERING
         // OTHERWISE NONEXISTENT BC, AD etc. LINES MIGHT BE ATTEMPTED
         itr = t_to_l[elem].begin();
@@ -175,10 +172,7 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
 
     }
     else
-	if ( nunique == 3 ){
-            //cout << "TET2A"<< endl;
-            //geom.t->CompleteNodesSet( elem , no ); // ADD MISSING FOURTH NODE nD from TET
-
+	if ( nunique == 3 ) {
             // CONDITIONS
             // nA is shared node
             // nB < nC
@@ -198,7 +192,6 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
             // FIND REPEATING VALUE
             sort( nodes.begin(), nodes.end() );
 
-            //printf("nodes = %u,%u,%u,%u\n", nodes[0], nodes[1], nodes[2], nodes[3] );
             vector< unsigned int> ::iterator rep = adjacent_find( nodes.begin(), nodes.end() );
             nA = *rep; // SHARED NOD = nA
 
@@ -209,7 +202,6 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
             nC = nodes[0] > nodes[1]? nodes[0]:nodes[1]; // return larger
 
             geom.t->CompleteNodesSet( elem, no);
-            //printf("n = %u, %u, %u, %u\n", nA, nB, nC, nD);
 
             nn.push_back((unsigned int) nnodes.sparse_get(nA, nB) ); // <-
             nn.push_back((unsigned int) nnodes.sparse_get(nA, nC) ); // <-
@@ -234,9 +226,8 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
             mat[1] = m;
             mat[2] = m;
 	}
-	else{
-            cout << "tet green2 has " << no.size() << "nodes - bye!" << endl;
-            exit(1);
+	else {
+        throw std::runtime_error(fmt::format("tet green2 has {} nodes in {}, {}.", no.size(), __FILE__, __func__));
 	}
 
     // add to 'global' new element and material lists
@@ -245,9 +236,6 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
 
     delete [] tet;
     delete [] mat;
-    //cout << "tet2, unique nodes :" << no.size() << endl;
-
-
 }
 
 void make_new_red_tet( vector <idx>& new_t,
@@ -261,7 +249,6 @@ void make_new_red_tet( vector <idx>& new_t,
 
     lines.begin(); // silence compiler warnings
     t_to_l.begin(); // NO WARNINGS
-
 
     // GENERATE LIST OF OLD AND NEW NODES
     vector <unsigned int> no;// old
@@ -315,8 +302,7 @@ void make_new_green3_tet( vector <idx>& new_t,
         un.insert( lines[*itr].L[1] );
     }
     if (un.size() != 3) {
-        cout << "error, three nodes expected - bye !" << endl;
-        exit(1);
+        throw std::runtime_error(fmt::format("Expected three nodes but got {} in {}, {}.", un.size(), __FILE__, __func__ ));
     }
     no.insert( no.end() , un.begin() , un.end() );
 
@@ -327,7 +313,7 @@ void make_new_green3_tet( vector <idx>& new_t,
     nn.push_back( (unsigned int) nnodes.sparse_get(nA, nC) ); // AC <-
     nn.push_back( 0 ); // dummy AD
     nn.push_back( (unsigned int) nnodes.sparse_get(nB, nC) ); // BC <-
-    //printf("newn = %u, %u, %u, %u", nAB, nAC, nAD, nBC);
+
     // MAKE 4 NEW TETS
     unsigned int tet[4*4] = { nA, nD, nAB, nAC,
                               nB, nD, nAB, nBC,
@@ -398,16 +384,12 @@ void make_new_tri2(vector <idx>& new_e,
     set <unsigned int> nu; // unique, sorted old nodes
     set <unsigned int> ::iterator iter;
     iter = e_to_l[ elem ].begin();
-    //printf("num lines %i\n", e_to_l[elem].size() );
-
 
     nu.insert( lines[*iter].L[0] );
     nu.insert( lines[*iter].L[1] );
     ++iter;
     nu.insert( lines[*iter].L[0] );
     nu.insert( lines[*iter].L[1] );
-
-
 
 #ifdef DEBUG
     if (nu.size() != 3 ){

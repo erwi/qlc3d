@@ -2,6 +2,7 @@
 #include <sstream>
 #include <algorithm>
 #include <cassert>
+#include <util/logging.h>
 
 //<editor-fold RefInfo>
 void RefInfo::setType(std::string s) {
@@ -20,8 +21,7 @@ void RefInfo::setType(std::string s) {
         _type = Box;
         return;
     } else {
-        std::cout << "error - bad refinement type: " << s << " bye!" << std::endl;
-        exit(1);
+        throw std::invalid_argument(fmt::format("Unknown refinement type {}", s));
     }
 }
 void RefInfo::setRefIter() {
@@ -46,8 +46,7 @@ void RefInfo::setRefIter() {
             break;
         }
         default:
-            printf("error in %s, unhandled refinement type - bye\n", __func__);
-            exit(1);
+            throw std::runtime_error(fmt::format("Unhandled refinement type in {}, {}", __FILE__, __func__));
     }
 }
 
@@ -98,13 +97,11 @@ double RefInfo::getValue(const size_t i) const {
 }
 
 void RefInfo::validate(const RefInfo &refinfo) {
-#define ERRORMSG printf("\n\nerror, bad or missing REFINEMENT data - bye!\n")
     switch (refinfo.getType()) {
         case (RefInfo::Change):
             // MAKE SURE VALUES EXIST
-            if (!refinfo._values.size()) {
-                ERRORMSG;
-                exit(1);
+            if (refinfo._values.empty()) {
+                throw std::invalid_argument("Refinement values field not set.");
             }
             break;
         case (RefInfo::Sphere): {
@@ -113,8 +110,7 @@ void RefInfo::validate(const RefInfo &refinfo) {
                 (!refinfo._x.size()) ||
                 (!refinfo._y.size()) ||
                 (!refinfo._z.size())) {
-                ERRORMSG;
-                exit(1);
+                throw std::invalid_argument("Refinement values or x, y, z bounds fields not set.");
             }
             break;
         }
@@ -126,29 +122,23 @@ void RefInfo::validate(const RefInfo &refinfo) {
             if ((!numx) ||  // COORDINATES MUST BE DEFINED
                 (!numy) ||
                 (!numz)) {
-                ERRORMSG;
-                exit(1);
+                throw std::invalid_argument("Refinement x, y, z bounds fields not set.");
             }
             if ((numx != numy) ||   // EQUAL NUMBER OF COORDS. DEFINED
                 (numx != numz)) {
-                ERRORMSG;
-                exit(1);
+                throw std::invalid_argument("Refinement x, y, z bounds size mismatch.");
             }
             if ((numx % 2 != 0) || // TWO COORDS PER BOX
                 (numy % 2 != 0) ||
                 (numz % 2 != 0)) {
-                ERRORMSG;
-                exit(1);
+                throw std::invalid_argument("Unexpected refinement x, y, z bounds sizes.");
             }
             break;
         }
         case (RefInfo::None):
-            printf("RefInfo type is None - bye!");
-            exit(1);
-            break;
+            throw std::runtime_error(fmt::format("RefInfo typw is None in {}, {}.", __FILE__, __func__ ));
         default:
-            printf("error in %s, unknonwn refinement type - bye!\n", __func__);
-            exit(1);
+            throw std::runtime_error(fmt::format("Unhandled refinement type in {}, {}.", __FILE__, __func__));
     }
 }
 

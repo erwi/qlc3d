@@ -61,10 +61,6 @@ private:
                            const lookup& L,
                            const idx npLC) const;
 
-
-    void printLookup(const lookup& lu) const;
-    void validateLookupVector();    // CHECKS THAT A VALID LOOKUP VECTOR EXISTS
-
     // CONVERSION FROM LINEAR INDEXING WHICH IS USED TO STORE ALL LOOKUP STRUCTS
     // IN A VECTOR TO POSITIONAL INDEXING GINVING THE GRID POINT POSITION IN
     // X,Y,Z DIMENSIONS

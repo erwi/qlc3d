@@ -1,5 +1,7 @@
 
 #include <regulargrid.h>
+#include <util/logging.h>
+#include <util/exception.h>
 
 const idx RegularGrid::NOT_AN_INDEX = std::numeric_limits<idx>::max();
 const idx RegularGrid::MAX_SIZE_T = std::numeric_limits<idx>::max();
@@ -291,176 +293,82 @@ void RegularGrid::interpolateDirNode(const double* vecin,
 
 }
 
-
-
-
-void RegularGrid::printLookup(const lookup &lu) const
-{
-    std::cout << "Type: "<< lu.type << std::endl;
-    std::cout << "ind: "<<lu.ind[0]<<", "<<lu.ind[1]<<", "<<lu.ind[2]<<", "<<lu.ind[3]<<std::endl;
-    std::cout << "weight: "<<lu.weight[0]<<", "<<lu.weight[1]<<", "<<lu.weight[2]<<", "<<lu.weight[3]<<std::endl;
-}
-
 void RegularGrid::interpolateToRegular(const double *valIn,
                                        double *&valOut,
-                                       const idx np)
-
-{
+                                       const idx np) {
     // INTERPOLATES A VARIABLE TO REGULAR GRID
-    if (!npr_)
-    {
-        printf("error in %s, Regular grid doesn't seem to be initialised.\n", __func__);
-        printf("grid count in x,y,z is %u, %u, %u - bye!\n", this->nx_, this->ny_, this->nz_);
-        exit(1);
+    if (!npr_) {
+        RUNTIME_ERROR("Regular grid is not initialised.");
     }
 
-    for ( idx i = 0 ; i < lookupList.size() ; i++ )
-    {
+    for (idx i = 0; i < lookupList.size(); i++ ) {
         lookup L = lookupList[i];
 
-        // IF TRYING TO INTEPOLATE LC PARAM TO A NON-LC GRID NODE
-        if ( (L.type == RegularGrid::NOT_LC ) &&
-             (np < MAX_SIZE_T ) )
-        {
+        // If trying to interpolate to a non-LC region
+        if ((L.type == RegularGrid::NOT_LC) && (np < MAX_SIZE_T)) {
             valOut[i] = std::numeric_limits<double>::quiet_NaN(); // OUTPUTS NaN
         }
-        else
-        {
+        else {
             valOut[i] = interpolateNode( valIn, L);
         }
-
     }
 }
-
-
-
-
-
 
 void RegularGrid::interpolateDirToRegular(const double *vecIn,
                                           double *&vecOut,
-                                          const idx npLC)
-{
+                                          const idx npLC) {
     // INTERPOLATES DIRECTOR TO REGULAR GRID.
     // DOES DIRECTOR SWAPPING WITHIN ELEMENT TO MAKE SURE THAT
     // ALL ELEMENT ARE ORIENTED IN SAME(ISH) DIRECTION.
     // THIS IS NECESSARY TO MAINTAIN UNIT LENGTH OF DIRECTOR
     // DIRECTOR COMPONENTS ARE ORDERED AS nx,nx,nx..., ny,ny,ny... nz,nz,nz...
-    if (!npr_)
-    {
-        printf("error in %s, Regular grid doesn't seem to be initialised.\n", __func__);
-        printf("grid count in x,y,z is %u, %u, %u - bye!\n", this->nx_, this->ny_, this->nz_);
-        exit(1);
+    if (!npr_) {
+        throw std::runtime_error(fmt::format("Regular grid is not intialised in {}, {}", __FILE__, __func__ ));
     }
-    for ( idx i = 0 ; i < npr_ ; i++ )
-    {
-
+    for (idx i = 0; i < npr_; i++) {
         lookup L = lookupList[i];
 
-        // IF TRYING TO INTEPOLATE LC PARAM TO A NON-LC GRID NODE
-        if (L.type == RegularGrid::OK) // LC NODE
-        {
+        // If LC node
+        if (L.type == RegularGrid::OK) {
             double dir[3];
             interpolateDirNode( vecIn,dir,L, npLC);
             vecOut[i + 0*npr_] = dir[0];
             vecOut[i + 1*npr_] = dir[1];
             vecOut[i + 2*npr_] = dir[2];
         }
-        else
-            //if ( (L.type == RegularGrid::NOT_LC ) )
-        {
+        else {
             vecOut[i +0*npr_] = std::numeric_limits<double>::quiet_NaN();
             vecOut[i +1*npr_] = std::numeric_limits<double>::quiet_NaN();
             vecOut[i +2*npr_] = std::numeric_limits<double>::quiet_NaN();
         }
-
-        //else
-        //{
-        //    double dir[3];
-        //    interpolateDirNode( vecIn,dir,L, npLC);
-        //    vecOut[i + 0*npr_] = dir[0];
-        //    vecOut[i + 1*npr_] = dir[1];
-        //    vecOut[i + 2*npr_] = dir[2];
-        //}
-
     }
 }
 
-void RegularGrid::validateLookupVector()
-{
-    // VALIDATES LOOKUP VECTOR TO MAKE IT IS OK AND WON'T CAUSE
-    // TROUBLE LATER ON.
-    // TERMINATES PROGRAM AND TRIES TO PRINT INFO ON WHAT WENT WRONG
-    // IF LOOKUP VECTOR CONTAINS INVALID ENTRIES
-    using std::cout;
-    using std::endl;
-    for (idx i = 0 ; i < this->lookupList.size() ; ++i)
-    {
-        const lookup &L = lookupList[i];
-
-        if (L.type != OK)
-        {
-            cout << "\nerror in regular grid lookup table. \nEntry " << i << " not found\n"<<endl;
-
-            cout << "total number of regular grid points : " << npr_ << endl;
-            cout << "number of points in each direction : " << nx_ << ", " <<
-                    ny_ << ", " << nz_ << endl;
-
-            cout << "Grid bounds (min,max) :" << endl;
-            cout << "\t x: "<< xLimits_[0] << ", " << xLimits_[1] << endl;
-            cout << "\t y: "<< yLimits_[0] << ", " << yLimits_[1] << endl;
-            cout << "\t z: "<< zLimits_[0] << ", " << zLimits_[1] << endl;
-
-            idx ix, iy, iz;
-            this->linearToGridIndex(i, ix, iy, iz);
-            cout << "Point grid indexes (nx,ny,nz) :"<< ix <<", "
-                 << iy <<", " << iz << endl;
-            cout << "Point coordinates (x,y,z) : "<< getGridX(ix) << ", "<<
-                    getGridY(iy) << ", " << getGridZ(iz) << endl;
-
-            this->printLookup( L );
-
-
-            cout << "If values above look OK, try reducing the coordinate comparison accuracy"<< endl;
-            cout << "Current coordinate comparison accuracy is " << qlc3d_GLOBALS::GLOBAL_COORD_EPS << endl;
-
-
-            cout << "Otherwise, this may be due to a problem in the mesh - bye!" << endl;
-            exit(1);
-        }
-    }
-
-
-}
-
-
-
-
-
-
-
-
+/**
+ * Writes potential, director and order parameted to a VTK grid. TODO: this should be in part of a separate resul IO
+ * file/class
+ * @param filename
+ * @param pot
+ * @param n
+ * @param npLC
+ * @return
+ */
 bool RegularGrid::writeVTKGrid(const char *filename,
                                const double *pot,
                                const double *n,
-                               const idx npLC)
-{
+                               const idx npLC) {
 
-    // WRITES POTENTIAL, ORDER PARAMETER AND DIRECTOR ONTO VTK REGULAR GRID FILE
 
-    if (npr_ == 0 ){
-        printf("error in %s, Regular grid doesn't seem to be initialised.\n", __func__);
-        printf("grid count in x,y,z is %u, %u, %u - bye!\n", this->nx_, this->ny_, this->nz_);
-        exit(1);
+    if (npr_ == 0) {
+        throw std::runtime_error(fmt::format("Regular grid not initialised in {}, {}", __FILE__, __func__ ));
     }
 
     std::fstream fid;
     fid.open( filename, std::fstream::out );
 
-    if (!fid.is_open() ){    // EXIT IF COULDN'T OPEN FILE
+    if (!fid.is_open() ) {    // EXIT IF COULDN'T OPEN FILE // TODO: throw exception instead?
         return false;
     }
-
 
     double* regU = new double[ npr_ ];  // TEMPORARY STORAGE FOR INTERPOLATED VALUES
     double* regN = new double[ 3*npr_];
@@ -489,13 +397,12 @@ bool RegularGrid::writeVTKGrid(const char *filename,
     vtkIOFun::writeScalarData( fid , npr_, "S", regS);
 
     vtkIOFun::writeVectorData( fid, npr_, "director", regN, regN+npr_, regN+2*npr_);
-    printf("%s VTK\n", __func__); fflush(stdout);
+
     delete [] regU;
     delete [] regN;
     delete [] regS;
 
     return true;
-
 }
 
 
@@ -504,8 +411,7 @@ bool RegularGrid::writeVecMat(const char *filename,
                               const double *pot,
                               const double *n,
                               const idx npLC,
-                              const double time)
-{
+                              const double time) {
     // WRITES OUTPUT IN A MATLAB FILE.
     // VALUES ARE WRITTEN IN 2D MATRIXES, WHERE EACH ROW CORRESPONDS TO A
     // COLUMN OF VALUES Zmin->Zmax  IN THE MODELLED STRUCTURE
@@ -527,24 +433,18 @@ bool RegularGrid::writeVecMat(const char *filename,
     interpolateToRegular( S , regS, npLC );
     interpolateDirToRegular( n , regN, npLC );
 
-    //*
-    for (idx i = 0 ; i < npr_ ; i++)
-    {
-        if (regN[i]==regN[i])
-        {
+    for (idx i = 0 ; i < npr_ ; i++) {
+        if (regN[i]==regN[i]) {
             double nx = regN[i];
             double ny = regN[i+npr_];
             double nz = regN[i+2*npr_];
             double len = nx*nx + ny*ny + nz*nz;
 
-            if ( fabs( len-1.0 ) > 0.05)
-            {
-                printf("len[%i]  = %e\n", i, len);
-                exit(1);
+            if (fabs( len-1.0 ) > 0.05) {
+                throw std::runtime_error(fmt::format("Non-unit-length director detected in {}, {}.", __FILE__, __func__ ));
             }
         }
     }
-    //*/
 
     MatlabIOFun::writeNumberColumns(fid,
                                     "V",
@@ -566,7 +466,6 @@ bool RegularGrid::writeVecMat(const char *filename,
                                     "S",
                                     regS,
                                     nx_, ny_, nz_ );
-
 
     delete [] regU;
     delete [] regN;

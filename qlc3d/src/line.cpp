@@ -20,10 +20,7 @@ bool Line::operator ==( const Line& other) const {
     return false; // default
 }
 
-Line::Line(){
-    // cout << "error- Line::Line() should never be called. Use Line::Line( a, b ) instead - bye!" << endl;
-    // exit(1);
-}
+Line::Line() { }
 
 Line::Line(const int& a,const int& b){
     if (a<b) {

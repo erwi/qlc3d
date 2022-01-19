@@ -52,7 +52,7 @@ public:
         iteration(iter),
         eventData_(ed) {
     }
-    ~Event();
+    ~Event() noexcept(false);
 
     /** Create new unmanaged periodic mesh refinement event. It will need to be manually deleted!*/
     static Event* ofPeriodicMeshRefinement(RefInfo *refInfo);

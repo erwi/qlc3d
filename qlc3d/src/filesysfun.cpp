@@ -1,5 +1,6 @@
 #include <filesysfun.h>
-
+#include <util/exception.h>
+#include <util/logging.h>
 namespace FilesysFun
 {
 
@@ -99,58 +100,47 @@ bool copyFile(const std::string &srcFile,
 {
     // COPIES SOURCE FILE TO DESTINATION FILE
 
-    if ( !fileExists(srcFile) )
-    {
-        printf("error in %s %s, source file %s does not exist\n",__func__, __FILE__, srcFile.c_str() );
+    if ( !fileExists(srcFile) ) {
+        Log::warn("Source file {} does not exist.", srcFile);
         return false;
     }
 
     std::ifstream srcF(srcFile.c_str(), std::fstream::in | std::fstream::binary);
 
     // MAKE SURE OPENEND OK
-    if (!srcF.good() )
-    {
-        printf("error in %s, %s, could not open source file %s\n", __func__, __FILE__, srcFile.c_str() );
+    if (!srcF.good()) {
+        Log::warn("Could not open source file {}.", srcFile);
         srcF.close();
         return false;
     }
 
     // CHECK THAT OUTPUT DIR EXISTS
-    if ( !dirExists(dstDir) )
-    {
-        if (!createDirectory(dstDir) )
-        {
-            printf("error in %s, %s, could not create destination directory %s\n", __func__,
-                   __FILE__, dstDir.c_str() );
+    if ( !dirExists(dstDir) ) {
+        if (!createDirectory(dstDir) ) {
+            Log::warn("Could not create destination directory {}.", dstDir);
             srcF.close();
             return false;
         }
     }
 
-
     // OPEN OUTPUT FILE
     std::string fout = dstDir + "/";
-    if (dstFile.length() == 0 )
+    if (dstFile.length() == 0 ) {
         fout += srcFile;
-    else
+    } else {
         fout += dstFile;
+    }
 
     std::ofstream dstF(fout.c_str(), std::fstream::out |std::fstream::binary);
     // CHECK OPENEED OK
-    if ( !dstF.good() )
-    {
-        printf("error in %s, %s, could not create destination file %s\n",
-               __func__, __FILE__, fout.c_str() );
+    if ( !dstF.good() ) {
+        Log::warn("Could not create destination file {}.", fout);
         srcF.close();
         dstF.close();
         return false;
     }
-
-
     // WRITE DATA FROM SOURCE TO DESTINATION
     dstF << srcF.rdbuf();
-
-
     srcF.close();
     dstF.close();
     return true;

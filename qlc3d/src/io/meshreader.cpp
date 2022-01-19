@@ -1,7 +1,9 @@
 #include <io/meshreader.h>
 #include <io/gmsh-read.h>
 #include <filesystem>
-#include <iostream>
+#include <util/logging.h>
+#include <util/exception.h>
+
 using namespace std;
 
 /**
@@ -133,16 +135,16 @@ void MeshReader::readMesh(const std::string &fileName,
 
     switch (format) {
         case MeshFormat::GID_MESH:
-            cout << "reading GiD mesh from " << fileName << endl;
+            Log::info("Reading GiD mesh from {}.", fileName);
             ReadGiDMesh3D(fileName, pointsOut, numPointsOut, tetsOut, numTetsOut, trisOut, numTrisOut, tetMaterialsOut, triMaterialsOut);
             break;
         case MeshFormat::GMSH_ASCII:
-            cout << "reading Gmsh mesh from " << fileName << endl;
+            Log::info("Reading Gmsh mesh from {}", fileName);
             readGmsMesh(fileName, pointsOut, numPointsOut, tetsOut, numTetsOut, trisOut, numTrisOut, tetMaterialsOut, triMaterialsOut);
             break;
         case MeshFormat::UNKNOWN_FORMAT:
-            throw runtime_error("Could not determine mesh format of file " + fileName);
+            RUNTIME_ERROR(fmt::format("Could not determine mesh format of file {}.", fileName))
         default:
-            throw runtime_error("Unhandled mesh format - did not read mesh from " + fileName);
+            RUNTIME_ERROR(fmt::format("Unhandled mesh format - did not read mesh from {}.", fileName));
     }
 }

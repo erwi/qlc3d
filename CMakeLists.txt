@@ -3,6 +3,7 @@ project(project-qlc3d)
 
 add_definitions(-DLinux) ## Must choose either -DLinux OR -DWindows
 
+add_subdirectory(extern/fmt-8.1.1)
 add_subdirectory(extern/SpaMtrix)
 add_subdirectory(qlc3d)
 

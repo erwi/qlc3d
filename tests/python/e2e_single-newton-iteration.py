@@ -8,20 +8,22 @@ In this test a single iteration of Newton method is run with a potential turned 
 contents are compared to expected values.  
 '''
 RESULT_BACKUP_CONFIG_FILE = 'settings.qfg'
-RESULT_FILE_0 = 'dirstackz0.csv'
-RESULT_FILE_1 = 'dirstackz1.csv'
+RESULT_FILE_0 = 'dirstacksz00000000.csv'
+RESULT_FILE_1 = 'dirstacksz00000001.csv'
+RESULT_FILE_FINAL = 'dirstacksz-final.csv'
 EXPECTED_RESULT_FILE_LINES = ['1,1,3,0',
-                              '0.998782,0.0348782,0.0348995,0.958484,-4.5476e-08,0.285145,0.998782,-0.0348782,0.0348995']
+                              '0.998782,0.0348782,0.0348995,0.958484,-6.13272e-08,0.285145,0.998782,-0.0348782,0.0348995']
 
 
 def check_results(result_dir):
     print("resultDir:" + result_dir)
     files = os.listdir(result_dir)
-    print(str(files))
-    assert_equals(3, len(files))
+    print("resultDir contents =", str(files))
+    assert_equals(4, len(files)) # expect 4 files in the result directory
     assert_true(RESULT_BACKUP_CONFIG_FILE in files, RESULT_BACKUP_CONFIG_FILE + " not found")
     assert_true(RESULT_FILE_0 in files, RESULT_FILE_0 + " not found")
     assert_true(RESULT_FILE_1 in files, RESULT_FILE_1 + " not found")
+    assert_true(RESULT_FILE_FINAL in files, RESULT_FILE_FINAL + " not found")
 
     # make sure the file contents are as expected, line-by-line
     fid = open(result_dir + "/" + RESULT_FILE_1)

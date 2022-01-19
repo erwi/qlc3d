@@ -33,11 +33,11 @@ add_library(lib-qlc3d STATIC
         src/io/matlabiofun.cpp
         includes/io/vtkiofun.h
         src/io/vtkiofun.cpp
-        includes/inits.h)
+        includes/inits.h includes/util/logging.h includes/util/exception.h)
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 target_include_directories(lib-qlc3d
         PUBLIC includes)
-target_link_libraries(lib-qlc3d SpaMtrix gomp pthread)
+target_link_libraries(lib-qlc3d SpaMtrix gomp pthread fmt)
 
 #========================
 # qlc3d application

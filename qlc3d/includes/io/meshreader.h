@@ -56,11 +56,4 @@ void ReadGiDMesh3D(const std::string &fileName,
                    idx *ne,
                    idx **matt,
                    idx **mate);
-
-void readBinaryMesh(std::string filename ,  // same as above
-                    double *&p,
-                    idx *&t, idx *&tmat,
-                    idx *&e, idx *&emat,
-                    idx *np, idx *nt, idx *ne);
-
 #endif //PROJECT_QLC3D_MESHREADER_H

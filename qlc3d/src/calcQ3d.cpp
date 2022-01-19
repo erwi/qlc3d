@@ -5,6 +5,7 @@
 #include <qlc3d.h>
 #include <cstdio>
 #include <simulation-state.h>
+#include <util/logging.h>
 
 
 // SpaMtrix INCLUDES
@@ -39,8 +40,7 @@ void solve_QTensor(SpaMtrix::IRCMatrix &K,
                    SpaMtrix::Vector &x,
                    const Simu &simu,
                    const Settings &settings,
-                   const LC &lc)
-{
+                   const LC &lc) {
     SpaMtrix::DiagPreconditioner M(K);
     // Iterative solvers' settings...
     idx maxiter 	= settings.getQ_GMRES_Maxiter();
@@ -49,20 +49,17 @@ void solve_QTensor(SpaMtrix::IRCMatrix &K,
     SpaMtrix::IterativeSolvers solver(maxiter, restart, toler);
     Simu::QMatrixSolvers solverType = selectQMatrixSolver(simu, lc);
 
-    if (solverType == Simu::PCG ){
-        printf("PCG...");
-        if (!solver.pcg(K,x,b,M) ){
-            printf("PCG did not converge in %i iterations\nTolerance achieved is %f\n", solver.maxIter, solver.toler);
+    if (solverType == Simu::PCG ) {
+        if (!solver.pcg(K,x,b,M) ) {
+            Log::warn("PCG did not converge in {} iterations. Tolerance achieved is {}.", solver.maxIter, solver.toler);
         }
     }
-    else if (solverType == Simu::GMRES){
-        printf("GMRES...");
-        if (!solver.gmres(K,x,b,M)){
-            printf("GMRES did not converge in %i iterations \nTolerance achieved is %f\n",solver.maxIter,solver.toler);
+    else if (solverType == Simu::GMRES) {
+        if (!solver.gmres(K,x,b,M)) {
+            Log::warn("GMRES did not converge in {} iterations. Tolerance achieved is {}.", solver.maxIter, solver.toler);
         }
     }
 }
-
 
 void setThreadCount(unsigned int nt)
 {
@@ -71,46 +68,48 @@ void setThreadCount(unsigned int nt)
 #endif
 }
 
-void updateSolutionVector(SolutionVector &q,
+/**
+ * Updates the current Q-tensor solution. q = q + dq
+ * @param q current Q-tensor solution
+ * @param dq change in Q-tensor solution
+ * @param maxdqOut return value magnitude of largest change in Q-tensor
+ * @param simu
+ * @return damping value, which may be < 1.0, if steady state solver solution change is too large (as configured in Simu)
+ */
+double updateSolutionVector(SolutionVector &q,
                           const SpaMtrix::Vector &dq,
-                          double &maxdq,
-                          double &damping,
-                          const Simu &simu )
-{
-    // UPDATES SOLUTION VECTOR q = q + dq
-    // USES getEquNode REDIRECTION
-    // FOR PERIODIC AND FIXED NODES
-
+                          double &maxdqOut,
+                          const Simu &simu ) {
     // CALCULATE DAMPING COEFFICIENT IF GOING FOR STEADY STATE WITH NEWTON METHOD
-    maxdq = fabs(dq[0]);
+    maxdqOut = fabs(dq[0]);
+    double damping = 1.0;
     if (simu.simulationMode() == SteadyState) {
         // FIND MAXIMUM CHANGE
-        for (idx i = 0 ; i < dq.getLength() ; i++){
-            maxdq = maxdq > fabs(dq[i]) ? maxdq:fabs(dq[i]);
+        for (idx i = 0 ; i < dq.getLength() ; i++) {
+            maxdqOut = maxdqOut > fabs(dq[i]) ? maxdqOut : fabs(dq[i]);
         }
 
-        if ( maxdq>simu.getTargetdQ() ){ // IF DAMPING IS NEEDED
-            damping = simu.getTargetdQ() / maxdq;
+        if (maxdqOut > simu.getTargetdQ() ) { // IF DAMPING IS NEEDED
+            damping = simu.getTargetdQ() / maxdqOut;
         }
     }
 
     const idx npLC = q.getnDoF();
-    for (unsigned int i = 0 ; i < 5 ; i++){   // LOOP OVER DIMENSIONS
-        for (idx j = 0; j < npLC ; j++){ // LOOP OVER EACH NODE IN DIMENSION i
+    for (unsigned int i = 0 ; i < 5 ; i++) {   // LOOP OVER DIMENSIONS
+        for (idx j = 0; j < npLC ; j++) { // LOOP OVER EACH NODE IN DIMENSION i
             const idx n = j + i*npLC;
             const idx effDoF = q.getEquNode(n);
 
             // EQUIVALENT DOF OF FIXED NODES ARE LABELLED AS "NOT_AN_INDEX"
-            if (effDoF < NOT_AN_INDEX ){
-                const double dqj = dq[ effDoF ];
+            if (effDoF < NOT_AN_INDEX ) {
+                const double dqj = dq[ effDoF ]; // TODO: should we multiply by "damping" here, it looks like it's never used !!
                 q.Values[n] -= dqj ;
                 // KEEP TRACK OF LARGEST CHANGE IN Q-TENSOR
-                //maxdq = fabs(dqj) > fabs(maxdq) ? dqj:maxdq;
-                maxdq = fabs(dqj) > maxdq? fabs(dqj):maxdq;
+                maxdqOut = fabs(dqj) > maxdqOut ? fabs(dqj) : maxdqOut;
             }
-          //  cout << maxdq << "," << damping << endl;
-        }// end for j
-    }// end for i
+        }
+    }
+    return damping;
 }
 
 double calcQ3d(SolutionVector *q,   // current Q-tensor
@@ -122,15 +121,14 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
                SimulationState &simulationState,
                SpaMtrix::IRCMatrix &K,
                Settings* settings,
-               Alignment* alignment)
-{
+               Alignment* alignment) {
     const idx numCols = K.getNumCols();
     double maxdq = 10;
     double maxdq_initial = 0;
 
     const idx isTimeStepping = simu->simulationMode() == TimeStepping ? 1:0;
     double timeStep = simulationState.dt();
-    SpaMtrix::Vector RHS(isTimeStepping * numCols); // THIS IS ZERO SIZED IF NOT TIME STEPPING
+    SpaMtrix::Vector RHS(isTimeStepping * numCols); // not used in steady-state solution
     SpaMtrix::Vector dq(numCols);
     SpaMtrix::Vector L(numCols);
 
@@ -165,9 +163,6 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         //======================================
         //  MATRIX ASSEMBLY
         //======================================
-
-        std::cout << " " <<newton_iter << " Assembly..."; fflush(stdout);
-        // ASSEMBLE MATRIX AND RHS (L)
         assembleQ(K, L, q, v, geom.t, geom.e, geom.getPtrTop(), mat_par, timeStep, alignment, geom.getPtrToNodeNormals());
 
         if (isTimeStepping) { // make Non-linear Crank-Nicholson RHS
@@ -175,48 +170,48 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
                 L[i] += RHS[i];
             }
         }
-
-        printf("OK %1.3es.", (float) timer.getElapsed() / 1000.0 );
+        double matrixAssemblyTimeSeconds = (double) timer.getElapsed() / 1000.0;
         timer.reset();
 
         //======================================
         //  MATRIX SOLUTION
         //======================================
-        // SET SOLVER THREAD COUNT
         setThreadCount(simu->getMatrixSolverThreadCount());
         // SOLVES Ax = b MATRIX PROBLEM
         solve_QTensor(K, L, dq, *simu, *settings, *mat_par);
-        double damping = 1.0; // steady state damping coeff. calculated in updateSolutionVector
-        updateSolutionVector(*q, dq, maxdq,damping,*simu); // q += damping*dq , taking into account periodic and fixed nodes
+        double damping = updateSolutionVector(*q, dq, maxdq, *simu); // q += damping*dq , taking into account periodic and fixed nodes
+        double matrixSolutionTimeSeconds = (double) timer.getElapsed() / 1000.0;
 
-        if (newton_iter == 1) {
-            maxdq_initial = maxdq; // maxdq_initial is needed elsewhere to adjust time-step size
-        }
+        Log::info("Newton iteration {} for Q-tensor. Matrix assembly time = {}s. Matrix solution time ={}s. maxdq = {}.",
+                  newton_iter, matrixAssemblyTimeSeconds, matrixSolutionTimeSeconds, maxdq);
 
-        // PRINT SOLUTION TIME
-        printf("OK %1.3es.\tdQ = %1.3e\n", (float) timer.getElapsed() / 1000.0, maxdq);
-        if (damping < 1.0){ // if damped, display by how much
-            printf("damping=%1.3e\n", damping);
+        if (damping < 1.0) { // if damped, display by how much
+            Log::warn("Damping by {}.", damping);
         }
-        fflush( stdout );
 
         // PANIC!! if looks like no convergence
-        if (newton_iter > settings->getQ_Newton_Panic_Iter() ){
-            printf("Newton in distress!! - reducing time step by a factor of %f\n", settings->getQ_Newton_Panic_Coeff() );
+        if (newton_iter > settings->getQ_Newton_Panic_Iter() ) {
             double newTimeStep = settings->getQ_Newton_Panic_Coeff() * simulationState.dt();
+            Log::warn("Newton iteration count {} exceeds threshold {}. Reducing time-step by a factor of {}, new time-step is {}s.",
+                      newton_iter, settings->getQ_Newton_Panic_Iter(), settings->getQ_Newton_Panic_Coeff(), newTimeStep);
             simulationState.dt(newTimeStep);
-            printf("new time step is : %e s.\n", simulationState.dt());
             newton_iter = 0;
             q->setValuesTo(*qn);
-        }// end if PANIC!!!
+        }
+
+        // maxdq_initial is needed elsewhere to adjust time-step size. The time step is adjusted up or down in an
+        // attempt to keep maxdq_initial at some constant value configured by the user.
+        if (newton_iter == 1) {
+            maxdq_initial = maxdq;
+        }
 
         // DETERMINE WHETHER NEWTON LOOP IS DONE
-        if (!isTimeStepping) {// IF dt == 0, GOING FOR STEADY STATE AND ONLY DOING ONE ITERATION -> NO LOOPS
+        if (!isTimeStepping) {
             LOOP = false;
         } else if ( fabs(maxdq) < simu->getMaxError() ) { // EXIT IF ACCURATE ENOUGH
             LOOP = false;
         }
-    } //end while LOOP
+    }
     return maxdq_initial;
 }
 

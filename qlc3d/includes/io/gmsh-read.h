@@ -171,10 +171,7 @@ class GmshFileReader {
     size_t _lineNumber = 0;
     std::ifstream _fin;
 
-
-    std::runtime_error fileReadException(const std::string &message);
     void split(const std::string &in, const std::string &pattern, std::vector<std::string> &splitsOut) const;
-    void log(const std::string &str) const;
 
     /** Read one line of text into input arg line. Return true on success, false if failed (e.g. EOF) */
     bool readLine(std::string &line);

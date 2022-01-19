@@ -53,6 +53,7 @@ private:
     idx nFreeNodes; // number of independent degrees of freedom = nDoF - # number of nodes eliminated as periodic
 
     void setBooleanFixedNodeList(); // creates list of booleans (bool* IsFixed) for each node true=fixed node, false = free node
+    /*
     void setCornerElim(	list <int>& corn0, // sets periodic equivalent nodes for 4 corners
                         list <int>& corn1, 	// corn1[i] = corn0[i]
                         list <int>& corn2,   // corn2[i] = corn0[i]
@@ -66,6 +67,7 @@ private:
                       int* Elim,
                       const int& norm, // face normal, 0,1,2 -> x,y,z
                       double* coords); // pointer to node coordinates
+*/
 public:
     idx *FixedNodes;        // INDEX TO EACH FIXED NODE
     double *FixedValues;    // HOLDS NODE VALUE FOR EACH FIXED NODE
@@ -147,17 +149,8 @@ assert( n<getnDoF() );
 
     void ClearFixed(); // clears all fixed nodes and values
     void AddFixed(int mat, double val, Mesh* mesh); // adds fixed when all values are same in region mat . e.g. same potential on electrode
-    //void changeFixedValue( int mat, double val,
-
-
-
 
     void EnforceEquNodes(const Geometry& geom); // enforces periodicity
-    void PrintFixedNodes();
-    void PrintValues();
-    void PrintElim();
-    void PrintEquNodes();
-    void PrintIsFixed();
     inline bool getIsFixed(const size_t i)
     {
 #ifdef DEBUG

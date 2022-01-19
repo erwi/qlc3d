@@ -157,30 +157,3 @@ int Settings::getV_GMRES_Restart() const {
 double Settings::getV_GMRES_Toler() const {
     return V_GMRES_Toler;
 }
-/*
-void Settings::PrintSettings() {
-    printf("Settings:\n");
-    printf("nThreads\t\t\t= %i\n", getnThreads());
-    printf("Q_Solver\t\t\t= %i\n", getQ_Solver());
-    printf("V_Solver\t\t\t= %i\n", getV_Solver());
-    printf("\n");
-    printf("Q_Newton_Panic_Iter\t\t= %i\n", getQ_Newton_Panic_Iter());
-    printf("Q_Newton_Panic_Coeff\t\t= %f\n",        getQ_Newton_Panic_Coeff());
-    printf("Q_PCG_Maxiter\t\t\t= %i\n",         getQ_PCG_Maxiter());
-    printf("Q_PCG_Preconditioner\t\t= %i\n",    getQ_PCG_Preconditioner());
-    printf("Q_PCG_Toler\t\t\t= %f\n",           getQ_PCG_Toler());
-    printf("Q_GMRES_Maxiter\t\t\t= %i\n",       getQ_GMRES_Maxiter());
-    printf("Q_GMRES_Preconditioner\t\t= %i\n",  getQ_GMRES_Preconditioner());
-    printf("Q_GMRES_Restart\t\t\t= %i\n",       getQ_GMRES_Restart());
-    printf("Q_GMRES_Toler\t\t\t= %f\n",         getQ_GMRES_Toler());
-    printf("\n");
-    printf("V_PCG_Maxiter\t\t\t= %i\n",         getV_PCG_Maxiter());
-    printf("V_PCG_Preconditioner\t\t= %i\n",    getV_PCG_Preconditioner());
-    printf("V_PCG_Toler\t\t\t= %f\n",           getV_PCG_Toler());
-    printf("V_GMRES_Maxiter\t\t\t= %i\n",       getV_GMRES_Maxiter());
-    printf("V_GMRES_Preconditioner\t\t= %i\n",  getV_GMRES_Preconditioner());
-    printf("V_GMRES_Restart\t\t\t= %i\n",       getV_GMRES_Restart());
-    printf("V_GMRES_Toler\t\t\t= %f\n",         getV_GMRES_Toler());
-}
-*/
-

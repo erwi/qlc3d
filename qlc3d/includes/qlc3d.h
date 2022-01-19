@@ -101,8 +101,6 @@ void setStrongSurfacesQ(
 		double S0,
 		Geometry* geom);
 
-int ReorderNodes(double *p, int np,int *t, int nt, int *e, int ne,int *tmat,int *emat);
-
 /*! tensortovector returns the director and two order parameters in an array.
  *  The returned vector must be freed outside this function.
  *  TODO: make the return a shared_ptr

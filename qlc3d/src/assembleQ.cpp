@@ -7,6 +7,7 @@
 #include <qassembly_macros.h>
 #include <spamtrix_ircmatrix.hpp>
 #include <spamtrix_vector.hpp>
+#include <util/logging.h>
 
 #define BIGNUM 2e16
 const int   npt = 4; //Number of Points per Tetrahedra
@@ -140,7 +141,7 @@ inline void localKL(double *p,
                 };
     double Jdet = t->getDeterminant(element_num) * 1e18 ; // SCALE BACK TO METRES FOR NOW...
     if (Jdet < 0) {
-        printf("Warning, Jdet < 0\n");
+        Log::warn("negative tetrahedron determinant detected. Multiplying by -1");
         Jdet = -Jdet;
     }
     bool three_elastic_constants = false;
@@ -766,8 +767,6 @@ void wk_localKL(
         v2[0] = * (alignment->getPtrTov2(FixLCNumber) + 0);
         v2[1] = * (alignment->getPtrTov2(FixLCNumber) + 1);
         v2[2] = * (alignment->getPtrTov2(FixLCNumber) + 2);
-        //  printf("v1= [%f,%f,%f], v2 =[%f,%f,%f]\n", v1[0], v1[1], v1[2], v2[0], v2[1],v2[2] );
-        //  printf("Easy = [%f,%f,%f]\n", alignment->Easy[0], alignment->Easy[1], alignment->Easy[2]);
     }
     memset(lK, 0, 15 * 15 * sizeof(double)); //SET LOCAL MATRICES TO ZERO
     memset(lL, 0, 15 * sizeof(double));
