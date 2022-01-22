@@ -195,12 +195,14 @@ bool SimulationContainer::hasIteration() const {
 void SimulationContainer::runIteration() {
     simulationState_.state(RunningState::RUNNING);
     time(&t2);
+    Log::clearIndent();
     Log::info("Iteration {}, Time = {:e}s. Real time = {}s. dt = {}s.",
            simulationState_.currentIteration(),
            simulationState_.currentTime(),
            (float) t2 - t1,
            simulationState_.dt());
 
+    Log::incrementIndent();
     // mve this to event handling/result output
     if (simu->getOutputEnergy()) {
         CalculateFreeEnergy(Energy_fid,

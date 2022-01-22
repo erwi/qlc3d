@@ -17,8 +17,13 @@ int runSimulation(Configuration &configuration) {
     try {
         configuration.readSettings();
         SimulationContainer simulation(configuration);
+        Log::clearIndent();
+        Log::info("Initialising.");
+        Log::incrementIndent();
         simulation.initialise();
+        Log::decrementIndent();
 
+        Log::info("Starting simulation.");
         while (simulation.hasIteration()) {
             simulation.runIteration();
             // TODO: auto state = simulation.getCurrentState() and do something with it?
@@ -37,7 +42,10 @@ int runSimulation(Configuration &configuration) {
 
 void printInfo() {
     Qlc3dInfo info;
-    Log::info("qlc3d. Build date={}, build time={}.", info.buildDate, info.buildTime);
+    Log::info("qlc3d. Build date={}, build time={}, build type={}.",
+              info.buildDate,
+              info.buildTime,
+              info.isDebug ? "DEBUG" : "RELEASE");
 }
 
 int main(int argc, char **args) {

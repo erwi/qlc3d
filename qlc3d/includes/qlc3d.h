@@ -130,9 +130,16 @@ SpaMtrix::IRCMatrix createQMatrix(Geometry &geom,
                         const int& MatNum = MAT_DOMAIN1);
 
 struct Qlc3dInfo {
+    const std::string buildDate = __DATE__;
+    const std::string buildTime = __TIME__;
 
-    std::string buildDate = __DATE__;
-    std::string buildTime = __TIME__;
+    // this may not be reliable!
+#ifdef NDEBUG
+    const bool isDebug = false;
+#else
+    const bool isDebug = true;
+#endif
+
 };
 
 #endif

@@ -9,6 +9,9 @@
 #include <exception>
 
 class Log {
+
+    static std::string indent;
+
     static void fallbackError(const std::string &message) {
         std::cerr << "[ERROR] Could not format log message when formatString=\"" << message << "\"" << std::endl;
         throw std::runtime_error("");
@@ -18,7 +21,7 @@ public:
     template <typename... T>
     static void inline info(fmt::format_string<T...> formatString, T&&... args) {
         try {
-            std::string message{"[INFO] " + fmt::vformat(formatString, fmt::make_format_args(args...)) + "\n"};
+            std::string message{"[INFO] " + Log::indent + fmt::vformat(formatString, fmt::make_format_args(args...)) + "\n"};
             fmt::print(message);
             fflush(stdout);
         } catch (...) {
@@ -46,6 +49,30 @@ public:
         } catch (...) {
             Log::fallbackError(fmt::to_string(formatString));
         }
+    }
+
+    static void clearIndent() {
+        Log::indent.resize(0);
+    }
+
+    static void incrementIndent(unsigned int amount = 1) {
+        for (int i = 0; i < amount; i++) {
+            Log::indent += ' ';
+        }
+    }
+
+    static void decrementIndent(unsigned int amount = 1) {
+        unsigned long newLength = Log::getIndent();
+        if (amount < newLength) {
+            newLength -= amount;
+        } else {
+            newLength = 0;
+        }
+        Log::indent.resize(newLength);
+    }
+
+    static unsigned int getIndent() {
+        return Log::indent.length();
     }
 };
 
