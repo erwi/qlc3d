@@ -128,5 +128,12 @@ SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
 SpaMtrix::IRCMatrix createQMatrix(Geometry &geom,
                         SolutionVector &q,
                         const int& MatNum = MAT_DOMAIN1);
+
+struct Qlc3dInfo {
+
+    std::string buildDate = __DATE__;
+    std::string buildTime = __TIME__;
+};
+
 #endif
 

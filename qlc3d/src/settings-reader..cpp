@@ -1,6 +1,3 @@
-//
-// Created by eero on 04/04/2021.
-//
 #include <settings-reader.h>
 #include <settings_file_keys.h>
 #include <meshrefinement.h>
@@ -157,8 +154,6 @@ void SettingsReader::readRefinement(Reader &reader) {
     const vector<int> emptyInts;
 
     if (reader.containsKeyWithPrefix("REFINEMENT")) {
-        cout << "reading refinement" << endl;
-
         for (int i = 1; i <= 99; i++) {
             string keyBase = "REFINEMENT" + to_string(i);
 

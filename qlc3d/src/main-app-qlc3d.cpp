@@ -35,7 +35,14 @@ int runSimulation(Configuration &configuration) {
     return 0;
 }
 
+void printInfo() {
+    Qlc3dInfo info;
+    Log::info("qlc3d. Build date={}, build time={}.", info.buildDate, info.buildTime);
+}
+
 int main(int argc, char **args) {
+    printInfo();
+
     Configuration configuration;
     parseArgs(argc, args, configuration);
 

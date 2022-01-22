@@ -10,7 +10,7 @@ typedef unsigned int idx; // ALL INDEX VARIABLES ARE 32 BIT UNSIGNED INTS
 static const idx NOT_AN_INDEX = std::numeric_limits<idx>::max();
 
 namespace qlc3d_GLOBALS {
-    extern double GLOBAL_COORD_EPS;
+    static const double GLOBAL_COORD_EPS = 1e-10;
     static const int ERROR_CODE_BAD_SETTINGS_FILE = 1;
 }
 #endif // GLOBALS_H
