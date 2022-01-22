@@ -182,7 +182,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         double damping = updateSolutionVector(*q, dq, maxdq, *simu); // q += damping*dq , taking into account periodic and fixed nodes
         double matrixSolutionTimeSeconds = (double) timer.getElapsed() / 1000.0;
 
-        Log::info("Newton iteration {} for Q-tensor. Matrix assembly time = {}s. Matrix solution time ={}s. maxdq = {}.",
+        Log::info("Newton iteration {} for Q-tensor. Matrix assembly time = {}s. Matrix solution time = {}s. maxdq = {}.",
                   newton_iter, matrixAssemblyTimeSeconds, matrixSolutionTimeSeconds, maxdq);
 
         if (damping < 1.0) { // if damped, display by how much

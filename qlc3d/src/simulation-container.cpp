@@ -195,7 +195,7 @@ bool SimulationContainer::hasIteration() const {
 void SimulationContainer::runIteration() {
     simulationState_.state(RunningState::RUNNING);
     time(&t2);
-    Log::info("Iteration {}, Time = {}s. Real time = {}s. dt = {}s.",
+    Log::info("Iteration {}, Time = {:e}s. Real time = {}s. dt = {}s.",
            simulationState_.currentIteration(),
            simulationState_.currentTime(),
            (float) t2 - t1,

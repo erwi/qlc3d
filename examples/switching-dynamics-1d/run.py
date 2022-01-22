@@ -7,7 +7,7 @@ import subprocess
 import math
 import matplotlib.pyplot as plt
 
-executable = "/home/eero/projects/qlc3d/cmake-build-release/qlc3d/qlc3d"
+executable = "../../cmake-build-release/qlc3d/qlc3d"
 
 
 # delete old results, if any exist
