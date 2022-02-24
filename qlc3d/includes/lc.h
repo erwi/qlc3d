@@ -90,7 +90,7 @@ public:
     LCBuilder &K11(double K11);
     LCBuilder &K22(double K22);
     LCBuilder &K33(double K33);
-    LCBuilder &K24(double K24);
+    LCBuilder &K24(double K24); // TODO: Actually read this from settings file and set.
     LCBuilder &p0(double p0);
     LCBuilder &A(double A);
     LCBuilder &B(double B);
