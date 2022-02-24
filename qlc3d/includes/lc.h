@@ -22,6 +22,7 @@ class LC {
     double static calculateS0(double A, double B, double C);
     double static calculateL1(double K11, double K22, double K33, double A, double B, double C);
     double static calculateL2(double K11, double K22, double A, double B, double C);
+    double static calculateL3(double K24, double A, double B, double C);
     double static calculateL4(double p0, double K22, double A, double B, double C);
     double static calculateL6(double K11, double K33, double A, double B, double C);
     double static calculateU1(double gamma1, double A, double B, double C);
@@ -72,6 +73,7 @@ class LCBuilder {
     double K11_ = 10e-12;
     double K22_ = 10e-12;
     double K33_ = 10e-12;
+    double K24_ = 0;
     double p0_ = 0;
     double A_ = -1.2e5;
     double B_ = -2.1333e6;
@@ -88,6 +90,7 @@ public:
     LCBuilder &K11(double K11);
     LCBuilder &K22(double K22);
     LCBuilder &K33(double K33);
+    LCBuilder &K24(double K24);
     LCBuilder &p0(double p0);
     LCBuilder &A(double A);
     LCBuilder &B(double B);
