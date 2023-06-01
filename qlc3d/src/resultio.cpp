@@ -39,16 +39,11 @@ void ResultIO::writeVtkUnstructuredAsciiGrid(
         size_t numLcPoints,
         const Mesh &tetMesh,
         const SolutionVector &v,
-        const double *director,
+        const SolutionVector &q,
         const std::string &fileName) {
 
     assert(numLcPoints <= numPoints);
-
     using namespace vtkIOFun;
-    const double *nx = director;
-    const double *ny = director + numLcPoints;
-    const double *nz = director + 2 * numLcPoints;
-    const double *S = director + 3 * numLcPoints;
     UnstructuredGridWriter writer;
-    writer.write(fileName, numPoints, numLcPoints, p, tetMesh, v.getValues(), nx, ny, nz, S);
+    writer.write(fileName, numPoints, numLcPoints, p, tetMesh, v.getValues(), q);
 }

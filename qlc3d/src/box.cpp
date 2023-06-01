@@ -7,6 +7,8 @@
 #include <vector>
 #include <stringenum.h>
 #include <settings_file_keys.h>
+#include <cassert>
+
 const std::vector<std::string> Box::VALID_TYPES = {"Normal", "Random", "Hedgehog"};
 const std::string Box::DEFAULT_TYPE = Box::VALID_TYPES[0];
 const std::vector<double> Box::DEFAULT_PARAMS = {};
@@ -77,7 +79,7 @@ void Box::setTwist(std:: vector<double> twt) {
         exit(1);
     }
 }
-bool Box::contains(double *coords) {
+bool Box::contains(double *coords) const {
     double x = coords[0];
     double y = coords[1];
     double z = coords[2];
@@ -87,6 +89,11 @@ bool Box::contains(double *coords) {
     if ((z < this->Z[0]) || (z > this->Z[1])) return false;
     // otherwise return true
     return true;
+}
+
+bool Box::contains(double x, double y, double z) const {
+    double coords[3] = {x, y, z};
+    return this->contains(coords);
 }
 
 void Box::setBoxType(const std::string &bt) {
@@ -100,6 +107,19 @@ void Box::setBoxType(const std::string &bt) {
     } catch (...) {
         validator.printErrorMessage(bt);
         std::exit(1);
+    }
+}
+
+void Box::setParams(const std::vector<double> &params) {
+    assert(Params.empty());
+    std::copy(params.begin(), params.end(), std::back_inserter(Params));
+}
+
+double Box::getParam(int i, double defaultValue) const {
+    if (i < this->Params.size()) {
+        return this->Params[i];
+    } else {
+        return defaultValue;
     }
 }
 
@@ -136,7 +156,7 @@ void Boxes::addBox(const int &boxNum,
                    const std::vector<double> &twist) {
     Box *b = new Box(boxNum);
     b->setBoxType(boxType);
-    b->Params = params;
+    b->setParams(params);
     b->setX(x);
     b->setY(y);
     b->setZ(z);

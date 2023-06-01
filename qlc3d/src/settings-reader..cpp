@@ -5,6 +5,7 @@
 #include <utility>
 #include <cassert>
 #include <set>
+#include "electrodes.h"
 
 SettingsReader::SettingsReader(std::string fileName):
 fileName_(std::move(fileName)),
@@ -14,6 +15,10 @@ simu_(nullptr) {
 
 void SettingsReader::read() {
     try {
+        // check that settings file exists
+        std::ifstream f(fileName_);
+        assertTrue(f.good(), "Settings file does not exist: " + fileName_);
+
         Reader reader;
         reader.setCaseSensitivity(false);
         reader.setLowerCaseStringValues(true); // all returned string values are lower case.

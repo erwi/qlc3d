@@ -2,6 +2,7 @@
 #include <configuration.h>
 #include <simulation-container.h>
 #include <util/logging.h>
+#include <filesystem>
 
 void parseArgs(int argc, char **args, Configuration &configuration) {
     if (argc >= 2) {
@@ -46,6 +47,8 @@ void printInfo() {
               info.buildDate,
               info.buildTime,
               info.isDebug ? "DEBUG" : "RELEASE");
+    // print current directory
+    Log::info("Current directory: {}", std::filesystem::current_path().string());
 }
 
 int main(int argc, char **args) {

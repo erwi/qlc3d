@@ -971,7 +971,7 @@ double Geometry::getZmax()  {
 void Geometry::genIndWeakSurfaces(Alignment &alignment) {
     // GENERATES INDEX TO WEAK SURFACE ELEMENTS
     // FIRST MAKE TEMPORARY VECTOR OF WEAK SURFACES
-    Log::info("Creating index to {} alignment surface.", alignment.getnSurfaces());
+    Log::info("Creating index to {} alignment surfaces.", alignment.getnSurfaces());
     std::vector<size_t> ws;
     for (idx i = 0 ; i < (idx) e->getnElements() ; i++) {
         int FixLCNum = e->getFixLCNumber((int) i); // MATERIAL NUMBER / FIXLC1

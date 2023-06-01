@@ -9,6 +9,8 @@
 #include <fstream>
 #include <algorithm>
 #include <regex>
+#include <optional>
+
 struct ReaderError {
     std::string errorMessage;
     std::string fileName;

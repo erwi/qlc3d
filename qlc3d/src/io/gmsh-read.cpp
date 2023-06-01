@@ -8,8 +8,25 @@
 #include <algorithm>
 #include <util/logging.h>
 #include <util/exception.h>
+#include <set>
 
 using namespace std;
+
+std::vector<int> SectionEntities::getPhysicalTagsForSurface(int surfaceTag) const {
+    auto it = _surfaceTags.find(surfaceTag);
+    if (it == _surfaceTags.end()) {
+        RUNTIME_ERROR("surface tag " + to_string(surfaceTag) + " not found");
+    }
+    return it->second._physicalTags;
+}
+
+std::vector<int> SectionEntities::getPhysicalTagsForVolume(int volumeTag) const {
+    auto it = _volumeTags.find(volumeTag);
+    if (it == _volumeTags.end()) {
+        RUNTIME_ERROR("volume tag " + to_string(volumeTag) + " not found");
+    }
+    return it->second._physicalTags;
+}
 
 void GmshFileReader::split(const string &str, const string &pattern, vector<string> &destination) const {
     size_t pos = 0;
@@ -51,8 +68,8 @@ std::vector<unsigned int> GmshPhysicalNamesMapper::mapTriangleNamesToMaterialNum
     for (size_t i = 0; i < _elements->_numTriangles; i++) {
         // the surface should have one or maybe two physical names. E.g "periodic" or "fixlc1" and "electrode1"
         int surfaceTagNumber = _elements->_triangleEntityTags[i];
-        SurfaceTag st = _entities->_surfaceTags.at(surfaceTagNumber);
-        const auto &physicalTags = st._physicalTags;
+        //SurfaceTag st = _entities->_surfaceTags.at(surfaceTagNumber);
+        const auto &physicalTags = _entities->getPhysicalTagsForSurface(surfaceTagNumber);
 
         if (physicalTags.empty() || physicalTags.size() > 2) {
             throw runtime_error("surface " + to_string(surfaceTagNumber) + " should have 1 or 2 physical names" +
@@ -66,6 +83,13 @@ std::vector<unsigned int> GmshPhysicalNamesMapper::mapTriangleNamesToMaterialNum
         }
 
         triangleMaterialsOut[i] = materialNumber;
+    }
+
+    // check that no MAT_INVALID is left and print the triangle number
+    for (size_t i = 0; i < _elements->_numTriangles; i++) {
+        if (triangleMaterialsOut[i] == MAT_INVALID) {
+            throw runtime_error("triangle " + to_string(i) + " has no valid material number");
+        }
     }
 
     return triangleMaterialsOut;
@@ -143,6 +167,21 @@ std::unique_ptr<SectionPhysicalNames> GmshFileReader::readPhysicalNames() {
                        [](unsigned char c) { return std::tolower(c); });
 
         if (qlc3d::MATERIAL_NUMBER_BY_NAME.count(physicalName) == 0) {
+            // create list of valid names, sorted alphabetically
+            std::vector<std::string> validNames;
+            for (auto &entry : qlc3d::MATERIAL_NUMBER_BY_NAME) {
+                validNames.push_back(entry.first);
+            }
+            std::sort(validNames.begin(), validNames.end());
+
+            // log the valid names and throw an error
+            std::string validNamesStr;
+            for (auto &name : validNames) {
+                validNamesStr += "\"" + name + "\" ";
+            }
+            Log::error("Physical name {} not recognised. Valid names are {}", physicalName, validNamesStr);
+
+
             RUNTIME_ERROR("Physical name = \"" + physicalName + "\" not recognised.")
         }
 
@@ -370,6 +409,10 @@ std::shared_ptr<GmshFileData> GmshFileReader::readGmsh(const string &fileName) {
     while(readLine(line)) {
         if (line.find("$MeshFormat") == 0) {
             data->setMeshFormat(readMeshFormat());
+            Log::info("Mesh format version={}, file type={}, data size={}.",
+                      data->getMeshFormat()->_versionNumber,
+                      data->getMeshFormat()->_fileType,
+                      data->getMeshFormat()->_dataSize);
         }
 
         if (line.find("$Nodes") == 0) {
@@ -382,6 +425,9 @@ std::shared_ptr<GmshFileData> GmshFileReader::readGmsh(const string &fileName) {
 
         if (line.find("$PhysicalNames") == 0) {
             data->setPhysicalNames(readPhysicalNames());
+            for (auto &p : data->getPhysicalNames()->_physicalNames) {
+                Log::info("Physical name={}, tag={}", p.second, p.first);
+            }
         }
 
         if (line.find("$Entities") == 0) {
@@ -406,5 +452,68 @@ std::shared_ptr<GmshFileData> GmshFileReader::readGmsh(const string &fileName) {
         RUNTIME_ERROR("No $Elements section found.")
     }
 
+    data->validateMeshData();
+
     return data;
+}
+
+void GmshFileData::validateMeshData() const {
+    // must have at least one volume entity
+    if (_entities == nullptr || _entities->_numVolumes == 0) {
+            RUNTIME_ERROR("No volume entities found in mesh file.");
+    }
+    // must have at least one surface entity
+    if (_entities == nullptr || _entities->_numSurfaces == 0) {
+            RUNTIME_ERROR("No surface entities found in mesh file.");
+    }
+
+    // must have nodes
+    if (_nodes == nullptr || _nodes->_numNodes == 0) {
+            RUNTIME_ERROR("No nodes found in mesh file.");
+    }
+
+// must have triangles
+    if (_elements == nullptr || _elements->_numTriangles == 0) {
+            RUNTIME_ERROR("No triangles found in mesh file.");
+    }
+    // must have tetrahedra
+    if (_elements == nullptr || _elements->_numTetrahedra == 0) {
+            RUNTIME_ERROR("No tetrahedra found in mesh file.");
+    }
+
+    // get unique triangle entity tags
+    std::set<int> triangleEntityTags;
+    for (auto &t : _elements->_triangleEntityTags) {
+        triangleEntityTags.insert(t);
+    }
+
+    // check that each triangle entity tag has at least one material defined to it
+    for (auto &t : triangleEntityTags) {
+        const auto &physicalTags = _entities->getPhysicalTagsForSurface(t);
+        if(physicalTags.empty()) {
+            RUNTIME_ERROR("No physical material defined for triangle entity tag " + to_string(t) + ".");
+        }
+    }
+
+    // get unique tetrahedron entity tags
+    std::set<int> tetrahedronEntityTags;
+    for (auto &t : _elements->_tetrahedraEntityTags) {
+        tetrahedronEntityTags.insert(t);
+    }
+    // check that each tetrahedron entity tag has at least one material defined to it
+    for (auto &t : tetrahedronEntityTags) {
+        const auto &physicalTags = _entities->getPhysicalTagsForVolume(t);
+        if(physicalTags.empty()) {
+            RUNTIME_ERROR("No physical material defined for tetrahedron entity tag " + to_string(t) + ".");
+        }
+    }
+
+    if (_elements->_numTriangles != _elements->_triangleEntityTags.size()) {
+            RUNTIME_ERROR("Number of triangle tags does not match number of triangles.");
+    }
+
+    //each tetrahedron must have material tag
+    if (_elements->_numTetrahedra != _elements->_tetrahedraEntityTags.size()) {
+            RUNTIME_ERROR("Number of tetrahedron tags does not match number of tetrahedra.");
+    }
 }

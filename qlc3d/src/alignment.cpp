@@ -4,6 +4,8 @@
 #include <reader.h>
 #include <stringenum.h>
 #include <settings_file_keys.h>
+#include "util/exception.h"
+
 const std::vector<std::string> Surface::VALID_ANCHORING_TYPES = {"Strong", "Weak", "Homeotropic",
                                                        "Degenerate", "Freeze", "Polymerise",
                                                        "ManualNodes"};
@@ -194,8 +196,7 @@ int Alignment::getnSurfaces(){	return n_surfaces;}
 
 bool Alignment::IsStrong(int i) const {
     if (i >= (int) surface.size() ) {
-        throw std::invalid_argument("invalid alignment surface index " + std::to_string(i + 1) +
-            ", number of alignment surfaces is " + std::to_string(surface.size()));
+        RUNTIME_ERROR("Invalid alignment surface FIXLC" + std::to_string(i + 1) + ", number of alignment surfaces is " + std::to_string(surface.size()));
     }
     return getSurface(i).isStrong();
 }

@@ -75,3 +75,12 @@ double Electrodes::getCurrentElectrodePotential(const size_t &eNum) const {
     }
     return currentElectrodePotentials[eNum];
 }
+
+void Electrodes::setnElectrodes(const size_t &numE) {
+    if (nElectrodes != 0) {
+        RUNTIME_ERROR("num electrodes already set to " + std::to_string(nElectrodes));
+    }
+
+    currentElectrodePotentials.resize(numE, 0.0);
+    nElectrodes = numE;
+}

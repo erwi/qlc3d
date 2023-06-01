@@ -18,6 +18,9 @@ class Configuration {
     std::shared_ptr<LC> lc_;
 
     std::shared_ptr<MeshRefinement> refinement_;
+
+    std::shared_ptr<Electrodes> electrodes_;
+
 public:
     Configuration();
 

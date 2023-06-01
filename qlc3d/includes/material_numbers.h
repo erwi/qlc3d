@@ -1,5 +1,6 @@
 // Define GiD material numbers
 #include <unordered_map>
+#include <string>
 #ifndef MATERIAL_NUMBERS_H
 #define MATERIAL_NUMBERS_H
 

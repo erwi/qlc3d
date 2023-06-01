@@ -624,6 +624,8 @@ REFINEMENT1.Z = [0, 10, 0, 0.5]
 
 ---
 ## Minimal Mesh File Example ##
+For additional information about meshing and geometry, see [this](./mesh.md).
+
 Below a minimal GiD mesh file is shown. It's not useful for any realistic simulations, but is provided here as an example of the expected Gid mesh file format. 
 
 If your own GiD mesh file looks like gibberish when opened in a text editor, it may have been saved in binary format and qlc3d will not be able to read it. To save in text format in GiD, a mesh must be *exported*, not *saved*.

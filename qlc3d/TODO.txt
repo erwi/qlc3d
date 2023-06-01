@@ -1,17 +1,13 @@
 24. readsettings.cpp - unify bad settings detection. currently multiple error detection functions that do same thing.
 23. add option to manually fix nodes in settings file. 
 
-21. Box#.Twist[start,delta] seems to get signs incorrectly. Check this.
-
-
 20. SetsurfacesQ uses ugly string comparisons when determining surface types. Change to Enums
 
 19. Make use of solver settings more flexible: Should not be necessary to specify all solver settings, only to override non-default ones. 
     
-18. Gloabal coordinate comparison numerical accuracy could be made user definable
+18. Global coordinate comparison numerical accuracy could be made user definable
     in a settings file. Currently it is set at top of qlc3d.cpp
 
-   
 16. Reader incorrectly returns SUCCESS when trying to read single number, when actually value is array of numbers.
 
 15. Check need for LC surface integrals with 3 elastic coeffs. e.g. 2D case with neumann boundaries, single K vs 3K edge effects (13/01/12)
@@ -19,11 +15,13 @@
 14. Creation of regular grid interpolation table is slow and may not work
 	in cases where LC regions are disconnected.
 
-
 4.  Interpolation is simplified -> uniaxial interpolation. should
     interpolate each eigenvector/eigenvalue istead
 
 ============ DONE ==============================
+21. Box#.Twist[start,delta] seems to get signs incorrectly. Check this.
+    Done, rogue negative sign removed in setvolumeQ.
+
 10. Potential calculation is done even when not needed.
     Also, dont make a potential matrix when not needed.
       DONE (18/11/12). When Electrodes.CalcPot flag is false, an empty

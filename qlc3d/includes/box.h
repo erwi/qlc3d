@@ -9,6 +9,7 @@
  * volume, where the LC orientation properties are set prior to starting the simulation proper.
  */
 class Box {
+    std::vector<double> Params;
 public:
     // Declare default box types
     const static std::vector<std::string> VALID_TYPES;   // list of valid type strings
@@ -23,7 +24,7 @@ public:
     BoxTypes Type;
     std::string TypeString;
     int BoxNumber;
-    std::vector<double> Params;
+
     std::vector<double> X;
     std::vector<double> Y;
     std::vector<double> Z;
@@ -35,9 +36,21 @@ public:
     void setZ(std::vector<double> z);
     void setTilt(std::vector<double> tlt);
     void setTwist(std::vector<double> twt);
-    bool contains(double *coords);           // checks whether [x,y,z] coordinates in array of size 3 are inside the box
+
+    // checks whether [x,y,z] coordinates in array of size 3 are inside the box
+    bool contains(double *coords) const;
+
+    /** Check whether box contains given x, y, z coodinates */
+    bool contains(double x, double y, double z) const;
+
     void setBoxType(const std::string &bt);
-    std::string toString() const;
+
+    /** Set the params vector. Note: this can only be done once */
+    void setParams(const std::vector<double> &p);
+    /** return the i'th parameted or default if out of range */
+    [[nodiscard]] double getParam(int i, double defaultValue) const;
+
+    [[nodiscard]] std::string toString() const;
 };
 
 

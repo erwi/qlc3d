@@ -151,6 +151,22 @@ Director Director::fromDegreeAngles(const double &tiltDegrees, const double &twi
     return fromRadianAngles(M_PI * tiltDegrees / 180., M_PI * twistDegrees / 180., S);
 }
 
+double Director::tiltRadians() const {
+    return asin(nz_);
+}
+
+double Director::tiltDegrees() const {
+    return 180. * tiltRadians() / M_PI;
+}
+
+double Director::twistRadians() const {
+    return atan2(ny_, nx_);
+}
+
+double Director::twistDegrees() const {
+    return 180. * twistRadians() / M_PI;
+}
+
 // </editor-fold>
 
 // <editor-fold desc="QTensor">

@@ -45,6 +45,9 @@ This will probably not currently work as there are some Windows/Linux file syste
 # Running Qlc3d
 For instructions on running and configuring qlc3d, see [this document](qlc3d/doc/README.md)
 
+# Meshing and Geometry
+For instructions on creating meshes and geometry, see [this document](qlc3d/doc/mesh.md)
+
 # Examples
 Some example projects are included int the [examples](examples/README.md) subdirectory of this project. 
 

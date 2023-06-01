@@ -2,6 +2,9 @@
 #include <io/vtkiofun.h>
 #include <mesh.h>
 #include <assert.h>
+#include "solutionvector.h"
+#include "lc-representation.h"
+
 namespace vtkIOFun {
     const char* const ID_STRING = "# vtk DataFile Version 3.0";
 
@@ -105,10 +108,7 @@ namespace vtkIOFun {
                                        const double *points,
                                        const Mesh &tetrahedra,
                                        const double *potentials,
-                                       const double *nx,
-                                       const double *ny,
-                                       const double *nz,
-                                       const double *S) const {
+                                       const SolutionVector &q) const {
         assert(numLcPoints <= numPoints);
 
         using namespace std;
@@ -124,7 +124,7 @@ namespace vtkIOFun {
         writeTetrahedra(os, tetrahedra, numPoints);
 
         writePotentials(os, numPoints, potentials);
-        writeLiquidCrystal(os, numPoints, numLcPoints, nx, ny, nz, S);
+        writeLiquidCrystal(os, numPoints, numLcPoints, q);
 
         os.close();
     }
@@ -176,12 +176,12 @@ namespace vtkIOFun {
         }
     }
 
-    void UnstructuredGridWriter::writeLiquidCrystal(std::ostream &os, size_t numPoints, size_t numLcPoints, const double *nx,
-                                                    const double *ny, const double *nz, const double *S) const {
+    void UnstructuredGridWriter::writeLiquidCrystal(std::ostream &os, size_t numPoints, size_t numLcPoints, const SolutionVector &q) const {
         os << "\n";
         os << "VECTORS director float" << "\n";
         for (int i = 0; i < numLcPoints; i++) {
-            os << nx[i] << " " << ny[i] << " " << nz[i] << "\n";
+            qlc3d::Director n = q.getDirector(i);
+            os << n.nx() << " " << n.ny() << " " << n.nz() << "\n";
         }
 
         // for dielectric regions, write director with zero length.
@@ -194,7 +194,8 @@ namespace vtkIOFun {
         os << "SCALARS S float 1\n";
         os << "LOOKUP_TABLE default\n";
         for (int i = 0; i < numLcPoints; i++) {
-            os << S[i] << "\n";
+            qlc3d::Director n = q.getDirector(i);
+            os << n.S() << "\n";
         }
 
         // for dielectric regions, write S = 1. This makes it easier to find low order regions than using 0

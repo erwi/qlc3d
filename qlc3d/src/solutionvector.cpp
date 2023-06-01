@@ -490,15 +490,6 @@ void SolutionVector::setValue(const idx n,
     Values[n + dim * nDoF ] = val;
 }
 
-void SolutionVector::setValue(const idx n, const qlc3d::TTensor &t) {
-    assert(getnDimensions() == 5); // this should be SolutionVector for Q-tensor, not potential solution
-    setValue(n, 0, t.t1());
-    setValue(n, 1, t.t2());
-    setValue(n, 2, t.t3());
-    setValue(n, 3, t.t4());
-    setValue(n, 4, t.t5());
-}
-
 void SolutionVector::AddFixed(int mat, double val, Mesh *mesh) {
     vector <idx> ind_p; // index to all nodes of material mat
     // 08/02/12 mesh->FindIndexToMaterialNodes(mat,&ind_p);
@@ -551,9 +542,29 @@ void SolutionVector::EnforceEquNodes(const Geometry &geom) {
     }
 }
 
+void SolutionVector::setValue(const idx n, const qlc3d::TTensor &t) {
+    assert(getnDimensions() == 5); // this should be SolutionVector for Q-tensor, not potential solution
+    setValue(n, 0, t.t1());
+    setValue(n, 1, t.t2());
+    setValue(n, 2, t.t3());
+    setValue(n, 3, t.t4());
+    setValue(n, 4, t.t5());
+}
 
+void SolutionVector::setValue(idx i, const qlc3d::Director &d) {
+    assert(getnDimensions() == 5); // this should be SolutionVector for director, not potential solution
+    setValue(i, qlc3d::TTensor::fromDirector(d));
+}
 
-
+qlc3d::Director SolutionVector::getDirector(idx i) const {
+    assert(getnDimensions() == 5); // this should be SolutionVector for director, not potential solution
+    return qlc3d::TTensor(
+            getValue(i, 0),
+            getValue(i, 1),
+            getValue(i, 2),
+            getValue(i, 3),
+            getValue(i, 4)).toDirector();
+}
 
 
 

@@ -1,0 +1,43 @@
+MeshName = ./geometry.msh
+
+dt = 0
+EndCriterion = Change
+EndValue = 1e-6
+
+SaveIter = 10
+SaveFormat = [VTKUnstructuredAsciiGrid]
+
+targetdQ=0.1
+
+K11 = 10e-12                       # material params for 5CB
+K22 = 10e-12
+K33 = 10e-12
+A = -0.0867e4#-0.0867e5
+B = -2.133e5# -2.133e6
+C = 1.733e5#1.733e6
+eps_par = 18.5
+eps_per = 7.0
+
+# Top surface anchoring
+FIXLC1.Anchoring=Strong
+FIXLC1.Easy=[5, 2, 0]
+
+# Bottom surface anchoring
+FIXLC2.Anchoring=Strong
+FIXLC2.Easy=[5, -2, 0]
+
+# Top surface electrode
+E1.Time = [0]
+E1.Pot = [0]
+
+# Bottom surface electrode
+E2.Time = [0]
+E2.Pot = [2]
+
+# Initial bulk orientation
+BOX1.Type = Normal             # Initial bulk orientation region1
+BOX1.X = [0.0, 5.0]
+BOX1.Y = [0.0, 1.0]
+BOX1.Z = [0.0, 2.0]
+BOX1.Tilt  = [5, 0]       # uniform tilt
+BOX1.Twist = [-2, 4]      # bottom twist, delta twist

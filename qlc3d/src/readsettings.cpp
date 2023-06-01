@@ -121,6 +121,7 @@ void readElectrodes(Electrodes &electrodes,
     //
     // Loop over range of possible (1-99) Electrodes
     const int MAX_NUM_ELECTRODES = 100;
+    int numElectrodes = 0;
     for (int electrodeNumber = 1; electrodeNumber < MAX_NUM_ELECTRODES; electrodeNumber++) {
         std::string keyTime = wildcardToNum(SFK_E_TIME, electrodeNumber);
         std::string keyPots = wildcardToNum(SFK_E_POTS, electrodeNumber);
@@ -138,6 +139,9 @@ void readElectrodes(Electrodes &electrodes,
                     ". Swithing times don't match switching potentials - bye!" << endl;
             std::exit(qlc3d_GLOBALS::ERROR_CODE_BAD_SETTINGS_FILE);
         }
+        if (!times.empty()) {
+            numElectrodes++;
+        }
         //
         // Decompose switching times and potentials to separate switching events
         // TODO: move this loop inside Event
@@ -151,6 +155,7 @@ void readElectrodes(Electrodes &electrodes,
             evli.insertTimeEvent(event);
         }
     }// end for electrodeNumber
+    electrodes.setnElectrodes(numElectrodes);
     //
     // Read uniform bulk E-fields here
     if (reader.containsKey(SFK_E_FIELD)) {
