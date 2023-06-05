@@ -18,6 +18,7 @@ TEST_CASE("mesh refinement") {
     alignment.addSurface(2, "strong", 1, {1, 0, 0}, 1, 1, {});
 
     Electrodes electrodes;
+    electrodes.setnElectrodes(2); // Mesh contains two electrodes. This fakes them being defined in the settings file
 
     // reads and prepares test-mesh from resource file
     prepareGeometry(originalGeometry, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, *simu, alignment, electrodes);
