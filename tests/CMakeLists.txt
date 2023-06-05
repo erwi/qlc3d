@@ -16,7 +16,7 @@ add_executable(cpp-test
         cpp/io/reader-test.cpp
         cpp/io/vtk-unstructured-grid-writer-tests.cpp
         cpp/io/gmsh-read-test.cpp
-        cpp/io/meshreader-test.cpp cpp/init-events-tests.cpp cpp/meshrefinement-test.cpp)
+        cpp/io/meshreader-test.cpp cpp/init-events-tests.cpp cpp/meshrefinement-test.cpp cpp/initial-lc-orientation-tests.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 

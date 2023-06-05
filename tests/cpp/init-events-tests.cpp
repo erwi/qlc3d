@@ -9,6 +9,7 @@ TEST_CASE("Initialise mesh refinement events") {
 
     EventList eventList;
     REQUIRE(eventList.eventsInQueue() == false);
+    REQUIRE(eventList.eventsInQueue() == false);
 
     MeshRefinement refinement;
 

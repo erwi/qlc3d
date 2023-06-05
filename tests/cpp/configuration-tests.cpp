@@ -139,7 +139,7 @@ TEST_CASE("read LC from settings file") {
     REQUIRE(lc->L4() == Approx(4.9374855277287484e-09).margin(eps));
     REQUIRE(lc->L5() == 0);
     REQUIRE(lc->L6() == Approx(2.4557036852882312e-12).margin(eps));
-    REQUIRE(lc->u1() == Approx(0.089376978566352377).margin(eps));
+    REQUIRE(lc->u1() == Approx(0.08897796866194542).margin(eps)); // 2  * gamma1 / (9*So*S0)
 }
 
 TEST_CASE("read REFINEMENT from settings file") {

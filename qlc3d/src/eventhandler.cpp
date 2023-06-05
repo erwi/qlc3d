@@ -135,7 +135,7 @@ void handleResultOutput(SimulationState &simulationState,
         }
 
         ResultIO::writeVtkUnstructuredAsciiGrid(
-                geom.getPtrTop(), geom.getnp(), geom.getnpLC(), geom.getTetrahedra(), v, director, fileName);
+                geom.getPtrTop(), geom.getnp(), geom.getnpLC(), geom.getTetrahedra(), v, q, fileName);
     }
 
     if (director) { // TODO: use vector

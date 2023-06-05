@@ -23,6 +23,12 @@ namespace qlc3d {
 
         Director static fromRadianAngles(const double &tiltRadians, const double &twistRadians, const double &S);
         Director static fromDegreeAngles(const double &tiltDegrees, const double &twistDegrees, const double &S);
+
+        double tiltRadians() const;
+        double tiltDegrees() const;
+
+        double twistRadians() const;
+        double twistDegrees() const;
     };
 
     /*!

@@ -2,6 +2,8 @@
 #include <io/vtkiofun.h>
 #include <mesh.h>
 #include <test-util.h>
+#include <solutionvector.h>
+#include <lc-representation.h>
 
 TEST_CASE("write VTK unstructured ascii grid") {
     using namespace vtkIOFun;
@@ -24,6 +26,18 @@ TEST_CASE("write VTK unstructured ascii grid") {
     };
 
     // 4 directors
+    SolutionVector q(4, 5);
+
+
+
+
+    q.setValue(0, qlc3d::Director(1, 0, 0, 0.1));
+    q.setValue(1, qlc3d::Director(0, 1, 0, 0.2));
+    q.setValue(2, qlc3d::Director(0, 0, 1, 0.3));
+
+    qlc3d::Director d = qlc3d::Director::fromDegreeAngles(45, 45, 0.4);
+    q.setValue(3, d);
+
     double director[] = {
             1, 0, -1, 0, // 4x nx
             0, 1, 0, -1, // 4x ny
@@ -52,10 +66,7 @@ TEST_CASE("write VTK unstructured ascii grid") {
                  &points[0],
                  tetrahedra,
                  &potentials[0],
-                 &director[0],
-                 &director[4],
-                 &director[8],
-                 &S[0]);
+                 q);
 
     // ASSERT: check the file contents
     // Read the file contents and
@@ -92,8 +103,8 @@ TEST_CASE("write VTK unstructured ascii grid") {
     REQUIRE(lines[directorStartLine] == "VECTORS director float");
     REQUIRE(lines[directorStartLine + 1] == "1 0 0");
     REQUIRE(lines[directorStartLine + 2] == "0 1 0");
-    REQUIRE(lines[directorStartLine + 3] == "-1 0 0");
-    REQUIRE(lines[directorStartLine + 4] == "0 -1 0");
+    REQUIRE(lines[directorStartLine + 3] == "0 0 1");
+    REQUIRE(lines[directorStartLine + 4] == "0.5 0.5 0.707107"); // 45 degrees tilt, twist
 
     // check order parameter data section
     int orderParamStartLine = 31;

@@ -1,7 +1,6 @@
 #include <iostream>
 #include <inits.h>
 #include <simu.h>
-#include <globals.h>
 #include <eventlist.h>
 #include <refinement.h>
 #include <io/meshreader.h>
@@ -12,7 +11,7 @@
  * @param mate triangle material numbers
  * @param ne number of triangles
  */
-void validateTriangleMaterials(const idx* const mate, idx ne) {
+void validateTriangleMaterials(const idx* const mate, idx ne, const Electrodes &electrodes) {
     for (idx i = 0; i < ne; ++i) {
         idx m = mate[i];
         if ((m == MAT_PERIODIC) || (m == MAT_NEUMANN)) {
@@ -29,40 +28,10 @@ void validateTriangleMaterials(const idx* const mate, idx ne) {
         else if (fNum > 9) {
             RUNTIME_ERROR(fmt::format("Triangle {}, invalid FixLC number {} > 9", i, m));
         }
-    }
-}
-
-size_t countElectrodes(const idx* mate, idx ne) {
-    /*!
-    * Counts the number of electrodes defined in mesh. As in
-    * Electrode 1, 2 ... not the number of electrode elements.
-    *
-    * Also checks that electrode surfaces are defined contiguously
-    * in mesh file (i.e. 1, 2, 3,...  and not 1, 3, 4...
-    *
-    * mate is material numbers array and ne is array length.
-    */
-    // First set flags for those electrode numbers that are found
-    std::vector<int> eFoundFlag(MAT_MAX_ELECTRODES_COUNT + 1);
-    for (idx i = 0; i < ne; i++) {
-        const size_t enumber = MATNUM_TO_ELECTRODE_NUMBER(mate[i]);
-        if (enumber > 0) // if valid electrode number, set flag
-            eFoundFlag[enumber] = 1;
-    }
-    //
-    // Then find largest electrode whose flag is set
-    size_t eCount = 0;
-    for (idx i = eFoundFlag.size()-1; i > 1 ; i--) { // backwards loop
-        if ((eFoundFlag[i] > 0) && (i > eCount))
-            eCount = i;
-        //
-        // detect error, non-contiguous electrodes definitions
-        if ((eFoundFlag[i] > 0) && (eFoundFlag[i-1] == 0)) {
-            RUNTIME_ERROR(fmt::format("Non-contiguously numbered electrode surface. "
-                                      "Electrode{} is missing although Electrode{} exists.", i, i + 1));
+        else if (eNum > electrodes.getnElectrodes()) {
+            RUNTIME_ERROR(fmt::format("Triangle {} has electrode number {} but only {} electrode(s) have been defined.", i, eNum, electrodes.getnElectrodes()));
         }
     }
-   return eCount+1;
 }
 
 /**
@@ -104,12 +73,10 @@ void prepareGeometry(Geometry& geom,
     MeshReader::readMesh(meshFileName, &p, &np, &t, &nt, &e, &ne, &tmat, &emat);
 
     // Throw exception if invalid element material numbers are detected.
-    validateTriangleMaterials(emat, ne);
+    validateTriangleMaterials(emat, ne, electrodes);
     validateTetrahedralMaterials(tmat, nt);
 
     // Count number of electrodes in mesh
-    electrodes.setnElectrodes(countElectrodes(emat, ne));
-
     for (idx i = 0; i < np;   i++) {	// scale mesh
         p[3*i + 0] = p[3*i + 0]* simu.getStretchVectorX();
         p[3*i + 1] = p[3*i + 1]* simu.getStretchVectorY();

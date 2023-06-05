@@ -13,29 +13,24 @@ void setNormalBox(  Box &box,
     double bottomTwistDegrees = box.Twist[0];
     double bottomTiltDegrees = box.Tilt[0];
     double deltaTiltDegrees = box.Tilt[1]; // delta tilt bottom to top of box
-    double deltaTwistDegrees = -1 * box.Twist[1];
+    double deltaTwistDegrees = box.Twist[1];
     double boxHeight = box.Z[1] - box.Z[0];
-    double power = box.Params[0];
+    double power = box.getParam(0, 1.0);
 
     for (int i = 0; i < npLC; i++) { // loop over each node
         double px = p[i * 3 + 0];
         double py = p[i * 3 + 1];
         double pz = p[i * 3 + 2];
         double S = dir[i].S();
-        // TODO: add Box::contains(x, y, z)
-        if ((px >= box.X[0]) && (px <= box.X[1])) { // if within X
-            if ((py >= box.Y[0]) && (py <= box.Y[1])) { // Y
-                if ((pz >= box.Z[0]) && (pz <= box.Z[1])) {// Z
-                    // NORMALISE COORDINATE W.R.T BOX SIZE
-                    double pzn = (pz - box.Z[0]) / (boxHeight);
-                    double twistDegrees = bottomTwistDegrees + pow(pzn * deltaTwistDegrees, power);
-                    double tiltDegrees = bottomTiltDegrees + pow(pzn * deltaTiltDegrees, power);
-                    dir[i] = qlc3d::Director::fromDegreeAngles(tiltDegrees, twistDegrees, S);
-                } // if inside z limits
-            }//if inside Y limits
-        } // end if inside X limits
-    }// end loop over each node
-}//end void setNormalBox
+
+        if (box.contains(px, py, pz)) {
+            double pzn = (pz - box.Z[0]) / (boxHeight);
+            double twistDegrees = bottomTwistDegrees + pow(pzn * deltaTwistDegrees, power);
+            double tiltDegrees = bottomTiltDegrees + pow(pzn * deltaTiltDegrees, power);
+            dir[i] = qlc3d::Director::fromDegreeAngles(tiltDegrees, twistDegrees, S);
+        }
+    } // end loop over each node
+} //end void setNormalBox
 
 void setRandomBox(Box &box, std::vector<qlc3d::Director> &dir, double* p, int npLC){
 /*! Sets the Q-tensor initial configuration within a box volume. The dircor orientation is randomized */
@@ -94,6 +89,9 @@ void SetVolumeQ(
 	Boxes* boxes,
 	double* p) {
     Log::info("Setting initial LC configuration for {} boxes.", boxes->n_Boxes);
+
+    assert(q->getnDimensions() == 5);
+    assert(q->getnDoF() > 0);
 
     int npLC = q->getnDoF() ;
     // LC TILT AND TWIST IS FIRST CALCULATED AS VECTORS

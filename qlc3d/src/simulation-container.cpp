@@ -52,7 +52,7 @@ void SimulationContainer::initialise() {
 
     createMeshRefinementEvents(*configuration.refinement(), *eventList);
 
-    // read missing configuration from file. TODO: all parameters to be provided in configuration
+    // read missing configuration from file. TODO: all parameters to be provided in Configuration, they should not be read in here
     ReadSettings(configuration.settingsFileName(),
                  *boxes,
                  *alignment,

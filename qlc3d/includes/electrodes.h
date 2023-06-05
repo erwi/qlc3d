@@ -9,7 +9,6 @@
 #include <eventlist.h>
 #include <limits>
 
-
 class SwitchingInstance {
     /*!A SwitchingInstance contains information needed to describe a single
     electrode switching event*/
@@ -45,10 +44,7 @@ public:
 
     double getCurrentElectrodePotential(const size_t &eln) const; // get current potential for electrode eln
     size_t getnElectrodes() const { return nElectrodes; }
-    void setnElectrodes(const size_t &numE) {
-        currentElectrodePotentials.resize(numE, 0.0);
-        nElectrodes = numE;
-    }
+    void setnElectrodes(const size_t &numE);
     void setEField(const std::vector<double> &vec3);
     void setElectrodePotential(const size_t &electrodeNumber, const double &potentialValue);
     //void setImplicitVariables(); // SETS FLAGS THAT DEPEND ON EXPLICITLY DEFINED VALUES

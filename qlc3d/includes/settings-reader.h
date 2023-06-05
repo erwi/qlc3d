@@ -10,6 +10,7 @@
 #include "simu.h"
 #include "lc.h"
 #include "meshrefinement.h"
+#include "electrodes.h"
 //class MeshRefinement;
 
 class SettingsReader {
@@ -27,6 +28,7 @@ class SettingsReader {
     void read();
     void readSimu(Reader &reader);
     void readLC(Reader &reader);
+    void readElectrodes(Reader &reader);
     /** Reads optional mesh refinement configuration */
     void readRefinement(Reader &reader);
     //! utility assertion for checking some input file format related stuff. Throws ReaderError
@@ -37,5 +39,6 @@ public:
     std::unique_ptr<Simu> simu();
     std::unique_ptr<LC> lc();
     std::unique_ptr<MeshRefinement> refinement();
+    std::unique_ptr<Electrodes> electrodes();
 };
 #endif //PROJECT_QLC3D_SETTINGS_READER_H

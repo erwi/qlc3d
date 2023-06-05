@@ -79,8 +79,8 @@ void writeCsvUnstructured(const double *p, // defined in resultoutput.cpp
  * @param numPoints number of points in p (= 3 x length of p)
  * @param numLcPoints number of LC points in the geometry (numLcPoints <= numPoints)
  * @param tetMesh
- * @param v
- * @param director the liquid crystal director vector
+ * @param v potential solution
+ * @param q liquid crystal solution
  * @param fileName
  */
 void writeVtkUnstructuredAsciiGrid(
@@ -89,7 +89,7 @@ void writeVtkUnstructuredAsciiGrid(
         size_t numLcPoints,
         const Mesh &tetMesh,
         const SolutionVector &v,
-        const double *director,
+        const SolutionVector &q,
         const std::string &fileName);
 }
 #endif // RESULTOUTPUT_H

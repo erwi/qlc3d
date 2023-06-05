@@ -36,6 +36,7 @@ public:
 
 namespace qlc3d {
     class TTensor;
+    class Director;
 }
 
 class SolutionVector
@@ -125,9 +126,6 @@ assert( n<getnDoF() );
     void setValuesTo(const SolutionVector& other); // copies values from other SolutionVector
     void setValue(const idx n,const idx dim, const double val);// sets nth value of dimension dim to val
 
-    //! set all of the 5 tensor values for te n'th DoF.
-    void setValue(const idx n, const qlc3d::TTensor &t);
-
     void setToFixedValues();
     void setFixedNodes(vector<int> *Material,
                        vector<double> *val ,
@@ -162,6 +160,15 @@ assert(i < getnDoF()*getnDimensions() );
 
     /** pointer to start of raw data values */
     [[nodiscard]] const double* getValues() const { return Values; }
+
+    // Q-tensor related only
+
+    //! set all of the 5 tensor values for te n'th DoF.
+    void setValue(idx n, const qlc3d::TTensor &t);
+
+    void setValue(idx i, const qlc3d::Director &d);
+
+    [[nodiscard]] qlc3d::Director getDirector(idx i) const;
 };
 
 #endif

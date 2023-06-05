@@ -6,6 +6,8 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
+#include "util/logging.h"
+
 class SectionMeshFormat {
 public:
     const double _versionNumber;
@@ -68,6 +70,11 @@ struct SectionEntities {
                     std::unordered_map<int, VolumeTag>&& volumeTags):
                     _numPoints { numPoints }, _numCurves { numCurves }, _numSurfaces { numSurfaces }, _numVolumes { numVolumes },
                     _surfaceTags { surfaceTags }, _volumeTags { volumeTags } { }
+
+    /** returns the physical tag numbers for the given surface tag */
+    std::vector<int> getPhysicalTagsForSurface(int surfaceTag) const;
+    /** returns the physical tag numbers for the given volume tag */
+    std::vector<int> getPhysicalTagsForVolume(int volumeTag) const;
 };
 
 struct SectionNodes {
@@ -125,6 +132,7 @@ public:
     void setEntities(std::shared_ptr<SectionEntities> &&entities) { _entities = entities; }
     void setNodes(std::shared_ptr<SectionNodes> &&nodes) { _nodes = std::move(nodes); }
     void setElements(std::shared_ptr<SectionElements> &&elements) { _elements = std::move(elements); }
+    void validateMeshData() const;
 
     [[nodiscard]] const std::shared_ptr<SectionMeshFormat> &getMeshFormat() const { return _meshFormat; }
     [[nodiscard]] const std::shared_ptr<SectionPhysicalNames> &getPhysicalNames() const { return _physicalNames; }

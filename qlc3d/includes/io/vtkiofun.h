@@ -10,6 +10,7 @@
 #include <vector>
 
 class Mesh;
+class SolutionVector;
 
 namespace vtkIOFun {
 
@@ -46,8 +47,7 @@ namespace vtkIOFun {
         void writePoints(std::ostream &os, size_t numPoints, const double *points) const;
         void writeTetrahedra(std::ostream &os, const Mesh &tetrahedra, size_t numPoints) const;
         void writePotentials(std::ostream &os, size_t numPotentials, const double *potentials) const;
-        void writeLiquidCrystal(std::ostream &os, size_t numPoints, size_t numLcPoints,
-                                const double *nx, const double *ny, const double *nz, const double *S) const;
+        void writeLiquidCrystal(std::ostream &os, size_t numPoints, size_t numLcPoints, const SolutionVector &q) const;
 
     public:
         void write(const std::string &fileName,
@@ -56,10 +56,7 @@ namespace vtkIOFun {
                    const double *points,
                    const Mesh &tetrahedra,
                    const double *potentials,
-                   const double *nx,
-                   const double *ny,
-                   const double *nz,
-                   const double *S
+                   const SolutionVector &q
                    ) const;
     };
 }//end namespace
