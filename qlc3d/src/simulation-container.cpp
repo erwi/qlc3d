@@ -43,6 +43,11 @@ void SimulationContainer::initialise() {
     }
     Log::info("current working directory is {}", FilesysFun::getCurrentDirectory());
 
+    Log::info("output and result files will be written into {}/{}", FilesysFun::getCurrentDirectory(), configuration.simu()->getSaveDir());
+    if (configuration.simu()->getSaveFormat().empty()) {
+      Log::warn("No save format specified, no results will be saved");
+    }
+
     // get parameters provided in configuration
     simu = configuration.simu();
     lc = configuration.lc();

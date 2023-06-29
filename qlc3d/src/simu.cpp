@@ -10,13 +10,12 @@
 // Define valid enum string keys
 const vector<string> Simu::VALID_END_CRITERIA = {"iterations", "time", "change"};
 const vector<string> Simu::VALID_SAVE_FORMATS = {
-        "none", "lcview", "regularvtk", "regularvecmat", "dirstackz", "lcviewtxt", "csvunstructured", "vtkunstructuredasciigrid"};
+        "lcview", "regularvtk", "regularvecmat", "dirstackz", "lcviewtxt", "csvunstructured", "vtkunstructuredasciigrid"};
 const vector<string> Simu::VALID_Q_MATRIX_SOLVERS = {"Auto", "PCG", "GMRES"};
 // Define values of default Simu parameters
 const string Simu::DEFAULT_LOAD_Q = "";
 const string Simu::DEFAULT_SAVE_DIR = "res";
 const string Simu::DEFAULT_Q_MATRIX_SOLVER = "auto";
-const vector<string> Simu::DEFAULT_SAVE_FORMATS = {"lcview"};
 const double Simu::DEFAULT_END_VALUE = 1e-3;
 const double Simu::DEFAULT_DT = 1e-9;
 const double Simu::DEFAULT_TARGET_DQ = 1e-3;
