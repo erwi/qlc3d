@@ -130,6 +130,7 @@ void SettingsReader::readLC(Reader &reader) {
     LCBuilder builder;
     readDouble(reader, SFK_K11, [&](double k11) { builder.K11(k11); });
     readDouble(reader, SFK_K22, [&](double k22) { builder.K22(k22); });
+    readDouble(reader, SFK_K24, [&](double k24) { builder.K24(k24); });
     readDouble(reader, SFK_K33, [&](double k33) { builder.K33(k33); });
     readDouble(reader, SFK_p0, [&](double p0) { builder.p0(p0); });
     readDouble(reader, SFK_A, [&](double a) { builder.A(a); });
