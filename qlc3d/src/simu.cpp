@@ -3,12 +3,15 @@
 #include <cassert>
 #include <omp.h>
 #include "stringenum.h"
+#include "util/stringutil.h"
 #include <reader.h>
 #include <globals.h>
 #include <settings_file_keys.h>
 
 // Define valid enum string keys
 const vector<string> Simu::VALID_END_CRITERIA = {"iterations", "time", "change"};
+
+// NOTE: the order of these should match the order of the corresponding enum values
 const vector<string> Simu::VALID_SAVE_FORMATS = {
         "lcview", "regularvtk", "regularvecmat", "dirstackz", "lcviewtxt", "csvunstructured", "vtkunstructuredasciigrid"};
 const vector<string> Simu::VALID_Q_MATRIX_SOLVERS = {"Auto", "PCG", "GMRES"};
@@ -39,6 +42,14 @@ void Simu::getdtFunction(double *f) {
     f[1] = dtFunction_[1];
     f[2] = dtFunction_[2];
     f[3] = dtFunction_[3];
+}
+
+const std::vector<std::string> Simu::getSaveFormatStrings() const {
+  std::vector<std::string> saveFormatStrings;
+  for (auto s : getSaveFormat()) {
+    saveFormatStrings.push_back(VALID_SAVE_FORMATS[s]);
+  }
+  return saveFormatStrings;
 }
 
 // <editor-fold desc=SimuBuilder>
@@ -116,7 +127,8 @@ SimuBuilder &SimuBuilder::endCriterion(const string &name) {
             return *this;
         }
     }
-    assertTrue(false, "invalid end criterion " + name);
+
+    assertTrue(false, "invalid end criterion " + name + ", valid criteria are " + StringUtil::toString(Simu::VALID_END_CRITERIA));
     return *this; // should neve execute, but appeases CLion code analyser
 }
 

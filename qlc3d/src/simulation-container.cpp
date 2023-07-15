@@ -22,6 +22,7 @@
 #include <util/exception.h>
 
 #include <spamtrix_ircmatrix.hpp>
+#include "util/stringutil.h"
 
 SimulationContainer::SimulationContainer(Configuration &config) :
         configuration(config),
@@ -37,20 +38,21 @@ SimulationContainer::SimulationContainer(Configuration &config) :
 
 void SimulationContainer::initialise() {
     simulationState_.state(RunningState::INITIALISING);
+    simu = configuration.simu();
+    lc = configuration.lc();
     // CHANGE CURRENT DIR TO WORKING DIRECTORY
     if (!FilesysFun::setCurrentDirectory(configuration.currentDirectory())) {
         RUNTIME_ERROR("Could not set working directory to " + configuration.currentDirectory());
     }
     Log::info("current working directory is {}", FilesysFun::getCurrentDirectory());
 
-    Log::info("output and result files will be written into {}/{}", FilesysFun::getCurrentDirectory(), configuration.simu()->getSaveDir());
-    if (configuration.simu()->getSaveFormat().empty()) {
-      Log::warn("No save format specified, no results will be saved");
+    Log::info("output and result files will be written into {}/{}", FilesysFun::getCurrentDirectory(), simu->getSaveDir());
+    if (simu->getSaveFormat().empty()) {
+      Log::warn("No save format specified, no results will be saved. Valid save formats are " + StringUtil::toString(Simu::VALID_SAVE_FORMATS) );
+    } else {
+      auto saveFormats = simu->getSaveFormatStrings();
+      Log::info("results will be saved every {} iterations in {} formats {}", simu->getSaveIter(), saveFormats.size(), StringUtil::toString(saveFormats));
     }
-
-    // get parameters provided in configuration
-    simu = configuration.simu();
-    lc = configuration.lc();
 
     eventList->setSaveIter(simu->getSaveIter());
     eventList->setSaveTime(simu->getSaveTime());
@@ -230,7 +232,7 @@ void SimulationContainer::runIteration() {
     adjustTimeStepSize();
     /// INCREMENT ITERATION COUNTER
 
-    ///EVENTS (ELECTRODES SWITCHING ETC.)
+    ///EVENTS (ELECTRODES SWITCHING, RESULT OUTPUT ETC.)
     handleEvents(*eventList,
                  *electrodes,
                  *alignment,

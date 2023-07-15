@@ -153,6 +153,7 @@ public:
     [[nodiscard]] int getOutputEnergy()const{return outputEnergy_;}
     [[nodiscard]] int getOutputFormat()const{return outputFormat_;}
     [[nodiscard]] const set<Simu::SaveFormats> &getSaveFormat() const { return saveFormat_; }
+    [[nodiscard]] const std::vector<std::string> getSaveFormatStrings() const;
     [[nodiscard]] EndCriteria  getEndCriterion()const {return endCriterion_;}
     [[nodiscard]] QMatrixSolvers getQMatrixSolver()const {return QMatrixSolver_;}
 // REGULAR GRID SIZE
