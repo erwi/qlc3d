@@ -360,7 +360,8 @@ bool RegularGrid::writeVTKGrid(const char *filename,
 
 
     if (npr_ == 0) {
-        throw std::runtime_error(fmt::format("Regular grid not initialised in {}, {}", __FILE__, __func__ ));
+      RUNTIME_ERROR("Regular grid is not initialised.");
+        //throw std::runtime_error(fmt::format("Regular grid not initialised in {}, {}", __FILE__, __func__ ));
     }
 
     std::fstream fid;

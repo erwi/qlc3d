@@ -28,7 +28,8 @@ protected:
 public:
 
   explicit ResultFormatWriter(const std::filesystem::path &outputDirectory) : outputDirectory(outputDirectory) {};
-  [[nodiscard]] virtual bool requiresDirector() const = 0;
+  [[nodiscard]] virtual bool isDirectorRequired() const {return false; };
+  [[nodiscard]] virtual bool isRegularGridRequired() const { return false; };
 
   void setDirector(const double *dir) { this->director = dir; };
   void setQTensor(const SolutionVector &q) {this->qTensor = &q; };
@@ -44,6 +45,7 @@ class ResultOutput {
 public:
   ResultOutput(const std::set<Simu::SaveFormats> &saveFormats, const std::string &meshName, double S0, const std::filesystem::path &outputDir);
   void writeResults(const Geometry &geom, const SolutionVector &potential, const SolutionVector &qtensor, const SimulationState &simulationState);
+  [[nodiscard]] bool isRegularGridRequired() const;
 
 private:
   std::vector<std::shared_ptr<ResultFormatWriter>> outputFormatWriters_;
@@ -56,7 +58,8 @@ private:
 class RegularVTKFormatWriter : public ResultFormatWriter {
 public:
   explicit RegularVTKFormatWriter(const std::filesystem::path &outputDir) : ResultFormatWriter(outputDir) {};
-  [[nodiscard]] bool requiresDirector() const override { return true; };
+  [[nodiscard]] bool isDirectorRequired() const override { return true; };
+  [[nodiscard]] bool isRegularGridRequired() const override { return true; };
   [[nodiscard]] const std::string formatName() const override { return "RegularVTK"; };
   void writeResult(const Geometry &geom, const SimulationState &simulationState) override;
   ~RegularVTKFormatWriter() override = default;
@@ -65,7 +68,8 @@ public:
 class RegularVecMatFormatWriter : public ResultFormatWriter {
 public:
   explicit RegularVecMatFormatWriter(const std::filesystem::path &outputDir) : ResultFormatWriter(outputDir) {};
-  [[nodiscard]] bool requiresDirector() const override { return true; };
+  [[nodiscard]] bool isDirectorRequired() const override { return true; };
+  [[nodiscard]] bool isRegularGridRequired() const override { return true; };
   [[nodiscard]] const std::string formatName() const override { return "RegularVecMat"; };
   void writeResult(const Geometry &geom, const SimulationState &simulationState) override;
   ~RegularVecMatFormatWriter() override = default;
@@ -74,7 +78,8 @@ public:
 class DirStackZFormatWriter : public ResultFormatWriter {
 public:
   explicit DirStackZFormatWriter(const std::filesystem::path &outputDir) : ResultFormatWriter(outputDir) {};
-  [[nodiscard]] bool requiresDirector() const override { return true; };
+  [[nodiscard]] bool isDirectorRequired() const override { return true; };
+  [[nodiscard]] bool isRegularGridRequired() const override { return true; };
   [[nodiscard]] const std::string formatName() const override { return "DirStackZ"; };
   void writeResult(const Geometry &geom, const SimulationState &simulationState) override;
   ~DirStackZFormatWriter() override = default;
@@ -83,7 +88,6 @@ public:
 class CsvUnstructuredFormatWriter : public ResultFormatWriter {
 public:
   explicit CsvUnstructuredFormatWriter(const std::filesystem::path &outputDir) : ResultFormatWriter(outputDir) {};
-  [[nodiscard]] bool requiresDirector() const override { return false; };
   [[nodiscard]] const std::string formatName() const override { return "CsvUnstructured"; };
   void writeResult(const Geometry &geom, const SimulationState &simulationState) override;
   ~CsvUnstructuredFormatWriter() override = default;
@@ -92,7 +96,6 @@ public:
 class VtkUnstructuredAsciiGridFormatWriter : public ResultFormatWriter {
 public:
   explicit VtkUnstructuredAsciiGridFormatWriter(const std::filesystem::path &outputDir) : ResultFormatWriter(outputDir) {};
-  [[nodiscard]] bool requiresDirector() const override { return false; }
   [[nodiscard]] const std::string formatName() const override { return "VtkUnstructuredAsciiGrid"; };
   void writeResult(const Geometry &geom, const SimulationState &simulationState) override;
   ~VtkUnstructuredAsciiGridFormatWriter() override = default;

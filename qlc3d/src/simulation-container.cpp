@@ -61,6 +61,10 @@ void SimulationContainer::initialise() {
       Log::info("results will be saved every {} iterations in {} formats {}", simu->getSaveIter(), saveFormats.size(), StringUtil::toString(saveFormats));
     }
 
+    if (resultOutput.isRegularGridRequired() && (simu->getRegularGridXCount() == 0 || simu->getRegularGridYCount() == 0 || simu->getRegularGridZCount() == 0)) {
+      throw std::runtime_error("Regular grid is required by at least one result file format, but it has not been defined in the settings file.");
+    }
+
     eventList->setSaveIter(simu->getSaveIter());
     eventList->setSaveTime(simu->getSaveTime());
 

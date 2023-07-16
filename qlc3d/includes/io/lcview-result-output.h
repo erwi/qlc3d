@@ -42,7 +42,6 @@ public:
   LcViewBinaryResultFormatWriter(const std::filesystem::path &outputDir, const std::string &meshName, double S0) :
           LcViewResultFormatWriter(outputDir, meshName, S0) {};
 
-  [[nodiscard]] bool requiresDirector() const override { return false; };
   [[nodiscard]] const std::string formatName() const override { return "LcView"; };
   void writeResult(const Geometry &geom, const SimulationState &simulationState) override;
 };
@@ -62,7 +61,7 @@ public:
   LcViewTxtResultFormatWriter(const std::filesystem::path &outputDir, const std::string &meshName, double S0) :
           LcViewResultFormatWriter(outputDir, meshName, S0) {};
 
-  [[nodiscard]] bool requiresDirector() const override { return true; };
+  [[nodiscard]] bool isDirectorRequired() const override { return true; };
   [[nodiscard]] const std::string formatName() const override { return "LcViewTxt"; };
   void writeResult(const Geometry &geom, const SimulationState &simulationState) override;
 };

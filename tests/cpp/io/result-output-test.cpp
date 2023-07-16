@@ -49,7 +49,7 @@ TEST_CASE("Write binary LCView result file") {
     TestUtil::TemporaryDirectory resDir;
     LcViewBinaryResultFormatWriter writer(resDir.path(), meshName, S0);
 
-    REQUIRE_FALSE(writer.requiresDirector()); // LCView format does not require director file
+    REQUIRE_FALSE(writer.isDirectorRequired()); // LCView format does not require director file
 
     writer.setPotential(potential);
     writer.setQTensor(qTensor);
@@ -113,7 +113,7 @@ TEST_CASE("Write text LCViewTxt result file") {
     TestUtil::TemporaryDirectory resDir;
     LcViewTxtResultFormatWriter writer(resDir.path(), meshName, S0);
 
-    REQUIRE(writer.requiresDirector()); // LCViewTxt format does require director file
+    REQUIRE(writer.isDirectorRequired()); // LCViewTxt format does require director file
 
     writer.setPotential(potential);
     writer.setQTensor(qTensor);
