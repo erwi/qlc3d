@@ -2,11 +2,21 @@
 #include <configuration.h>
 #include <simulation-container.h>
 #include <util/logging.h>
+#include <util/exception.h>
 #include <filesystem>
+#include <io/result-output.h>
+
 
 void parseArgs(int argc, char **args, Configuration &configuration) {
+    // just the config file name has been provided. It is expected to be in the current directory
     if (argc >= 2) {
-        configuration.settingsFileName(args[1]);
+      std::filesystem::path settingsFilePath = std::filesystem::current_path() / args[1];
+      if (!std::filesystem::exists(settingsFilePath)) {
+        RUNTIME_ERROR(fmt::format("The settings file {} does not exist", settingsFilePath.string()));
+      } else {
+        Log::info("Using settings file {}", settingsFilePath.string());
+      }
+      configuration.settingsFileName(settingsFilePath);
     }
 
     if (argc >= 3) {
@@ -17,7 +27,11 @@ void parseArgs(int argc, char **args, Configuration &configuration) {
 int runSimulation(Configuration &configuration) {
     try {
         configuration.readSettings();
-        SimulationContainer simulation(configuration);
+
+        auto simu = configuration.simu();
+        ResultOutput resultOutput(simu->getSaveFormat(), simu->meshName(), configuration.lc()->S0(), simu->getSaveDirAbsolutePath());
+
+        SimulationContainer simulation(configuration, resultOutput);
         Log::clearIndent();
         Log::info("Initialising.");
         Log::incrementIndent();

@@ -59,23 +59,6 @@ bool dirExists(const std::string& dir)
     return false; // otherwise assume dir does not exist
 }
 
-bool fileExists(const std::string &file)
-{
-    // CHECK WHETHER FILE EXISTS. RETURN TRUE/FALSE
-
-    // TRY TO OPEN FILE. IF THIS FAILS RETURN FALSE
-    FILE* fid;
-    fid = fopen(file.c_str(), "r" );
-
-    if ( fid )
-    {
-        fclose(fid);
-        return true;
-    }
-
-    return false;
-}
-
 bool createDirectory(const std::string& newdir)
 {
 #ifdef Linux
@@ -93,58 +76,5 @@ bool createDirectory(const std::string& newdir)
     return CreateDirectoryA( newdir.c_str(), NULL );
 #endif
 }
-
-bool copyFile(const std::string &srcFile,
-              const std::string &dstDir,
-              const std::string &dstFile)
-{
-    // COPIES SOURCE FILE TO DESTINATION FILE
-
-    if ( !fileExists(srcFile) ) {
-        Log::warn("Source file {} does not exist.", srcFile);
-        return false;
-    }
-
-    std::ifstream srcF(srcFile.c_str(), std::fstream::in | std::fstream::binary);
-
-    // MAKE SURE OPENEND OK
-    if (!srcF.good()) {
-        Log::warn("Could not open source file {}.", srcFile);
-        srcF.close();
-        return false;
-    }
-
-    // CHECK THAT OUTPUT DIR EXISTS
-    if ( !dirExists(dstDir) ) {
-        if (!createDirectory(dstDir) ) {
-            Log::warn("Could not create destination directory {}.", dstDir);
-            srcF.close();
-            return false;
-        }
-    }
-
-    // OPEN OUTPUT FILE
-    std::string fout = dstDir + "/";
-    if (dstFile.length() == 0 ) {
-        fout += srcFile;
-    } else {
-        fout += dstFile;
-    }
-
-    std::ofstream dstF(fout.c_str(), std::fstream::out |std::fstream::binary);
-    // CHECK OPENEED OK
-    if ( !dstF.good() ) {
-        Log::warn("Could not create destination file {}.", fout);
-        srcF.close();
-        dstF.close();
-        return false;
-    }
-    // WRITE DATA FROM SOURCE TO DESTINATION
-    dstF << srcF.rdbuf();
-    srcF.close();
-    dstF.close();
-    return true;
-}
-
 
 }//end namespace FilesysFun

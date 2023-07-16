@@ -1,10 +1,10 @@
-MeshName = ./geometry.msh
+MeshName = geometry.msh
 
 dt = 0
 #EndCriterion = Change
 EndCriterion = iterations
 
-EndValue = 1e-6
+EndValue = 5
 
 SaveIter = 1
 SaveFormat = [VTKUnstructuredAsciiGrid, LCView]

@@ -7,13 +7,13 @@
 #include "configuration.h"
 
 Configuration::Configuration() :
-        settingsFileName_("./meshes/test.txt"), // default for backwards compatibility
+        settingsFilePath_("./meshes/test.txt"), // default for backwards compatibility
         currentDirectory_(std::filesystem::current_path().c_str()),
         simu_(nullptr)
         {}
 
 void Configuration::readSettings() {
-    SettingsReader reader(settingsFileName());
+    SettingsReader reader(settingsFile());
     simu_ = reader.simu();
     lc_ = reader.lc();
     refinement_ = reader.refinement();

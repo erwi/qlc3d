@@ -38,7 +38,12 @@ add_library(lib-qlc3d STATIC
         includes/util/exception.h
         src/util/logging.cpp
         includes/util/stringutil.h
-        src/util/stringutil.cpp)
+        src/util/stringutil.cpp
+        includes/io/result-output.h
+        src/io/result-output.cpp
+        src/io/writeLCD.cpp
+        includes/io/lcview-result-output.h
+        src/io/lcview-result-output.cpp)
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 target_include_directories(lib-qlc3d
         PUBLIC includes)

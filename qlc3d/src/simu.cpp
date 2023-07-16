@@ -69,7 +69,8 @@ Simu *SimuBuilder::build() const {
                     regularGridSize_, outputEnergy_,
                     outputFormat_, saveIter_, saveTime_,
                     saveFormat_, numAssemblyThreads_,
-                    numMatrixSolverThreads_);
+                    numMatrixSolverThreads_,
+                    workingDir_ / saveDir_); // absolute path to result directory
 }
 
 SimuBuilder &SimuBuilder::initialTimeStep(double dt) {

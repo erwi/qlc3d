@@ -127,11 +127,11 @@ void prepareGeometry(Geometry& geom,
 FILE* createOutputEnergyFile(Simu& simu) {
     FILE* fid = nullptr;
     if (simu.getOutputEnergy() == 1) {
-        string energy_fn = simu.getSaveDir() + "/" + "energy.m";
-        fid = fopen( energy_fn.c_str(), "w");
-        if (fid == nullptr) {
-            throw std::runtime_error(fmt::format("could not open output file for free energy by filename = {}.", energy_fn));
-        }
+      std::filesystem::path energyFilePath = simu.getSaveDirAbsolutePath() / "energy.m";
+      fid = fopen( energyFilePath.c_str(), "w");
+      if (fid == nullptr) {
+        RUNTIME_ERROR(fmt::format("could not open output file for free energy by filename = {}.", energyFilePath.c_str()));
+      }
     }
     return fid;
 }

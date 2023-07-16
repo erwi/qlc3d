@@ -25,9 +25,11 @@
 
 class Configuration;
 class SimulationState;
+class ResultOutput;
 
 class SimulationContainer {
     Configuration &configuration;
+    ResultOutput &resultOutput;
 
     std::shared_ptr<Simu> simu;
     std::unique_ptr<Electrodes> electrodes;
@@ -70,7 +72,7 @@ class SimulationContainer {
     void adjustTimeStepSize();
 
 public:
-    SimulationContainer(Configuration &config);
+    SimulationContainer(Configuration &config, ResultOutput &resultOutput);
     /*!
      * Sets up simulation state. Reads configuration, loads mesh geometry etc.
      */
