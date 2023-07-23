@@ -1,6 +1,7 @@
 #ifndef PROJECT_QLC3D_INITS_H
 #define PROJECT_QLC3D_INITS_H
 #include <vector>
+#include <filesystem>
 
 class Geometry;
 class Simu;
@@ -10,7 +11,7 @@ class MeshRefinement;
 class EventList;
 
 void prepareGeometry(Geometry& geom,
-                    const std::string &meshFileName,
+                    const std::filesystem::path &meshFileName,
                     Simu& simu,
                     Alignment& alignment,
                     Electrodes& electrodes);

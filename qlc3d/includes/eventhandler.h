@@ -16,6 +16,7 @@ namespace SpaMtrix {
 class IRCMatrix;
 }
 class SimulationState;
+class ResultOutput;
 // CONVENIENCE STRUCT WITH POINTERS TO THE DIFFERENT GEOMETRY OBJECTS
 // NEEDED IN MESH REFINEMENT.
 struct Geometries {
@@ -46,7 +47,8 @@ void handleInitialEvents(SimulationState &simulationState,
                          const LC &lc,
                          Settings &settings,
                          SpaMtrix::IRCMatrix &Kpot,
-                         SpaMtrix::IRCMatrix &Kq);
+                         SpaMtrix::IRCMatrix &Kq,
+                         ResultOutput &resultOutput);
 
 void handleEvents(EventList &evel,
                   Electrodes &electr,
@@ -58,7 +60,8 @@ void handleEvents(EventList &evel,
                   const LC &lc,
                   Settings &settings,
                   SpaMtrix::IRCMatrix &Kpot,
-                  SpaMtrix::IRCMatrix &Kq);
+                  SpaMtrix::IRCMatrix &Kq,
+                  ResultOutput &resultOutput);
 
 void handleMeshRefinement(std::list<Event *> &refEvents,
                           Geometries &geometries,
@@ -82,10 +85,12 @@ void handlePreRefinement(std::list<Event *> &refEvents,
                          SpaMtrix::IRCMatrix &Kpot,
                          SpaMtrix::IRCMatrix &Kq);
 
+/*
 void handleResultOutput(SimulationState &simulationState,
                         Simu &simu,
                         double S0,
                         Geometry &geom,
                         SolutionVector &v,
                         SolutionVector &q);
+*/
 #endif // EVENTHANDLER_H

@@ -103,6 +103,7 @@ public:
         return npLC;
     }
     double *getPtrTop();
+  [[nodiscard]] const double *getPtrTop() const {return p;}
     inline double *getPtrTop(const size_t &i) {
         if (i < np) return &p[3 * i];    // pointer to node i
         return NULL;

@@ -1,7 +1,6 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 3.0)
 PROJECT (qlc3d)
 
-add_definitions(-DLinux) ## Must choose either -DLinux OR -DWindows
 add_definitions(-DDEBUG) # DISABLES OPENMP PRAGMAS
 #
 # Should be no need to change_ settings below
@@ -36,8 +35,16 @@ add_library(lib-qlc3d STATIC
         includes/inits.h
         includes/util/logging.h
         includes/util/exception.h
-        src/util/logging.cpp)
+        src/util/logging.cpp
+        includes/util/stringutil.h
+        src/util/stringutil.cpp
+        includes/io/result-output.h
+        src/io/result-output.cpp
+        src/io/writeLCD.cpp
+        includes/io/lcview-result-output.h
+        src/io/lcview-result-output.cpp)
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
+set_target_properties(lib-qlc3d PROPERTIES CXX_STANDARD 17)
 target_include_directories(lib-qlc3d
         PUBLIC includes)
 target_link_libraries(lib-qlc3d SpaMtrix gomp pthread fmt)
@@ -46,6 +53,7 @@ target_link_libraries(lib-qlc3d SpaMtrix gomp pthread fmt)
 # qlc3d application
 add_executable(qlc3d src/main-app-qlc3d.cpp)
 target_compile_features(qlc3d PUBLIC cxx_std_17)
+set_target_properties(qlc3d PROPERTIES CXX_STANDARD 17)
 target_include_directories(qlc3d
         PRIVATE includes)
 target_link_libraries(qlc3d lib-qlc3d)

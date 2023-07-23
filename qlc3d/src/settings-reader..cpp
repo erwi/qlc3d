@@ -7,8 +7,8 @@
 #include <set>
 #include "electrodes.h"
 
-SettingsReader::SettingsReader(std::string fileName):
-fileName_(std::move(fileName)),
+SettingsReader::SettingsReader(const std::filesystem::path &fileName):
+fileName_(fileName),
 simu_(nullptr) {
     read();
 }
@@ -17,7 +17,7 @@ void SettingsReader::read() {
     try {
         // check that settings file exists
         std::ifstream f(fileName_);
-        assertTrue(f.good(), "Settings file does not exist: " + fileName_);
+        assertTrue(f.good(), "Settings file does not exist: " + fileName_.string());
 
         Reader reader;
         reader.setCaseSensitivity(false);
@@ -61,7 +61,7 @@ std::unique_ptr<MeshRefinement> SettingsReader::refinement() {
 // <editor-fold desc="Private Methods">
 void SettingsReader::assertTrue(bool condition, const std::string &errorMsg) {
     if (!condition) {
-        throw ReaderError(errorMsg, fileName_);
+        throw ReaderError(errorMsg, fileName_.string());
     }
 }
 
@@ -130,6 +130,7 @@ void SettingsReader::readLC(Reader &reader) {
     LCBuilder builder;
     readDouble(reader, SFK_K11, [&](double k11) { builder.K11(k11); });
     readDouble(reader, SFK_K22, [&](double k22) { builder.K22(k22); });
+    readDouble(reader, SFK_K24, [&](double k24) { builder.K24(k24); });
     readDouble(reader, SFK_K33, [&](double k33) { builder.K33(k33); });
     readDouble(reader, SFK_p0, [&](double p0) { builder.p0(p0); });
     readDouble(reader, SFK_A, [&](double a) { builder.A(a); });

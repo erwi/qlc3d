@@ -6,7 +6,7 @@
  * Liquid crystal material parameters class
  */
 class LC {
-    const double K11_, K22_, K33_;
+    const double K11_, K22_, K33_, K24_;
     double p0_;
     double A_, B_, C_;
     double eps_par_;
@@ -28,14 +28,14 @@ class LC {
     double static calculateU1(double gamma1, double A, double B, double C);
 
 public:
-    LC(double K11, double K22, double K33, double p0, double A, double B, double C, double eps_par, double eps_per,
+    LC(double K11, double K22, double K33, double K24, double p0, double A, double B, double C, double eps_par, double eps_per,
        double e1, double e3, double gamma1):
-    K11_{ K11 }, K22_{ K22 }, K33_{ K33 }, p0_{ p0 }, A_{ A }, B_{ B }, C_{ C }, eps_par_{ eps_par }, eps_per_{ eps_per },
+    K11_{ K11 }, K22_{ K22 }, K33_{ K33 }, K24_{K24}, p0_{ p0 }, A_{ A }, B_{ B }, C_{ C }, eps_par_{ eps_par }, eps_per_{ eps_per },
     e1_{ e1 }, e3_{ e3 }, gamma1_{ gamma1 },
     S0_{ LC::calculateS0(A, B, C) },
     L1_{ LC::calculateL1(K11, K22, K33, A, B, C) },
     L2_{ LC::calculateL2(K11, K22, A, B, C) },
-    L3_{ 0 },
+    L3_{ LC::calculateL3(K24, A, B, C) },
     L4_{ calculateL4(p0, K22, A, B, C) },
     L5_{ 0 },
     L6_{ calculateL6(K11, K33, A, B, C) },
@@ -45,6 +45,7 @@ public:
     [[nodiscard]] const double & K11() const { return K11_; }
     [[nodiscard]] const double & K22() const { return K22_; }
     [[nodiscard]] const double & K33() const { return K33_; }
+    [[nodiscard]] const double & K24() const { return K24_; }
     [[nodiscard]] const double & p0() const { return p0_; }
     [[nodiscard]] const double & A() const { return A_; }
     [[nodiscard]] const double & B() const { return B_; }
@@ -90,7 +91,7 @@ public:
     LCBuilder &K11(double K11);
     LCBuilder &K22(double K22);
     LCBuilder &K33(double K33);
-    LCBuilder &K24(double K24); // TODO: Actually read this from settings file and set.
+    LCBuilder &K24(double K24);
     LCBuilder &p0(double p0);
     LCBuilder &A(double A);
     LCBuilder &B(double B);
@@ -102,7 +103,7 @@ public:
     LCBuilder &gamma1(double gamma1);
 
     LC* build() const {
-        return new LC { K11_, K22_, K33_, p0_, A_, B_, C_, eps_par_, eps_per_, e1_, e3_, gamma1_ };
+        return new LC { K11_, K22_, K33_, K24_, p0_, A_, B_, C_, eps_par_, eps_per_, e1_, e3_, gamma1_ };
     }
 };
 

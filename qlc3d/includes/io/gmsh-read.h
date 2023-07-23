@@ -2,6 +2,7 @@
 #define PROJECT_QLC3D_GMSH_READ_H
 #include <string>
 #include <fstream>
+#include <filesystem>
 #include <utility>
 #include <memory>
 #include <vector>
@@ -175,7 +176,7 @@ public:
  * See https://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format for more details about the Gmsh file format.
  */
 class GmshFileReader {
-    std::string _fileName;
+    std::filesystem::path _fileName;
     size_t _lineNumber = 0;
     std::ifstream _fin;
 
@@ -190,7 +191,7 @@ class GmshFileReader {
     std::unique_ptr<SectionElements> readElements();
 
 public:
-    std::shared_ptr<GmshFileData> readGmsh(const std::string &fileName);
+    std::shared_ptr<GmshFileData> readGmsh(const std::filesystem::path &fileName);
 };
 
 #endif //PROJECT_QLC3D_GMSH_READ_H

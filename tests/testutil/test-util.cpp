@@ -1,6 +1,3 @@
-//
-// Created by eero on 07/04/2021.
-//
 #include "test-util.h"
 
 #include <filesystem>
@@ -8,10 +5,16 @@
 #include <fstream>
 
 using namespace TestUtil;
-
+namespace fs = std::filesystem;
 //<editor-fold desc=TemporaryFile>
 TemporaryFile::TemporaryFile() {
-    name_ = std::tmpnam(nullptr);
+    std::filesystem::path tempDir = std::filesystem::temp_directory_path();
+    //std::tmpnam()
+    char* tempFileName = tempnam(tempDir.string().c_str(), "qlc3d-temp");
+    name_ = tempFileName;
+    if (fs::exists(name_)) {
+      throw std::runtime_error("Temporary file already exists: " + name_.string());
+    }
 }
 
 TemporaryFile::~TemporaryFile() {
@@ -27,7 +30,7 @@ TestUtil::TemporaryFile TemporaryFile::empty() {
 
 TestUtil::TemporaryFile TemporaryFile::withContents(const std::string &fileContents) {
     TemporaryFile f;
-    FILE *fid = fopen(f.name().c_str(), "wt");
+    FILE *fid = fopen(f.name().string().c_str(), "wt");
     fprintf(fid, "%s", fileContents.c_str());
     fclose(fid);
     return f;
@@ -44,5 +47,28 @@ std::vector<std::string> TemporaryFile::readContentsAsText() const {
     }
     fin.close();
     return lines;
+}
+//</editor-fold>
+
+//<editor-fold desc=TemporaryDirectory>
+TemporaryDirectory::TemporaryDirectory() {
+    path_ = std::filesystem::temp_directory_path() / std::filesystem::path(std::tmpnam(nullptr));
+    if (!std::filesystem::create_directory(path_)) {
+        throw std::runtime_error("Could not create temporary directory " + path_.string());
+    }
+}
+
+TemporaryDirectory::~TemporaryDirectory() {
+  if (fs::exists(path_)) {
+    fs::remove_all(path_);
+  }
+}
+
+std::vector<std::filesystem::path> TemporaryDirectory::listFiles() const {
+    std::vector<fs::path> files;
+    for (const auto &entry : fs::directory_iterator(path_)) {
+        files.emplace_back(entry.path());
+    }
+    return files;
 }
 //</editor-fold>

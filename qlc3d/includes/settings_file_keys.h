@@ -35,6 +35,7 @@ const std::string SFK_REGULAR_GRID_SIZE = "RegularGridSize";
 const std::string SFK_K11 = "K11";
 const std::string SFK_K22 = "K22";
 const std::string SFK_K33 = "K33";
+const std::string SFK_K24 = "K24";
 const std::string SFK_p0  = "p0";
 const std::string SFK_A = "A";
 const std::string SFK_B = "B";

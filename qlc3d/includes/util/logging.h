@@ -7,6 +7,17 @@
 #include <iostream>
 #include <string>
 #include <exception>
+#include <filesystem>
+
+template <>
+class fmt::formatter<std::filesystem::path> {
+public:
+    constexpr auto parse (format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format (std::filesystem::path const& p, Context& ctx) const {
+        return format_to(ctx.out(), "{}", p.string());
+    }
+};
 
 class Log {
 

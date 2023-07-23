@@ -7,6 +7,7 @@
 #include <sstream>
 #include <typeinfo>
 #include <fstream>
+#include <filesystem>
 #include <algorithm>
 #include <regex>
 #include <optional>
@@ -67,7 +68,7 @@ class Reader {
     const char _R_CBRACE = ']';
     const char _R_VDELIM = ',';
 
-    std::string _fileName;                          // holds current file name
+    std::filesystem::path _fileName;                          // holds current file name
     std::map<std::string, lineData> _keyValues;     // "database" of all read key/value pairs
     std::vector<std::string> _validKeys;            // optional list of valid keys. read in from a separte file
     std::string _recentKey;                         // previously accessed/searched key that is valid and found
@@ -125,8 +126,8 @@ class Reader {
 public:
 
     inline Reader(): isCaseSensitive_(true), isLowerCaseStringValues_(false), isEnvironmentVariableSubstitution_(false) {}
-    inline void readSettingsFile(const std::string &fileName);
-    inline void readValidKeysFile(const std::string &fileName);
+    inline void readSettingsFile(const std::filesystem::path &fileName);
+    inline void readValidKeysFile(const std::filesystem::path &fileName);
     inline bool containsKey(const std::string &key);
 
     /** check whether a key that starts with the given prefix exists */
@@ -250,7 +251,7 @@ inline bool Reader::splitByChar(const std::string &line,
     }
     return true;
 }
-void Reader::readSettingsFile(const std::string &fileName) {
+void Reader::readSettingsFile(const std::filesystem::path &fileName) {
     /*!
      * Reads text file and stores found key/value pair definitions in a
      * map "database". Does initial error checking for validity of format.
@@ -259,7 +260,7 @@ void Reader::readSettingsFile(const std::string &fileName) {
     _fileName = fileName;
     std::ifstream fin(_fileName.c_str());
     if (!fin.is_open()) {
-        throw ReaderError(_R_FILE_OPEN_ERROR_MESSAGE + _fileName);
+        throw ReaderError(_R_FILE_OPEN_ERROR_MESSAGE + _fileName.string());
     }
     std::string line;
     size_t lineNumber = 1;
@@ -278,7 +279,7 @@ void Reader::readSettingsFile(const std::string &fileName) {
             try {
                 line = envVarSubstitution(line);
             } catch (std::exception &error) {
-                throw ReaderError(error.what(), fileName, lineNumber, line);
+                throw ReaderError(error.what(), fileName.string(), lineNumber, line);
             }
         }
 
@@ -287,7 +288,7 @@ void Reader::readSettingsFile(const std::string &fileName) {
         std::string value;
         if (!splitByChar(line, key, value)) {
             fin.close();
-            throw ReaderError(_R_BAD_VALUE_ERROR_MSG, _fileName, lineNumber, rawLine);
+            throw ReaderError(_R_BAD_VALUE_ERROR_MSG, _fileName.string(), lineNumber, rawLine);
         }
         // HANDLE CASE SENSITIVITY
         std::string rawKey = key;
@@ -302,7 +303,7 @@ void Reader::readSettingsFile(const std::string &fileName) {
 
         // IF VALID KEYS HAVE BEEN DEFINED, CHECK THIS IS ONE
         if ((_validKeys.size() > 0) && !isValidKey(key)) {
-            throw ReaderError(rawKey + " is not a valid key.", _fileName, lineNumber, rawLine);
+            throw ReaderError(rawKey + " is not a valid key.", _fileName.string(), lineNumber, rawLine);
         }
         // DISALLOW REDEFINITION OF EXISTING KEYS
         if (containsKey(key)) {
@@ -311,7 +312,7 @@ void Reader::readSettingsFile(const std::string &fileName) {
             line1 << prevDefLine;
             std::string msg = "Multiple definitions of \"" + key + "\", which is already defined on line " +
                               line1.str();
-            throw ReaderError(msg, _fileName, lineNumber, rawLine);
+            throw ReaderError(msg, _fileName.string(), lineNumber, rawLine);
         }
         // IF OK SO FAR - SAVE LINE INFO TO "DATABASE"
         lineData valueData;
@@ -324,16 +325,16 @@ void Reader::readSettingsFile(const std::string &fileName) {
     fin.close();
 }
 
-void Reader::readValidKeysFile(const std::string &fileName) {
+void Reader::readValidKeysFile(const std::filesystem::path &fileName) {
     /*! Reads a text file containing a list of all allowed keys.
         This should be called before reading in the actual settings file*/
     // Make sure this is called before reading the actual settings file
     if (_keyValues.size() > 0) {
-        throw ReaderError("Valid keys file should be read first.", fileName);
+        throw ReaderError("Valid keys file should be read first.", fileName.string());
     }
     std::ifstream fin(fileName.c_str());
     if (!fin.is_open()) {
-        throw ReaderError(_R_FILE_OPEN_ERROR_MESSAGE + fileName);
+        throw ReaderError(_R_FILE_OPEN_ERROR_MESSAGE + fileName.string());
     }
     std::string line;
     size_t lineNumber = 1;
@@ -353,7 +354,7 @@ void Reader::readValidKeysFile(const std::string &fileName) {
         std::string value;
         if (!splitByChar(line, key, value)) {
             fin.close();
-            throw ReaderError(_R_BAD_VALUE_ERROR_MSG, fileName, lineNumber, rawLine);
+            throw ReaderError(_R_BAD_VALUE_ERROR_MSG, fileName.string(), lineNumber, rawLine);
         }
         // HANDLE CASE SENSITIVITY
         if (!isCaseSensitive()) {
@@ -548,7 +549,7 @@ T Reader::getValueByKey(const std::string &key) const {
     // First make sure key exists
     auto const &itr = _keyValues.find(tkey);
     if (itr == _keyValues.end()) {
-        throw ReaderError(_R_KEY_NOT_FOUND_ERROR_MSG + key, _fileName);
+        throw ReaderError(_R_KEY_NOT_FOUND_ERROR_MSG + key, _fileName.string());
     }
     // Get value stored as a string and convert to
     // specified type
@@ -559,7 +560,7 @@ T Reader::getValueByKey(const std::string &key) const {
         return retVal;
     } catch (std::string msg) { // error converting to required type
         lineData badLine = (_keyValues.find(tkey)->second);
-        throw ReaderError(msg, _fileName, badLine.lineNumber_, badLine.rawText_);
+        throw ReaderError(msg, _fileName.string(), badLine.lineNumber_, badLine.rawText_);
     }
 }
 

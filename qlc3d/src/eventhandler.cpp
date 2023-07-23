@@ -1,9 +1,8 @@
 #include <eventhandler.h>
-#include <filesysfun.h>
-#include <qlc3d.h>
 #include <simulation-state.h>
 #include <filesystem>
 #include <util/logging.h>
+#include <io/result-output.h>
 
 void handleElectrodeSwitching(Event *currentEvent,
                               Electrodes &electr,
@@ -33,6 +32,7 @@ void handleElectrodeSwitching(Event *currentEvent,
     v.setToFixedValues();
 }
 
+/*
 void handleResultOutput(SimulationState &simulationState,
                         Simu &simu,
                         double S0,
@@ -75,11 +75,11 @@ void handleResultOutput(SimulationState &simulationState,
         // Write the actual result file
         if (saveFormats.count(Simu::LCview)) {
             ResultIO::writeLCD_B(geom.getPtrTop(), geom.t, geom.e, &v, &q, currentIteration, currentTime, S0,
-                                 numberedMeshName);
+                                 numberedMeshName, simu.getSaveDirAbsolutePath());
         }
         if (saveFormats.count(Simu::LCviewTXT)) {
             ResultIO::writeLCD_T(geom.getPtrTop(), geom.t, geom.e, &v, &q, currentIteration, currentTime,
-                                 numberedMeshName);
+                                 numberedMeshName, simu.getSaveDirAbsolutePath());
         }
     }
 
@@ -144,6 +144,7 @@ void handleResultOutput(SimulationState &simulationState,
     FilesysFun::setCurrentDirectory(currentDirectory); // Go back to execution directory
 }
 
+
 /**
  * THIS IS ONLY CALLED BEFORE SIMULATION STARTS, DOES NOT
  * NEED TO BE AS GENERAL AS handleEvents.
@@ -162,8 +163,8 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
                          const LC &lc,
                          Settings &settings,
                          SpaMtrix::IRCMatrix &Kpot,
-                         SpaMtrix::IRCMatrix &Kq
-) {
+                         SpaMtrix::IRCMatrix &Kq,
+                         ResultOutput &resultOutput) {
 
     int currentIteration = simulationState.currentIteration();
     double currentTime = simulationState.currentTime();
@@ -222,12 +223,16 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
               &electrodes);
 
     // WRITE INITIAL RESULT FILE. ALWAYS!
+    /*
     handleResultOutput(simulationState,
                        simu,
                        lc.S0(),
                        *geometries.geom,
                        *solutionvectors.v,
                        *solutionvectors.q);
+                       */
+    Log::info("Writing initial results");
+    resultOutput.writeResults(*geometries.geom, *solutionvectors.v, *solutionvectors.q, simulationState);
 
     // ADD REOCCURRING EVENTS
     evel.manageReoccurringEvents(currentIteration, currentTime, timeStep);
@@ -260,7 +265,8 @@ void handleEvents(EventList &evel,
                   const LC &lc,
                   Settings &settings,
                   SpaMtrix::IRCMatrix &Kpot,
-                  SpaMtrix::IRCMatrix &Kq
+                  SpaMtrix::IRCMatrix &Kq,
+                  ResultOutput &resultOutput
 ) {
     //int currentIteration = simulationState.currentIteration();
 
@@ -349,12 +355,7 @@ void handleEvents(EventList &evel,
     }
 
     if (saveResult) {
-        handleResultOutput(simulationState,
-                simu,
-                lc.S0(),
-                *geometries.geom,
-                *solutionvectors.v,
-                *solutionvectors.q);
+      resultOutput.writeResults(*geometries.geom, *solutionvectors.v, *solutionvectors.q, simulationState);
     }
 
     if (simu.simulationMode() == TimeStepping) {

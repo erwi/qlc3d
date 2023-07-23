@@ -5,6 +5,7 @@
 //
 
 #include <fstream>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -50,7 +51,7 @@ namespace vtkIOFun {
         void writeLiquidCrystal(std::ostream &os, size_t numPoints, size_t numLcPoints, const SolutionVector &q) const;
 
     public:
-        void write(const std::string &fileName,
+        void write(const std::filesystem::path &fileName,
                    size_t numPoints,
                    size_t numLcPoints,
                    const double *points,

@@ -69,7 +69,7 @@ double calcQ3d(SolutionVector *q,
 class Electrodes;
 class EventList;
 void ReadSettings(
-        string settings_filename,
+        const std::filesystem::path &settingsFilePath,
         Boxes &boxes,
         Alignment &alignment,
         Electrodes &electrodes,

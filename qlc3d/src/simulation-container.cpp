@@ -13,18 +13,22 @@
 #include <regulargrid.h>
 #include <resultio.h>
 
-#include <filesysfun.h>
 #include <qlc3d.h>
 #include <inits.h>
 #include <calcpot3d.h> // TODO: create PotentialSolver class?
 #include <eventhandler.h>
 #include <util/logging.h>
 #include <util/exception.h>
+#include <io/result-output.h>
 
 #include <spamtrix_ircmatrix.hpp>
+#include "util/stringutil.h"
 
-SimulationContainer::SimulationContainer(Configuration &config) :
+namespace fs = std::filesystem;
+
+SimulationContainer::SimulationContainer(Configuration &config, ResultOutput &resultOut) :
         configuration(config),
+        resultOutput(resultOut),
         electrodes(new Electrodes()),
         boxes(new Boxes()),
         alignment(new Alignment()),
@@ -37,15 +41,32 @@ SimulationContainer::SimulationContainer(Configuration &config) :
 
 void SimulationContainer::initialise() {
     simulationState_.state(RunningState::INITIALISING);
-    // CHANGE CURRENT DIR TO WORKING DIRECTORY
-    if (!FilesysFun::setCurrentDirectory(configuration.currentDirectory())) {
-        RUNTIME_ERROR("Could not set working directory to " + configuration.currentDirectory());
-    }
-    Log::info("current working directory is {}", FilesysFun::getCurrentDirectory());
-
-    // get parameters provided in configuration
     simu = configuration.simu();
     lc = configuration.lc();
+    // CHANGE CURRENT DIR TO WORKING DIRECTORY
+    std::error_code ec;
+    fs::current_path(configuration.currentDirectory(), ec);
+    if (ec.value()) {
+        RUNTIME_ERROR(fmt::format("Could not set working directory to {}", configuration.currentDirectory()));
+    }
+    Log::info("current working directory is {}", std::filesystem::current_path());
+
+    // Create result output directory if it does not exist
+    if (!std::filesystem::exists(simu->getSaveDirAbsolutePath()) && !std::filesystem::create_directories(simu->getSaveDirAbsolutePath())) {
+            RUNTIME_ERROR(fmt::format("Could not create directory {}", simu->getSaveDirAbsolutePath().string()));
+    }
+    Log::info("output and result files will be written into {}", simu->getSaveDirAbsolutePath().string());
+
+    if (simu->getSaveFormat().empty()) {
+      Log::warn("No save format specified, no results will be saved. Valid save formats are " + StringUtil::toString(Simu::VALID_SAVE_FORMATS) );
+    } else {
+      auto saveFormats = simu->getSaveFormatStrings();
+      Log::info("results will be saved every {} iterations in {} formats {}", simu->getSaveIter(), saveFormats.size(), StringUtil::toString(saveFormats));
+    }
+
+    if (resultOutput.isRegularGridRequired() && (simu->getRegularGridXCount() == 0 || simu->getRegularGridYCount() == 0 || simu->getRegularGridZCount() == 0)) {
+      throw std::runtime_error("Regular grid is required by at least one result file format, but it has not been defined in the settings file.");
+    }
 
     eventList->setSaveIter(simu->getSaveIter());
     eventList->setSaveTime(simu->getSaveTime());
@@ -53,7 +74,7 @@ void SimulationContainer::initialise() {
     createMeshRefinementEvents(*configuration.refinement(), *eventList);
 
     // read missing configuration from file. TODO: all parameters to be provided in Configuration, they should not be read in here
-    ReadSettings(configuration.settingsFileName(),
+    ReadSettings(configuration.settingsFile(),
                  *boxes,
                  *alignment,
                  *electrodes,
@@ -66,10 +87,17 @@ void SimulationContainer::initialise() {
     simulationState_.currentIteration(0);
 
     // Create a backup settings file in the results directory
-    // TODO: this should contain all the data, not jst a simple copy of the file. Full data, including default values,
-    // will make results more repeatable in future and debugging easier.
-    if (!FilesysFun::copyFile(configuration.settingsFileName(), simu->getSaveDir(), "settings.qfg")) {
-        RUNTIME_ERROR("Could not back up settings file.");
+    std::filesystem::path settingsBackup = simu->getSaveDirAbsolutePath() / "settings.qfg";
+    Log::info("Creating backup of settings file in {}", settingsBackup.string());
+    // explicit deletion required due to mingw bug with replace on copy https://sourceforge.net/p/mingw-w64/bugs/852/
+    if (fs::exists(settingsBackup) && !fs::remove(settingsBackup)) {
+        RUNTIME_ERROR(fmt::format("Unable to delete old settings file backup file {}", settingsBackup));
+    }
+
+    if (!std::filesystem::copy_file(configuration.settingsFile(),
+                                    simu->getSaveDirAbsolutePath() / "settings.qfg",
+                                    std::filesystem::copy_options::overwrite_existing)) {
+      RUNTIME_ERROR(fmt::format("Could not back up settings file {} to {}", configuration.settingsFile(), settingsBackup));
     }
 
     Energy_fid = nullptr; // file for outputting free energy
@@ -77,7 +105,7 @@ void SimulationContainer::initialise() {
     //	CREATE GEOMETRY
     //	NEED 3 GEOMETRY OBJECTS WHEN USING MESH REFINEMENT
     // ================================================================
-    std::string meshName = configuration.currentDirectory() + "/" + simu->meshName(); // TODO
+    std::filesystem::path meshName = configuration.currentDirectory() / simu->meshName();
     // mesh file is read and geometry is loaded in this function (in inits.cpp)
     prepareGeometry(geom_orig,
                     meshName,
@@ -140,7 +168,6 @@ void SimulationContainer::initialise() {
     //*
     //********************************************************************
     Log::info("Saving starting configuration");
-    ResultIO::CreateSaveDir(*simu);
     Energy_fid = createOutputEnergyFile(*simu); // done in inits
 
     handleInitialEvents(simulationState_,
@@ -153,8 +180,8 @@ void SimulationContainer::initialise() {
                         *lc,
                         *settings,
                         Kpot,
-                        Kq
-    );
+                        Kq,
+                        resultOutput);
 
     simulationState_.currentIteration(1);
     simulationState_.currentTime(0);
@@ -225,7 +252,7 @@ void SimulationContainer::runIteration() {
     adjustTimeStepSize();
     /// INCREMENT ITERATION COUNTER
 
-    ///EVENTS (ELECTRODES SWITCHING ETC.)
+    ///EVENTS (ELECTRODES SWITCHING, RESULT OUTPUT ETC.)
     handleEvents(*eventList,
                  *electrodes,
                  *alignment,
@@ -236,7 +263,8 @@ void SimulationContainer::runIteration() {
                  *lc,
                  *settings,
                  Kpot,
-                 Kq);
+                 Kq,
+                 resultOutput);
 
     // TODO: should this be done together with incrementing time?
     simulationState_.currentIteration(simulationState_.currentIteration() + 1);
@@ -245,12 +273,16 @@ void SimulationContainer::runIteration() {
 void SimulationContainer::postSimulationTasks() {
     simulationState_.state(RunningState::COMPLETED);
 
+    /*
     handleResultOutput(simulationState_,
                        *simu.get(),
                        lc->S0(),
                        *geometries.geom,
                        v,
                        q);
+*/
+
+    resultOutput.writeResults(*geometries.geom, v, q, simulationState_);
 }
 
 const SimulationState &SimulationContainer::currentState() const {

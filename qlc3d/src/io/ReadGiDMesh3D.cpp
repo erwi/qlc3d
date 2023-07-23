@@ -164,7 +164,7 @@ void ReadTriangles(ifstream* fin, idx ne, idx* e, idx* emat) {
     }
 }
 
-void ReadGiDMesh3D(const std::string &meshFileName,
+void ReadGiDMesh3D(const std::filesystem::path &meshFileName,
                    double **p,
                    idx *np,
                    idx **t,
@@ -181,13 +181,13 @@ void ReadGiDMesh3D(const std::string &meshFileName,
     ifstream fin;
     char *charray 	= (char*)malloc(200*sizeof(char));
 
-    Log::info("Attempting to open mesh file: {}", meshFileName);
-    fin.open(meshFileName.c_str());
+    Log::info("Attempting to open mesh file: {}", meshFileName.string());
+    fin.open(meshFileName.string().c_str());
     if (!fin.good() ) {
-        RUNTIME_ERROR("could not open mesh file " + meshFileName);
+        RUNTIME_ERROR("could not open mesh file " + meshFileName.string());
     }
     else { // File opened OK
-        Log::info("Reading GID mesh file: {}", meshFileName);
+        Log::info("Reading GID mesh file: {}", meshFileName.string());
 
         np[0] = 0;
         nt[0] = 0;
@@ -239,7 +239,7 @@ void ReadGiDMesh3D(const std::string &meshFileName,
                 error = true;
             }
             if (error) {
-                RUNTIME_ERROR("Could not find all required data in mesh file " + meshFileName);
+                RUNTIME_ERROR("Could not find all required data in mesh file " + meshFileName.string());
             }
         }
 

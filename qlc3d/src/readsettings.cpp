@@ -299,7 +299,7 @@ void readSolverSettings(Settings &settings, Reader &reader) {
 } // end readSolverSettings
 
 
-void ReadSettings(string settingsFileName,
+void ReadSettings(const std::filesystem::path &settingsFileName,
                   Boxes &boxes,
                   Alignment &alignment,
                   Electrodes &electrodes,

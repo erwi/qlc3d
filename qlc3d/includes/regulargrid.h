@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <fstream>
 #include <iostream>
+#include <filesystem>
 #include <io/vtkiofun.h>
 #include <io/matlabiofun.h>
 #include <globals.h>
@@ -94,17 +95,17 @@ public:
     // FILE OUTPUT FUNCTIONS
     //
     // ==============================================
-    bool writeVTKGrid(const char* filename,
+    bool writeVTKGrid(const std::filesystem::path &fileName,
                       const double* pot,        // POTENTIAL DATA
                       const double* n,          // DIRECTOR DATA (INCLUDING S)
                       const idx npLC );     // NUMBER OF LC NODES
 
-    bool writeVecMat(const char* filename,
+    bool writeVecMat(const std::filesystem::path &filename,
                      const double* pot,
                      const double* n,
                      const idx npLC,
                      const double time = 0 );
-    bool writeDirStackZ(const char* filename,
+    bool writeDirStackZ(const std::filesystem::path &filename,
                         const double* n,    // DIRECTOR INCLUDING S (S WILL BE IGNORED)
                         const idx nplC,
                         const double time = 0);

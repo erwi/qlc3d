@@ -100,6 +100,7 @@ TEST_CASE("read LC from settings file") {
     contents += "K11 = 1.23e-12\n";
     contents += "K22 = 2.23e-12\n";
     contents += "K33 = 3.33e-12\n";
+    contents += "K24 = 4.44e-12\n";
     contents += "p0 = 0.01\n";
     contents += "A = -0.12\n";
     contents += "B = -2.1333\n";
@@ -121,6 +122,7 @@ TEST_CASE("read LC from settings file") {
     REQUIRE(lc->K11() == Approx(1.23e-12).margin(eps));
     REQUIRE(lc->K22() == Approx(2.23e-12).margin(eps));
     REQUIRE(lc->K33() == Approx(3.33e-12).margin(eps));
+    REQUIRE(lc->K24() == Approx(4.44e-12).margin(eps));
     REQUIRE(lc->p0() == Approx(0.01).margin(eps));
     REQUIRE(lc->A() == Approx(-0.12).margin(eps));
     REQUIRE(lc->B() == Approx(-2.1333).margin(eps));
@@ -135,7 +137,7 @@ TEST_CASE("read LC from settings file") {
     REQUIRE(lc->S0() == Approx(0.50224218371360507).margin(eps));
     REQUIRE(lc->L1() == Approx(2.5812420611831688e-12).margin(eps));
     REQUIRE(lc->L2() == Approx(-1.7619399735038694e-12).margin(eps));
-    REQUIRE(lc->L3() == 0);
+    REQUIRE(lc->L3() == Approx(7.8230134823571808e-12).margin(eps)); // 4.0 * K24 / (9.0 * S0 * S0);
     REQUIRE(lc->L4() == Approx(4.9374855277287484e-09).margin(eps));
     REQUIRE(lc->L5() == 0);
     REQUIRE(lc->L6() == Approx(2.4557036852882312e-12).margin(eps));

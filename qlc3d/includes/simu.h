@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <filesystem>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -24,7 +25,7 @@ public:
     // SAVE FORMATS OPTIONS BITFIELDS - MUST BE POWERS OF 2 AS WILL BE USED AS BITFIELDS!!!
     // REMEMBER TO ADD to "validSaveFormatStrings" IN CONSTRUCTOR
     // IF/WHEN ADDING NEW SAVE FORMATS!
-    enum SaveFormats {None, // TODO: is this still needed?
+    enum SaveFormats {
                       LCview,
                       RegularVTK,
                       RegularVecMat,    // REGULAR GRID, VECTORS, MATLAB FILE
@@ -55,7 +56,6 @@ public:
     const static string DEFAULT_LOAD_Q;
     const static string DEFAULT_SAVE_DIR;
     const static string DEFAULT_Q_MATRIX_SOLVER;
-    const static vector<string> DEFAULT_SAVE_FORMATS;
     const static double DEFAULT_END_VALUE;
     const static double DEFAULT_DT;
     const static double DEFAULT_TARGET_DQ;
@@ -88,6 +88,7 @@ private:
     const EndCriteria endCriterion_;    // how we determine that a simulation has ended
     const std::string loadQ_;
     const std::string saveDir_;         // directory where results are saved
+    const std::filesystem::path saveDirAbsolutePath_;
     const double endValue_;
     const double  stretchVector_[3];
     const size_t regularGridSize_[3];   // NUMBER OF NODES IN X,Y AND Z-DIRECTIONS
@@ -108,7 +109,8 @@ public:
          const double stretchVector[3], const size_t regularGridSize[3],
          int outputEnergy, int outputFormat, int saveIter, double saveTime,
          const set<Simu::SaveFormats> saveFormat,
-         unsigned int numAsseblyThreads, unsigned int numMatrixSolverThreads
+         unsigned int numAsseblyThreads, unsigned int numMatrixSolverThreads,
+         const std::filesystem::path &saveDirAbsolutePath
 
          ): meshName_(meshName), initialTimeStep_(initialTimeStep),QMatrixSolver_(solver),
          maxError_(maxError), TargetdQ_(targetDQ),
@@ -119,39 +121,45 @@ public:
          regularGridSize_{regularGridSize[0], regularGridSize[1], regularGridSize[2]},
          outputEnergy_(outputEnergy), outputFormat_(outputFormat),
          saveIter_(saveIter), saveTime_(saveTime), saveFormat_(saveFormat), numAsseblyThreads_(numAsseblyThreads),
-         numMatrixSolverThreads_(numMatrixSolverThreads)
+         numMatrixSolverThreads_(numMatrixSolverThreads), saveDirAbsolutePath_(saveDirAbsolutePath)
     {}
 
 
-    SimulationMode simulationMode() const { return initialTimeStep_ > 0 ? TimeStepping : SteadyState; }
+    [[nodiscard]] SimulationMode simulationMode() const { return initialTimeStep_ > 0 ? TimeStepping : SteadyState; }
 
     void getdtFunction(double* f );
 
     // METHOD VARIABLE ACCESS
-    unsigned int getAssemblyThreadCount()const {return numAsseblyThreads_;}
-    unsigned int getMatrixSolverThreadCount()const {return numMatrixSolverThreads_;}
+    [[nodiscard]] unsigned int getAssemblyThreadCount()const {return numAsseblyThreads_;}
+    [[nodiscard]] unsigned int getMatrixSolverThreadCount()const {return numMatrixSolverThreads_;}
 
-    const std::string &getLoadQ() const {return loadQ_;}
-    const std::string &getSaveDir()const {return saveDir_;}
-    const std::string &meshName() const { return meshName_; }
+    [[nodiscard]] const std::string &getLoadQ() const {return loadQ_;}
+    /**
+     * @brief Returns the directory where results are saved. NOTE: this path is relative to the working directory of
+     * the process, not absolute. TODO deprecated, use getSaveDirAbsolutePath() instead
+     */
+    [[nodiscard]] const std::string &getSaveDir()const {return saveDir_;}
+    [[nodiscard]] const std::filesystem::path &getSaveDirAbsolutePath() const { return saveDirAbsolutePath_; }
+    [[nodiscard]] const std::string &meshName() const { return meshName_; }
 
-    double initialTimeStep() const { return initialTimeStep_; }
-    double getMaxError() const { return maxError_; }
-    double getTargetdQ()const{return TargetdQ_;}
-    double getMaxdt()const{return dtLimits_[1];}
-    double getMindt()const{return dtLimits_[0];}
-    double getEndValue()const {return endValue_;}
-    double getStretchVectorX()const {return stretchVector_[0];}
-    double getStretchVectorY()const {return stretchVector_[1];}
-    double getStretchVectorZ()const {return stretchVector_[2];}
+    [[nodiscard]] double initialTimeStep() const { return initialTimeStep_; }
+    [[nodiscard]] double getMaxError() const { return maxError_; }
+    [[nodiscard]] double getTargetdQ()const{return TargetdQ_;}
+    [[nodiscard]] double getMaxdt()const{return dtLimits_[1];}
+    [[nodiscard]] double getMindt()const{return dtLimits_[0];}
+    [[nodiscard]] double getEndValue()const {return endValue_;}
+    [[nodiscard]] double getStretchVectorX()const {return stretchVector_[0];}
+    [[nodiscard]] double getStretchVectorY()const {return stretchVector_[1];}
+    [[nodiscard]] double getStretchVectorZ()const {return stretchVector_[2];}
 
-    int getSaveIter() const{ return saveIter_;}
-    double getSaveTime() const { return saveTime_; }
-    int getOutputEnergy()const{return outputEnergy_;}
-    int getOutputFormat()const{return outputFormat_;}
-    const set<Simu::SaveFormats> &getSaveFormat() const { return saveFormat_; }
-    EndCriteria  getEndCriterion()const {return endCriterion_;}
-    QMatrixSolvers getQMatrixSolver()const {return QMatrixSolver_;}
+    [[nodiscard]] int getSaveIter() const{ return saveIter_;}
+    [[nodiscard]] double getSaveTime() const { return saveTime_; }
+    [[nodiscard]] int getOutputEnergy()const{return outputEnergy_;}
+    [[nodiscard]] int getOutputFormat()const{return outputFormat_;}
+    [[nodiscard]] const set<Simu::SaveFormats> &getSaveFormat() const { return saveFormat_; }
+    [[nodiscard]] const std::vector<std::string> getSaveFormatStrings() const;
+    [[nodiscard]] EndCriteria  getEndCriterion()const {return endCriterion_;}
+    [[nodiscard]] QMatrixSolvers getQMatrixSolver()const {return QMatrixSolver_;}
 // REGULAR GRID SIZE
     size_t getRegularGridXCount(){return regularGridSize_[0];}
     size_t getRegularGridYCount(){return regularGridSize_[1];}
@@ -180,20 +188,22 @@ class SimuBuilder {
     set<Simu::SaveFormats> saveFormat_;
     unsigned int numAssemblyThreads_;
     unsigned int numMatrixSolverThreads_;
+    std::filesystem::path workingDir_;
 
 public:
     SimuBuilder():
-    meshFileName_(""), initialTimeStep_(Simu::DEFAULT_DT),
-    qMatrixSolver_(Simu::QMatrixSolvers::Auto), targetDQ_(Simu::DEFAULT_TARGET_DQ),
-    maxError_(Simu::DEFAULT_MAX_ERROR), dtLimits_{Simu::DEFAULT_DT, Simu::DEFAULT_MAX_DT},
-    dtFunction_{Simu::DEFAULT_DT_FUNCTION[0], Simu::DEFAULT_DT_FUNCTION[1], Simu::DEFAULT_DT_FUNCTION[2], Simu::DEFAULT_DT_FUNCTION[3]},
-    endCriterion_(Simu::DEFAULT_END_CRITERION), loadQ_(""),
-    saveDir_(Simu::DEFAULT_SAVE_DIR), endValue_(Simu::DEFAULT_END_VALUE),
-    stretchVector_{1., 1., 1.}, regularGridSize_{0, 0, 0},
-    outputEnergy_(Simu::DEFAULT_OUTPUT_ENERGY),
-    outputFormat_(Simu::DEFAULT_OUTPUT_FORMAT), saveIter_(Simu::DEFAULT_SAVE_ITER), saveTime_(Simu::DEFAULT_SAVE_TIME),
-    saveFormat_{}, numAssemblyThreads_(Simu::DEFAULT_NUM_ASSEMBLY_THREADS),
-    numMatrixSolverThreads_(Simu::DEFAULT_NUM_MATRIX_SOLVER_THREADS)
+            meshFileName_(""), initialTimeStep_(Simu::DEFAULT_DT),
+            qMatrixSolver_(Simu::QMatrixSolvers::Auto), targetDQ_(Simu::DEFAULT_TARGET_DQ),
+            maxError_(Simu::DEFAULT_MAX_ERROR), dtLimits_{Simu::DEFAULT_DT, Simu::DEFAULT_MAX_DT},
+            dtFunction_{Simu::DEFAULT_DT_FUNCTION[0], Simu::DEFAULT_DT_FUNCTION[1], Simu::DEFAULT_DT_FUNCTION[2], Simu::DEFAULT_DT_FUNCTION[3]},
+            endCriterion_(Simu::DEFAULT_END_CRITERION), loadQ_(""),
+            saveDir_(Simu::DEFAULT_SAVE_DIR), endValue_(Simu::DEFAULT_END_VALUE),
+            stretchVector_{1., 1., 1.}, regularGridSize_{0, 0, 0},
+            outputEnergy_(Simu::DEFAULT_OUTPUT_ENERGY),
+            outputFormat_(Simu::DEFAULT_OUTPUT_FORMAT), saveIter_(Simu::DEFAULT_SAVE_ITER), saveTime_(Simu::DEFAULT_SAVE_TIME),
+            saveFormat_{}, numAssemblyThreads_(Simu::DEFAULT_NUM_ASSEMBLY_THREADS),
+            numMatrixSolverThreads_(Simu::DEFAULT_NUM_MATRIX_SOLVER_THREADS),
+            workingDir_(std::filesystem::current_path())
     {}
 
     SimuBuilder &meshFileName(const std::string &name) { meshFileName_ = name; return *this; };
