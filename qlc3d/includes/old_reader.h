@@ -2,6 +2,7 @@
 #define READER_H
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -19,7 +20,7 @@ class Reader
 
         Reader();
         virtual ~Reader();
-        bool openFile(const std::string& filename);
+        bool openFile(const std::filesystem::path &filename);
         void closeFile();
 	bool gotoLine(const unsigned int& l); // uggly seek line number in txt files
 

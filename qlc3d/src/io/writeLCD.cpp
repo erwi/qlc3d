@@ -2,7 +2,6 @@
 #include <string>
 #include <iostream>
 #include <simu.h>
-#include <filesysfun.h>
 #include <resultio.h>
 #include <util/logging.h>
 #include <util/exception.h>
@@ -148,16 +147,6 @@ namespace ResultIO {
             fclose(fid);
         } else {
             RUNTIME_ERROR("Could not open file " + filename + ".");
-        }
-    }
-    void CreateSaveDir(Simu &simu) {
-        // CREATES DIRECTORY FOR RESULTS, IF IT DOES NOT
-        // ALREADY EXIST
-        // first check if savedit already exists
-        if (FilesysFun::dirExists(simu.getSaveDir()) || FilesysFun::createDirectory(simu.getSaveDir())) {
-            return;
-        } else {
-            RUNTIME_ERROR("Could not create directory for results, saveDir=" + simu.getSaveDir() + ".");
         }
     }
 } // end namespace // WriteResults

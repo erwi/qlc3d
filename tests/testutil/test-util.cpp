@@ -8,9 +8,12 @@ using namespace TestUtil;
 namespace fs = std::filesystem;
 //<editor-fold desc=TemporaryFile>
 TemporaryFile::TemporaryFile() {
-    name_ = std::tmpnam(nullptr); // ignore warning about unsafe function, this one works in Windows too
+    std::filesystem::path tempDir = std::filesystem::temp_directory_path();
+    //std::tmpnam()
+    char* tempFileName = tempnam(tempDir.string().c_str(), "qlc3d-temp");
+    name_ = tempFileName;
     if (fs::exists(name_)) {
-      throw std::runtime_error("Temporary file already exists: " + name_);
+      throw std::runtime_error("Temporary file already exists: " + name_.string());
     }
 }
 
@@ -27,7 +30,7 @@ TestUtil::TemporaryFile TemporaryFile::empty() {
 
 TestUtil::TemporaryFile TemporaryFile::withContents(const std::string &fileContents) {
     TemporaryFile f;
-    FILE *fid = fopen(f.name().c_str(), "wt");
+    FILE *fid = fopen(f.name().string().c_str(), "wt");
     fprintf(fid, "%s", fileContents.c_str());
     fclose(fid);
     return f;

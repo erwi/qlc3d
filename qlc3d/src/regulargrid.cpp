@@ -2,6 +2,7 @@
 #include <regulargrid.h>
 #include <util/logging.h>
 #include <util/exception.h>
+#include <filesystem>
 
 const idx RegularGrid::NOT_AN_INDEX = std::numeric_limits<idx>::max();
 const idx RegularGrid::MAX_SIZE_T = std::numeric_limits<idx>::max();
@@ -353,7 +354,7 @@ void RegularGrid::interpolateDirToRegular(const double *vecIn,
  * @param npLC
  * @return
  */
-bool RegularGrid::writeVTKGrid(const char *filename,
+bool RegularGrid::writeVTKGrid(const std::filesystem::path &fileName,
                                const double *pot,
                                const double *n,
                                const idx npLC) {
@@ -365,7 +366,7 @@ bool RegularGrid::writeVTKGrid(const char *filename,
     }
 
     std::fstream fid;
-    fid.open( filename, std::fstream::out );
+    fid.open( fileName, std::fstream::out );
 
     if (!fid.is_open() ) {    // EXIT IF COULDN'T OPEN FILE // TODO: throw exception instead?
         return false;
@@ -408,7 +409,7 @@ bool RegularGrid::writeVTKGrid(const char *filename,
 
 
 
-bool RegularGrid::writeVecMat(const char *filename,
+bool RegularGrid::writeVecMat(const std::filesystem::path &fileName,
                               const double *pot,
                               const double *n,
                               const idx npLC,
@@ -417,7 +418,7 @@ bool RegularGrid::writeVecMat(const char *filename,
     // VALUES ARE WRITTEN IN 2D MATRIXES, WHERE EACH ROW CORRESPONDS TO A
     // COLUMN OF VALUES Zmin->Zmax  IN THE MODELLED STRUCTURE
 
-    std::ofstream fid(filename);
+    std::ofstream fid(fileName);
     if ( !fid.good() )
         return false;
 
@@ -477,7 +478,7 @@ bool RegularGrid::writeVecMat(const char *filename,
 
 }
 
-bool RegularGrid::writeDirStackZ(const char *filename,
+bool RegularGrid::writeDirStackZ(const std::filesystem::path &fileName,
                                  const double *n,
                                  const idx npLC,
                                  const double time)
@@ -494,7 +495,7 @@ bool RegularGrid::writeDirStackZ(const char *filename,
   are printed, with director data starting on second row.
   */
 
-    std::ofstream fid(filename);
+    std::ofstream fid(fileName);
     if( !fid.good() )
         return false;
 

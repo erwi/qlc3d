@@ -395,12 +395,12 @@ bool GmshFileReader::readLine(std::string &line) {
     return (bool) getline(_fin, line);
 }
 
-std::shared_ptr<GmshFileData> GmshFileReader::readGmsh(const string &fileName) {
+std::shared_ptr<GmshFileData> GmshFileReader::readGmsh(const std::filesystem::path &fileName) {
     _fileName = fileName;
     _lineNumber = 0;
 
     if (!std::filesystem::exists(fileName)) {
-        RUNTIME_ERROR("No such mesh file " + fileName + ".")
+        RUNTIME_ERROR("No such mesh file " + fileName.string())
     }
     _fin.open(fileName);
 

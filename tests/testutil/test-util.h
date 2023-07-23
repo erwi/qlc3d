@@ -14,12 +14,12 @@ namespace TestUtil {
    * TemporaryFile is a file created in the OS temp directory. It deletes itself when going out of scope.
    */
   class TemporaryFile {
-    std::string name_;
+    std::filesystem::path name_;
     TemporaryFile();
   public:
 
     ~TemporaryFile();
-    [[nodiscard]] const std::string &name() const { return name_; }
+    [[nodiscard]] const std::filesystem::path &name() const { return name_; }
     static TemporaryFile empty();
     static TemporaryFile withContents(const std::string &fileContents);
 
@@ -28,7 +28,7 @@ namespace TestUtil {
      * of the file.
      * @return the file contents.
      */
-    std::vector<std::string> readContentsAsText() const;
+    [[nodiscard]] std::vector<std::string> readContentsAsText() const;
   };
 
   /** TemporaryDirectory is a directory created in the OS temp directory. It deletes itself when going out of scope. */

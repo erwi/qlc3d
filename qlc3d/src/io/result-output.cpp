@@ -2,7 +2,6 @@
 #include <io/lcview-result-output.h>
 #include <geometry.h>
 #include <solutionvector.h>
-#include <filesysfun.h>
 #include <filesystem>
 #include <simulation-state.h>
 #include <qlc3d.h>
@@ -52,9 +51,6 @@ void ResultOutput::writeResults(const Geometry &geom,
                                 const SolutionVector &potential,
                                 const SolutionVector &qtensor,
                                 const SimulationState &simulationState) {
-  std::string currentDirectory = std::filesystem::current_path().c_str();
-  FilesysFun::setCurrentDirectory(outputDirectory_);
-
   // if any of current output format writers requires director, calculate director
   double *director = nullptr;
   if (isDirectorRequired()) {
@@ -74,8 +70,6 @@ void ResultOutput::writeResults(const Geometry &geom,
   if (director != nullptr) {
     delete[] director;
   }
-
-  FilesysFun::setCurrentDirectory(currentDirectory); // go back to original directory
 }
 
 bool ResultOutput::isDirectorRequired() const {

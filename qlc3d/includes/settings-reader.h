@@ -5,6 +5,7 @@
 #ifndef PROJECT_QLC3D_SETTINGS_READER_H
 #define PROJECT_QLC3D_SETTINGS_READER_H
 
+#include <filesystem>
 #include <string>
 #include <memory>
 #include "simu.h"
@@ -14,7 +15,7 @@
 //class MeshRefinement;
 
 class SettingsReader {
-    std::string fileName_;
+    std::filesystem::path fileName_;
     std::unique_ptr<Simu> simu_;
     std::unique_ptr<LC> lc_;
 
@@ -34,7 +35,7 @@ class SettingsReader {
     //! utility assertion for checking some input file format related stuff. Throws ReaderError
     void assertTrue(bool condition, const std::string &msg);
 public:
-    SettingsReader(std::string fileName);
+    SettingsReader(const std::filesystem::path &fileName);
 
     std::unique_ptr<Simu> simu();
     std::unique_ptr<LC> lc();

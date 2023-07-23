@@ -58,7 +58,7 @@ void validateTetrahedralMaterials(const idx* const matt, idx nt) {
 }
 
 void prepareGeometry(Geometry& geom,
-                     const std::string &meshFileName,
+                     const std::filesystem::path &meshFileName,
                      Simu& simu,
                      Alignment& alignment,
                      Electrodes& electrodes) {
@@ -128,9 +128,9 @@ FILE* createOutputEnergyFile(Simu& simu) {
     FILE* fid = nullptr;
     if (simu.getOutputEnergy() == 1) {
       std::filesystem::path energyFilePath = simu.getSaveDirAbsolutePath() / "energy.m";
-      fid = fopen( energyFilePath.c_str(), "w");
+      fid = fopen( energyFilePath.string().c_str(), "w");
       if (fid == nullptr) {
-        RUNTIME_ERROR(fmt::format("could not open output file for free energy by filename = {}.", energyFilePath.c_str()));
+        RUNTIME_ERROR(fmt::format("could not open output file for free energy by filename = {}.", energyFilePath));
       }
     }
     return fid;

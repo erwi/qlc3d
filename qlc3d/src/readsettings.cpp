@@ -308,7 +308,7 @@ void ReadSettings(const std::filesystem::path &settingsFileName,
     Reader reader;
     reader.setCaseSensitivity(false);
     reader.setEnvironmentVariableSubstitution(true);
-    reader.readSettingsFile(settingsFileName.string());
+    reader.readSettingsFile(settingsFileName);
 
     try {
         //readSimu(simu, eventList,reader);

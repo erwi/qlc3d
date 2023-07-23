@@ -7,8 +7,8 @@
 #include <set>
 #include "electrodes.h"
 
-SettingsReader::SettingsReader(std::string fileName):
-fileName_(std::move(fileName)),
+SettingsReader::SettingsReader(const std::filesystem::path &fileName):
+fileName_(fileName),
 simu_(nullptr) {
     read();
 }
@@ -17,7 +17,7 @@ void SettingsReader::read() {
     try {
         // check that settings file exists
         std::ifstream f(fileName_);
-        assertTrue(f.good(), "Settings file does not exist: " + fileName_);
+        assertTrue(f.good(), "Settings file does not exist: " + fileName_.string());
 
         Reader reader;
         reader.setCaseSensitivity(false);
@@ -61,7 +61,7 @@ std::unique_ptr<MeshRefinement> SettingsReader::refinement() {
 // <editor-fold desc="Private Methods">
 void SettingsReader::assertTrue(bool condition, const std::string &errorMsg) {
     if (!condition) {
-        throw ReaderError(errorMsg, fileName_);
+        throw ReaderError(errorMsg, fileName_.string());
     }
 }
 

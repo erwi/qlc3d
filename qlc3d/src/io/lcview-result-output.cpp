@@ -25,7 +25,7 @@ void LcViewResultFormatWriter::writeMeshIfRequired(const Geometry &geom, const S
   std::string numberedMeshName = this->numberedMeshName(simulationState, meshName_);
   if (simulationState.meshNumber() > lastMeshNumber_|| lastMeshNumber_ == -1) {
     writtenMeshPath_ = outputDirectory / numberedMeshName;
-    Log::info("Writing mesh file {}", writtenMeshPath_.c_str());
+    Log::info("Writing mesh file {}", writtenMeshPath_.string());
     //ResultIO::writeMesh(geom.getPtrTop(), geom.t, geom.e, geom.getnp(), writtenMeshPath_);
     writeMeshFile(geom.getPtrTop(), geom.t, geom.e, geom.getnp(), writtenMeshPath_);
     lastMeshNumber_ = simulationState.meshNumber();
@@ -35,7 +35,7 @@ void LcViewResultFormatWriter::writeMeshIfRequired(const Geometry &geom, const S
 void LcViewResultFormatWriter::writeMeshFile(const double *p, Mesh *t, Mesh *e, idx np,
                                              const std::filesystem::path &fileName) {
   idx i;
-  FILE *fid = fopen(fileName.c_str(), "w");
+  FILE *fid = fopen(fileName.string().c_str(), "w");
   if (fid != NULL) {
     fputs("MESH    dimension 3 ElemType Tetrahedra  Nnode 4\nCoordinates\n", fid);
     for (i = 0; i < np; i++) {
@@ -50,7 +50,7 @@ void LcViewResultFormatWriter::writeMeshFile(const double *p, Mesh *t, Mesh *e, 
     fprintf(fid, "end elements\n");
     fclose(fid);
   } else {
-    RUNTIME_ERROR(fmt::format("Could not open file for output mesh: {}", fileName.c_str()));
+    RUNTIME_ERROR(fmt::format("Could not open file for output mesh: {}", fileName));
   }
 }
 //</editor-fold>
@@ -77,7 +77,7 @@ void LcViewBinaryResultFormatWriter::writeResult(const Geometry &geom, const Sim
                         qTensor,
                         simulationState.currentTime(),
                         S0_,
-                        writtenMeshPath_.filename(),
+                        writtenMeshPath_.filename().string(),
                         outputFilePath);
 }
 
@@ -92,7 +92,7 @@ void LcViewBinaryResultFormatWriter::writeBinaryResultFile(const double *p,
                                                            const std::filesystem::path &filePath) {
   const int npLC = q->getnDoF();
   const int np = v->getnDoF();
-  FILE *fid = fopen(filePath.c_str(), "wb");
+  FILE *fid = fopen(filePath.string().c_str(), "wb");
   char time[20];
   sprintf(time, "%1.9f\n", currentTime);
   string text = "** Result Time :   ";
@@ -153,7 +153,7 @@ void LcViewTxtResultFormatWriter::writeResult(const Geometry &geom, const Simula
                       director,
                       geom.getnpLC(),
                       simulationState.currentTime(),
-                      writtenMeshPath_.filename(),
+                      writtenMeshPath_.filename().string(),
                       filePath);
 }
 
@@ -168,7 +168,7 @@ void LcViewTxtResultFormatWriter::writeTextResultFile(const double *p,
                                                       const std::filesystem::path &filePath) {
   idx np = v->getnDoF();
   char str[15];
-  FILE *fid = fopen(filePath.c_str(), "w");
+  FILE *fid = fopen(filePath.string().c_str(), "w");
 
   if (fid != nullptr) {
     sprintf(str, "%f", currentTime);

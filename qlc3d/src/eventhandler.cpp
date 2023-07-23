@@ -1,6 +1,4 @@
 #include <eventhandler.h>
-#include <filesysfun.h>
-#include <qlc3d.h>
 #include <simulation-state.h>
 #include <filesystem>
 #include <util/logging.h>

@@ -1,6 +1,7 @@
 #ifndef PROJECT_QLC3D_MESHREADER_H
 #define PROJECT_QLC3D_MESHREADER_H
 #include <string>
+#include <filesystem>
 #include <globals.h>
 
 class GmshFileData;
@@ -15,14 +16,14 @@ class MeshFormatInspector {
     static bool isGidMesh(std::ifstream &fin) ;
     static bool isGmshAsciiMesh(std::ifstream &fin) ;
 public:
-    static MeshFormat inspectFormat(const std::string &fileName) ;
+    static MeshFormat inspectFormat(const std::filesystem::path &fileName) ;
 };
 
 /**
  * Read mesh data from provided mesh file path. The format of the file is deduced by inspecting it's contents.
  */
 class MeshReader {
-    static void readGmsMesh(const std::string &fileName,
+    static void readGmsMesh(const std::filesystem::path &fileName,
                             double **pointsOut,
                             idx *numPointsOut,
                             idx **tetsOut,
@@ -36,7 +37,7 @@ class MeshReader {
     static void copyGmshTriangleData(const GmshFileData &data, idx** trisOut, idx** triMaterialsOut, idx *numTrisOut);
     static void copyGmshTetData(const GmshFileData &data, idx **tetsOut, idx ** tetMaterialsOut, idx *numTetsOut);
 public:
-    static void readMesh(const std::string &fileName,
+    static void readMesh(const std::filesystem::path &fileName,
                          double **pointsOut, // TODO: get rid of these raw arrays and return a mesh object
                          idx *numPointsOut,
                          idx **tetsOut,
@@ -47,7 +48,7 @@ public:
                          idx **triMaterialsOut);
 };
 
-void ReadGiDMesh3D(const std::string &fileName,
+void ReadGiDMesh3D(const std::filesystem::path &fileName,
                    double **p,
                    idx *np,
                    idx **t,

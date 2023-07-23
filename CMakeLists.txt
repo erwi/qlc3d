@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.10.0)
 project(project-qlc3d)
 
-add_definitions(-DLinux) ## Must choose either -DLinux OR -DWindows
-
 add_subdirectory(extern/fmt-8.1.1)
 add_subdirectory(extern/SpaMtrix)
 add_subdirectory(qlc3d)
@@ -12,7 +10,7 @@ include(FindPythonInterp)
 enable_testing()
 add_subdirectory(tests)
 set(QLC3D_EXE $<TARGET_FILE:qlc3d>)
-
+set(CXX_STANDARD 17)
 # python end-to-end test
 # NOTE: The working directory is source dir so that the python script run the most up to date version without
 # having to run CMake to copy the script to the build directory. Is this a good idea?

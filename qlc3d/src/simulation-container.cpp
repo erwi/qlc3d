@@ -13,7 +13,6 @@
 #include <regulargrid.h>
 #include <resultio.h>
 
-#include <filesysfun.h>
 #include <qlc3d.h>
 #include <inits.h>
 #include <calcpot3d.h> // TODO: create PotentialSolver class?
@@ -24,6 +23,8 @@
 
 #include <spamtrix_ircmatrix.hpp>
 #include "util/stringutil.h"
+
+namespace fs = std::filesystem;
 
 SimulationContainer::SimulationContainer(Configuration &config, ResultOutput &resultOut) :
         configuration(config),
@@ -43,16 +44,18 @@ void SimulationContainer::initialise() {
     simu = configuration.simu();
     lc = configuration.lc();
     // CHANGE CURRENT DIR TO WORKING DIRECTORY
-    if (!FilesysFun::setCurrentDirectory(configuration.currentDirectory())) {
-        RUNTIME_ERROR(fmt::format("Could not set working directory to {}", configuration.currentDirectory().c_str()));
+    std::error_code ec;
+    fs::current_path(configuration.currentDirectory(), ec);
+    if (ec.value()) {
+        RUNTIME_ERROR(fmt::format("Could not set working directory to {}", configuration.currentDirectory()));
     }
-    Log::info("current working directory is {}", std::filesystem::current_path().c_str());
+    Log::info("current working directory is {}", std::filesystem::current_path());
 
     // Create result output directory if it does not exist
     if (!std::filesystem::exists(simu->getSaveDirAbsolutePath()) && !std::filesystem::create_directories(simu->getSaveDirAbsolutePath())) {
-            RUNTIME_ERROR(fmt::format("Could not create directory {}", simu->getSaveDirAbsolutePath().c_str()));
+            RUNTIME_ERROR(fmt::format("Could not create directory {}", simu->getSaveDirAbsolutePath().string()));
     }
-    Log::info("output and result files will be written into {}", simu->getSaveDirAbsolutePath().c_str());
+    Log::info("output and result files will be written into {}", simu->getSaveDirAbsolutePath().string());
 
     if (simu->getSaveFormat().empty()) {
       Log::warn("No save format specified, no results will be saved. Valid save formats are " + StringUtil::toString(Simu::VALID_SAVE_FORMATS) );
@@ -85,11 +88,16 @@ void SimulationContainer::initialise() {
 
     // Create a backup settings file in the results directory
     std::filesystem::path settingsBackup = simu->getSaveDirAbsolutePath() / "settings.qfg";
-    Log::info("Creating backup of settings file in {}", settingsBackup.c_str());
+    Log::info("Creating backup of settings file in {}", settingsBackup.string());
+    // explicit deletion required due to mingw bug with replace on copy https://sourceforge.net/p/mingw-w64/bugs/852/
+    if (fs::exists(settingsBackup) && !fs::remove(settingsBackup)) {
+        RUNTIME_ERROR(fmt::format("Unable to delete old settings file backup file {}", settingsBackup));
+    }
+
     if (!std::filesystem::copy_file(configuration.settingsFile(),
                                     simu->getSaveDirAbsolutePath() / "settings.qfg",
                                     std::filesystem::copy_options::overwrite_existing)) {
-      RUNTIME_ERROR(fmt::format("Could not back up settings file {} to {}", configuration.settingsFile().c_str(), settingsBackup.c_str()));
+      RUNTIME_ERROR(fmt::format("Could not back up settings file {} to {}", configuration.settingsFile(), settingsBackup));
     }
 
     Energy_fid = nullptr; // file for outputting free energy
@@ -97,7 +105,7 @@ void SimulationContainer::initialise() {
     //	CREATE GEOMETRY
     //	NEED 3 GEOMETRY OBJECTS WHEN USING MESH REFINEMENT
     // ================================================================
-    std::string meshName = configuration.currentDirectory() / simu->meshName();
+    std::filesystem::path meshName = configuration.currentDirectory() / simu->meshName();
     // mesh file is read and geometry is loaded in this function (in inits.cpp)
     prepareGeometry(geom_orig,
                     meshName,
@@ -160,7 +168,6 @@ void SimulationContainer::initialise() {
     //*
     //********************************************************************
     Log::info("Saving starting configuration");
-    ResultIO::CreateSaveDir(*simu);
     Energy_fid = createOutputEnergyFile(*simu); // done in inits
 
     handleInitialEvents(simulationState_,

@@ -102,7 +102,7 @@ namespace vtkIOFun {
         return true;
     }
 
-    void UnstructuredGridWriter::write(const std::string &fileName,
+    void UnstructuredGridWriter::write(const std::filesystem::path &fileName,
                                        size_t numPoints,
                                        size_t numLcPoints,
                                        const double *points,

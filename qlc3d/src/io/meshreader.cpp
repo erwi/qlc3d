@@ -49,16 +49,16 @@ bool MeshFormatInspector::isGmshAsciiMesh(std::ifstream &fin) {
     return line.find("$MeshFormat") == 0;
 }
 
-MeshFormat MeshFormatInspector::inspectFormat(const std::string &fileName) {
+MeshFormat MeshFormatInspector::inspectFormat(const std::filesystem::path &fileName) {
     if (!filesystem::exists(fileName)) {
-        throw invalid_argument("no such mesh file " + fileName);
+        throw invalid_argument("no such mesh file " + fileName.string());
     }
 
     ifstream fin;
     fin.open(fileName);
 
     if (!isTextFile(fin)) {
-        throw runtime_error("detected unsupported, binary, file " + fileName);
+        throw runtime_error("detected unsupported, binary, file " + fileName.string());
     }
 
     if (isGidMesh(fin)) {
@@ -111,7 +111,7 @@ void MeshReader::copyGmshTetData(const GmshFileData &data, idx **tetsOut, idx **
     std::copy(materialNumbers.begin(), materialNumbers.end(), *tetMaterialsOut);
 }
 
-void MeshReader::readGmsMesh(const std::string &fileName, double **pointsOut, idx *numPointsOut, idx **tetsOut, idx *numTetsOut, idx **trisOut, idx *numTrisOut,
+void MeshReader::readGmsMesh(const std::filesystem::path &fileName, double **pointsOut, idx *numPointsOut, idx **tetsOut, idx *numTetsOut, idx **trisOut, idx *numTrisOut,
                              idx **tetMaterials, idx **triMaterials) {
     GmshFileReader reader;
     auto meshData = reader.readGmsh(fileName);
@@ -122,7 +122,7 @@ void MeshReader::readGmsMesh(const std::string &fileName, double **pointsOut, id
     copyGmshTetData(*meshData, tetsOut, tetMaterials, numTetsOut);
 }
 
-void MeshReader::readMesh(const std::string &fileName,
+void MeshReader::readMesh(const std::filesystem::path &fileName,
                           double **pointsOut,
                           idx *numPointsOut,
                           idx **tetsOut,
@@ -135,12 +135,12 @@ void MeshReader::readMesh(const std::string &fileName,
 
     switch (format) {
         case MeshFormat::GID_MESH:
-            Log::info("Reading GiD mesh from {}.", fileName);
+            Log::info("Reading GiD mesh from {}.", fileName.string());
             ReadGiDMesh3D(fileName, pointsOut, numPointsOut, tetsOut, numTetsOut, trisOut, numTrisOut, tetMaterialsOut, triMaterialsOut);
             break;
         case MeshFormat::GMSH_ASCII:
-            Log::info("Reading Gmsh mesh from {}", fileName);
-            readGmsMesh(fileName, pointsOut, numPointsOut, tetsOut, numTetsOut, trisOut, numTrisOut, tetMaterialsOut, triMaterialsOut);
+            Log::info("Reading Gmsh mesh from {}", fileName.string());
+            MeshReader::readGmsMesh(fileName, pointsOut, numPointsOut, tetsOut, numTetsOut, trisOut, numTrisOut, tetMaterialsOut, triMaterialsOut);
             break;
         case MeshFormat::UNKNOWN_FORMAT:
             RUNTIME_ERROR(fmt::format("Could not determine mesh format of file {}.", fileName))
