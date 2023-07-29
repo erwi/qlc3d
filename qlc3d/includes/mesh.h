@@ -12,6 +12,9 @@
 using std::vector;
 using std::set;
 using std::list;
+
+class Vec3;
+
 class Mesh {
 private:
     idx Dimension;  // number of dimensions of mesh - 2 for tris and 3 for tets
@@ -70,7 +73,7 @@ public:
     /** copy all node values to the mesh */
     void setAllNodes(idx *nodes);
     void setAllMaterials(idx *mat);         // copies material numbers to array Mat
-    void setSurfaceNormal(idx i, double norm[3]);   // sets normal of elementt i to norm
+    void setSurfaceNormal(idx i, const Vec3 &normal);
     void setDimension(idx i);                       // set mesh dimension
     void setnElements(idx nnelem);                  // set numbero of elements
     void setnNodes(idx nnodes);                     // set number of nodes / element
@@ -89,7 +92,7 @@ public:
     bool ContainsCoordinate(const idx elem, const double *p, const double *coord) const; // checks whether coordinate is within element elem
     void CompleteNodesSet(const idx elem, std::vector<idx> &nodes) const; // completes nodes vector with those from element, if nodes is empty returns all elements
     void CalculateDeterminants3D(double *p);
-    void CalculateSurfaceNormals(double *p, Mesh *tets = NULL);
+    void calculateSurfaceNormals(double *p, Mesh *tets = NULL);
     void CopySurfaceNormal(idx i, double *norm); // copies value of surface normal of element i to norm (which must be array of size3)
     void CopyMesh(Mesh *rhs);   // makes this a copy of Mesh* rhs - why does operator= overloading not work???
     void ScaleDeterminants(const double &s);  // scales all determinants by s, e.g. to go to microns

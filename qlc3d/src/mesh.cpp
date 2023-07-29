@@ -5,6 +5,7 @@
 #include <util/logging.h>
 #include <util/exception.h>
 #include <set>
+#include <geom/vec3.h>
 
 using fmt::format;
 Mesh::Mesh() {
@@ -126,14 +127,14 @@ void Mesh::setDeterminant(const idx i, double det) {
 #endif
     Determinant[i] = det;
 }
-void Mesh::setSurfaceNormal(idx i, double norm[3]) {
+
+void Mesh::setSurfaceNormal(idx i, const Vec3 &normal) {
 #ifdef DEBUG
-    assert(i < getnElements());
-    assert(SurfaceNormal != nullptr);
+  assert(i < getnElements());
 #endif
-    SurfaceNormal[i*3 + 0] = norm[0];
-    SurfaceNormal[i*3 + 1] = norm[1];
-    SurfaceNormal[i*3 + 2] = norm[2];
+  SurfaceNormal[i*3 + 0] = normal.x();
+  SurfaceNormal[i*3 + 1] = normal.y();
+  SurfaceNormal[i*3 + 2] = normal.z();
 }
 
 /**
@@ -492,7 +493,7 @@ void Mesh::CalculateDeterminants3D(double *p) {
     }
 }
 
-void Mesh::CalculateSurfaceNormals(double *p, Mesh* tets) {
+void Mesh::calculateSurfaceNormals(double *p, Mesh* tets) {
     // CALCULATES THE SURFACE NORMAL FOR A TRIANGULAR MESH
     if ((Dimension != 2) ||
             (getnElements() <1) ||
@@ -513,84 +514,70 @@ void Mesh::CalculateSurfaceNormals(double *p, Mesh* tets) {
     }
 
     // Loop over each element and calculate determinant and surface normal
-    double Ax,Ay,Az, Bx,By,Bz;
-    double cross[3];
-    TotalSize = 0;
+  TotalSize = 0;
+  for ( idx i = 0 ; i < getnElements() ; i ++) {
+    idx n0 = getNode(i, 0);
+    idx n1 = getNode(i, 1);
+    idx n2 = getNode(i, 2);
 
-    for ( idx i = 0 ; i < getnElements() ; i ++) {
-        Ax = p[getNode(i,1)*3+0] - p[getNode(i,0)*3 + 0];
-        Ay = p[getNode(i,1)*3+1] - p[getNode(i,0)*3 + 1];
-        Az = p[getNode(i,1)*3+2] - p[getNode(i,0)*3 + 2];
+    Vec3 p0(p[3*n0], p[3*n0+1], p[3*n0+2]);
+    Vec3 p1(p[3*n1], p[3*n1+1], p[3*n1+2]);
+    Vec3 p2(p[3*n2], p[3*n2+1], p[3*n2+2]);
 
+    Vec3 A = p1 - p0;
+    Vec3 B = p2 - p0;
 
-        Bx = p[getNode(i,2)*3 + 0] - p[getNode(i,0)*3 + 0];
-        By = p[getNode(i,2)*3 + 1] - p[getNode(i,0)*3 + 1];
-        Bz = p[getNode(i,2)*3 + 2] - p[getNode(i,0)*3 + 2];
-
-        cross[0] = Ay*Bz - Az*By;
-        cross[1] = Az*Bx - Ax*Bz;
-        cross[2] = Ax*By - Ay*Bx;
-        double det = sqrt( cross[0]*cross[0] + cross[1]*cross[1] + cross[2]*cross[2]);
-
-        if (det < 0 ) { // if det is negative make it not...
-            Log::warn("Negative determinant for triangle {}, negating it and continuing.", i);
-            det = -1.0 * det;
-        }
-
-        setDeterminant(i,  det );
-        TotalSize+= det / 2.0;
-        //normalise cross
-        cross[0] = cross[0] / det;
-        cross[1] = cross[1] / det;
-        cross[2] = cross[2] / det;
-
-        // CHEK THAT SURFACE NORMAL POINTS TOWARDS LC REGION. I.E. INWARDS
-        // IF NOT REVERSE ITS ORIENTATION
-
-        if ((ConnectedVolume) && (tets) ) // only if connected volumes have been set and tets are provided
-        {
-            int t = getConnectedVolume( i ); // index to neighbouring tet
-            if ( t > -1 )
-            { // TRIANGLE IS NOT CONNECTED TO AN LC. PROBABLY A DIELECTRIC NRIGHBOUT ONLY TRIANGLE
-                // triangle barycentre
-                double tri_bary[3] = { ( p[getNode(i,0)*3+0] + p[getNode(i,1)*3+0] +p[getNode(i,2)*3+0] ) / 3.0 ,  // x
-                                       ( p[getNode(i,0)*3+1] + p[getNode(i,1)*3+1] +p[getNode(i,2)*3+1] ) / 3.0 ,  // y
-                                       ( p[getNode(i,0)*3+2] + p[getNode(i,1)*3+2] +p[getNode(i,2)*3+2] ) / 3.0 }; // z
-                // tet barycentre
-                idx n[4] = { tets->getNode(t,0) , tets->getNode(t,1) , tets->getNode(t,2), tets->getNode(t,3) };
-                double tet_bary[3] = {  (p[n[0]*3+0] + p[n[1]*3+0] + p[n[2]*3+0] + p[n[3]*3+0] )/ 4.0 ,	// x
-                                        (p[n[0]*3+1] + p[n[1]*3+1] + p[n[2]*3+1] + p[n[3]*3+1] )/ 4.0 ,	// y
-                                        (p[n[0]*3+2] + p[n[1]*3+2] + p[n[2]*3+2] + p[n[3]*3+2] )/ 4.0 };	// z
-
-                // vector from tri barycentre to tet barycentre
-                double v1[3] = {tet_bary[0] - tri_bary[0],
-                                tet_bary[1] - tri_bary[1],
-                                tet_bary[2] - tri_bary[2]};
-
-                // dot product between surface normal and v1 determines orientation of surface normal
-                double dot = cross[0]*v1[0] + cross[1]*v1[1] + cross[2]*v1[2];
-
-                if (dot < 0.0 )
-                {
-                    // IF SURFACE NORMAL IS IN WRONG DIRECTION,
-                    // REVERSE NODE ORDER AND INVERT VECTOR DIRECTION
-                    idx* e = &Elem[i * getnNodes() ]; // pointer to first node in this element
-                    idx temp = e[2];
-                    e[2] = e[1];
-                    e[1] = temp;
-
-                    cross[0]*=-1.0;
-                    cross[1]*=-1.0;
-                    cross[2]*=-1.0;
-                }
-            }// end if index to neighbouring tet exists
-
-        } // if connected volume found
-        else {
-            RUNTIME_ERROR("Connected volumes or tetrahedra do not exist.");
-        }
-        setSurfaceNormal(i,cross);
+    Vec3 normalVec = A.cross(B);
+    double det = normalVec.norm();
+    if (det < 0 ) { // if det is negative make it not...
+      Log::warn("Negative determinant for triangle {}, negating it and continuing.", i);
+      det = -1.0 * det;
     }
+
+    setDeterminant(i,  det );
+    TotalSize+= det / 2.0;
+    normalVec.normalize();
+
+    // CHECK THAT SURFACE NORMAL POINTS TOWARDS LC REGION. I.E. INWARDS
+    // IF NOT REVERSE ITS ORIENTATION
+    if ((ConnectedVolume) && (tets) ) {// only if connected volumes have been set and tets are provided
+      int t = getConnectedVolume( i); // index to neighbouring tet. TODO: fix casting unsigned int to int
+      if ( t > -1 ) {
+        Vec3 triBary = (p0 + p1 + p2) / 3.;
+
+        // calculate tet barycentre
+        idx n[4] = { tets->getNode(t,0) , tets->getNode(t,1) , tets->getNode(t,2), tets->getNode(t,3) };
+
+        Vec3 c0 = Vec3(p[n[0]*3+0], p[n[0]*3+1], p[n[0]*3+2]);
+        Vec3 c1 = Vec3(p[n[1]*3+0], p[n[1]*3+1], p[n[1]*3+2]);
+        Vec3 c2 = Vec3(p[n[2]*3+0], p[n[2]*3+1], p[n[2]*3+2]);
+        Vec3 c3 = Vec3(p[n[3]*3+0], p[n[3]*3+1], p[n[3]*3+2]);
+
+        Vec3 tetBary = (c0 + c1 + c2 + c3) / 4.0;
+
+        // vector from tri barycentre to tet barycentre
+        Vec3 v1 = tetBary - triBary;
+
+        // dot product between surface normal and v1 determines orientation of surface normal
+        double dot = normalVec.dot(v1);
+
+        if (dot < 0.0 ) {
+          // IF SURFACE NORMAL IS IN WRONG DIRECTION,
+          // REVERSE NODE ORDER AND INVERT VECTOR DIRECTION
+          idx* e = &Elem[i * getnNodes() ]; // pointer to first node in this element
+          idx temp = e[2];
+          e[2] = e[1];
+          e[1] = temp;
+
+          normalVec *= -1;
+        }
+      } // end if index to neighbouring tet exists
+    } // if connected volume found
+    else {
+      RUNTIME_ERROR("Connected volumes or tetrahedra do not exist.");
+    }
+    setSurfaceNormal(i, normalVec);
+  }
 }
 
 void Mesh::CalcLocCoords(const idx elem, double *p, double *coord, double *loc) {

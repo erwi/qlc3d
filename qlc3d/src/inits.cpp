@@ -112,7 +112,7 @@ void prepareGeometry(Geometry& geom,
     geom.t->CalculateDeterminants3D(geom.getPtrTop());		// calculate tetrahedral determinants
     geom.t->ScaleDeterminants(1e-18); // scale to microns
 
-    geom.e->CalculateSurfaceNormals(geom.getPtrTop() , geom.t);		// calculate triangle determinants and surface normal vectors
+    geom.e->calculateSurfaceNormals(geom.getPtrTop(), geom.t);		// calculate triangle determinants and surface normal vectors
     geom.e->ScaleDeterminants(1e-12); // scale to microns
 
     geom.setNodeNormals();

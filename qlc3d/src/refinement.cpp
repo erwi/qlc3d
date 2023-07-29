@@ -615,7 +615,7 @@ void modify_geometry(Geometry& geom,
     geom.e->setConnectedVolume( geom.t );
     geom.t->CalculateDeterminants3D( geom.getPtrTop() );
     geom.t->ScaleDeterminants( 1e-18);// scale to microns cubed
-    geom.e->CalculateSurfaceNormals( geom.getPtrTop(), geom.t);
+    geom.e->calculateSurfaceNormals(geom.getPtrTop(), geom.t);
     geom.e->ScaleDeterminants( 1e-12); // scale to microns squared
     geom.checkForPeriodicGeometry();
     geom.makePeriEquNodes();
