@@ -2,6 +2,7 @@
 #define PROJECT_QLC3D_VEC3_H
 
 #include <sstream>
+#include <cmath>
 
 /** Simple 3D vector class */
 class Vec3 {
