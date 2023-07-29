@@ -1,9 +1,6 @@
-//
-// Created by eero on 10/04/2021.
-//
 #include <lc-representation.h>
 #include <qlc3d.h> // TODO: deleteme
-
+#include <geom/vec3.h>
 using namespace qlc3d;
 
 //<editor-fold desk=QTensor>
@@ -138,6 +135,8 @@ Director::Director(const double &nx, const double &ny, const double &nz, const d
         throw std::invalid_argument(msg);
     }
 }
+
+Director::Director(const Vec3 &n, double S): Director(n.x(), n.y(), n.z(), S) {}
 
 Director Director::fromRadianAngles(const double &tiltRadians, const double &twistRadians, const double &S) {
     return Director{

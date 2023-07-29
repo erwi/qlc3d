@@ -5,6 +5,7 @@
 #include <line.h>
 #include <set>
 #include <globals.h>
+#include <geom/coordinates.h>
 #include <util/exception.h>
 #include <util/logging.h>
 using std::set;
@@ -190,7 +191,9 @@ void gen_peri_lines_vec(peri_lines& plines,
         // if triangle is periodic
         if ( geom.e->getMaterialNumber(i) == MAT_PERIODIC )
         {
-            idx* n = geom.e->getPtrToElement( i ); // pointer to element node numbers
+          idx n[3];
+          geom.getTriangles().loadNodes(i, n);
+          //idx* n = geom.e->getPtrToElement( i ); // pointer to element node numbers
             Line lines[3] = {Line(n[0], n[1]), Line(n[0], n[2]) , Line(n[1], n[2]) };
 
             for ( idx l = 0 ; l < 3 ; l++)
@@ -538,10 +541,10 @@ void expand_refinement_region(vector <unsigned int>& i_tet,	// index to tet bise
     while( d_n_tred > 0) // loop while refinement region grows
     {
 
-        find_all_core_lines(lines, i_tet, geom_prev.t); // creates all bisectable lines
+        find_all_core_lines(lines, i_tet, geom_prev.t.get()); // creates all bisectable lines
         expand_periodic_boundaries( lines , plines, geom_prev );
 
-        count_lines(geom_prev.t, p_to_t, lines, i_tet , t_to_l);
+        count_lines(geom_prev.t.get(), p_to_t, lines, i_tet , t_to_l);
 
         fix_green3_red_confusions(i_tet, lines, t_to_l);
         n_tred_old = nrt.red;
@@ -571,7 +574,7 @@ void find_triangle_reftypes(Geometry& geom,
     geom.e->gen_p_to_elem( p_to_e );
     // MAKE INDEXES FROM TRIS TO LINES
 
-    count_lines( geom.e , p_to_e, lines, i_tri, e_to_l);
+    count_lines( geom.e.get() , p_to_e, lines, i_tri, e_to_l);
 
 }
 
@@ -606,16 +609,16 @@ void modify_geometry(Geometry& geom,
     }
 
     geom.t->removeElements( ind_remove_tets );
-    geom.t->addElements(new_t , new_mat_t );
+  geom.t->appendElements(new_t, new_mat_t);
     geom.e->removeElements( ind_remove_tris );
-    geom.e->addElements( new_e, new_mat_e );
+  geom.e->appendElements(new_e, new_mat_e);
 
     geom.ReorderDielectricNodes(); // Dielectric nodes are moved last
-    geom.t->setMaxNodeNumber( (unsigned int) geom.getnp() );
-    geom.e->setConnectedVolume( geom.t );
-    geom.t->CalculateDeterminants3D( geom.getPtrTop() );
+    //geom.t->setMaxNodeNumber( (unsigned int) geom.getnp() );
+    geom.e->setConnectedVolume( geom.t.get() );
+    geom.t->calculateDeterminants3D(geom.getCoordinates());
     geom.t->ScaleDeterminants( 1e-18);// scale to microns cubed
-    geom.e->calculateSurfaceNormals(geom.getPtrTop(), geom.t);
+    geom.e->calculateSurfaceNormals(geom.getCoordinates(), geom.t.get());
     geom.e->ScaleDeterminants( 1e-12); // scale to microns squared
     geom.checkForPeriodicGeometry();
     geom.makePeriEquNodes();

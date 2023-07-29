@@ -48,11 +48,11 @@ void assembleQ(SpaMtrix::IRCMatrix &K,
            SolutionVector* v,
            Mesh* t,
            Mesh* e,
-           double* p,
+           const Coordinates &coordinates,
            LC* mat_par,
            double dt,
            Alignment* alignment,
-           double* NodeNormals);
+           const std::vector<Vec3> &nodeNormals);
 
 // UPDATE Q-TENSOR USING IMPLICIT METHODS
 double calcQ3d(SolutionVector *q,
@@ -84,7 +84,7 @@ void CreateSaveDir(Simu* simu); //creates new save dir, if needed
 // INITIALISATION FUCTIONS
 //
 // -----------------------------
-void SetVolumeQ(SolutionVector *q, double S0, Boxes* boxes, double* p);
+void SetVolumeQ(SolutionVector *q, double S0, Boxes* boxes, const Coordinates &coordinates);
 
 // Sets all Q-tensor values to those specified in Alignment
 void setSurfacesQ(

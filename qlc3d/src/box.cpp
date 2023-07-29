@@ -8,6 +8,7 @@
 #include <stringenum.h>
 #include <settings_file_keys.h>
 #include <cassert>
+#include <geom/vec3.h>
 
 const std::vector<std::string> Box::VALID_TYPES = {"Normal", "Random", "Hedgehog"};
 const std::string Box::DEFAULT_TYPE = Box::VALID_TYPES[0];
@@ -91,9 +92,13 @@ bool Box::contains(double *coords) const {
     return true;
 }
 
-bool Box::contains(double x, double y, double z) const {
-    double coords[3] = {x, y, z};
-    return this->contains(coords);
+Vec3 Box::centroid() const {
+  return {(X[0] + X[1]) / 2.0,(Y[0] + Y[1]) / 2.0,(Z[0] + Z[1]) / 2.0};
+}
+
+bool Box::contains(const Vec3 &p) const {
+  double coords[3] = {p.x(), p.y(), p.z()};
+  return this->contains(coords);
 }
 
 void Box::setBoxType(const std::string &bt) {

@@ -1,35 +1,35 @@
 #include <catch.h>
+#include <memory>
 #include <io/lcview-result-output.h>
 #include <util/stringutil.h>
 #include <test-util.h>
 #include <simulation-state.h>
 #include <geometry.h>
+#include <geom/coordinates.h>
+#include <geom/vec3.h>
 #include <solutionvector.h>
+#include <lc-representation.h>
 
 namespace fs = std::filesystem;
+
+const unsigned int LC_MATERIAL = 4;
+const unsigned int PERIODIC_BC = 3;
 
 std::shared_ptr<Geometry> createSingleTetGeometry() {
   std::shared_ptr<Geometry> geom = std::make_shared<Geometry>();
   int np = 4;
-  double coords[] = {0, 0, 0,
-                     1, 0, 0,
-                     0,  1, 0,
-                     0, 0, 1};
-  geom->setCoordinates(coords, np);
-  Mesh *tetrahedra = new Mesh(1, np); // NOTE: geom takes ownership of tetrahedra and triangles and frees them in its destructor
-  Mesh *triangles = new Mesh(1, 3);
+  std::vector<Vec3> points = {Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, 1, 0), Vec3(0, 0, 1)};
+  std::shared_ptr<Coordinates> coordinates = std::make_shared<Coordinates>(std::move(points));
+  geom->setCoordinates(coordinates);
 
-  tetrahedra->setnNodes(np);
-  idx tetNodes[] = {0, 1, 2, 3};
-  tetrahedra->setAllNodes(tetNodes);
-
+  std::shared_ptr<Mesh> tetrahedra = Mesh::tetMesh();
+  tetrahedra->setElementData({0, 1, 2, 3}, {LC_MATERIAL});
   geom->t = tetrahedra;
 
-
-  triangles->setnNodes(3);
-  idx triNodes[] = {0, 1, 2};
-  triangles->setAllNodes(triNodes);
+  std::shared_ptr<Mesh> triangles = Mesh::triangleMesh();
+  triangles->setElementData({0, 1, 2}, {PERIODIC_BC});
   geom->e = triangles;
+
   return geom;
 }
 
@@ -101,10 +101,12 @@ TEST_CASE("Write text LCViewTxt result file") {
 
   const SolutionVector potential(geom->getnpLC(), 1);
   const SolutionVector qTensor(geom->getnpLC(), 5);
-  const double director[] = {1, 0, 0,
-                             1, 0, 0,
-                             1, 0, 0,
-                             1, 0, 0};
+
+  std::vector<qlc3d::Director> director = {{1., 0., 0., 0.5},
+                                           {1., 0., 0., 0.5},
+                                           {1., 0., 0., 0.5},
+                                           {1., 0., 0., 0.5}};
+
   SimulationState simulationState;
   simulationState.state(RunningState::RUNNING);
   simulationState.currentIteration(0);
@@ -117,14 +119,14 @@ TEST_CASE("Write text LCViewTxt result file") {
 
     writer.setPotential(potential);
     writer.setQTensor(qTensor);
-    writer.setDirector(director);
+    writer.setDirector(&director);
     writer.writeResult(*geom, simulationState);
 
     // Both files should be written to the same directory
     REQUIRE(fs::exists(resDir.path() / "mesh0.msh"));
     REQUIRE(fs::exists(resDir.path() / "result-t-00000.dat"));
 
-    // WHNEN:
+    // WHEN:
     // Simulation is completed
     simulationState.state(RunningState::COMPLETED);
     writer.writeResult(*geom, simulationState);
@@ -138,7 +140,7 @@ TEST_CASE("Write text LCViewTxt result file") {
 
     writer.setPotential(potential);
     writer.setQTensor(qTensor);
-    writer.setDirector(director);
+    writer.setDirector(&director);
     writer.writeResult(*geom, simulationState);
 
     REQUIRE(fs::exists(resDir.path() / "mesh0.msh"));

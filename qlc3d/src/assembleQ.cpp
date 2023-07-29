@@ -8,6 +8,8 @@
 #include <spamtrix_ircmatrix.hpp>
 #include <spamtrix_vector.hpp>
 #include <util/logging.h>
+#include <geom/coordinates.h>
+#include <geom/vec3.h>
 
 #define BIGNUM 2e16
 const int   npt = 4; //Number of Points per Tetrahedra
@@ -120,7 +122,7 @@ void init_shape_surf() {
 }//end void init_shape_surf
 
 
-inline void localKL(double *p,
+inline void localKL(const Coordinates &coordinates,
                     Mesh *t,
                     idx element_num,
                     SolutionVector *q ,
@@ -135,11 +137,8 @@ inline void localKL(double *p,
     double lI[20][20]; // LOCAL IDENTITY MATRIX
     memset(lI, 0, 20 * 20 * sizeof(double));
     // LOCAL COPY OF ELEMENT
-    idx tt[4] = {t->getNode(element_num, 0),
-                 t->getNode(element_num, 1),
-                 t->getNode(element_num, 2),
-                 t->getNode(element_num, 3)
-                };
+    idx tt[4] = {0, 0, 0, 0};
+    t->loadNodes(element_num, tt);
     double Jdet = t->getDeterminant(element_num) * 1e18 ; // SCALE BACK TO METRES FOR NOW...
     if (Jdet < 0) {
         Log::warn("negative tetrahedron determinant detected. Multiplying by -1");
@@ -149,21 +148,18 @@ inline void localKL(double *p,
     if ((L2 != 0) && (L6 != 0)) three_elastic_constants = true;
     //1. Calculate Inverse Jacobian - for 1st order elements can be done outside integration loop -> igp = 0
     double xr(0), xs(0), xt(0), yr(0), ys(0), yt(0), zr(0), zs(0), zt(0);
-    const double pp[4][3] = { {p[tt[0] * 3] , p[tt[0] * 3 + 1] , p[tt[0] * 3 + 2]} ,
-        {p[tt[1] * 3] , p[tt[1] * 3 + 1] , p[tt[1] * 3 + 2]} ,
-        {p[tt[2] * 3] , p[tt[2] * 3 + 1] , p[tt[2] * 3 + 2]} ,
-        {p[tt[3] * 3] , p[tt[3] * 3 + 1] , p[tt[3] * 3 + 2]}
-    };
     for (int i = 0; i < 4; ++i) {
-        xr += shapes.sh1r[0][i] * pp[i][0];
-        xs += shapes.sh1s[0][i] * pp[i][0];
-        xt += shapes.sh1t[0][i] * pp[i][0];
-        yr += shapes.sh1r[0][i] * pp[i][1];
-        ys += shapes.sh1s[0][i] * pp[i][1];
-        yt += shapes.sh1t[0][i] * pp[i][1];
-        zr += shapes.sh1r[0][i] * pp[i][2];
-        zs += shapes.sh1s[0][i] * pp[i][2];
-        zt += shapes.sh1t[0][i] * pp[i][2];
+      Vec3 node = coordinates.getPoint(tt[i]);
+
+        xr += shapes.sh1r[0][i] * node.x();
+        xs += shapes.sh1s[0][i] * node.x();
+        xt += shapes.sh1t[0][i] * node.x();
+        yr += shapes.sh1r[0][i] * node.y();
+        ys += shapes.sh1s[0][i] * node.y();
+        yt += shapes.sh1t[0][i] * node.y();
+        zr += shapes.sh1r[0][i] * node.z();
+        zs += shapes.sh1s[0][i] * node.z();
+        zt += shapes.sh1t[0][i] * node.z();
     }//end for i
     //Inverse Jacobian
     // SCALING TO MICRONS HERE: (1e-6*1e-6)/1e-18 = x1e6
@@ -622,7 +618,7 @@ inline void localKL(double *p,
 // Neumann boundary condition: ensure n.grad(Q) = 0
 // To do: only currently works for 1k case, must add 3k terms
 void localKL_NQ(
-    double *p,
+    const Coordinates &coordinates,
     idx *tt,
     double lL[20],
     double lK[20][20],
@@ -635,23 +631,26 @@ void localKL_NQ(
     int i;
     memset(lL, 0, 20 * sizeof(double));
     memset(lK, 0, 20 * 20 * sizeof(double));
-    double n[3];
-    surf_mesh->CopySurfaceNormal(it, &n[0]);
+    Vec3 n = surf_mesh->getSurfaceNormal(it);
     double eDet = surf_mesh->getDeterminant(it);
     double Jdet = mesh->getDeterminant(index_to_Neumann);
     // Jacobian
     double xr, xs, xt, yr, ys, yt, zr, zs, zt;
     xr = xs = xt = yr = ys = yt = zr = zs = zt = 0.0;
     for (i = 0; i < 4; i++) {
-        xr += sh1r[0][i] * p[(tt[i]) * 3 + 0] * 1e-6; //  <- tt is reordered volume element
-        xs += sh1s[0][i] * p[(tt[i]) * 3 + 0] * 1e-6;
-        xt += sh1t[0][i] * p[(tt[i]) * 3 + 0] * 1e-6;
-        yr += sh1r[0][i] * p[(tt[i]) * 3 + 1] * 1e-6;
-        ys += sh1s[0][i] * p[(tt[i]) * 3 + 1] * 1e-6;
-        yt += sh1t[0][i] * p[(tt[i]) * 3 + 1] * 1e-6;
-        zr += sh1r[0][i] * p[(tt[i]) * 3 + 2] * 1e-6;
-        zs += sh1s[0][i] * p[(tt[i]) * 3 + 2] * 1e-6;
-        zt += sh1t[0][i] * p[(tt[i]) * 3 + 2] * 1e-6;
+      Vec3 node = coordinates.getPoint(tt[i]);
+      double x = node.x() * 1e-6;
+      double y = node.y() * 1e-6;
+      double z = node.z() * 1e-6;
+        xr += x * sh1r[0][i];
+        xs += x * sh1s[0][i];
+        xt += x * sh1t[0][i];
+        yr += y * sh1r[0][i];
+        ys += y * sh1s[0][i];
+        yt += y * sh1t[0][i];
+        zr += z * sh1r[0][i];
+        zs += z * sh1s[0][i];
+        zt += z * sh1t[0][i];
     }//end for i
     double Jinv[3][3] = {{ (zt * ys - yt * zs) / Jdet , (xt * zs - zt * xs) / Jdet , (xs * yt - ys * xt) / Jdet}
         , { (yt * zr - zt * yr) / Jdet , (zt * xr - xt * zr) / Jdet , (xt * yr - yt * xr) / Jdet}
@@ -684,7 +683,7 @@ void localKL_NQ(
             q5 += Sh[i] * q->getValue(tt[i], 4);
         }//end for i
         // n is the interior normal, conventionally exterior normal is used
-        double nx = n[0], ny = n[1], nz = n[2]; // interior normal?
+        double nx = n.x(), ny = n.y(), nz = n.z(); // interior normal?
         double mul = wsurf[igp] * eDet;
         double ShR;
         for (i = 0; i < 4; i++) {
@@ -766,7 +765,7 @@ void wk_localKL(
     idx FixLCNumber,
     Alignment *alignment,
     LC *lc ,
-    double *NodeNormals) {
+    const std::vector<Vec3> &nodeNormals) {
     double Ss = lc->S0();
     double  W = alignment->getStrength(FixLCNumber);
     W = W / (3 * Ss); // SCALE TO RP ANCHORING
@@ -810,9 +809,10 @@ void wk_localKL(
                 v2y += ssh1[igp][i] * v2[1];
                 v2z += ssh1[igp][i] * v2[2];
             } else { // use node normals
-                v1x += ssh1[igp][i] * NodeNormals[e->getNode(element_num, i) * 3 + 0];
-                v1y += ssh1[igp][i] * NodeNormals[e->getNode(element_num, i) * 3 + 1];
-                v1z += ssh1[igp][i] * NodeNormals[e->getNode(element_num, i) * 3 + 2];
+              Vec3 nn = nodeNormals[e->getNode(element_num, i)];
+              v1x += ssh1[igp][i] * nn.x();
+              v1y += ssh1[igp][i] * nn.y();
+              v1z += ssh1[igp][i] * nn.z();
             }
         }//end for i
         //Tii = thermotropic stiffness term
@@ -866,7 +866,8 @@ void assemble_volumes(
     SpaMtrix::Vector &L,
     SolutionVector *q,
     SolutionVector *v,
-    Mesh *t, double *p,
+    Mesh *t,
+    const Coordinates &coordinates,
     LC *mat_par,
     double dt) {
     idx npLC = q->getnDoF();
@@ -883,7 +884,7 @@ void assemble_volumes(
         }
         double lK[20][20];  // local element matrix
         double lL[20];      // local RHS vector
-        localKL(p, t, it, q, v, lK, lL, mat_par, dt, shapes);
+        localKL(coordinates, t, it, q, v, lK, lL, mat_par, dt, shapes);
         // ADD LOCAL MATRIX TO GLOBAL MATRIX
         for (int i = 0; i < 20; i++) { // LOOP OVER ROWS
             int ri = t->getNode(it, i % 4) + npLC * (i / 4); // LOCAL TO GLOBAL
@@ -913,7 +914,7 @@ void assemble_Neumann_surfaces(
     SolutionVector *v,
     Mesh *mesh,
     Mesh *surf_mesh,
-    double *p) {
+    const Coordinates &coordinates) {
     int npLC = q->getnDoF();
     init_shape_N();
 #ifdef NDEBUG
@@ -946,7 +947,7 @@ void assemble_Neumann_surfaces(
             idx ti[4] = { ee[0], ee[1], ee[2], tt[intr] }; // REORDER LOCAL TET ELEMENT
             // NODE-NUMBERING SO THAT
             // INTERNAL NODE IS ALWAYS LAST
-            localKL_NQ(p, tt, lL , lK, it , index_to_Neumann, mesh, surf_mesh, v, q);
+            localKL_NQ(coordinates, tt, lL , lK, it , index_to_Neumann, mesh, surf_mesh, v, q);
             for (unsigned int i = 0; i < 20; i++) { // LOOP OVER ROWS
                 idx ri = ti[i % 4] + npLC * (i / 4);
                 idx eqr = q->getEquNode(ri);
@@ -978,7 +979,7 @@ void assemble_surfaces(
     Mesh *e ,
     LC *lc ,
     Alignment *alignment,
-    double *NodeNormals) {
+    const std::vector<Vec3> &nodeNormals) {
     init_shape_surf();
     int npLC = q->getnDoF();
 #ifdef NDEBUG
@@ -989,7 +990,7 @@ void assemble_surfaces(
         if ((FixLCNum > 0) && (!alignment->IsStrong(FixLCNum - 1))) { // if alignment surface
             double lK[15][15];
             double lL[15];
-            wk_localKL(e , ie , q , lL , lK , FixLCNum , alignment, lc , NodeNormals);
+            wk_localKL(e , ie , q , lL , lK , FixLCNum , alignment, lc , nodeNormals);
             for (unsigned int i = 0; i < 15; i++) { // LOOP OVER ROWS
                 idx ri  = e->getNode(ie, i % 3) + npLC * (i / 3);
                 idx eqr = q->getEquNode(ri);
@@ -1024,11 +1025,11 @@ void assembleQ(
     SolutionVector *v,
     Mesh *t,
     Mesh *e,
-    double *p,
+    const Coordinates &coordinates,
     LC *mat_par,
     double dt,
     Alignment *alignment,
-    double *NodeNormals) {
+    const std::vector<Vec3> &nodeNormals) {
     S0  = mat_par->S0();
     L1 = mat_par->L1() ;
     L2 = mat_par->L2() ;
@@ -1041,11 +1042,11 @@ void assembleQ(
     deleps = (mat_par->eps_par() - mat_par->eps_per()) / S0;
     efe  = 2.0 / (9 * S0) * (mat_par->e1() + 2 * mat_par->e3());
     efe2 = 4.0 / (9 * S0 * S0) * (mat_par->e1() - mat_par->e3());
-    assemble_volumes(K, L, q,  v, t, p, mat_par, dt);
+    assemble_volumes(K, L, q,  v, t, coordinates, mat_par, dt);
     //SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
-    assemble_Neumann_surfaces(K, L, q, v, t, e, p);
+    assemble_Neumann_surfaces(K, L, q, v, t, e, coordinates);
     if (alignment->WeakSurfacesExist())   // if weak anchoring surfaces exist
-        assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, NodeNormals);
+        assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, nodeNormals);
 }
 // end void assembleQ
 
@@ -1055,17 +1056,26 @@ void assembleQ(
 /*================================================================*/
 
 inline void assemble_local_prev_volumes(double lL[20],
-                                        SolutionVector &q,  SolutionVector &v,
-                                        Mesh &t, double *p,  idx element_num,
-                                        LC &mat_par, double dt,
+                                        SolutionVector &q,
+                                        SolutionVector &v,
+                                        const Geometry &geom,
+                                        idx element_num,
+                                        LC &mat_par,
+                                        double dt,
                                         const Shape4thOrder &shapes) {
     memset(lL, 0, 20 * sizeof(double));
     double lI[20][20];
     memset(lI, 0, 20 * 20 * sizeof(double));
-    idx tt[4] = {   t.getNode(element_num, 0), t.getNode(element_num, 1),
-                    t.getNode(element_num, 2), t.getNode(element_num, 3)
-                };
-    double Jdet = t.getDeterminant(element_num);
+
+    const Mesh &tets = geom.getTetrahedra();
+    unsigned int tt[4];
+    tets.loadNodes(element_num, tt);
+
+    const Coordinates &coords = geom.getCoordinates();
+    Vec3 nodes[4] = {coords.getPoint(tt[0]), coords.getPoint(tt[1]),
+                   coords.getPoint(tt[2]), coords.getPoint(tt[3])};
+
+    double Jdet = tets.getDeterminant(element_num);
     bool three_elastic_constants = false;
     if ((L2 != 0) && (L6 != 0)) three_elastic_constants = true;
     double Kc[5][5];
@@ -1074,15 +1084,18 @@ inline void assemble_local_prev_volumes(double lL[20],
     double xr, xs, xt, yr, ys, yt, zr, zs, zt;
     xr = xs = xt = yr = ys = yt = zr = zs = zt = 0.0;
     for (int i = 0; i < 4; i++) {
-        xr += shapes.sh1r[0][i] * p[(tt[i]) * 3 + 0] * 1e-6;
-        xs += shapes.sh1s[0][i] * p[(tt[i]) * 3 + 0] * 1e-6;
-        xt += shapes.sh1t[0][i] * p[(tt[i]) * 3 + 0] * 1e-6;
-        yr += shapes.sh1r[0][i] * p[(tt[i]) * 3 + 1] * 1e-6;
-        ys += shapes.sh1s[0][i] * p[(tt[i]) * 3 + 1] * 1e-6;
-        yt += shapes.sh1t[0][i] * p[(tt[i]) * 3 + 1] * 1e-6;
-        zr += shapes.sh1r[0][i] * p[(tt[i]) * 3 + 2] * 1e-6;
-        zs += shapes.sh1s[0][i] * p[(tt[i]) * 3 + 2] * 1e-6;
-        zt += shapes.sh1t[0][i] * p[(tt[i]) * 3 + 2] * 1e-6;
+      double x = nodes[i].x();
+      double y = nodes[i].y();
+      double z = nodes[i].z();
+      xr += x * shapes.sh1r[0][i];
+      xs += x * shapes.sh1s[0][i];
+      xt += x * shapes.sh1t[0][i];
+      yr += y * shapes.sh1r[0][i];
+      ys += y * shapes.sh1s[0][i];
+      yt += y * shapes.sh1t[0][i];
+      zr += z * shapes.sh1r[0][i];
+      zs += z * shapes.sh1s[0][i];
+      zt += z * shapes.sh1t[0][i];
     }//end for i
     //Inverse Jacobian
     Jdet = fabs(xr * ys * zt - xr * zs * yt + xs * yt * zr - xs * yr * zt + xt * yr * zs - xt * ys * zr);
@@ -1250,7 +1263,7 @@ inline void assemble_local_prev_volumes(double lL[20],
     for (int i = 0; i < 4; i++) { //each node row
         for (int j = 0; j < 4; j++) { //each node column
             for (int k = 0; k < 5; k++) { //each component
-                Mq[4 * k + i] += lI[i][j] * q.Values[npLC * k + tt[j]];
+                Mq[4 * k + i] += lI[i][j] * q.getValue(tt[j], k);
             }
         }
     }
@@ -1276,7 +1289,7 @@ void assemble_prev_rhs(SpaMtrix::Vector &Ln,
                       ) {
     init_globals(mat_par, qn);
     Shape4thOrder shapes;
-    unsigned int elem_cnt = geom.t->getnElements();//unsigned int) t.getnElements();
+    unsigned int elementCount = geom.t->getnElements();//unsigned int) t.getnElements();
     // OPENMP LOOP COMPILED WITH -march=native an -O3 RESULTS IN SEGFAULT ON
     // WINXP32, COMPILED WITHMinGW. THIS IS NOT A PROBLEM WITH UBUNTU,
     // NO PROBLEMS FOUND WITH gdb / valgrind. SGFAULTING LINE MARKED IN FUNTION
@@ -1287,19 +1300,19 @@ void assemble_prev_rhs(SpaMtrix::Vector &Ln,
     //#endif
     //int th = 0; // debug thread number
     Mesh &t = *geom.t;
-    double *p = geom.getPtrTop();
-#ifdef NDEBUG
+    const Coordinates &coordinates = geom.getCoordinates();
+#ifndef DEBUG
     #pragma omp parallel for
 #endif
-    for (idx it = 0 ; it < elem_cnt ; it++) {
+    for (idx elementNum = 0; elementNum < elementCount; elementNum++) {
         // IF THIS ELEMENT IS LC ELEMENT, ASSEMBLE LOCAL MATRIX
-        if (t.getMaterialNumber(it) == MAT_DOMAIN1) {// if LC element
+        if (t.getMaterialNumber(elementNum) == MAT_DOMAIN1) {// if LC element
             idx eqr;
             double lL[20];      // local RHS vector
-            assemble_local_prev_volumes(lL, qn, v, t, p, it, mat_par, dt, shapes);
+            assemble_local_prev_volumes(lL, qn, v, geom, elementNum, mat_par, dt, shapes);
             // ADD LOCAL MATRIX TO GLOBAL MATRIX
             for (unsigned int i = 0; i < 20; i++) {
-                int ri = t.getNode(it, i % 4) + npLC * (i / 4);
+                int ri = t.getNode(elementNum, i % 4) + npLC * (i / 4);
                 eqr = qn.getEquNode(ri);
                 if (eqr != NOT_AN_INDEX) { // IF NOT FIXED
 #ifdef NDEBUG

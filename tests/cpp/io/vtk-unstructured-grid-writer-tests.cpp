@@ -4,6 +4,8 @@
 #include <test-util.h>
 #include <solutionvector.h>
 #include <lc-representation.h>
+#include <geom/coordinates.h>
+#include <geom/vec3.h>
 
 TEST_CASE("write VTK unstructured ascii grid") {
     using namespace vtkIOFun;
@@ -18,18 +20,14 @@ TEST_CASE("write VTK unstructured ascii grid") {
     size_t numLcPoints = 4;
 
     // 4 mesh node coordinates
-    double points[] = {
-            0, 0, 0,
-            1, 0, 0,
-            0, 1, 0,
-            0, 0, 1
-    };
+    Coordinates coordinates(
+          {{0, 0, 0},
+           {1, 0, 0},
+           {0, 1, 0},
+           {0, 0, 1}});
 
     // 4 directors
     SolutionVector q(4, 5);
-
-
-
 
     q.setValue(0, qlc3d::Director(1, 0, 0, 0.1));
     q.setValue(1, qlc3d::Director(0, 1, 0, 0.2));
@@ -38,34 +36,24 @@ TEST_CASE("write VTK unstructured ascii grid") {
     qlc3d::Director d = qlc3d::Director::fromDegreeAngles(45, 45, 0.4);
     q.setValue(3, d);
 
-    double director[] = {
-            1, 0, -1, 0, // 4x nx
-            0, 1, 0, -1, // 4x ny
-            0, 0, 0, 0   // 4x nz
-    };
-
-    // 4 order parameter values
-    double S[] = {
-            0.1, 0.2, 0.3, 0.4
-    };
-
-    double potentials[] = {0, 0.1, 0.2, 0.3};
+    SolutionVector potentials(4, 1);
+    potentials[0] = 0;
+    potentials[1] = 0.1;
+    potentials[2] = 0.2;
+    potentials[3] = 0.3;
 
     // create mesh consisting of a single tetrahedron
-    Mesh tetrahedra(1, numPoints);
-    idx tetNodes[] = {0, 1, 2, 3};
-    tetrahedra.setAllNodes(&tetNodes[0]);
-    tetrahedra.setnNodes(numPoints);
+    Mesh tetrahedra(3, 4);
+    tetrahedra.setElementData({0, 1, 2, 3}, {4});
 
     // ACT: write the result to a temporary file
     auto tempFile = TestUtil::TemporaryFile::empty();
     UnstructuredGridWriter writer;
     writer.write(tempFile.name(),
-                 numPoints,
                  numLcPoints,
-                 &points[0],
+                 coordinates,
                  tetrahedra,
-                 &potentials[0],
+                 potentials,
                  q);
 
     // ASSERT: check the file contents

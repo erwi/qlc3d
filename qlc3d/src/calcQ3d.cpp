@@ -100,7 +100,8 @@ double updateSolutionVector(SolutionVector &q,
             // EQUIVALENT DOF OF FIXED NODES ARE LABELLED AS "NOT_AN_INDEX"
             if (effDoF < NOT_AN_INDEX ) {
                 const double dqj = dq[ effDoF ]; // TODO: should we multiply by "damping" here, it looks like it's never used !!
-                q.Values[n] -= dqj ;
+                //q.Values[n] -= dqj ;
+                q[n] -= dqj;
                 // KEEP TRACK OF LARGEST CHANGE IN Q-TENSOR
                 maxdqOut = fabs(dqj) > maxdqOut ? fabs(dqj) : maxdqOut;
             }
@@ -161,11 +162,10 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         //  MATRIX ASSEMBLY
         //======================================
 #ifdef NDEBUG
-        int numThreads = simu->getAssemblyThreadCount() == 0 ? (int) std::thread::hardware_concurrency() : (int) simu->getAssemblyThreadCount();
+      int numThreads = simu->getAssemblyThreadCount() == 0 ? (int) std::thread::hardware_concurrency() : (int) simu->getAssemblyThreadCount();
         omp_set_num_threads(numThreads);
 #endif
-
-        assembleQ(K, L, q, v, geom.t, geom.e, geom.getPtrTop(), mat_par, timeStep, alignment, geom.getPtrToNodeNormals());
+        assembleQ(K, L, q, v, geom.t.get(), geom.e.get(), geom.getCoordinates(), mat_par, timeStep, alignment, geom.getNodeNormals());
 
         if (isTimeStepping) { // make Non-linear Crank-Nicholson RHS
             for (idx i = 0; i < numCols; i++) {

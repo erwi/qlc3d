@@ -4,11 +4,12 @@
 #include <io/result-output.h>
 
 class Mesh;
+class Coordinates;
 
 class LcViewResultFormatWriter : public ResultFormatWriter {
   [[nodiscard]] static std::string numberedMeshName(const SimulationState &simulationState, const std::string &meshName) ;
 
-  static void writeMeshFile(const double *p,
+  static void writeMeshFile(const Coordinates &coordinates,
                             Mesh *t,
                             Mesh *e,
                             idx np,
@@ -29,10 +30,7 @@ protected:
 
 //=============================================
 class LcViewBinaryResultFormatWriter : public LcViewResultFormatWriter {
-  static void writeBinaryResultFile(const double *p,
-                             const Mesh *t,
-                             const Mesh *e,
-                             const SolutionVector *v,
+  static void writeBinaryResultFile(const SolutionVector *v,
                              const SolutionVector *q,
                              double currentTime,
                              double S0,
@@ -49,12 +47,11 @@ public:
 //=============================================
 class LcViewTxtResultFormatWriter : public LcViewResultFormatWriter {
   static constexpr char LCVIEW_TEXT_FORMAT_STRING[] = "%i %f %f %f %f %f %f\n";
-  static void writeTextResultFile(const double *p,
+  static void writeTextResultFile(const Coordinates &coordinates,
                            const Mesh *t,
                            const Mesh *e,
-                           const SolutionVector *v,
-                           const double* director,
-                           idx npLC,
+                           const SolutionVector &v,
+                           const std::vector<qlc3d::Director> &dir,
                            double currentTime,
                            const std::string &meshFileName,
                            const std::filesystem::path &filePath);

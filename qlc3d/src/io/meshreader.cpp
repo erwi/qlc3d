@@ -3,8 +3,16 @@
 #include <filesystem>
 #include <util/logging.h>
 #include <util/exception.h>
+#include <geom/vec3.h>
 
 using namespace std;
+
+RawMeshData::RawMeshData(std::vector<Vec3> points,
+                         std::vector<idx> tetNodes, std::vector<idx> tetMaterials,
+                         std::vector<idx> triNodes, std::vector<idx> triMaterials)
+  : points(std::move(points)),
+  tetNodes(std::move(tetNodes)), tetMaterials(std::move(tetMaterials)),
+  triNodes(std::move(triNodes)), triMaterials(std::move(triMaterials)) { }
 
 /**
  * Checks up to 256 bytes of the file to try to check whether it is a text or binary file.
@@ -72,15 +80,6 @@ MeshFormat MeshFormatInspector::inspectFormat(const std::filesystem::path &fileN
     }
 }
 
-void MeshReader::copyGmshCoordinateData(const GmshFileData &data, double **pointsOut, idx *numPointsOut) {
-    const shared_ptr<SectionNodes> &nodesData = data.getNodes();
-    *numPointsOut = nodesData->_numNodes;
-
-    auto coordinates = nodesData->_coordinates;
-    *pointsOut = (double*) malloc(3 * (*numPointsOut) * sizeof(double));
-    std::copy(coordinates.begin(), coordinates.end(), *pointsOut);
-}
-
 void MeshReader::copyGmshTriangleData(const GmshFileData &data, idx **trisOut, idx **triMaterialsOut, idx *numTrisOut) {
     auto &elements = data.getElements();
     *numTrisOut = elements->_numTriangles;
@@ -96,55 +95,49 @@ void MeshReader::copyGmshTriangleData(const GmshFileData &data, idx **trisOut, i
     std::copy(materialNumbers.begin(), materialNumbers.end(), *triMaterialsOut);
 }
 
-void MeshReader::copyGmshTetData(const GmshFileData &data, idx **tetsOut, idx **tetMaterialsOut, idx *numTetsOut) {
-    auto &elements = data.getElements();
-    *numTetsOut = elements->_numTetrahedra;
+void MeshReader::readGmsMesh(const std::filesystem::path &fileName,
+                             std::vector<Vec3> &pointsOut,
+                             std::vector<idx> &tetNodes,
+                             std::vector<idx> &tetMaterials,
+                             std::vector<idx> &triNodes,
+                             std::vector<idx> &triMaterials) {
 
-    // element indices
-    *tetsOut = (idx*) malloc(4 * (*numTetsOut) * sizeof (idx));
-    std::copy(elements->_tetrahedraIndices.begin(), elements->_tetrahedraIndices.end(), *tetsOut);
-
-    // material numbers
-    GmshPhysicalNamesMapper mapper(data.getPhysicalNames(), data.getEntities(), data.getElements());
-    auto materialNumbers = mapper.maptTetrahedraNamesToMaterialNumbers();
-    *tetMaterialsOut = (idx*) malloc(*numTetsOut * sizeof(idx));
-    std::copy(materialNumbers.begin(), materialNumbers.end(), *tetMaterialsOut);
-}
-
-void MeshReader::readGmsMesh(const std::filesystem::path &fileName, double **pointsOut, idx *numPointsOut, idx **tetsOut, idx *numTetsOut, idx **trisOut, idx *numTrisOut,
-                             idx **tetMaterials, idx **triMaterials) {
     GmshFileReader reader;
     auto meshData = reader.readGmsh(fileName);
 
-    // copy gmsh data into output arrays
-    copyGmshCoordinateData(*meshData, pointsOut, numPointsOut);
-    copyGmshTriangleData(*meshData, trisOut, triMaterials, numTrisOut);
-    copyGmshTetData(*meshData, tetsOut, tetMaterials, numTetsOut);
+    pointsOut = meshData->getNodes()->_coordinates;
+    tetNodes = meshData->getElements()->_tetrahedraIndices;
+    triNodes = meshData->getElements()->_triangleIndices;
+
+    // converts gmsh material names to material numbers
+    GmshPhysicalNamesMapper mapper(meshData->getPhysicalNames(), meshData->getEntities(), meshData->getElements());
+    tetMaterials = mapper.maptTetrahedraNamesToMaterialNumbers();
+    triMaterials = mapper.mapTriangleNamesToMaterialNumbers();
 }
 
-void MeshReader::readMesh(const std::filesystem::path &fileName,
-                          double **pointsOut,
-                          idx *numPointsOut,
-                          idx **tetsOut,
-                          idx *numTetsOut,
-                          idx **trisOut,
-                          idx *numTrisOut,
-                          idx **tetMaterialsOut,
-                          idx **triMaterialsOut) {
+RawMeshData MeshReader::readMesh(const std::filesystem::path &fileName) {
     MeshFormat format = MeshFormatInspector::inspectFormat(fileName);
+
+    std::vector<Vec3> points;
+    std::vector<idx> tetNodes;
+    std::vector<idx> tetMaterials;
+    std::vector<idx> triNodes;
+    std::vector<idx> triMaterials;
 
     switch (format) {
         case MeshFormat::GID_MESH:
             Log::info("Reading GiD mesh from {}.", fileName.string());
-            ReadGiDMesh3D(fileName, pointsOut, numPointsOut, tetsOut, numTetsOut, trisOut, numTrisOut, tetMaterialsOut, triMaterialsOut);
+            ReadGiDMesh3D(fileName, points, tetNodes, tetMaterials, triNodes, triMaterials);
             break;
         case MeshFormat::GMSH_ASCII:
             Log::info("Reading Gmsh mesh from {}", fileName.string());
-            MeshReader::readGmsMesh(fileName, pointsOut, numPointsOut, tetsOut, numTetsOut, trisOut, numTrisOut, tetMaterialsOut, triMaterialsOut);
+            MeshReader::readGmsMesh(fileName, points, tetNodes, tetMaterials, triNodes, triMaterials);
             break;
         case MeshFormat::UNKNOWN_FORMAT:
             RUNTIME_ERROR(fmt::format("Could not determine mesh format of file {}.", fileName))
         default:
             RUNTIME_ERROR(fmt::format("Unhandled mesh format - did not read mesh from {}.", fileName));
     }
+
+    return {points, tetNodes, tetMaterials, triNodes, triMaterials};
 }

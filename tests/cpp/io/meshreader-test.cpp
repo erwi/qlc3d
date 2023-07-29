@@ -18,48 +18,41 @@ TEST_CASE("Detect input mesh file format") {
 }
 
 TEST_CASE("Read Gmsh mesh without knowing format") {
-    double *p;
-    idx numPoints, numTets, numTris;
-    idx *tets = nullptr, *tris = nullptr, *tetMaterials = nullptr, *triMaterials = nullptr;
+    auto meshData = MeshReader::readMesh(TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH);
 
-    MeshReader::readMesh(TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH,
-                         &p, &numPoints, &tets, &numTets, &tris, &numTris, &tetMaterials, &triMaterials);
+    unsigned int numPoints = meshData.points.size();
+
     SECTION("mesh should have expected number of points, tets, and tris") {
         REQUIRE(14 == numPoints);
-        REQUIRE(24 == numTets);
-        REQUIRE(24 == numTris);
+        REQUIRE(24 == meshData.tetMaterials.size()); // 24 tets
+        REQUIRE(24 * 4 == meshData.tetNodes.size()); // 4 nodes per tet
+        REQUIRE(24 == meshData.triMaterials.size()); // 24 tris
+        REQUIRE(24 * 3 == meshData.triNodes.size()); // 3 nodes per tri
     }
 
     SECTION("all tets should be LC material") {
-        bool areAllDomain1 = std::all_of(tetMaterials, tetMaterials + numTets,
+        bool areAllDomain1 = std::all_of(meshData.tetMaterials.begin(), meshData.tetMaterials.end(),
                                          [](unsigned int v){ return v == MAT_DOMAIN1;});
         REQUIRE(areAllDomain1);
     }
 
     SECTION("mesh should contain 16 periodic material triangles") {
-        size_t numPeriodic = std::count_if(triMaterials, triMaterials + numTris,
+        size_t numPeriodic = std::count_if(meshData.triMaterials.begin(), meshData.triMaterials.end(),
                       [](idx v){ return v == MAT_PERIODIC; });
         REQUIRE(16 == numPeriodic);
     }
 
     SECTION("mesh should contain 4 FixLC1 Electrode1 triangles") {
         idx material = MAT_FIXLC1 + MAT_ELECTRODE1;
-        size_t numMaterialTriangles = std::count_if(triMaterials, triMaterials + numTris,
+        size_t numMaterialTriangles = std::count_if(meshData.triMaterials.begin(), meshData.triMaterials.end(),
                                                     [material](idx v) { return v == material; });
         REQUIRE(4 == numMaterialTriangles);
     }
 
     SECTION("mesh should contain 4 FixLC2 Electrode2 triangles") {
         idx material = MAT_FIXLC2 + MAT_ELECTRODE2;
-        size_t numMaterialTriangles = std::count_if(triMaterials, triMaterials + numTris,
+        size_t numMaterialTriangles = std::count_if(meshData.triMaterials.begin(), meshData.triMaterials.end(),
                                                     [material](idx v) { return v == material; });
         REQUIRE(4 == numMaterialTriangles);
     }
-
-    // TODO: noo....
-    free((void*) p);
-    free((void*) tets);
-    free((void*) tris);
-    free((void*) tetMaterials);
-    free((void*) triMaterials);
 }

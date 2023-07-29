@@ -5,74 +5,20 @@
 #include <util/logging.h>
 #include <util/exception.h>
 #include <set>
+#include <geom/coordinates.h>
 #include <geom/vec3.h>
 
-using fmt::format;
-Mesh::Mesh() {
-    nElements 		= 0;
-    nNodes 			= 0;
-    MaxNodeNumber           = 0;
-    TotalSize		= 0;
-    Dimension		= 0;
-    Elem			= NULL;
-    Mat			= NULL;
-    Determinant		= NULL;
-    SurfaceNormal	= NULL;
-    ConnectedVolume = NULL;
-}
+#include <vector>
 
-Mesh::~Mesh() {
-    if (Elem!=NULL)	{
-        free(Elem);
-        Elem=NULL;
-    }
-    if (Mat !=NULL)	{
-        free(Mat);
-        Mat=NULL;
-    }
-    if (Determinant != NULL)	{
-        free(Determinant);
-        Determinant = NULL;
-    }
-    if (SurfaceNormal != NULL)	{
-        free(SurfaceNormal);
-        SurfaceNormal = NULL;
-    }
-    if (ConnectedVolume != NULL)	{
-        free(ConnectedVolume);
-        ConnectedVolume = NULL;
-    }
-}
-Mesh::Mesh(idx numElements, idx numNodes) {
-    nElements = numElements;
-    nNodes = numNodes;
-    // allocate memory for mesh
-    Elem = (idx*)malloc(nElements * nNodes * sizeof(idx));
-    Mat  = (idx*)malloc(nElements * sizeof(idx));
-    Determinant = (double*)malloc(nElements * sizeof(double));
-    SurfaceNormal = NULL;
-    ConnectedVolume = NULL;
-}
-void Mesh::AllocateMemory() {
-    if ((nElements > 0) && (nNodes > 0)) {
-        if (Elem != NULL) free(Elem);
-        if (Mat != NULL) free(Mat);
-        if (Determinant != NULL) free(Determinant);
-        Elem = (idx*) malloc(nElements * nNodes * sizeof(idx) );
-        Mat  = (idx*) malloc(nElements * sizeof(idx) );
-        Determinant = (double*) malloc(nElements * sizeof(double) );
-    }
-    else {
-        RUNTIME_ERROR(format("Expected non-zero counts, got nElements={}, nNodes={}.", nElements, nNodes));
-    }
-}
+using fmt::format;
+
+Mesh::Mesh(unsigned int dimension, unsigned int nodesPerElement) :
+        Dimension{dimension}, nNodes{nodesPerElement}, nElements{0}, TotalSize{0} {}
+
+Mesh::~Mesh() { }
 
 idx Mesh::getMaterialNumber(const idx e) const {
-#ifdef DEBUG
-    assert(Mat);
-    assert(e < nElements);
-#endif
-    return Mat[e];
+  return materials[e];
 }
 
 idx Mesh::getFixLCNumber(const idx e) const {
@@ -84,88 +30,86 @@ idx Mesh::getDielectricNumber(const idx e) const {
 }
 
 double Mesh::getDeterminant(const idx i) const {
-    // RETURNS THE PRE-CALCULATED DETERMINANT FOR ELEMENT i
 #ifdef DEBUG
-    assert(Determinant);
-    assert(i < nElements);
+  assert(i < nElements);
 #endif
-    return Determinant[i];
+  return determinants[i];
 }
-
 
 idx Mesh::getConnectedVolume(const idx e) const {
-    // RETURNS INDEX TO CONNECTED LC TETRAHEDRON, WHEN e IS INDEX TO A TRIANGLE
+  // RETURNS INDEX TO CONNECTED LC TETRAHEDRON, WHEN e IS INDEX TO A TRIANGLE
 #ifdef DEBUG
-    assert(ConnectedVolume);    // CONNECTIONS HAVE BEEN INITIALISED
-    assert(e<getnElements() );  // IN BOUNDS
+  assert(e < connectedVolumes.size());
 #endif
-    return ConnectedVolume[e];
-}
-idx* Mesh::getPtrToElement(const idx e) const {
-    return &Elem[e*nNodes];
-}
-idx* Mesh::getPtrToMaterialNumber(const idx e) const {
-    return &Mat[e*nNodes];
-}
-
-idx* Mesh::getPtrToConnectedVolume(const idx e) const {
-    return &ConnectedVolume[e];
-}
-
-double* Mesh::getPtrToDeterminant(const idx e) const {
-    return &Determinant[e];
-}
-
-double* Mesh::getPtrToSurfaceNormal(const idx e) const {
-    return &SurfaceNormal[e*3];
-}
-
-void Mesh::setDeterminant(const idx i, double det) {
-#ifdef DEBUG
-    assert(Determinant);
-    // ADD CHECKING OF i TOO LARGE OR SMALL
-#endif
-    Determinant[i] = det;
+  return connectedVolumes[e];
 }
 
 void Mesh::setSurfaceNormal(idx i, const Vec3 &normal) {
 #ifdef DEBUG
   assert(i < getnElements());
+  assert(i < surfaceNormals.size());
 #endif
-  SurfaceNormal[i*3 + 0] = normal.x();
-  SurfaceNormal[i*3 + 1] = normal.y();
-  SurfaceNormal[i*3 + 2] = normal.z();
+  surfaceNormals[i] = normal;
+}
+
+Vec3 Mesh::getSurfaceNormal(unsigned int i) const {
+#ifdef DEBUG
+  assert(i < getnElements());
+  assert(getDimension() == 2);
+#endif
+  return surfaceNormals[i];
+}
+
+
+void Mesh::setElementData(std::vector<unsigned int> &&nodes, std::vector<unsigned int> &&materials) {
+  unsigned int numElements = nodes.size() / getnNodes();
+
+  if (nodes.size() % getnNodes() != 0) {
+    RUNTIME_ERROR(format("Number of nodes ({}) is not a multiple of number of nodes per element ({}).", nodes.size(), getnNodes()));
+  }
+
+  if (numElements != materials.size()) {
+    RUNTIME_ERROR(format("Number of elements ({}) does not match number of materials ({}).", numElements, materials.size()));
+  }
+
+  this->nodes = nodes;
+  this->materials = materials;
+  this->nElements = numElements;
+}
+
+void Mesh::setElementData(const unsigned int *nodeValues, const unsigned int *materialValues, unsigned int numElements) {
+  nodes.clear();
+  materials.clear();
+  nodes.reserve(getnNodes() * numElements);
+  materials.reserve(numElements);
+  nElements = numElements;
+
+  for (unsigned int i = 0; i < numElements; i++) {
+    materials.push_back(materialValues[i]);
+
+    for (unsigned int j = 0; j < getnNodes(); j++) {
+      nodes.push_back(nodeValues[i * getnNodes() + j]);
+    }
+  }
 }
 
 /**
  * copies all values from array nodes to this->Elem
  * @param nodes
+ * @deprecated use setElementData instead
  */
 void Mesh::setAllNodes(idx *nodes) {
 #ifdef DEBUG
     assert(nElements > 0);
-    assert(Elem != nullptr);
+    assert(this->nodes.size() == nElements * nNodes); // only used in init. TODO fix this
 #endif
-    memcpy(Elem, nodes, nElements * nNodes * sizeof(idx));
-}
-
-void Mesh::setAllMaterials(idx *mat) {
-#ifdef DEBUG
-    assert(Mat);
-#endif
-    memcpy( Mat, mat, nElements*sizeof(idx) );
-}
-
-void Mesh::setDimension(const idx dim) {
-    Dimension = dim;
+    for (unsigned int i = 0; i < this->nodes.size(); i++) { // assumes already correct size TODO: don't assume
+        this->nodes[i] = nodes[i];
+    }
 }
 
 void Mesh::setnElements(idx nelem) {
     nElements = nelem;
-}
-
-void Mesh::setnNodes(idx nnodes) {
-    nNodes = nnodes;
 }
 
 void Mesh::setConnectedVolume(Mesh* vol) {
@@ -180,16 +124,7 @@ void Mesh::setConnectedVolume(Mesh* vol) {
         RUNTIME_ERROR(format("Unable to associate triangles with tetrahedra. Triangles dimension = {}, "
                              "tetrahedra dimension = {}", this->getDimension(), vol->getDimension()));
     }
-    // release old index, if exists
-    if (ConnectedVolume != NULL){
-        free(ConnectedVolume);
-        ConnectedVolume = NULL;
-    }
-
-    // set up index and initialise all to -1
-    ConnectedVolume = (idx*) malloc( getnElements() * sizeof(idx) );
-    for (idx i = 0 ; i < getnElements() ; i ++)
-        ConnectedVolume[i] = -1;
+    connectedVolumes.resize(getnElements(), NOT_AN_INDEX);
 
     vector <set <idx> > v_in_p ; // vector of sets containing volume element numbers connected to each node
     vector < set < idx> > p_to_t;
@@ -233,9 +168,9 @@ void Mesh::setConnectedVolume(Mesh* vol) {
             // AND WHICH IS DIELECTRIC
             set <idx> ::iterator itr;
             itr = final.begin();
-            if ( final.size() == 1){ // IF SINGLE TET FOUND
-                if (vol->getMaterialNumber( *itr ) <= MAT_DOMAIN7 ){ // only connect to an LC element
-                    ConnectedVolume[i] = *itr;
+            if ( final.size() == 1) { // IF SINGLE TET FOUND
+                if (vol->getMaterialNumber( *itr ) <= MAT_DOMAIN7 ) { // only connect to an LC element
+                    connectedVolumes[i] = *itr;
                 }
                 else if ( ( vol->getMaterialNumber( *itr) >= MAT_DIELECTRIC1 ) &&
                           (vol->getMaterialNumber(*itr) <= MAT_DIELECTRIC7) ){
@@ -247,18 +182,20 @@ void Mesh::setConnectedVolume(Mesh* vol) {
                                                         "volume, but no LC volume in {}, {}.", surfMat, __FILE__, __func__));
                     }
 
-                    ConnectedVolume[i] = -2; // set to -2 if connected to dielectric
+                    connectedVolumes[i] = -2; // set to -2 if connected to dielectric
                 }
             }
             else
-                if ( final.size() == 2){
+                if ( final.size() == 2) {
                     // CHECK BOTH FIRST AND SECOND INDICES
-                    if (vol->getMaterialNumber( *itr ) <= MAT_DOMAIN7 )// only connect to an LC element
-                        ConnectedVolume[i] = *itr;
-                    else{
+                    if (vol->getMaterialNumber( *itr ) <= MAT_DOMAIN7 ) {// only connect to an LC element
+                      connectedVolumes[i] = *itr;
+                    }
+                    else {
                         ++itr;
-                        if (vol->getMaterialNumber( *itr ) <= MAT_DOMAIN7 )// only connect to an LC element
-                            ConnectedVolume[i] = *itr;
+                        if (vol->getMaterialNumber( *itr ) <= MAT_DOMAIN7 ) {// only connect to an LC element
+                          connectedVolumes[i] = *itr;
+                        }
                     }
                 }
                 else {
@@ -296,102 +233,36 @@ double Mesh::Calculate4x4Determinant(double* M) const {
     return Determinant;
 }
 
-void Mesh::ContainsNodes(list <idx>* elems, list <idx>* points) {
-    // CREATES INDEX OF ELEMENTS THAT CONTAIN AT LEAST ONE OF THE NODES IN LIST points
+double det3D(Vec3 c[4]) {
+  Vec3 v1 = c[1] - c[0];
+  Vec3 v2 = c[2] - c[0];
+  Vec3 v3 = c[3] - c[0];
 
-    list <idx>::iterator int_itr;
-    for (idx i = 0 ; i < getnElements() ; i ++ ) // loop over all elements
-    {
-        for (int_itr = points->begin() ; int_itr != points->end() ; ++int_itr) // loop over all points in list
-        {
-            for (idx j = 0 ; j < getnNodes() ; j++) // loop over all nodes in element i
-            {
-                if ( getNode(i,j) == *int_itr)
-                {
-                    elems->push_back(i);
-                }
-            }
-        }
-    }
-    // sort and remove duplicated entries from neighbouring elements
-    elems->sort();
-    elems->unique();
+  Vec3 cross = v2.cross(v3);
+  return v1.dot(cross);
 }
 
-bool Mesh::ContainsCoordinate(const idx elem, const double *p, const double *coord ) const {
-    // CHECKS TO SEE WHETHER ELEMENT elem CONTAINS COORDINATE coord. THAT IS, COORD
-    // CAN BE ANYWHERE INSIDE elem, NOT JUST CORNER NODES
-    // coord is expected to be of length 3 [x,y,z]. is most likely a pointer to somewhere in array *p
-#ifdef DEBUG
-    if (this->Dimension == 2) {
-        RUNTIME_ERROR("This method only works on tetrahedra.");
-    }
-#endif
+bool Mesh::containsCoordinate(idx elem, const Coordinates &coordinates, const Vec3 p) const {
+  Vec3 c[4] = {coordinates.getPoint(getNode(elem, 0)), coordinates.getPoint(getNode(elem, 1)),
+               coordinates.getPoint(getNode(elem, 2)), coordinates.getPoint(getNode(elem, 3))};
 
-    // CALCULATE 4 DETERMINANTS FOR TETS FORMED USING NODES FROM THIS ELEMENT
-    // AND THE TESTED COORDINATE AND ONE USING THIS TET ONLY. IF SUM OF DETS OF TETS FORMED USING coord
-    // EQUALS THAT OF FOR THIS ELEMENT ONLY, THEN THE COORDINATE IS WITHIN THIS TET
-    const double eps = qlc3d_GLOBALS::GLOBAL_COORD_EPS; // accuracy used for coordinate comparions
-    double x[4] , y[4] , z[4];
-    idx *n = &Elem[elem*nNodes]; // shortcut to all node numbers in this tet
-    double Det = 0.0;    // cumulative determinant for tets formed using coord
-    double Det_this = 0; // determinant for the whole element
+  const double eps = qlc3d_GLOBALS::GLOBAL_COORD_EPS;
+  // first check if p is one of the corner nodes
+  if (c[0].equals(p, eps) || c[1].equals(p, eps) || c[2].equals(p, eps) || c[3].equals(p, eps)) {
+    return true;
+  }
 
-    // FIRST CHECK WHETHER coord IS ONE OF THE CORNER NODES (IT OFTEN IS)
-    // THIS IS A QUICK TEST
-    x[0] = p[3*n[0]];   y[0] = p[3*n[0]+1]; z[0] = p[3*n[0]+2];
-    x[1] = p[3*n[1]];   y[1] = p[3*n[1]+1]; z[1] = p[3*n[1]+2];
-    x[2] = p[3*n[2]];   y[2] = p[3*n[2]+1]; z[2] = p[3*n[2]+2];
-    x[3] = p[3*n[3]];   y[3] = p[3*n[3]+1]; z[3] = p[3*n[3]+2];
+  // then check if p is an internal node
+  // sum of 4 "sub-tet" determinants will equal totalDet if p is an internal node
+  double totalDet = std::fabs(det3D(c));
+  double sumSubDets = 0;
+  for (int i = 0; i < 4; i++) {
+    Vec3 cs[4] = {c[0], c[1], c[2], c[3]};
+    cs[i] = p;
+    sumSubDets += std::fabs(det3D(cs));
+  }
 
-
-    if  ( (	  ( fabs( coord[0]- x[0]) < eps ) && (fabs(coord[1] - y[0]) < eps) && (fabs(coord[2] - z[0])<eps) )|| // node 1
-          ( ( fabs( coord[0]- x[1]) < eps ) && (fabs(coord[1] - y[1]) < eps) && (fabs(coord[2] - z[1])<eps) )|| // node 2
-          ( ( fabs( coord[0]- x[2]) < eps ) && (fabs(coord[1] - y[2]) < eps) && (fabs(coord[2] - z[2])<eps) )|| // node 3
-          ( ( fabs( coord[0]- x[3]) < eps ) && (fabs(coord[1] - y[3]) < eps) && (fabs(coord[2] - z[3])<eps) )){ // node 4
-        return true;
-    }
-
-
-    // THEN CHECK IF coord IS AN INTERNAL NODE. THIS IS SLOWER
-    for (unsigned int i = 0 ; i < (unsigned int) getnNodes()+1 ; i++ ){
-
-        x[0] = p[3*n[0]];   y[0] = p[3*n[0]+1]; z[0] = p[3*n[0]+2];
-        x[1] = p[3*n[1]];   y[1] = p[3*n[1]+1]; z[1] = p[3*n[1]+2];
-        x[2] = p[3*n[2]];   y[2] = p[3*n[2]+1]; z[2] = p[3*n[2]+2];
-        x[3] = p[3*n[3]];   y[3] = p[3*n[3]+1]; z[3] = p[3*n[3]+2];
-
-        // OVERWRITE NODE i WITH INPUT COORDINATE VALUE
-        if (i < (unsigned int) getnNodes() ){ // use coord as one of the values
-            x[i] = coord[0] ; y[i] = coord[1] ; z[i] = coord[2];
-        }
-
-        double A[3],B[3],C[3];
-        A[0] = x[1] - x[0]; A[1] = y[1] - y[0]; A[2] = z[1] - z[0];
-        B[0] = x[2] - x[0]; B[1] = y[2] - y[0]; B[2] = z[2] - z[0];
-        C[0] = x[3] - x[0]; C[1] = y[3] - y[0]; C[2] = z[3] - z[0];
-
-        // B x C
-        double cross[3];
-        cross[0] =   B[1]*C[2] - C[1]*B[2];
-        cross[1] = - B[0]*C[2] + C[0]*B[2];
-        cross[2] =   B[0]*C[1] - C[0]*B[1];
-
-        // determinant = A . (B x C)
-        if (i < (unsigned int) getnNodes() )
-            Det += fabs( A[0]*cross[0] + A[1]*cross[1] + A[2]*cross[2] ) ; // det for tets formed using coord
-        else
-            Det_this = fabs( A[0]*cross[0] + A[1]*cross[1] + A[2]*cross[2] ) ; // determinant for the whole tet
-
-    }
-
-    if ( fabs( Det_this - Det) <= eps )
-        return true;
-    else
-        return false;
-
-
-
+  return std::fabs(totalDet - sumSubDets) <= eps;
 }
 
 void Mesh::CompleteNodesSet(const idx elem, std::vector <idx>& nodes) const
@@ -434,95 +305,66 @@ void Mesh::CompleteNodesSet(const idx elem, std::vector <idx>& nodes) const
 }
 
 
-void Mesh::CalculateDeterminants3D(double *p) {
+void Mesh::calculateDeterminants3D(const Coordinates &coords) {
+  if (Dimension != 3) {
+    RUNTIME_ERROR("3D determinants can only be calculated for 3D meshes.");
+  }
+  if (getnElements() == 0) {
+    RUNTIME_ERROR("Cannot calculate determinants for empty mesh.");
+  }
 
-    if (Determinant !=NULL) free(Determinant);
-    Determinant = (double*) malloc( getnElements()*sizeof(double));
+  determinants.resize(getnElements(), 0.0);
+  std::fill(determinants.begin(), determinants.end(), 0.0);
 
-    if ((Determinant != NULL) && (Dimension == 3) && (getnElements() >0) ) {
+  TotalSize = 0.0; // reset total mesh volume
+  Log::info("Calculating {} 3D determinants.", getnElements());
 
-        TotalSize = 0.0; // reset total mesh volume
-        Log::info("Calculating {} 3D determinants.", getnElements());
+  for (idx i = 0 ; i < getnElements() ; i++) {
+    unsigned int n[4] = {getNode(i,0), getNode(i,1), getNode(i,2), getNode(i,3)};
+    Vec3 corners[4] = {coords.getPoint(n[0]), coords.getPoint(n[1]), coords.getPoint(n[2]), coords.getPoint(n[3])};
+    determinants[i] = det3D(corners);
 
-        for (idx i = 0 ; i < getnElements() ; i++) {
-            idx* n;
-
-            n = &Elem[i*nNodes];
-
-            double x[4], y[4], z[4];
-            x[0] = p[3*n[0]];   y[0] = p[3*n[0]+1]; z[0] = p[3*n[0]+2];
-            x[1] = p[3*n[1]];   y[1] = p[3*n[1]+1]; z[1] = p[3*n[1]+2];
-            x[2] = p[3*n[2]];   y[2] = p[3*n[2]+1]; z[2] = p[3*n[2]+2];
-            x[3] = p[3*n[3]];   y[3] = p[3*n[3]+1]; z[3] = p[3*n[3]+2];
-
-            double A[3],B[3],C[3];
-            A[0] = x[1] - x[0]; A[1] = y[1] - y[0]; A[2] = z[1] - z[0];
-            B[0] = x[2] - x[0]; B[1] = y[2] - y[0]; B[2] = z[2] - z[0];
-            C[0] = x[3] - x[0]; C[1] = y[3] - y[0]; C[2] = z[3] - z[0];
-
-            // B x C
-            double cross[3];
-            cross[0] =   B[1]*C[2] - C[1]*B[2];
-            cross[1] = - B[0]*C[2] + C[0]*B[2];
-            cross[2] =   B[0]*C[1] - C[0]*B[1];
-
-            // determinant = A . (B x C)
-            Determinant[i] = A[0]*cross[0] + A[1]*cross[1] + A[2]*cross[2];
-
-            if (Determinant[i] < 0 ) { // should reorder nodes to ensure positive determinant
-                Log::warn("Negative determinant for element {}, negating sign and continuing.", i);
-                Determinant[i] = -1.0 * Determinant[i];
-            }
-
-            TotalSize += Determinant[i] ; // add determinat of this element to total
-
-            if (Determinant[i] == 0) {
-                RUNTIME_ERROR(format("Zero determinant in element {} with "
-                                     "nodes: {} = ({}, {}, {}), {} = ({}, {}, {}), {} = ({}, {}, {}), {} = ({}, {}, {}).", i,
-                                     n[0], x[0], y[0], z[0],
-                                     n[1], x[1], y[1], z[1],
-                                     n[2], x[2], y[2], z[2],
-                                     n[3], x[3], y[3], z[3]));
-            }
-
-        }
-        TotalSize = TotalSize / 6.0; // scale tet determinant to volume
+    if (determinants[i] < 0 ) { // should reorder nodes to ensure positive determinant
+      Log::warn("Negative determinant for element {}, negating sign and continuing.", i);
+      determinants[i] = -1.0 * determinants[i];
     }
-    else {
-        RUNTIME_ERROR("Determinants have already been calculated.");
+
+    TotalSize += determinants[i] ; // add determinant of this element to total
+
+    if (determinants[i] == 0) {
+      RUNTIME_ERROR(format("Zero determinant in element {} with nodes: {} = ({}), {} = ({}), {} = ({}), {} = ({}).",
+                           i, n[0], corners[0], n[1], corners[1], n[2], corners[2], n[3], corners[3]));
     }
+  }
+  TotalSize = TotalSize / 6.0; // scale tet determinant to volume
 }
 
-void Mesh::calculateSurfaceNormals(double *p, Mesh* tets) {
-    // CALCULATES THE SURFACE NORMAL FOR A TRIANGULAR MESH
-    if ((Dimension != 2) ||
-            (getnElements() <1) ||
-            (getnNodes() <1)) {
-        RUNTIME_ERROR("Can not calculate surface normals.");
-    }
+void Mesh::calculateSurfaceNormals(const Coordinates &coords, Mesh* tets) {
+  // CALCULATES THE SURFACE NORMAL FOR A TRIANGULAR MESH
+  if ((Dimension != 2) ||  (getnElements() < 1) || (getnNodes() < 1)) {
+    RUNTIME_ERROR("Can not calculate surface normals.");
+  }
 
-    Log::info("Calculating {} surface normals and 2D determinants.", getnElements());
+  if (connectedVolumes.size() < getnElements()) {
+    RUNTIME_ERROR("Can not calculate surface normals, connectedVolumes vector does not match number of elements.");
+  }
 
-    if (SurfaceNormal != NULL) free(SurfaceNormal);
-    if (Determinant != NULL) free(Determinant);
+  Log::info("Calculating {} surface normals and 2D determinants.", getnElements());
 
-    SurfaceNormal = (double*) malloc(3 * getnElements() * sizeof(double));
-    Determinant = (double*) malloc( getnElements() * sizeof(double) );
+  surfaceNormals.resize(getnElements(), {0.0, 0.0, 0.0});
+  std::fill(surfaceNormals.begin(), surfaceNormals.end(), Vec3(0.0, 0.0, 0.0));
 
-    if ((SurfaceNormal==NULL) || (Determinant==NULL)) {
-        RUNTIME_ERROR("Failed to allocate memory.");
-    }
+  determinants.resize(getnElements(), 0.0);
+  std::fill(determinants.begin(), determinants.end(), 0.0);
 
-    // Loop over each element and calculate determinant and surface normal
+  // Loop over each element and calculate determinant and surface normal
   TotalSize = 0;
   for ( idx i = 0 ; i < getnElements() ; i ++) {
-    idx n0 = getNode(i, 0);
-    idx n1 = getNode(i, 1);
-    idx n2 = getNode(i, 2);
+    unsigned int n[3] = {getNode(i,0), getNode(i,1), getNode(i,2)};
 
-    Vec3 p0(p[3*n0], p[3*n0+1], p[3*n0+2]);
-    Vec3 p1(p[3*n1], p[3*n1+1], p[3*n1+2]);
-    Vec3 p2(p[3*n2], p[3*n2+1], p[3*n2+2]);
+    Vec3 p0 = coords.getPoint(n[0]);
+    Vec3 p1 = coords.getPoint(n[1]);
+    Vec3 p2 = coords.getPoint(n[2]);
 
     Vec3 A = p1 - p0;
     Vec3 B = p2 - p0;
@@ -534,103 +376,83 @@ void Mesh::calculateSurfaceNormals(double *p, Mesh* tets) {
       det = -1.0 * det;
     }
 
-    setDeterminant(i,  det );
+    determinants[i] = det;
     TotalSize+= det / 2.0;
     normalVec.normalize();
 
     // CHECK THAT SURFACE NORMAL POINTS TOWARDS LC REGION. I.E. INWARDS
     // IF NOT REVERSE ITS ORIENTATION
-    if ((ConnectedVolume) && (tets) ) {// only if connected volumes have been set and tets are provided
-      int t = getConnectedVolume( i); // index to neighbouring tet. TODO: fix casting unsigned int to int
-      if ( t > -1 ) {
-        Vec3 triBary = (p0 + p1 + p2) / 3.;
+    unsigned int t = getConnectedVolume(i); // index to neighbouring tet.
 
-        // calculate tet barycentre
-        idx n[4] = { tets->getNode(t,0) , tets->getNode(t,1) , tets->getNode(t,2), tets->getNode(t,3) };
+    Vec3 triBary = (p0 + p1 + p2) / 3.;
 
-        Vec3 c0 = Vec3(p[n[0]*3+0], p[n[0]*3+1], p[n[0]*3+2]);
-        Vec3 c1 = Vec3(p[n[1]*3+0], p[n[1]*3+1], p[n[1]*3+2]);
-        Vec3 c2 = Vec3(p[n[2]*3+0], p[n[2]*3+1], p[n[2]*3+2]);
-        Vec3 c3 = Vec3(p[n[3]*3+0], p[n[3]*3+1], p[n[3]*3+2]);
+    // calculate tet barycentre
+    idx ntet[4] = { tets->getNode(t,0) , tets->getNode(t,1) , tets->getNode(t,2), tets->getNode(t,3) };
 
-        Vec3 tetBary = (c0 + c1 + c2 + c3) / 4.0;
+    Vec3 c0 = coords.getPoint(ntet[0]);
+    Vec3 c1 = coords.getPoint(ntet[1]);
+    Vec3 c2 = coords.getPoint(ntet[2]);
+    Vec3 c3 = coords.getPoint(ntet[3]);
 
-        // vector from tri barycentre to tet barycentre
-        Vec3 v1 = tetBary - triBary;
+    Vec3 tetBary = (c0 + c1 + c2 + c3) / 4.0;
 
-        // dot product between surface normal and v1 determines orientation of surface normal
-        double dot = normalVec.dot(v1);
+    // vector from tri barycentre to tet barycentre
+    Vec3 v1 = tetBary - triBary;
 
-        if (dot < 0.0 ) {
-          // IF SURFACE NORMAL IS IN WRONG DIRECTION,
-          // REVERSE NODE ORDER AND INVERT VECTOR DIRECTION
-          idx* e = &Elem[i * getnNodes() ]; // pointer to first node in this element
-          idx temp = e[2];
-          e[2] = e[1];
-          e[1] = temp;
+    // dot product between surface normal and v1 determines orientation of surface normal
+    double dot = normalVec.dot(v1);
 
-          normalVec *= -1;
-        }
-      } // end if index to neighbouring tet exists
-    } // if connected volume found
-    else {
-      RUNTIME_ERROR("Connected volumes or tetrahedra do not exist.");
+    if (dot < 0.0 ) {
+      // IF SURFACE NORMAL IS IN WRONG DIRECTION,
+      // REVERSE NODE ORDER AND INVERT VECTOR DIRECTION
+      idx indexA = i * getnNodes() + 1; // 2nd node of triangle
+      idx indexB = i * getnNodes() + 2; // 3rd node of triangle
+      iter_swap(nodes.begin() + indexA, nodes.begin() + indexB); // swap 2nd and 3rd nodes
+
+      normalVec *= -1;
     }
+
     setSurfaceNormal(i, normalVec);
   }
 }
 
-void Mesh::CalcLocCoords(const idx elem, double *p, double *coord, double *loc) {
-    // calculates 4 local coordinates of coordinate coord in element elem
-    // returned in loc
-    idx* n = this->getPtrToElement( elem );
+void Mesh::calcLocCoords(const idx elem, const Coordinates &coordinates, const Vec3 &targetPoint, double localCoordinates[4]) const {
+    // calculates 4 local coordinates of targetPoint in element elem returned in localCoordinates
+    //idx* n = this->getPtrToElement( elem );
+  unsigned int elemNodes[4] = {getNode(elem, 0), getNode(elem, 1), getNode(elem, 2), getNode(elem, 3)};
 
-    double M[12]= {0,0,0,0,0,0,0,0,0,0,0,0};
+  double M[12]= {0,0,0,0,0,0,0,0,0,0,0,0};
 
-    for (int c = 0 ; c < 4 ; c++) {
-        for (int i = 0 ; i < 4 ; i++) {
-            M[i*3 + 0] = p[ 3*n[i] + 0]; // x
-            M[i*3 + 1] = p[ 3*n[i] + 1]; // y
-            M[i*3 + 2] = p[ 3*n[i] + 2]; // z
-        }
-
-        M[c*3 + 0 ] = coord[0];
-        M[c*3 + 1 ] = coord[1];
-        M[c*3 + 2 ] = coord[2];
-
-        double det = fabs( this->Calculate4x4Determinant(M) ) ;
-        loc[c] = det / (this->getDeterminant(elem)*1e18 );
+  for (int c = 0 ; c < 4 ; c++) {
+    for (int i = 0 ; i < 4 ; i++) {
+      Vec3 p = coordinates.getPoint(elemNodes[i]);
+      M[i*3 + 0] = p.x(); //[ 3*n[i] + 0]; // x
+      M[i*3 + 1] = p.x(); //[ 3*n[i] + 1]; // y
+      M[i*3 + 2] = p.x(); //[ 3*n[i] + 2]; // z
     }
+
+    M[c*3 + 0 ] = targetPoint.x();
+    M[c*3 + 1 ] = targetPoint.y();
+    M[c*3 + 2 ] = targetPoint.z();
+
+    double det = fabs( this->Calculate4x4Determinant(M) ) ;
+    localCoordinates[c] = det / (this->getDeterminant(elem) * 1e18 );
+  }
 }
 
-void Mesh::CalcElemBary(const idx elem, const double *p, double *bary) const {
-#ifdef DEBUG
-    assert(Dimension == 3); // currently only works for tetrahedra
-#endif
-    idx* n = Elem + elem*4; // shortcut
-
-    const double *p1 , *p2, *p3, *p4;
-    p1 = p + n[0]*3;
-    p2 = p + n[1]*3;
-    p3 = p + n[2]*3;
-    p4 = p + n[3]*3;
-
-    bary[0] = ( p1[0] + p2[0] + p3[0] + p4[0] ) / 4.0;
-    bary[1] = ( p1[1] + p2[1] + p3[1] + p4[1] ) / 4.0;
-    bary[2] = ( p1[2] + p2[2] + p3[2] + p4[2] ) / 4.0;
-
+void Mesh::loadNodes(idx elementIndex, idx *nodesOut) const {
+  for (unsigned int i = 0; i < getnNodes(); i++) {
+    nodesOut[i] = getNode(elementIndex, i);
+  }
 }
 
-double Mesh::CalcBaryDistSqr(const double *p, const idx elem, const double *coord) const {
-    // returns the squared distance between coordinate coord[3] and the barycentre of
-    // element elem. p is pointer to all node coordinates.
-
-    double bary[3] = {0,0,0};
-    CalcElemBary( elem , p, bary);
-
-    return	( (bary[0]-coord[0])*(bary[0]-coord[0]) +
-              (bary[1]-coord[1])*(bary[1]-coord[1]) +
-              (bary[2]-coord[2])*(bary[2]-coord[2]) );
+Vec3 Mesh::elementCentroid(unsigned int i, const Coordinates &coordinates) const {
+  Vec3 centroid(0.0, 0.0, 0.0);
+  for (unsigned int j = 0; j < getnNodes(); j++) {
+    centroid += coordinates.getPoint(getNode(i, j));
+  }
+  centroid /= getnNodes();
+  return centroid;
 }
 
 void Mesh::listNodesOfMaterial(std::vector<idx> &nodes, const idx mat) const {
@@ -676,239 +498,143 @@ void Mesh::listFixLCSurfaces(std::vector<idx> &nodes, const idx FixLCNumber) con
     }
 }
 
-void Mesh::CopySurfaceNormal(idx i, double* norm) {
-#ifdef DEBUG
-    assert(i < nElements);
-    assert(SurfaceNormal);
-#endif
+//
+//void Mesh::CopySurfaceNormal(idx i, double* norm) const {
+//#ifdef DEBUG
+//    assert(i < nElements);
+//    assert(SurfaceNormal);
+//#endif
+//
+//    norm[0] = SurfaceNormal[i*3+0];
+//    norm[1] = SurfaceNormal[i*3+1];
+//    norm[2] = SurfaceNormal[i*3+2];
+//}
 
-    norm[0] = SurfaceNormal[i*3+0];
-    norm[1] = SurfaceNormal[i*3+1];
-    norm[2] = SurfaceNormal[i*3+2];
-}
+void Mesh::removeElements(std::set<idx>& index) {
+  if (index.empty()) {
+    return;
+  } else if (index.size() == getnElements()) {
+    this->ClearMesh();
+    return;
+  }
 
-void Mesh::removeElements(std::set <idx>& index) {
-    // REMOVES ELEMENTS IN INDEX.
-    if (index.empty()) {
-        return ;
+  unsigned int maxIndex = *max_element(index.begin(), index.end());
+  if (maxIndex >= getnElements()) {
+    RUNTIME_ERROR(fmt::format("Element {} does not exist. Number of elements = {}.", maxIndex, getnElements()));
+  }
+
+  unsigned int numKeep = getnElements() - index.size();
+
+  std::vector<idx> keepNodes;
+  std::vector<idx> keepMaterials;
+  std::vector<double> keepDeterminants;
+  std::vector<Vec3> keepSurfaceNormals; // only for surface meshes
+  std::vector<idx> keepConnectedVolumes; // only for surface meshes
+
+  bool isSurfaceMesh = getDimension() == 2;
+
+  unsigned int counter = 0;
+  for (unsigned int i = 0; i < getnElements(); i++) {
+    bool removeElement = index.count(i) > 0;
+
+    if (removeElement) {
+      continue; // skip this element
+    } else {
+      for (unsigned int j = 0; j < getnNodes(); j++) {
+        keepNodes.push_back(getNode(i, j));
+      }
+      keepMaterials.push_back(getMaterialNumber(i));
+      keepDeterminants.push_back(getDeterminant(i));
+
+      if (isSurfaceMesh) {
+        keepConnectedVolumes.push_back(getConnectedVolume(i));
+        keepSurfaceNormals.push_back(getSurfaceNormal(i));
+      }
+
+      counter++;
     }
+  }
 
-    idx num_new_elements = getnElements() - (idx) index.size();
-
-    // make sure index does not contain elements that do not exist
-    idx maxindex = * max_element( index.begin() , index.end() );
-
-    if (maxindex >= getnElements()) {
-        throw std::runtime_error(format("Element {} does not exist. Number of elements = {}.", maxindex, getnElements()));
-    }
-
-    idx* tnew 		= (idx*) malloc( num_new_elements * getnNodes() * sizeof(idx) ); // new elements
-    idx* mnew 		= (idx*) malloc( num_new_elements * sizeof(idx) );		// new materials
-    double* dnew	= (double*) malloc( num_new_elements * sizeof(double) ); 	// new determinants
-
-    if ((tnew == nullptr) || (mnew == nullptr) || (dnew == nullptr)) {
-        throw std::runtime_error(format("Allocation failed in {}, {}.", __FILE__, __func__));
-    }
-
-    double* SurfaceNormal_new 	= NULL;  // only needed for triangle meshes
-    idx*    ConnectedVolume_new	= NULL;
-
-    if (getDimension() == 2) { // if a triangle mesh
-        SurfaceNormal_new   = (double*) malloc( num_new_elements * 3 * sizeof(double) );
-        ConnectedVolume_new = (idx*) malloc( num_new_elements * sizeof(idx) );
-    }
-
-    std::set <idx> :: iterator itr;
-    itr = index.begin();
-
-    size_t c = 0; // counter to new elements
-
-    for (idx i = 0 ; i < this->getnElements() ; i ++) // for all elements
-    {
-
-        if (*itr != i) // KEEP ELEMENT I
-        {
-            mnew[c] = getMaterialNumber(i);
-            dnew[c] = getDeterminant(i);
-
-            if( getDimension() == 2) // if triangles
-            {
-                ConnectedVolume_new[c] = getConnectedVolume(i);
-                SurfaceNormal_new[c*3+0] = *(getPtrToSurfaceNormal(i) 	); // normal X
-                SurfaceNormal_new[c*3+1] = *(getPtrToSurfaceNormal(i)+1	); // normal Y
-                SurfaceNormal_new[c*3+2] = *(getPtrToSurfaceNormal(i)+2 ); // normal Z
-            }
-
-            // COPY NODES
-            for (idx j = 0 ; j < getnNodes() ; j ++ )
-            {
-                tnew[c*getnNodes() + j ] = getNode(i,j);
-            }
-            c++;
-
-        }// end if
-        else if (*itr != *index.rbegin() ) // if not end of list, increment (ugly comparison of values instead of pointers)
-        {
-            ++itr;
-        }
-    }// end for all elements
-
-    if (Elem!=NULL)	{
-        free(Elem);
-        Elem = tnew;
-    }
-    if (Mat != NULL){
-        free(Mat);
-        Mat = mnew;
-    }
-    if (Determinant != NULL ){
-        free(Determinant);
-        Determinant = dnew;
-    }
-
-    if (getDimension() == 2){ // if tris , set new surface normals and connected to volume links
-        if (SurfaceNormal != NULL) {
-            free(SurfaceNormal);
-            SurfaceNormal = SurfaceNormal_new;
-        }
-        if (ConnectedVolume != NULL){
-            free(ConnectedVolume);
-            ConnectedVolume = ConnectedVolume_new;
-        }
-    }// end if tris
-
-    setnElements(num_new_elements);
+  this->nodes = keepNodes;
+  this->materials = keepMaterials;
+  this->determinants = keepDeterminants;
+  this->surfaceNormals = keepSurfaceNormals;
+  this->connectedVolumes = keepConnectedVolumes;
 }
 
 void Mesh::ClearMesh(){
-    Dimension 	= 0;
-    nElements	= 0;
-    nNodes		= 0;
-
-    if (Elem != NULL) free(Elem);
-    Elem = NULL;
-
-    if (Mat != NULL) free(Mat);
-    Mat = NULL;
-
-    if (Determinant != NULL ) free(Determinant);
-    Determinant = NULL;
-
-    if (ConnectedVolume != NULL) free(ConnectedVolume);
-    ConnectedVolume = NULL;
-
-    if (SurfaceNormal != NULL ) free(SurfaceNormal);
-    SurfaceNormal = NULL;
+  nElements	= 0;
+  nodes.clear();
+  materials.clear();
+  determinants.clear();
+  surfaceNormals.clear();
+  connectedVolumes.clear();
 }
 
-void Mesh::addElements(vector<idx> &m_new, vector<idx> &mat_new) {
+void Mesh::appendElements(const vector<idx> &nodeValues, const vector<idx> &materialValues) {
 
+    unsigned int oldNumElements = getnElements();
     // CHECK THAT EQUAL SIZE OF MATERIAL NUMBERS AND ELEMENT NODES
-    idx n_p_e = (unsigned int) this->getnNodes();
-    idx num_new = m_new.size() / n_p_e;
+    idx nodesPerElem = (unsigned int) this->getnNodes();
+    idx numNewElements = nodeValues.size() / nodesPerElem;
 
-    if ( num_new != mat_new.size() ) {
+    if (numNewElements != materialValues.size() ) {
         throw std::runtime_error(format("Number of elements {} does not match number of materials {} in {}, {}",
-                                        num_new, mat_new.size(), __FILE__, __func__ ));
+                                        numNewElements, materialValues.size(), __FILE__, __func__ ));
     }
 
-    // ALLOCATE MEMORY FOR NEW ELEMENTS AND MAT NUMS
-    idx* nelem = (idx*) malloc( (getnElements() + m_new.size() ) * sizeof (idx) * n_p_e );
-    idx* nmat  = (idx*) malloc( (getnElements() + mat_new.size() ) * sizeof(idx) );
-
-    // COPY OLD VALUES
-    memcpy( nelem, Elem, n_p_e*getnElements() * sizeof(idx) );
-    memcpy( nmat , Mat , getnElements() * sizeof(idx) );
-
-    // ADD NEW VALUES
-    for (idx i = 0 ; i < (idx) mat_new.size()  ; i++) {
-        nmat [ i+ getnElements()] = mat_new[i];
-        for (idx j = 0 ; j < n_p_e ; j++) {
-            nelem[ getnElements()*n_p_e + i*n_p_e + j] = m_new[ i*n_p_e + j ];
-        }
+    for (auto n : nodeValues) {
+      nodes.push_back(n);
     }
 
-    // REPLACE OLD
-    if (Elem) free (Elem);
-    Elem = nelem;
+    for (auto m : materialValues) {
+      materials.push_back(m);
+    }
 
-    if (Mat) free (Mat);
-    Mat = nmat;
-
-    // UDPDATE TOTAL NUMBER OF ELEMENTS
-    this->setnElements( getnElements() + num_new );
-
+    this->nElements = materials.size();
 }
 
 void Mesh::CopyMesh(Mesh* rhs) {
-    setDimension(rhs->getDimension() );
-    setnElements(rhs->getnElements() );		// set number of elements
-    setnNodes(	rhs->getnNodes() );             // number of nodes per element
-    TotalSize = rhs->TotalSize;
-
-    setMaxNodeNumber( rhs->getMaxNodeNumber() );
-
-    AllocateMemory();				// allocate memory for arrays
-    setAllNodes(rhs->getPtrToElement(0) );	// copy node numbers
-    setAllMaterials(rhs->getPtrToMaterialNumber(0) );// copy material numbers
-
-    // COPY DETERMINANTS
-    if (rhs->getPtrToDeterminant(0) != 0) {
-        if (Determinant!=NULL) free(Determinant);
-        Determinant = (double*) malloc( getnElements() * sizeof(double) );
-        memcpy( Determinant, rhs->Determinant, getnElements() * sizeof(double) );
+    // require that number of dimensions and nodes per element match between this and rhs mesh
+    if ( (getDimension() != rhs->getDimension() ) || (getnNodes() != rhs->getnNodes() ) ) {
+      RUNTIME_ERROR(format("Dimension or nodes per element do not match in {}, {}."));
     }
 
-    this->Dimension = rhs->Dimension;
+    setnElements(rhs->getnElements() );		// set number of elements
+    TotalSize = rhs->TotalSize;
 
-    if (Dimension == 2) // if triangle mesh
-    {
-        // COPY TRIANGLE/TET CONNECTIONS
-        if(rhs->getPtrToConnectedVolume(0) != NULL)
-        {
-            if (ConnectedVolume != NULL) free(ConnectedVolume);
-            ConnectedVolume = (idx*) malloc( getnElements() * sizeof(idx) );
-
-            memcpy(ConnectedVolume, rhs->ConnectedVolume , getnElements() * sizeof(idx) );
-
-        }
-
-        // COPY SURFACE NORMALS
-        if (rhs->getPtrToSurfaceNormal(0) != NULL) {
-            if (SurfaceNormal != NULL) free(SurfaceNormal);
-            SurfaceNormal = (double*) malloc(3 * getnElements() * sizeof(double));
-
-            memcpy( SurfaceNormal, rhs->SurfaceNormal, 3*getnElements() * sizeof(double) );
-        }
-    } // end if triangle mesh
+    nodes = rhs->nodes;
+    materials = rhs->materials;
+    determinants = rhs->determinants;
+    connectedVolumes = rhs->connectedVolumes;
+    surfaceNormals = rhs->surfaceNormals;
 }
 
 void Mesh::ScaleDeterminants( const double& s) {
-#ifdef DEBUG
-    assert(Determinant != nullptr);
-#endif
+  for (idx i = 0; i < getnElements(); i ++) {
+    determinants[i] = determinants[i] * s;
+  }
 
-    for (idx i = 0; i < getnElements(); i ++) {
-        Determinant[i] = Determinant[i] * s;
-    }
-
-    TotalSize = TotalSize * s;
+  TotalSize = TotalSize * s;
 }
 
 void Mesh::gen_p_to_elem(vector<set<idx>> &p_to_elem) const {
+    // find largest node number
+    idx maxNodeNumber = 0;
+    for (const auto &n : nodes) {
+      maxNodeNumber = std::max(maxNodeNumber, n);
+    }
     p_to_elem.clear();
-    p_to_elem.reserve( this->getMaxNodeNumber() ); // pre-allocate space
+    p_to_elem.reserve(maxNodeNumber + 1);
 
     // initialise vector to allow [index] access later
-    for ( idx i = 0 ; i < this->getMaxNodeNumber()+1 ; i++) {
+    for (idx i = 0; i < maxNodeNumber + 1; i++) {
         set <idx> empty;
         p_to_elem.push_back( empty );
     }
 
-    for (idx i = 0 ; i <  this->getnElements() ; i++) // for every element
-    {
-        for (idx j = 0 ; j < this->getnNodes() ; j++) // for every node
-        {
+    for (idx i = 0; i <  this->getnElements(); i++) { // for every element
+        for (idx j = 0; j < this->getnNodes(); j++) {// for every node
             idx n = this->getNode( i , j );
             p_to_elem[n].insert( i );
         }

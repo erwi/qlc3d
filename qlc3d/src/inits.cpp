@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 #include <inits.h>
 #include <simu.h>
 #include <eventlist.h>
@@ -6,14 +7,16 @@
 #include <io/meshreader.h>
 #include <util/logging.h>
 #include <util/exception.h>
+#include <geom/coordinates.h>
+#include <geom/vec3.h>
 /**
  * Goes through all triangle material numbers and tries to check that all is well.
- * @param mate triangle material numbers
+ * @param triMaterials triangle material numbers
  * @param ne number of triangles
  */
-void validateTriangleMaterials(const idx* const mate, idx ne, const Electrodes &electrodes) {
-    for (idx i = 0; i < ne; ++i) {
-        idx m = mate[i];
+void validateTriangleMaterials(const std::vector<idx> &triMaterials, const Electrodes &electrodes) {
+    for (idx i = 0; i < triMaterials.size(); ++i) {
+        idx m = triMaterials[i];
         if ((m == MAT_PERIODIC) || (m == MAT_NEUMANN)) {
             continue;
         }
@@ -36,18 +39,14 @@ void validateTriangleMaterials(const idx* const mate, idx ne, const Electrodes &
 
 /**
  * Goes through each material number for tetrahedra. Throws runtime_exception if invalid ones are found.
- * @param matt tetrahdra material numbers
- * @param nt number of tetrahedra
  */
-void validateTetrahedralMaterials(const idx* const matt, idx nt) {
-    using namespace std;
-    using namespace fmt;
-    for (idx i = 0; i < nt; ++i) {
+void validateTetrahedralMaterials(const std::vector<idx> matt) {
+    for (idx i = 0; i < matt.size(); ++i) {
         const idx m = matt[i];
         if ((m == MAT_DOMAIN1) ||
                 (m==MAT_DIELECTRIC1) || (m==MAT_DIELECTRIC2) || (m==MAT_DIELECTRIC3) ||
                 (m==MAT_DIELECTRIC4) || (m==MAT_DIELECTRIC5) || (m==MAT_DIELECTRIC6) ||
-                (m==MAT_DIELECTRIC7) ){
+                (m==MAT_DIELECTRIC7) ) {
             continue;
         }
         else {
@@ -62,63 +61,34 @@ void prepareGeometry(Geometry& geom,
                      Simu& simu,
                      Alignment& alignment,
                      Electrodes& electrodes) {
-    idx np,nt,ne;
-    double *p;
-    idx *t;
-    idx *e;
-    idx *emat;
-    idx *tmat;
 
     // read mesh data from file. Allocates the data arrays.
-    MeshReader::readMesh(meshFileName, &p, &np, &t, &nt, &e, &ne, &tmat, &emat);
+    RawMeshData rawMeshData = MeshReader::readMesh(meshFileName);
+
+    Log::info("num points = {}", rawMeshData.points.size());
 
     // Throw exception if invalid element material numbers are detected.
-    validateTriangleMaterials(emat, ne, electrodes);
-    validateTetrahedralMaterials(tmat, nt);
+    validateTriangleMaterials(rawMeshData.triMaterials,electrodes);
+    validateTetrahedralMaterials(rawMeshData.tetMaterials);
 
-    // Count number of electrodes in mesh
-    for (idx i = 0; i < np;   i++) {	// scale mesh
-        p[3*i + 0] = p[3*i + 0]* simu.getStretchVectorX();
-        p[3*i + 1] = p[3*i + 1]* simu.getStretchVectorY();
-        p[3*i + 2] = p[3*i + 2]* simu.getStretchVectorZ();
-    }
-
-    geom.setCoordinates(p, (size_t) np);
-    if (p) free(p);
-
-    // set up volume mesh
-    geom.t->setnElements(nt);		// set up tetrahedral mesh
-    geom.t->setnNodes(4);		// number of nodes per element
-    geom.t->setDimension(3);		// 3D element
-    geom.t->AllocateMemory();		// allocate memory for arrays
-    geom.t->setAllNodes(t);		// copy node numbers
-    geom.t->setAllMaterials(tmat);	// copy material numbers
-    geom.t->setMaxNodeNumber( np ); // total number of nodes in tet mesh
-    free(t);
-    free(tmat);
-
-    // set up surface mesh
-    geom.e->setnElements(ne);
-    geom.e->setnNodes(3);
-    geom.e->setDimension(2);
-    geom.e->AllocateMemory();
-    geom.e->setAllNodes(e);
-    geom.e->setAllMaterials(emat);
-    free(e);
-    free(emat);
+    auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
+    coordinates->scale(simu.getStretchVector());
+    geom.setCoordinates(coordinates);
+    geom.t->setElementData(std::move(rawMeshData.tetNodes), std::move(rawMeshData.tetMaterials));
+    geom.e->setElementData(std::move(rawMeshData.triNodes), std::move(rawMeshData.triMaterials));
 
     geom.ReorderDielectricNodes(); // Dielectric nodes are moved last
-    geom.e->setConnectedVolume(geom.t);		// neighbour index tri -> tet
-    geom.t->CalculateDeterminants3D(geom.getPtrTop());		// calculate tetrahedral determinants
+    geom.e->setConnectedVolume(geom.t.get());		// neighbour index tri -> tet
+    geom.t->calculateDeterminants3D(geom.getCoordinates());		// calculate tetrahedral determinants
     geom.t->ScaleDeterminants(1e-18); // scale to microns
 
-    geom.e->calculateSurfaceNormals(geom.getPtrTop(), geom.t);		// calculate triangle determinants and surface normal vectors
+    geom.e->calculateSurfaceNormals(geom.getCoordinates(), geom.t.get());		// calculate triangle determinants and surface normal vectors
     geom.e->ScaleDeterminants(1e-12); // scale to microns
 
-    geom.setNodeNormals();
+    geom.calculateNodeNormals();
     geom.checkForPeriodicGeometry(); // also makes periodic node indexes
 
-    geom.genIndWeakSurfaces(alignment);
+    //geom.genIndWeakSurfaces(alignment);
     geom.makeRegularGrid(simu.getRegularGridXCount(),
                          simu.getRegularGridYCount(),
                          simu.getRegularGridZCount());

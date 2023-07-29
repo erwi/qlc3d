@@ -137,7 +137,7 @@ void SimulationContainer::initialise() {
     Log::info("Creating initial Q tensor");
     q = SolutionVector(geom1.getnpLC(), 5);    //  Q-tensor for current time step
     qn = SolutionVector(geom1.getnpLC(), 5);   //  Q-tensor from previous time step
-    SetVolumeQ(&q, lc->S0(), boxes.get(), geom1.getPtrTop());
+    SetVolumeQ(&q, lc->S0(), boxes.get(), geom1.getCoordinates());
     setSurfacesQ(&q, alignment.get(), lc->S0(), &geom1);
 
     //  LOAD Q FROM RESULT FILE
@@ -145,7 +145,7 @@ void SimulationContainer::initialise() {
         ResultIO::ReadResult(*simu, q);
         setStrongSurfacesQ(&q, alignment.get(), lc->S0(), &geom1); // over writes surfaces with user specified values
     }
-    q.setFixedNodesQ(alignment.get(), geom1.e);  // set fixed surface anchoring
+    q.setFixedNodesQ(alignment.get(), geom1.e.get());  // set fixed surface anchoring
     q.setPeriodicEquNodes(&geom1);          // periodic nodes
     q.EnforceEquNodes(geom1);                // makes sure values at periodic boundaies match
     qn = q;                                   // q-previous = q-current in first iteration

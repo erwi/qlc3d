@@ -48,19 +48,37 @@ TEST_CASE("mesh refinement") {
 
     // check initialisations. Sum of element determinants should not change, as total mesh volume/surface areas do not change
     auto &originalTets = originalGeometry.getTetrahedra();
-    double sumDeterminantsOriginal = std::accumulate(
-            originalTets.getPtrToDeterminant(0),
-            originalTets.getPtrToDeterminant(originalTets.getnElements()),
-            0.);
+    auto &originalTris = originalGeometry.getTriangles();
+
+    double sumDeterminantsOriginal = 0;
+    for (int i = 0; i < originalTets.getnElements(); i++) {
+      sumDeterminantsOriginal += originalTets.getDeterminant(i);
+    }
+
+    double sumDeterminantsOriginalTris = 0;
+    for (int i = 0; i < originalTris.getnElements(); i++) {
+      sumDeterminantsOriginalTris += originalTris.getDeterminant(i);
+    }
 
     auto &workingTets = workingGeometry.getTetrahedra();
-    double sumDeterminantsWorking = std::accumulate(
-            workingTets.getPtrToDeterminant(0),
-            workingTets.getPtrToDeterminant(workingTets.getnElements()),
-            0.);
+    auto &workingTris = workingGeometry.getTriangles();
 
+    double sumDeterminantsWorking = 0;
+    for (int i = 0; i < workingTets.getnElements(); i++) {
+      sumDeterminantsWorking += workingTets.getDeterminant(i);
+    }
+
+    double sumDeterminantsWorkingTris = 0;
+    for (int i = 0; i < workingTris.getnElements(); i++) {
+      sumDeterminantsWorkingTris += workingTris.getDeterminant(i);
+    }
+
+    // TODO: the correct determinants for volumes and surfaces should be calculated from the known mesh size and compared here instead
     REQUIRE(sumDeterminantsOriginal > 0);
     REQUIRE(sumDeterminantsOriginal == Approx(sumDeterminantsWorking).margin(1e-18));
+
+    REQUIRE(sumDeterminantsOriginalTris > 0);
+    REQUIRE(sumDeterminantsOriginalTris == Approx(sumDeterminantsWorkingTris).margin(1e-18));
 
     // time step should be restricted to minimum after fine registration
     REQUIRE(simulationState.restrictedTimeStep());

@@ -8,6 +8,7 @@
 #include <vector>
 #include <unordered_map>
 #include "util/logging.h"
+#include "geom/vec3.h"
 
 class SectionMeshFormat {
 public:
@@ -83,12 +84,13 @@ struct SectionNodes {
     const size_t _numNodes;
     const size_t _minNodeTag;
     const size_t _maxNodeTag;
-    const std::vector<double> _coordinates;
+    const std::vector<Vec3> _coordinates;
+
     SectionNodes(size_t numEntityBlocks,
                  size_t numNodes,
                  size_t minNodeTag,
                  size_t maxNodeTag,
-                 std::vector<double> && coordinates) :
+                 std::vector<Vec3> && coordinates) :
             _numEntityBlocks{numEntityBlocks}, _numNodes{numNodes}, _minNodeTag{minNodeTag},
             _maxNodeTag{maxNodeTag}, _coordinates{coordinates} { }
 };
@@ -97,22 +99,23 @@ struct SectionElements {
     static const int ELEMENT_TYPE_TRIANGLE_3_NODES = 2;
     static const int ELEMENT_TYPE_TETRAHEDRON_4_NODES = 4;
 
-    const size_t _numTriangles;
-    const size_t _numTetrahedra;
+    const unsigned int _numTriangles;
+    const unsigned int _numTetrahedra;
 
-    const std::vector<size_t> _triangleIndices;
+    const std::vector<unsigned int> _triangleIndices;
     /** id tag to geometry surface */
-    const std::vector<int> _triangleEntityTags;
+    const std::vector<unsigned int> _triangleEntityTags;
 
-    const std::vector<size_t> _tetrahedraIndices;
+    const std::vector<unsigned int> _tetrahedraIndices;
     /** id tag to geometry volume */
-    const std::vector<int> _tetrahedraEntityTags;
+    const std::vector<unsigned int> _tetrahedraEntityTags;
 
-    SectionElements(size_t numTriangles, size_t numTetrahedra,
-                    std::vector<size_t> &&triangleIndices,
-                    std::vector<int> &&triangleEntityTags,
-                    std::vector<size_t> &&tetrahedraIndices,
-                    std::vector<int> &&tetrahedraEntityTags) :
+    SectionElements(unsigned int numTriangles,
+                    unsigned int numTetrahedra,
+                    std::vector<unsigned int> &&triangleIndices,
+                    std::vector<unsigned int> &&triangleEntityTags,
+                    std::vector<unsigned int> &&tetrahedraIndices,
+                    std::vector<unsigned int> &&tetrahedraEntityTags) :
         _numTriangles{numTriangles}, _numTetrahedra{numTetrahedra},
         _triangleIndices { triangleIndices },
         _triangleEntityTags { triangleEntityTags },

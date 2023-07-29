@@ -73,7 +73,9 @@ void create_dangly_matrix(vector< list <idx> > & dangly,
     for (idx it = 0 ; it < geom.t->getnElements() ; it++){ // LOOP OVER EACH ELEMENT
         if ( (!MatNum) ||    // if ignore material numebr OR
              ( MatNum == geom.t->getMaterialNumber(it))){// if correct material
-            idx* nn = geom.t->getPtrToElement( it );    // shrotcut to element node indexes
+            //idx* nn = geom.t->getPtrToElement( it );    // shrotcut to element node indexes
+            idx nn[4];
+            geom.getTetrahedra().loadNodes(it, nn);
             for (unsigned int i = 0 ; i < npt ; i++ ){   // GET EQU NODES FOR THIS ELEMENT
                 eqn[i] = sol.getEquNode( nn[i] );
             }
@@ -126,7 +128,9 @@ void setupSingleBlock(Geometry &geom,
             }
         }
 
-        idx* nn = geom.t->getPtrToElement(it); // SHORTCUT TO ELEMENT NODES
+        //idx* nn = geom.t->getPtrToElement(it); // SHORTCUT TO ELEMENT NODES
+        unsigned int nn[4];
+        geom.getTetrahedra().loadNodes(it, nn);
 
         // CONVERT TO EQU NODES FOR THIS ELEMENT
         for (idx i = 0 ; i < npt ;++i){

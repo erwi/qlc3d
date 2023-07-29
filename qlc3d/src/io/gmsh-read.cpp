@@ -280,13 +280,13 @@ std::unique_ptr<SectionNodes> GmshFileReader::readNodes() {
     }
 
     // read the actual coordinate values
-    vector<double> coordinates(3 * numNodes, std::numeric_limits<double>::quiet_NaN()); // initialise all coordinates as NaN
+    vector<Vec3> coordinates;
+    coordinates.reserve(numNodes);
 
     // read until end of $Nodes section
-    size_t counter = 0;
     while(readLine(line)) {
         if (line.find("$EndNodes") == 0) {
-            assert(coordinates.size() / 3 == numNodes);
+            assert(coordinates.size() == numNodes);
             return make_unique<SectionNodes>(numEntityBlocks, numNodes, minNodeTag, maxNodeTag, std::move(coordinates));
         }
 
@@ -295,11 +295,8 @@ std::unique_ptr<SectionNodes> GmshFileReader::readNodes() {
         //  1 number, it indicates the next coordinate index
         //  3 numbers, it contains the coordinate xyz value
         //  4 numbers, it contains [entityDim(int) entityTag(int) parametric(int; 0 or 1) numNodesInBlock(size_t)],
-
         if (splits.size() == 3) {
-            coordinates[counter++] = stod(splits[0]);
-            coordinates[counter++] = stod(splits[1]);
-            coordinates[counter++] = stod(splits[2]);
+          coordinates.emplace_back(stod(splits[0]), stod(splits[1]), stod(splits[2]));
         }
     }
 
@@ -328,24 +325,24 @@ std::unique_ptr<SectionElements> GmshFileReader::readElements() {
     }
 
     // Read the rest of the $Elements section
-    vector<size_t> triangles;   // node indices to triangles
-    vector<size_t> tetrahedra;  // node indices to tetrahedra
-    vector<int> triangleTags;   // surface tag used in geometry creation
-    vector<int> tetrahedraTags; // volume tag used geometry creation
+    vector<unsigned int> triangles;   // node indices to triangles
+    vector<unsigned int> tetrahedra;  // node indices to tetrahedra
+    vector<unsigned int> triangleTags;   // surface tag used in geometry creation
+    vector<unsigned int> tetrahedraTags; // volume tag used geometry creation
 
     while (readLine(line)) {
         if (line.find("$EndElements") == 0) {
-            size_t numTriangles = triangles.size() / 3;
-            size_t numTetrahedra = tetrahedra.size() / 4;
-            Log::info("Triangles count = {}, tetrahedra count = {}.", numTriangles, numTetrahedra);
+          unsigned int numTriangles = triangles.size() / 3;
+          unsigned int numTetrahedra = tetrahedra.size() / 4;
+          Log::info("Triangles count = {}, tetrahedra count = {}.", numTriangles, numTetrahedra);
 
-            return make_unique<SectionElements>(
-                    triangles.size() / 3,
-                    tetrahedra.size() / 4,
-                    std::move(triangles),
-                    std::move(triangleTags),
-                    std::move(tetrahedra),
-                    std::move(tetrahedraTags));
+          return make_unique<SectionElements>(
+                  triangles.size() / 3,
+                  tetrahedra.size() / 4,
+                  std::move(triangles),
+                  std::move(triangleTags),
+                  std::move(tetrahedra),
+                  std::move(tetrahedraTags));
         }
 
         split(line, " ", splits);

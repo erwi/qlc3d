@@ -12,6 +12,10 @@
 
 class Mesh;
 class SolutionVector;
+class Coordinates;
+namespace qlc3d {
+    class Director;
+}
 
 namespace vtkIOFun {
 
@@ -29,34 +33,29 @@ namespace vtkIOFun {
 
 
     bool writeScalarData(std::fstream& fid,
-                         const unsigned int& np,
                          const char* data_name,
-                         const double* data);
+                         const std::vector<double>& data);
 
     bool writeVectorData(std::fstream& fid,
-                         const unsigned int& np,
                          const char* data_name,
-                         const double* vec_data1,
-                         const double* vec_data2,
-                         const double* vec_data3);
+                         const std::vector<qlc3d::Director>& data);
 
     /**
      * Writes VTK unstructured grid compatible file. See https://kitware.github.io/vtk-examples/site/VTKFileFormats/
      * for more info about the format.
      */
     class UnstructuredGridWriter {
-        void writePoints(std::ostream &os, size_t numPoints, const double *points) const;
+        void writePoints(std::ostream &os, const Coordinates &coordinates) const;
         void writeTetrahedra(std::ostream &os, const Mesh &tetrahedra, size_t numPoints) const;
-        void writePotentials(std::ostream &os, size_t numPotentials, const double *potentials) const;
+        void writePotentials(std::ostream &os, size_t numPotentials, const SolutionVector &potentials) const;
         void writeLiquidCrystal(std::ostream &os, size_t numPoints, size_t numLcPoints, const SolutionVector &q) const;
 
     public:
         void write(const std::filesystem::path &fileName,
-                   size_t numPoints,
                    size_t numLcPoints,
-                   const double *points,
+                   const Coordinates &coordinates,
                    const Mesh &tetrahedra,
-                   const double *potentials,
+                   const SolutionVector &potentials,
                    const SolutionVector &q
                    ) const;
     };

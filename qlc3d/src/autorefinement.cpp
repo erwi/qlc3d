@@ -9,14 +9,8 @@
 #include <qlc3d.h>
 #include <simulation-state.h>
 #include <util/logging.h>
-
-double getMaxS(SolutionVector &q) {
-    int npLC = q.getnDoF();
-    double *dir = tensortovector(q.Values, npLC);
-    double max = *max_element(dir + 3 * npLC, dir + 4 * npLC);
-    if (dir) delete [] dir;
-    return max;
-}
+#include <geom/vec3.h>
+#include <geom/coordinates.h>
 
 double intepolate_scalar(double *loc , double *S) {
     /*! Interpolates scalar value S[4] to a single value using four local coordinates in loc[4]*/
@@ -33,30 +27,30 @@ void interpolate(SolutionVector &qnew,
                  Geometry &geom_old) {
     // Interpolates Q-tensor qold from ye olde geometry geom_old to new geometry geom_new
     // MAKE COORDINATE TO CONTAINING ELEMENT IDEX pint
-    vector < idx > pint; // index from point to containing tet
-    geom_old.genIndToTetsByCoords(pint,
-                                  geom_new.getPtrTop(),
-                                  geom_new.getnpLC(),
+    vector <idx> pInTet; // index from point to containing tet
+    geom_old.genIndToTetsByCoords(pInTet,
+                                  geom_new.getCoordinates(),
                                   true,    // ERROR IF COORDINATE IS NOT FOUND
                                   true     // ONLY CONSIDER LC ELEMENTS
                                  );
-    unsigned int npLC_old = (unsigned int) geom_old.getnpLC();
-    double *dir = tensortovector(qold.Values , npLC_old);   // director on old mesh
+    //unsigned int npLC_old = (unsigned int) geom_old.getnpLC();
+    //double *dir = tensortovector(qold.Values , npLC_old);   // director on old mesh
     // Loop over all new nodes and set Q-tensor
-    qnew.Allocate(geom_new.getnpLC(), 5);
+    qnew.Resize(geom_new.getnpLC(), 5);
     for (size_t ind = 0 ; ind < (size_t) geom_new.getnpLC() ; ind++) { // for all new nodes
         // only LC volumes are interpolated
-        assert(geom_old.getTetrahedra().getMaterialNumber(pint[ind]) == MAT_DOMAIN1);
+        assert(geom_old.getTetrahedra().getMaterialNumber(pInTet[ind]) == MAT_DOMAIN1);
 
         double loc[4]; // LOCAL ELEMENT COORDS
-        double *coord = geom_new.getPtrTop() + (3 * ind); // pointer to this nodes coordinates
+
+        Vec3 targetPoint = geom_new.getCoordinates().getPoint(ind);
         // calculate local element coordinates loc of global coordinate coord.
-        geom_old.t->CalcLocCoords(pint[ind], geom_old.getPtrTop(), coord, loc);
+        geom_old.t->calcLocCoords(pInTet[ind], geom_old.getCoordinates(), targetPoint, loc);
         size_t n[4];
-        n[0] = geom_old.t->getNode(pint[ind], 0);
-        n[1] = geom_old.t->getNode(pint[ind], 1);
-        n[2] = geom_old.t->getNode(pint[ind], 2);
-        n[3] = geom_old.t->getNode(pint[ind], 3);
+        n[0] = geom_old.t->getNode(pInTet[ind], 0);
+        n[1] = geom_old.t->getNode(pInTet[ind], 1);
+        n[2] = geom_old.t->getNode(pInTet[ind], 2);
+        n[3] = geom_old.t->getNode(pInTet[ind], 3);
 
         // IF MAXIMUM LOCAL COORDINATE VALUE is more or less 1 -> the node is an exsiting one
         size_t ind_max = max_element(loc, loc + 4) - loc ;
@@ -79,7 +73,7 @@ void interpolate(SolutionVector &qnew,
             }// end for i
         }
     }// end for all new coords
-    if (dir) delete [] dir;
+    //if (dir) delete [] dir;
 }
 
 bool needsInterpolatedQ(const list<RefInfo> &refInfos,
@@ -214,8 +208,8 @@ bool autoref(Geometry &geom_orig,
     //=============================================================
     //geom_temp.t->CalculateDeterminants3D( geom_temp.getPtrTop() );
     //geom_temp.t->ScaleDeterminants( 1e-18);// scale to microns cubed
-    geom_temp.setNodeNormals();
-    geom_temp.genIndWeakSurfaces(alignment);
+    geom_temp.calculateNodeNormals();
+    //geom_temp.genIndWeakSurfaces(alignment);
     geom_temp.makeRegularGrid(simu.getRegularGridXCount(),
                               simu.getRegularGridYCount(),
                               simu.getRegularGridZCount());
@@ -227,11 +221,11 @@ bool autoref(Geometry &geom_orig,
     v.setToFixedValues();
     // REALLOCATE Q-TENSOR
     qn = q; // temp swap
-    q.Allocate((idx) geom_temp.getnpLC(), 5);       // ALLOCATE FOR NEW MESH SIZE
+    q.Resize(geom_temp.getnpLC(), 5);       // ALLOCATE FOR NEW MESH SIZE
     interpolate(q, geom_temp, qn, geom);    // INTERPOLATE FROM PREVIOUS MESH
     // SET BOUNDARY CONDITIONS
     setStrongSurfacesQ(&q, &alignment, S0, &geom_temp);
-    q.setFixedNodesQ(&alignment, geom_temp.e);
+    q.setFixedNodesQ(&alignment, geom_temp.e.get());
     q.setPeriodicEquNodes(&geom_temp);
     q.EnforceEquNodes(geom_temp);
     qn = q;                                     // USE CURRENT Q FOR PREVIOUS TIME STEP Q-TENSOR

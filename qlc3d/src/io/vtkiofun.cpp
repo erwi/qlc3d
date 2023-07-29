@@ -1,9 +1,11 @@
 
 #include <io/vtkiofun.h>
+#include <geom/coordinates.h>
+#include <geom/vec3.h>
 #include <mesh.h>
 #include <assert.h>
-#include "solutionvector.h"
-#include "lc-representation.h"
+#include <solutionvector.h>
+#include <lc-representation.h>
 
 namespace vtkIOFun {
     const char* const ID_STRING = "# vtk DataFile Version 3.0";
@@ -53,10 +55,8 @@ namespace vtkIOFun {
     }
 
     bool writeScalarData(std::fstream &fid,
-                         const unsigned int &np,    // NUMBER OF REGULAR GRID POINTS
-                         const char *data_name,     //
-                         const double *data)        //
-    {
+                         const char *data_name,
+                         const std::vector<double> &data) {
 // APPENDS SCALAR DATA TO END OF FILE
 // NON-LC VALUES ARE SET TO 0 (VTK DOES NOT LIKE NaN)
 
@@ -66,50 +66,42 @@ namespace vtkIOFun {
         fid <<"SCALARS "<< data_name <<" double 1" << std::endl;
         fid <<"LOOKUP_TABLE default"<<std::endl;
 
-        for (unsigned int i = 0 ; i < np ; i++ )
-        {
-            if (data[i]!= data[i]) // IF NaN
-                fid << 0 << " ";
-            else
-                fid << data[i] <<" ";
+        for (unsigned int i = 0 ; i < data.size(); i++) {
+            if (data[i]!= data[i]) {// IF NaN
+              fid << 0 << " ";
+            } else {
+              fid << data[i] << " ";
+            }
         }
 
         fid<<std::endl;
         return true;
     }
 
-    bool writeVectorData(std::fstream &fid,
-                         const unsigned int &np, //  NUMBER OF REGULAR GRID POINTS
-                         const char *data_name,
-                         const double *vec_data1,
-                         const double *vec_data2,
-                         const double *vec_data3) {
-// APPENDS VECTOR DATA TO END OF FILE
-
-        if ( !fidOK(fid) )
-            return false;
+    bool writeVectorData(std::fstream &fid, const char *data_name, const std::vector<qlc3d::Director> &data) {
+        if (!fidOK(fid)) {
+          return false;
+        }
 
         fid << "VECTORS "<< data_name <<" double"<<std::endl;
 
-        for (size_t i = 0 ; i < np ; i++)
-            if ( (vec_data1[i]!=vec_data1[i]) ||    // IF NaN
-                 (vec_data2[i]!=vec_data2[i]) ||
-                 (vec_data3[i]!=vec_data3[i]))
-                fid << 0 <<" " << 0 << " " << 0 << std::endl;
-            else
-                fid << vec_data1[i] <<" "<< vec_data2[i] <<" "<< vec_data3[i] << std::endl;
+        for (size_t i = 0; i < data.size(); i++)
+          if (std::isnan(data[i].S())) {
+            fid << 0 << " " << 0 << " " << 0 << std::endl;
+          } else {
+            fid << data[i].nx() << " " << data[i].ny() << " " << data[i].nz() << std::endl;
+          }
 
         return true;
     }
 
     void UnstructuredGridWriter::write(const std::filesystem::path &fileName,
-                                       size_t numPoints,
                                        size_t numLcPoints,
-                                       const double *points,
+                                       const Coordinates &coordinates,
                                        const Mesh &tetrahedra,
-                                       const double *potentials,
+                                       const SolutionVector &potentials,
                                        const SolutionVector &q) const {
-        assert(numLcPoints <= numPoints);
+        assert(numLcPoints <= coordinates.size());
 
         using namespace std;
 
@@ -120,21 +112,22 @@ namespace vtkIOFun {
         os << "ASCII\n";
         os << "DATASET UNSTRUCTURED_GRID\n";
 
-        writePoints(os, numPoints, points);
-        writeTetrahedra(os, tetrahedra, numPoints);
+        writePoints(os, coordinates);
+        writeTetrahedra(os, tetrahedra, coordinates.size());
 
-        writePotentials(os, numPoints, potentials);
-        writeLiquidCrystal(os, numPoints, numLcPoints, q);
+        writePotentials(os, coordinates.size(), potentials);
+        writeLiquidCrystal(os, coordinates.size(), numLcPoints, q);
 
         os.close();
     }
 
-    void UnstructuredGridWriter::writePoints(std::ostream &os, size_t numPoints, const double *points) const {
+    void UnstructuredGridWriter::writePoints(std::ostream &os, const Coordinates &coordinates) const {
         os << "\n";
-        os << "POINTS " << numPoints << " float\n";
+        os << "POINTS " << coordinates.size() << " float\n";
 
-        for (int i = 0; i < numPoints; i++) {
-            os << points[3 * i + 0] << " " << points[3 * i + 1] << " " << points[3 * i + 2] << "\n";
+        for (int i = 0; i < coordinates.size(); i++) {
+          auto &p = coordinates.getPoint(i);
+            os << p.x() << " " << p.y() << " " << p.z() << "\n";
         }
     }
 
@@ -165,14 +158,14 @@ namespace vtkIOFun {
         }
     }
 
-    void UnstructuredGridWriter::writePotentials(std::ostream &os, size_t numPotentials, const double *potentials) const {
+    void UnstructuredGridWriter::writePotentials(std::ostream &os, size_t numPotentials, const SolutionVector &potentials) const {
         os << "\n";
         os << "POINT_DATA " << numPotentials << "\n";
         os << "SCALARS potential float 1\n";
         os << "LOOKUP_TABLE default\n";
 
         for (int i = 0; i < numPotentials; i++) {
-            os << potentials[i] << "\n";
+            os << potentials.getValue(i) << "\n";
         }
     }
 

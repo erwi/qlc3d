@@ -11,6 +11,7 @@
 
 #include <filesystem>
 
+class Coordinates;
 
 namespace ResultIO {
 
@@ -27,18 +28,18 @@ void ReadLCD_T(Simu& simu, SolutionVector& q); // LOADS TEXT FORMAT LCVIEW RESUL
 /**
  * Write a result file containing potential as well as LC director and order parameter on the unstructured mesh points.
  * This file format is compatible, for example, with ParaView. See e.g. https://www.paraview.org/Wiki/ParaView/Data_formats.
- * @param p point coordinates
+ * @param coordinates mesh node coordinates
  * @param v potential solution
  * @param q Q-tensor
  * @param fileName output file name
  */
-void writeCsvUnstructured(const double *p, // defined in resultoutput.cpp
+void writeCsvUnstructured(const Coordinates &coordinates,
                           const SolutionVector &v,
                           const SolutionVector &q,
                           const std::string &fileName);
 /**
  *
- * @param p coordinate xyz values
+ * @param mesh node coordinate xyz values
  * @param numPoints number of points in p (= 3 x length of p)
  * @param numLcPoints number of LC points in the geometry (numLcPoints <= numPoints)
  * @param tetMesh
@@ -47,8 +48,7 @@ void writeCsvUnstructured(const double *p, // defined in resultoutput.cpp
  * @param fileName
  */
 void writeVtkUnstructuredAsciiGrid(
-        const double *p,
-        size_t numPoints,
+        const Coordinates &coordinates,
         size_t numLcPoints,
         const Mesh &tetMesh,
         const SolutionVector &v,

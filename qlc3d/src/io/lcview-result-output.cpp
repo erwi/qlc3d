@@ -2,8 +2,11 @@
 #include <util/logging.h>
 #include <simulation-state.h>
 #include <geometry.h>
+#include <geom/coordinates.h>
+#include <geom/vec3.h>
 #include <resultio.h>
-#include "util/exception.h"
+#include <util/exception.h>
+#include <lc-representation.h>
 
 namespace fs = std::filesystem;
 
@@ -32,20 +35,20 @@ void LcViewResultFormatWriter::writeMeshIfRequired(const Geometry &geom, const S
   if (simulationState.meshNumber() > lastMeshNumber_|| lastMeshNumber_ == -1) {
     writtenMeshPath_ = outputDirectory / numberedMeshName;
     Log::info("Writing mesh file {}", writtenMeshPath_.string());
-    //ResultIO::writeMesh(geom.getPtrTop(), geom.t, geom.e, geom.getnp(), writtenMeshPath_);
-    writeMeshFile(geom.getPtrTop(), geom.t, geom.e, geom.getnp(), writtenMeshPath_);
+    writeMeshFile(geom.getCoordinates(), geom.t.get(), geom.e.get(), geom.getnp(), writtenMeshPath_);
     lastMeshNumber_ = simulationState.meshNumber();
   }
 }
 
-void LcViewResultFormatWriter::writeMeshFile(const double *p, Mesh *t, Mesh *e, idx np,
+void LcViewResultFormatWriter::writeMeshFile(const Coordinates &coordinates, Mesh *t, Mesh *e, idx np,
                                              const std::filesystem::path &fileName) {
   idx i;
   FILE *fid = fopen(fileName.string().c_str(), "w");
   if (fid != NULL) {
     fputs("MESH    dimension 3 ElemType Tetrahedra  Nnode 4\nCoordinates\n", fid);
     for (i = 0; i < np; i++) {
-      fprintf(fid, "%i\t%f\t%f\t%f\n", i + 1, p[3 * i], p[3 * i + 1], p[3 * i + 2]);
+      auto &p = coordinates.getPoint(i);
+      fprintf(fid, "%i\t%f\t%f\t%f\n", i + 1, p.x(), p.y(), p.z());
     }
     fprintf(fid, "end coordinates\n\nElements\n");
     for (i = 0 ; i < t->getnElements() ; i++)
@@ -76,10 +79,7 @@ void LcViewBinaryResultFormatWriter::writeResult(const Geometry &geom, const Sim
     RUNTIME_ERROR("Simulation state is not RUNNING or COMPLETED");
   }
 
-  writeBinaryResultFile(geom.getPtrTop(),
-                        geom.t,
-                        geom.e,
-                        potential,
+  writeBinaryResultFile(potential,
                         qTensor,
                         simulationState.currentTime(),
                         S0_,
@@ -87,10 +87,7 @@ void LcViewBinaryResultFormatWriter::writeResult(const Geometry &geom, const Sim
                         outputFilePath);
 }
 
-void LcViewBinaryResultFormatWriter::writeBinaryResultFile(const double *p,
-                                                           const Mesh *t,
-                                                           const Mesh *e,
-                                                           const SolutionVector *v,
+void LcViewBinaryResultFormatWriter::writeBinaryResultFile(const SolutionVector *v,
                                                            const SolutionVector *q,
                                                            double currentTime,
                                                            double S0,
@@ -152,31 +149,30 @@ void LcViewTxtResultFormatWriter::writeResult(const Geometry &geom, const Simula
     RUNTIME_ERROR("Simulation state is not RUNNING or COMPLETED");
   }
 
-  writeTextResultFile(geom.getPtrTop(),
-                      geom.t,
-                      geom.e,
-                      potential,
-                      director,
-                      geom.getnpLC(),
+  writeTextResultFile(geom.getCoordinates(),
+                      geom.t.get(),
+                      geom.e.get(),
+                      *potential,
+                      *directors,
                       simulationState.currentTime(),
                       writtenMeshPath_.filename().string(),
                       filePath);
 }
 
-void LcViewTxtResultFormatWriter::writeTextResultFile(const double *p,
+void LcViewTxtResultFormatWriter::writeTextResultFile(const Coordinates& coordinates,
                                                       const Mesh *t,
                                                       const Mesh *e,
-                                                      const SolutionVector *v,
-                                                      const double* n,
-                                                      idx npLC,
+                                                      const SolutionVector &v,
+                                                      const std::vector<qlc3d::Director> &dir,
                                                       double currentTime,
                                                       const std::string &meshFileName,
                                                       const std::filesystem::path &filePath) {
-  idx np = v->getnDoF();
-  char str[15];
-  FILE *fid = fopen(filePath.string().c_str(), "w");
 
+  FILE *fid = fopen(filePath.string().c_str(), "w");
   if (fid != nullptr) {
+    const idx np = v.getnDoF();
+    const idx npLC = dir.size();
+    char str[15];
     sprintf(str, "%f", currentTime);
     std::string text = "** Result Time :    ";
     text.append(str);
@@ -184,13 +180,14 @@ void LcViewTxtResultFormatWriter::writeTextResultFile(const double *p,
     text.append(meshFileName + "\n");
     fprintf(fid, "%s", text.c_str()); //** Result Time :    0.00000000\n** z Compression Ratio :  1.00000\nmeshout.txt\n");
     for (int i = 0; i < np; i++) {
-      if (i < npLC)
-        fprintf(fid, LCVIEW_TEXT_FORMAT_STRING, i + 1, n[i], n[i + npLC], n[i + 2 * npLC], v->Values[i], n[i + 3 * npLC], n[i + 4 * npLC]);
-      else
-        fprintf(fid, LCVIEW_TEXT_FORMAT_STRING, i + 1, 0., 0., 0., v->Values[i], 0., 0.);
+      if (i < npLC) {
+        const qlc3d::Director &n = dir[i];
+        fprintf(fid, LCVIEW_TEXT_FORMAT_STRING, i + 1, n.nx(), n.ny(), n.nz(), v.getValue(i), n.S(), n.S()); // NOTE: same S value is written twice. Should be the two different order parameters, or biaxiality P?
+      } else {
+        fprintf(fid, LCVIEW_TEXT_FORMAT_STRING, i + 1, 0., 0., 0., v.getValue(i), 0., 0.);
+      }
     }
     fclose(fid);
-
   } else {
     RUNTIME_ERROR("Could not open result file: " + filePath.string());
   }

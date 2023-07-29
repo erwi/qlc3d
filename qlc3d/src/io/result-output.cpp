@@ -8,6 +8,7 @@
 #include <resultio.h>
 #include <simu.h>
 #include <util/logging.h>
+#include <lc-representation.h>
 #include "util/exception.h"
 
 namespace fs = std::filesystem;
@@ -52,23 +53,19 @@ void ResultOutput::writeResults(const Geometry &geom,
                                 const SolutionVector &qtensor,
                                 const SimulationState &simulationState) {
   // if any of current output format writers requires director, calculate director
-  double *director = nullptr;
+  std::vector<qlc3d::Director> directors;
   if (isDirectorRequired()) {
-    director = tensortovector(qtensor.Values, geom.getnpLC());
+    directors = qtensor.getDirector();
   }
 
   for (auto outputFormatWriter : outputFormatWriters_) {
     if (outputFormatWriter->isDirectorRequired()) {
-      outputFormatWriter->setDirector(director);
+      outputFormatWriter->setDirector(&directors);
     }
     outputFormatWriter->setQTensor(qtensor);
     outputFormatWriter->setPotential(potential);
     Log::info("Writing result with format {}", outputFormatWriter->formatName());
     outputFormatWriter->writeResult(geom, simulationState);
-  }
-
-  if (director != nullptr) {
-    delete[] director;
   }
 }
 
@@ -112,9 +109,8 @@ void RegularVTKFormatWriter::writeResult(const Geometry &geom, const SimulationS
   }
 
   rGrid->writeVTKGrid(filePath.c_str(),
-                     potential->Values,
-                     director,
-                     geom.getnpLC());
+                      *potential,
+                     *directors);
 }
 //</editor-fold>
 
@@ -127,9 +123,8 @@ void RegularVecMatFormatWriter::writeResult(const Geometry &geom, const Simulati
     RUNTIME_ERROR("RegularVecMatFormatWriter requires regular grid");
   }
   rGrid->writeVecMat(filePath.c_str(),       // WRITE REGULAR GRID RESULT FILE
-                    potential->Values,
-                    director,
-                    geom.getnpLC(),
+                    *potential,
+                    *directors,
                     simulationState.currentTime());
 }
 //</editor-fold>
@@ -144,8 +139,7 @@ void DirStackZFormatWriter::writeResult(const Geometry &geom, const SimulationSt
   }
   fs::path filePath = outputDirectory / filename;
   rGrid->writeDirStackZ(filePath.c_str(),
-                       director,
-                       geom.getnpLC(),
+                       *directors,
                        simulationState.currentTime());
 }
 //</editor-fold>
@@ -153,7 +147,7 @@ void DirStackZFormatWriter::writeResult(const Geometry &geom, const SimulationSt
 //<editor-fold desc="CsvUnstructuredFormatWriter">
 void CsvUnstructuredFormatWriter::writeResult(const Geometry &geom, const SimulationState &simulationState) {
   fs::path filePath = outputDirectory / ("unstructured.csv." + std::to_string(simulationState.currentIteration()));
-  ResultIO::writeCsvUnstructured(geom.getPtrTop(), *potential, *qTensor, filePath.string());
+  ResultIO::writeCsvUnstructured(geom.getCoordinates(), *potential, *qTensor, filePath.string());
 }
 //</editor-fold>
 
@@ -162,6 +156,6 @@ void VtkUnstructuredAsciiGridFormatWriter::writeResult(const Geometry &geom, con
   std::string fileName = "unstructured" + iterationAsString(simulationState) + ".vtk";
   std::filesystem::path filePath = outputDirectory / fileName;
   ResultIO::writeVtkUnstructuredAsciiGrid(
-          geom.getPtrTop(), geom.getnp(), geom.getnpLC(), geom.getTetrahedra(), *potential, *qTensor, filePath.string());
+          geom.getCoordinates(), geom.getnpLC(), geom.getTetrahedra(), *potential, *qTensor, filePath.string());
 }
 //</editor-fold>

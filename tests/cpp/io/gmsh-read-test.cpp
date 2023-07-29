@@ -35,9 +35,7 @@ TEST_CASE("read Gmsh mesh raw data") {
     auto nodes = meshData->getNodes();
     SECTION("coordinate values are set") {
         REQUIRE(14 == nodes->_numNodes);
-        REQUIRE(3 * 14 == nodes->_coordinates.size());
-        size_t numNaNs = std::count(nodes->_coordinates.begin(), nodes->_coordinates.end(), std::numeric_limits<double>::quiet_NaN());
-        REQUIRE(0 == numNaNs);
+        REQUIRE(14 == nodes->_coordinates.size());
     }
 
     SECTION("tet mesh should have 0-based node indexing") {

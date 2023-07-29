@@ -15,6 +15,10 @@
 #include <assert.h>
 
 class Geometry; // FORWARD DECLARATION
+class SolutionVector;
+namespace qlc3d {
+  class Director;
+};
 
 class RegularGrid {
 public:
@@ -34,7 +38,7 @@ private:
     unsigned int nx_;    // number of points in each direction
     unsigned int ny_;
     unsigned int nz_;
-    unsigned int npr_;   // total number of regular points
+    unsigned int numRegularPoints_;   // total number of regular points
 
     double dx_;          // grid spacing in each direction
     double dy_;
@@ -90,25 +94,34 @@ public:
     void interpolateDirToRegular( const double* vecIn,
                                   double*& vecOut,
                                   const idx npLC );
+
+    [[nodiscard]] std::vector<double> interpolateToRegular(const SolutionVector &pot) const;
+    [[nodiscard]] std::vector<double> interpolateToRegularS(const std::vector<qlc3d::Director> &dir) const;
+    [[nodiscard]] std::vector<qlc3d::Director> interpolateToRegularDirector(const std::vector<qlc3d::Director> &dir) const;
     // ==============================================
     //
     // FILE OUTPUT FUNCTIONS
     //
     // ==============================================
     bool writeVTKGrid(const std::filesystem::path &fileName,
-                      const double* pot,        // POTENTIAL DATA
-                      const double* n,          // DIRECTOR DATA (INCLUDING S)
-                      const idx npLC );     // NUMBER OF LC NODES
+                      const SolutionVector &pot,
+                      const std::vector<qlc3d::Director> &dir);
 
     bool writeVecMat(const std::filesystem::path &filename,
-                     const double* pot,
-                     const double* n,
-                     const idx npLC,
-                     const double time = 0 );
-    bool writeDirStackZ(const std::filesystem::path &filename,
-                        const double* n,    // DIRECTOR INCLUDING S (S WILL BE IGNORED)
-                        const idx nplC,
-                        const double time = 0);
+                     const SolutionVector &pot,
+                     const std::vector<qlc3d::Director> &dir,
+                     double time = 0 );
+
+  /**
+  * Writes output in a comma separated values text file. Only the Director component values will be written.
+  * Each row in file corresponds to a column along the z-axis, where the director components are interleaved in order nx,ny,nz, nx,ny,nz ...
+  * The positions of the columns within the structure increase in rows along the x-axis, then incrementing the y-position at the end of each row.
+  * Additionally, on the first row, the number of points in x,y,and z directions and current simulation time
+  * are printed, with director data starting on second row.
+  */
+  bool writeDirStackZ(const std::filesystem::path &filename,
+                      const std::vector<qlc3d::Director> &dir,
+                      double time = 0);
 };
 
 #endif // REGULARGRID_H

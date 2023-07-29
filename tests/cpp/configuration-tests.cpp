@@ -3,6 +3,7 @@
 #include <settings-reader.h>
 #include <reader.h>
 #include <test-util.h>
+#include "geom/vec3.h"
 
 TEST_CASE("Catch library should work") {
     REQUIRE(true);
@@ -79,9 +80,10 @@ TEST_CASE("Read Simu from settings file") {
     REQUIRE((dtf[0] == 1.2 && dtf[1] == 2.2 && dtf[2] == 3.2 && dtf[3] == 4.2));
 
     // strech vector
-    REQUIRE(simu->getStretchVectorX() == 1.2);
-    REQUIRE(simu->getStretchVectorY() == 2.2);
-    REQUIRE(simu->getStretchVectorZ() == 3.2);
+    Vec3 sv = simu->getStretchVector();
+    REQUIRE(sv.x() == 1.2);
+    REQUIRE(sv.y() == 2.2);
+    REQUIRE(sv.z() == 3.2);
 
     // regula grid size
     REQUIRE(simu->getRegularGridXCount() == 2);

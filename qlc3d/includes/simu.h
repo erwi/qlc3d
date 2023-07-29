@@ -15,12 +15,12 @@
 #define SIMU_OUTPUT_FORMAT_TEXT		1
 
 class Reader; // forward declaration of settings file reader
+class Vec3;
 enum PotentialConsistency {Off, Loop};
 enum SimulationMode {TimeStepping, SteadyState};
 
 using namespace std;
-class Simu
-{
+class Simu {
 public:
     // SAVE FORMATS OPTIONS BITFIELDS - MUST BE POWERS OF 2 AS WILL BE USED AS BITFIELDS!!!
     // REMEMBER TO ADD to "validSaveFormatStrings" IN CONSTRUCTOR
@@ -148,9 +148,7 @@ public:
     [[nodiscard]] double getMaxdt()const{return dtLimits_[1];}
     [[nodiscard]] double getMindt()const{return dtLimits_[0];}
     [[nodiscard]] double getEndValue()const {return endValue_;}
-    [[nodiscard]] double getStretchVectorX()const {return stretchVector_[0];}
-    [[nodiscard]] double getStretchVectorY()const {return stretchVector_[1];}
-    [[nodiscard]] double getStretchVectorZ()const {return stretchVector_[2];}
+    [[nodiscard]] Vec3 getStretchVector() const;
 
     [[nodiscard]] int getSaveIter() const{ return saveIter_;}
     [[nodiscard]] double getSaveTime() const { return saveTime_; }

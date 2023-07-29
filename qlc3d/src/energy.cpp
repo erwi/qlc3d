@@ -1,15 +1,12 @@
 #include <energy.h>
-#include <cstdio>
-#include <iostream>
 #include <math.h>
 #include <lc.h>
 #include <geometry.h>
 #include <solutionvector.h>
-#include <shapefunction3d.h>
 #include <util/logging.h>
+#include <geom/vec3.h>
+#include <geom/coordinates.h>
 namespace Energy {
-#define SIGN(x)     (x)>=0 ? 1:-1
-
 
 // Gauss integration
 // ---------------------------------------------------------
@@ -118,7 +115,6 @@ void CalculateFreeEnergy(FILE *fid,
     //double L1(0);
     //if ( (lc->K11 == lc->K22) && (lc->K11 == lc->K33 ) )
     //    L1 = 2.0*(lc->K33-lc->K11+3.0*lc->K22)/(S0*S0*27.0);
-    double *p = geom->getPtrTop();
     // energy variables
     double Fe = 0;  // electric energy
     double Fflx = 0;    // flexoelectric enery
@@ -127,13 +123,14 @@ void CalculateFreeEnergy(FILE *fid,
     double F22 = 0;
     double F33 = 0;
     //loop over each element and calculate elastic energy contribution
-    for (idx x = 0 ; x < geom->t->getnElements() ; x++) {
+    idx tt[4] = {0, 0, 0, 0};
+    const Mesh &tets = geom->getTetrahedra();
+    const Coordinates& coordinates = geom->getCoordinates();
+
+    for (idx x = 0 ; x < tets.getnElements() ; x++) {
         if (geom->t->getMaterialNumber(x) <= MAT_DOMAIN7) { //IF LC ELEMENT
-            idx tt[4] = {geom->t->getNode(x, 0),
-                         geom->t->getNode(x, 1),
-                         geom->t->getNode(x, 2),
-                         geom->t->getNode(x, 3)
-                        };
+          tets.loadNodes(x, tt);
+
             for (int igp = 0; igp < ngp; igp++) { //loop over each gauss point
                 double q1(0), q2(0), q3(0), q4(0), q5(0);
                 double q1x = 0, q2x = 0, q3x = 0, q4x = 0, q5x = 0;
@@ -144,19 +141,24 @@ void CalculateFreeEnergy(FILE *fid,
                 double xr, xs, xt, yr, ys, yt, zr, zs, zt;
                 xr = xs = xt = yr = ys = yt = zr = zs = zt = 0.0;
                 for (int i = 0; i < 4 ; i++) {
-                    xr += sh1r[igp][i] * p[tt[i] * 3 + 0] * 1e-6;
-                    xs += sh1s[igp][i] * p[tt[i] * 3 + 0] * 1e-6;
-                    xt += sh1t[igp][i] * p[tt[i] * 3 + 0] * 1e-6;
-                    yr += sh1r[igp][i] * p[tt[i] * 3 + 1] * 1e-6;
-                    ys += sh1s[igp][i] * p[tt[i] * 3 + 1] * 1e-6;
-                    yt += sh1t[igp][i] * p[tt[i] * 3 + 1] * 1e-6;
-                    zr += sh1r[igp][i] * p[tt[i] * 3 + 2] * 1e-6;
-                    zs += sh1s[igp][i] * p[tt[i] * 3 + 2] * 1e-6;
-                    zt += sh1t[igp][i] * p[tt[i] * 3 + 2] * 1e-6;
+                  const Vec3 &p = coordinates.getPoint(tt[i]);
+                  double px = p.x() * 1e-6;
+                  double py = p.y() * 1e-6;
+                  double pz = p.z() * 1e-6;
+
+                    xr += px * sh1r[igp][i];
+                    xs += px * sh1s[igp][i];
+                    xt += px * sh1t[igp][i];
+                    yr += py * sh1r[igp][i];
+                    ys += py * sh1s[igp][i];
+                    yt += py * sh1t[igp][i];
+                    zr += pz * sh1r[igp][i];
+                    zs += pz * sh1s[igp][i];
+                    zt += pz * sh1t[igp][i];
                 }
                 //----------------
                 // Jacobian
-                double Jdet = geom->t->getDeterminant(x);
+                double Jdet = tets.getDeterminant(x);
                 double Jinv[3][3] = {
                     {(zt * ys - yt * zs) / Jdet, (xt * zs - zt * xs) / Jdet, (xs * yt - ys * xt) / Jdet},
                     {(yt * zr - zt * yr) / Jdet, (zt * xr - xt * zr) / Jdet, (xt * yr - yt * xr) / Jdet},
@@ -170,30 +172,30 @@ void CalculateFreeEnergy(FILE *fid,
                     dSh[i][2] = sh1r[igp][i] * Jinv[0][2] + sh1s[igp][i] * Jinv[1][2] + sh1t[igp][i] * Jinv[2][2];
                 }
                 for (int i = 0; i < 4 ; i++) {
-                    q1 += sh1[igp][i] * q->getValue(geom->t->getNode(x, i) , 0) ;            // q1i * Ni  = A1
-                    q2 += sh1[igp][i] * q->getValue(geom->t->getNode(x, i) , 1) ;
-                    q3 += sh1[igp][i] * q->getValue(geom->t->getNode(x, i) , 2) ;
-                    q4 += sh1[igp][i] * q->getValue(geom->t->getNode(x, i) , 3) ;
-                    q5 += sh1[igp][i] * q->getValue(geom->t->getNode(x, i) , 4) ;
-                    q1x += dSh[i][0] * q->getValue(geom->t->getNode(x, i) , 0);
-                    q2x += dSh[i][0] * q->getValue(geom->t->getNode(x, i) , 1);
-                    q3x += dSh[i][0] * q->getValue(geom->t->getNode(x, i) , 2);
-                    q4x += dSh[i][0] * q->getValue(geom->t->getNode(x, i) , 3);
-                    q5x += dSh[i][0] * q->getValue(geom->t->getNode(x, i) , 4);
-                    q1y += dSh[i][1] * q->getValue(geom->t->getNode(x, i) , 0);
-                    q2y += dSh[i][1] * q->getValue(geom->t->getNode(x, i) , 1);
-                    q3y += dSh[i][1] * q->getValue(geom->t->getNode(x, i) , 2);
-                    q4y += dSh[i][1] * q->getValue(geom->t->getNode(x, i) , 3);
-                    q5y += dSh[i][1] * q->getValue(geom->t->getNode(x, i) , 4);
-                    q1z += dSh[i][2] * q->getValue(geom->t->getNode(x, i) , 0);
-                    q2z += dSh[i][2] * q->getValue(geom->t->getNode(x, i) , 1);
-                    q3z += dSh[i][2] * q->getValue(geom->t->getNode(x, i) , 2);
-                    q4z += dSh[i][2] * q->getValue(geom->t->getNode(x, i) , 3);
-                    q5z += dSh[i][2] * q->getValue(geom->t->getNode(x, i) , 4);
+                    q1 += sh1[igp][i] * q->getValue(tt[i], 0) ;            // q1i * Ni  = A1
+                    q2 += sh1[igp][i] * q->getValue(tt[i], 1) ;
+                    q3 += sh1[igp][i] * q->getValue(tt[i], 2) ;
+                    q4 += sh1[igp][i] * q->getValue(tt[i], 3) ;
+                    q5 += sh1[igp][i] * q->getValue(tt[i], 4) ;
+                    q1x += dSh[i][0] * q->getValue(tt[i], 0);
+                    q2x += dSh[i][0] * q->getValue(tt[i], 1);
+                    q3x += dSh[i][0] * q->getValue(tt[i], 2);
+                    q4x += dSh[i][0] * q->getValue(tt[i], 3);
+                    q5x += dSh[i][0] * q->getValue(tt[i], 4);
+                    q1y += dSh[i][1] * q->getValue(tt[i] , 0);
+                    q2y += dSh[i][1] * q->getValue(tt[i] , 1);
+                    q3y += dSh[i][1] * q->getValue(tt[i], 2);
+                    q4y += dSh[i][1] * q->getValue(tt[i], 3);
+                    q5y += dSh[i][1] * q->getValue(tt[i], 4);
+                    q1z += dSh[i][2] * q->getValue(tt[i], 0);
+                    q2z += dSh[i][2] * q->getValue(tt[i], 1);
+                    q3z += dSh[i][2] * q->getValue(tt[i], 2);
+                    q4z += dSh[i][2] * q->getValue(tt[i], 3);
+                    q5z += dSh[i][2] * q->getValue(tt[i], 4);
                     // electric fields
-                    Vx += dSh[i][0] * v->getValue(geom->t->getNode(x, i));
-                    Vy += dSh[i][1] * v->getValue(geom->t->getNode(x, i));
-                    Vz += dSh[i][2] * v->getValue(geom->t->getNode(x, i));
+                    Vx += dSh[i][0] * v->getValue(tt[i]);
+                    Vy += dSh[i][1] * v->getValue(tt[i]);
+                    Vz += dSh[i][2] * v->getValue(tt[i]);
                 }//end for i
                 double R = q1 * q1 + q2 * q2 + q3 * q3 + q4 * q4 + q5 * q5;
                 double mul = w[igp] * Jdet;

@@ -12,13 +12,16 @@
 class SolutionVector;
 class Geometry;
 class SimulationState;
+namespace qlc3d {
+  struct Director;
+}
 
 /**
  * Abstract base class for result output formats. Each output format should implement this interface.
  */
 class ResultFormatWriter {
 protected:
-  const double *director = nullptr;
+  const std::vector<qlc3d::Director> *directors = nullptr;
   const SolutionVector *qTensor = nullptr;
   const SolutionVector *potential = nullptr;
   const std::filesystem::path outputDirectory;
@@ -31,7 +34,7 @@ public:
   [[nodiscard]] virtual bool isDirectorRequired() const {return false; };
   [[nodiscard]] virtual bool isRegularGridRequired() const { return false; };
 
-  void setDirector(const double *dir) { this->director = dir; };
+  void setDirector(const std::vector<qlc3d::Director> *dir) { this->directors = dir; };
   void setQTensor(const SolutionVector &q) {this->qTensor = &q; };
   void setPotential(const SolutionVector &pot) {this->potential = &pot; }
 

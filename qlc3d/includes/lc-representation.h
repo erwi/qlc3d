@@ -1,11 +1,8 @@
-//
-// Created by eero on 10/04/2021.
-//
-
 #ifndef PROJECT_QLC3D_LC_REPRESENTATION_H
 #define PROJECT_QLC3D_LC_REPRESENTATION_H
 
 #include <cmath>
+class Vec3;
 
 namespace qlc3d {
     const static double rt2 { sqrt(2.) };
@@ -16,6 +13,7 @@ namespace qlc3d {
     public:
         Director() = delete;
         Director(const double &nx, const double &ny, const double &nz, const double S);
+        Director(const Vec3 &n, double S);
         const double &nx() const { return nx_; }
         const double &ny() const { return ny_; }
         const double &nz() const { return nz_; }

@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include <stdio.h>
+
+class Vec3;
 /*!
  * The Box class is used when defining initial LC orientations. It represents a cuboidal sub region within the modelled
  * volume, where the LC orientation properties are set prior to starting the simulation proper.
@@ -17,8 +19,6 @@ public:
     const static std::vector<double> DEFAULT_PARAMS;
     const static std::vector<double> DEFAULT_X_Y_Z;      // default is same in all dimensions
     const static std::vector<double> DEFAULT_TILT_TWIST; // same defaults bot tilt and twist
-
-
 
     enum BoxTypes {Normal, Random, Hedgehog, InvalidType};
     BoxTypes Type;
@@ -39,12 +39,9 @@ public:
 
     // checks whether [x,y,z] coordinates in array of size 3 are inside the box
     bool contains(double *coords) const;
-
-    /** Check whether box contains given x, y, z coodinates */
-    bool contains(double x, double y, double z) const;
-
+    bool contains(const Vec3 &coords) const;
     void setBoxType(const std::string &bt);
-
+    [[nodiscard]] Vec3 centroid() const;
     /** Set the params vector. Note: this can only be done once */
     void setParams(const std::vector<double> &p);
     /** return the i'th parameted or default if out of range */

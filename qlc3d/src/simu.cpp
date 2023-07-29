@@ -7,6 +7,7 @@
 #include <reader.h>
 #include <globals.h>
 #include <settings_file_keys.h>
+#include <geom/vec3.h>
 
 // Define valid enum string keys
 const vector<string> Simu::VALID_END_CRITERIA = {"iterations", "time", "change"};
@@ -50,6 +51,10 @@ const std::vector<std::string> Simu::getSaveFormatStrings() const {
     saveFormatStrings.push_back(VALID_SAVE_FORMATS[s]);
   }
   return saveFormatStrings;
+}
+
+Vec3 Simu::getStretchVector() const {
+    return {stretchVector_[0], stretchVector_[1], stretchVector_[2]};
 }
 
 // <editor-fold desc=SimuBuilder>

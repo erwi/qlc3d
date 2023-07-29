@@ -3,9 +3,11 @@
 #include <stdexcept>
 #include <lc-representation.h>
 #include <io/vtkiofun.h>
+#include <geom/coordinates.h>
+#include <geom/vec3.h>
 #include <assert.h>
 
-void ResultIO::writeCsvUnstructured(const double *p,
+void ResultIO::writeCsvUnstructured(const Coordinates &coordinates,
                                     const SolutionVector &v,
                                     const SolutionVector &q,
                                     const std::string &fileName) {
@@ -26,7 +28,8 @@ void ResultIO::writeCsvUnstructured(const double *p,
             q.getValue(i, 3),
             q.getValue(i, 4)
         }.toDirector();
-        fs << p[3 * i] << "," << p[3 * i + 1] << "," << p[3 * i + 2] << "," <<
+        auto &p = coordinates.getPoint(i);
+        fs << p.x() << "," << p.y() << "," << p.z() << "," <<
            v.getValue(i) << "," << n.nx() << "," << n.ny() << "," << n.nz() << std::endl;
     }
 
@@ -34,16 +37,15 @@ void ResultIO::writeCsvUnstructured(const double *p,
 }
 
 void ResultIO::writeVtkUnstructuredAsciiGrid(
-        const double *p,
-        size_t numPoints,
+        const Coordinates &coordinates,
         size_t numLcPoints,
         const Mesh &tetMesh,
         const SolutionVector &v,
         const SolutionVector &q,
         const std::string &fileName) {
 
-    assert(numLcPoints <= numPoints);
+    assert(numLcPoints <= coordinates.size());
     using namespace vtkIOFun;
     UnstructuredGridWriter writer;
-    writer.write(fileName, numPoints, numLcPoints, p, tetMesh, v.getValues(), q);
+    writer.write(fileName, numLcPoints, coordinates, tetMesh, v, q);
 }

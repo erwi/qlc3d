@@ -2,7 +2,10 @@
 #define PROJECT_QLC3D_MESHREADER_H
 #include <string>
 #include <filesystem>
+#include <utility>
 #include <globals.h>
+#include <vector>
+#include <geom/vec3.h>
 
 class GmshFileData;
 
@@ -19,42 +22,40 @@ public:
     static MeshFormat inspectFormat(const std::filesystem::path &fileName) ;
 };
 
+class RawMeshData {
+
+public:
+  std::vector<Vec3> points;
+  std::vector<idx> tetNodes;
+  std::vector<idx> tetMaterials;
+  std::vector<idx> triNodes;
+  std::vector<idx> triMaterials;
+  RawMeshData(std::vector<Vec3> points,
+              std::vector<idx> tetNodes, std::vector<idx> tetMaterials,
+              std::vector<idx> triNodes, std::vector<idx> triMaterials);
+};
+
 /**
  * Read mesh data from provided mesh file path. The format of the file is deduced by inspecting it's contents.
  */
 class MeshReader {
     static void readGmsMesh(const std::filesystem::path &fileName,
-                            double **pointsOut,
-                            idx *numPointsOut,
-                            idx **tetsOut,
-                            idx *numTetsOut,
-                            idx **trisOut,
-                            idx *numTrisOut,
-                            idx **tetMaterials,
-                            idx **triMaterials);
+                            std::vector<Vec3> &pointsOut,
+                            std::vector<idx> &tetNodes,
+                            std::vector<idx> &tetMaterials,
+                            std::vector<idx> &triNodes,
+                            std::vector<idx> &triMaterials);
 
-    static void copyGmshCoordinateData(const GmshFileData &data, double **pointsOut, idx *numPointsOut);
     static void copyGmshTriangleData(const GmshFileData &data, idx** trisOut, idx** triMaterialsOut, idx *numTrisOut);
-    static void copyGmshTetData(const GmshFileData &data, idx **tetsOut, idx ** tetMaterialsOut, idx *numTetsOut);
+
 public:
-    static void readMesh(const std::filesystem::path &fileName,
-                         double **pointsOut, // TODO: get rid of these raw arrays and return a mesh object
-                         idx *numPointsOut,
-                         idx **tetsOut,
-                         idx *numTetsOut,
-                         idx **trisOut,
-                         idx *numTrisOut,
-                         idx **tetMaterialsOut,
-                         idx **triMaterialsOut);
+    static RawMeshData readMesh(const std::filesystem::path &fileName);
 };
 
 void ReadGiDMesh3D(const std::filesystem::path &fileName,
-                   double **p,
-                   idx *np,
-                   idx **t,
-                   idx *nt,
-                   idx **e,
-                   idx *ne,
-                   idx **matt,
-                   idx **mate);
+                   std::vector<Vec3> &pointsOut,
+                   std::vector<idx> &tetNodes,
+                   std::vector<idx> &tetMaterials,
+                   std::vector<idx> &triNodes,
+                    std::vector<idx> &triMaterials);
 #endif //PROJECT_QLC3D_MESHREADER_H

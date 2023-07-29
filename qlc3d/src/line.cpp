@@ -1,4 +1,6 @@
 #include "../includes/line.h"
+#include <geom/coordinates.h>
+#include <geom/vec3.h>
 
 bool Line::operator<(const Line& other) const {
     // L[0] is always smaller than L[1] (see constructor)
@@ -262,68 +264,54 @@ bool Line::isTranslationOf( Line& L2, Geometry* geom, double* dir)
 	if (L2 == *this) return false; // avoid selfs
 	
 	// The order of nodes is not guaranteed. Check for parallel lines by 
-	// taking the dot product of the two vectors 
+	// taking the dot product of the two vectors
+  auto& coords = geom->getCoordinates();
 	double eps = 1e-5;
-	double* p11 = geom->getPtrTop(this->L[0]);
-	double* p12 = geom->getPtrTop(this->L[1]);
-	
-	double* p21 = geom->getPtrTop(L2.L[0]);
-	double* p22 = geom->getPtrTop(L2.L[1]);
-	
-	double v1[3] = {p11[0] - p12[0] ,
-					p11[1] - p12[1] ,
-					p11[2] - p12[2]  };
 
-	double v2[3] = {p21[0] - p22[0],
-					p21[1] - p22[1],
-					p21[2] - p22[2] };
-	// line (vector) lengths
-	double l1 = sqrt(v1[0]*v1[0] + v1[1]*v1[1] + v1[2]*v1[2] ); 
-	double l2 = sqrt(v2[0]*v2[0] + v2[1]*v2[1] + v2[2]*v2[2] );
-				
-	double dot = ( v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2] )/l1/l2;				
-	
-	if ( (fabs( fabs(dot) -1.0 ) <= eps ) &&// if v1 and v2 are parallel AND
-	     (fabs(l1-l2) <= eps ) ) //if v1 and v2 are same length
-	{ 
-		// calculate differences between line end points
-		double diff1[3] = { p11[0], p11[1], p11[2] };
-		double diff2[3] = { p12[0], p12[1], p12[2] };
-		
-		// calculate shifts. differences depend on line orientations
-		if (dot > 0) // same direction
-		{
-			diff1[0] -= p21[0]; // difference between nodes 1
-			diff1[1] -= p21[1];
-			diff1[2] -= p21[2];
-			
-			diff2[0] -= p22[0]; // difference between nodes 2
-			diff2[1] -= p22[1];
-			diff2[2] -= p22[2];
-		}
-		else // opposite directions
-		{
-			diff1[0] -= p22[0];
-			diff1[1] -= p22[1];
-			diff1[2] -= p22[2];
-			
-			diff2[0] -= p21[0];
-			diff2[1] -= p21[1];
-			diff2[2] -= p21[2];
-		}
-		
-		// set x,y,z components of shift to zero, as defined in dir[0]->dir[2]		
-		diff1[0] = ( fabs(diff1[0]) + fabs(diff2[0] ) )*dir[0]; 
-		diff1[1] = ( fabs(diff1[1]) + fabs(diff2[1] ) )*dir[1];
-		diff1[2] = ( fabs(diff1[2]) + fabs(diff2[2] ) )*dir[2];
-		
-		//printf("%f,%f,%f\n", diff1[0], diff1[1], diff1[2]);
-		if ( ( diff1[0]+diff1[1]+diff1[2] ) <= eps  )
-		{
-			return true;
-		}
-	}// end if same length and parallel
-	return false;
+  Vec3 p11 = coords.getPoint(L[0]);
+  Vec3 p12 = coords.getPoint(L[1]);
+
+  Vec3 p21 = coords.getPoint(L2.L[0]);
+  Vec3 p22 = coords.getPoint(L2.L[1]);
+
+  // calculate vectors along the lines
+  Vec3 v1 = p12 - p11;
+  Vec3 v2 = p22 - p21;
+
+  double l1 = v1.norm();
+  double l2 = v2.norm();
+  if (std::abs(l1- l2) > eps) {
+    return false; // not same length
+  }
+
+  // check if parallel
+  double dotNormalised = std::abs(v1.dot(v2) / (l1*l2)); // should be 1 for parallel or opposite vectors
+  if (std::abs(1 - dotNormalised) > eps) {
+    return false; // not parallel
+  }
+
+  // lines are parallel and of same length. Check if they are translations of each other (I don't understand this part anymore)
+  // calculate differences between line end points
+  Vec3 diff1 = p11;
+  Vec3 diff2 = p12;
+
+  // calculate shifts. differences depend on line orientations
+  if (v1.dot(v2) > 0) {// same direction
+    diff1-= p21; // difference between nodes 1
+    diff2-= p22; // difference between nodes 2
+  }
+  else { // opposite directions
+    diff1-= p22; // difference between nodes 1
+    diff2-= p21; // difference between nodes 2
+  }
+
+  // set x,y,z components of shift to zero, as defined in dir[0]->dir[2]
+  double x = (std::abs(diff1.x()) + std::abs(diff2.x())) * dir[0];
+  double y = (std::abs(diff1.y()) + std::abs(diff2.y())) * dir[1];
+  double z = (std::abs(diff1.z()) + std::abs(diff2.z())) * dir[2];
+
+  //printf("%f,%f,%f\n", diff1[0], diff1[1], diff1[2]);
+  return (x + y + z) <= eps;
 }
 	
 // corners along z
