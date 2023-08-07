@@ -34,7 +34,7 @@ std::shared_ptr<Geometry> createSingleTetGeometry() {
 }
 
 TEST_CASE("Write binary LCView result file") {
-  const std::string meshName = "mesh.msh";
+  const std::string meshName = "path/to/mesh.msh";
   const double S0 = 0.5;
   const auto geom = createSingleTetGeometry();
 
@@ -95,7 +95,7 @@ TEST_CASE("Write binary LCView result file") {
 }
 
 TEST_CASE("Write text LCViewTxt result file") {
-  const std::string meshName = "mesh.msh";
+  const std::string meshName = "path/to/mesh.msh";
   const double S0 = 0.5;
   const auto geom = createSingleTetGeometry();
 

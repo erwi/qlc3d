@@ -187,9 +187,7 @@ void SimulationContainer::initialise() {
     simulationState_.currentTime(0);
     simulationState_.change(0);
     simulationState_.dt(simu->initialTimeStep());
-    //time_t t1, t2;
-    time(&t1);
-    time(&t2);
+    startInstant = std::chrono::steady_clock::now();
     maxdq = 0;
 }
 
@@ -221,12 +219,13 @@ bool SimulationContainer::hasIteration() const {
 
 void SimulationContainer::runIteration() {
     simulationState_.state(RunningState::RUNNING);
-    time(&t2);
+    std::chrono::duration<double> elapsedSeconds = std::chrono::steady_clock::now() - startInstant;
+
     Log::clearIndent();
-    Log::info("Iteration {}, Time = {:e}s. Real time = {}s. dt = {}s.",
+    Log::info("Iteration {}, Time = {:e}s. Real time = {:.3}s. dt = {}s.",
            simulationState_.currentIteration(),
            simulationState_.currentTime(),
-           (float) t2 - t1,
+           elapsedSeconds.count(),
            simulationState_.dt());
 
     Log::incrementIndent();
@@ -364,7 +363,12 @@ void SimulationContainer::adjustTimeStepSize() {
     Log::info("Scaling dt by {}.", S);
     double newdt = dt * S;
     if (newdt < simu->getMindt()) {
-        newdt = simu->getMindt();
+      Log::info("limiting time step to min dt = {}", simu->getMindt());
+      newdt = simu->getMindt();
+    }
+    else if (newdt > simu->getMaxdt()) {
+      Log::info("limiting time step to max dt = {}", simu->getMaxdt());
+      newdt = simu->getMaxdt();
     }
 
     simulationState_.dt(newdt);

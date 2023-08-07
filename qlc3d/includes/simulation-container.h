@@ -41,7 +41,7 @@ class SimulationContainer {
     std::unique_ptr<Settings> settings;
 
     // state related internal variables. TODO clean them up
-    time_t t1, t2;
+    std::chrono::steady_clock::time_point startInstant;
     double maxdq;
     FILE *Energy_fid;
 

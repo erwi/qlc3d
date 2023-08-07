@@ -8,6 +8,12 @@
 namespace fs = std::filesystem;
 
 //<editor-fold desc="LcViewResultFormatWriter">
+LcViewResultFormatWriter::LcViewResultFormatWriter(const std::filesystem::path &outputDir, const std::string &meshName, double S0) :
+  ResultFormatWriter(outputDir), S0_{ S0 }, lastMeshNumber_{ -1 } {
+
+  // make sure mesh name does not contain any prefix path before file name
+  meshName_ = fs::path(meshName).filename().string();
+}
 
 std::string LcViewResultFormatWriter::numberedMeshName(const SimulationState &simulationState, const std::string &meshName) {
   // calculate mesh name with mesh number appended. e.g. mesh.txt -> mesh0.txt

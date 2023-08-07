@@ -7,20 +7,21 @@ class Mesh;
 
 class LcViewResultFormatWriter : public ResultFormatWriter {
   [[nodiscard]] static std::string numberedMeshName(const SimulationState &simulationState, const std::string &meshName) ;
+
   static void writeMeshFile(const double *p,
                             Mesh *t,
                             Mesh *e,
                             idx np,
                             const std::filesystem::path &fileName);
 protected:
-  const std::string &meshName_;
-  const double S0_;
+  double S0_;
+  std::string meshName_;
   int lastMeshNumber_;
   /** path to the last written mesh file. Should be updated whenever a new mesh file is output */
   std::filesystem::path writtenMeshPath_;
 
-  LcViewResultFormatWriter(const std::filesystem::path &outputDir, const std::string &meshName, double S0) :
-          ResultFormatWriter(outputDir), meshName_(meshName), lastMeshNumber_(-1), S0_(S0) {};
+  LcViewResultFormatWriter(const std::filesystem::path &outputDir, const std::string &meshName, double S0);// :
+          //ResultFormatWriter(outputDir), meshName_(meshName), lastMeshNumber_(-1), S0_(S0) {};
 
   /** writes mesh file if required and sets writtenMeshPath_ */
   void writeMeshIfRequired(const Geometry &geom, const SimulationState &simulationState);
