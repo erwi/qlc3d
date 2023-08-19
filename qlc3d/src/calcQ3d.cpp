@@ -1,12 +1,9 @@
 
 #include <math.h>
-#include <time.h>
-#include <omp.h>
 #include <qlc3d.h>
-#include <cstdio>
 #include <simulation-state.h>
 #include <util/logging.h>
-
+#include <thread>
 
 // SpaMtrix INCLUDES
 #include <spamtrix_ircmatrix.hpp>
@@ -63,7 +60,7 @@ void solve_QTensor(SpaMtrix::IRCMatrix &K,
 
 void setThreadCount(unsigned int nt)
 {
-#ifndef DEBUG
+#ifdef NDEBUG
     omp_set_num_threads(nt);
 #endif
 }
@@ -163,6 +160,11 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         //======================================
         //  MATRIX ASSEMBLY
         //======================================
+#ifdef NDEBUG
+        int numThreads = simu->getAssemblyThreadCount() == 0 ? (int) std::thread::hardware_concurrency() : (int) simu->getAssemblyThreadCount();
+        omp_set_num_threads(numThreads);
+#endif
+
         assembleQ(K, L, q, v, geom.t, geom.e, geom.getPtrTop(), mat_par, timeStep, alignment, geom.getPtrToNodeNormals());
 
         if (isTimeStepping) { // make Non-linear Crank-Nicholson RHS
@@ -191,9 +193,11 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
 
         // PANIC!! if looks like no convergence
         if (newton_iter > settings->getQ_Newton_Panic_Iter() ) {
-            double newTimeStep = settings->getQ_Newton_Panic_Coeff() * simulationState.dt();
-            Log::warn("Newton iteration count {} exceeds threshold {}. Reducing time-step by a factor of {}, new time-step is {}s.",
-                      newton_iter, settings->getQ_Newton_Panic_Iter(), settings->getQ_Newton_Panic_Coeff(), newTimeStep);
+
+            double newTimeStep = std::max(settings->getQ_Newton_Panic_Coeff() * simulationState.dt(), simu->getMindt());
+
+            Log::warn("Newton iteration count {} exceeds threshold {}. Reducing time-step, new time-step is {}s.",
+                      newton_iter, settings->getQ_Newton_Panic_Iter(), newTimeStep);
             simulationState.dt(newTimeStep);
             newton_iter = 0;
             q->setValuesTo(*qn);

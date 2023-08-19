@@ -1,12 +1,13 @@
 CMAKE_MINIMUM_REQUIRED (VERSION 3.0)
 PROJECT (qlc3d)
 
-add_definitions(-DDEBUG) # DISABLES OPENMP PRAGMAS
-#
-# Should be no need to change_ settings below
-#
-#set(CMAKE_BUILD_TYPE )
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++0x")
+# set compiler preprocessor macro QLC3D_SHA to current git branch SHA. This will be logged by the compiled executable
+execute_process(COMMAND git rev-parse --short HEAD OUTPUT_VARIABLE QLC3D_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE)
+add_compile_definitions(QLC3D_SHA=\"${QLC3D_COMMIT}\")
+
+set (CMAKE_CXX_FLAGS "-Wall -std=c++0x")
+set (CMAKE_CXX_FLAGS_DEBUG "-g")
+set (CMAKE_CXX_FLAGS_RELEASE "-Ofast -DNDEBUG")
 file(GLOB SOURCE_FILES ./includes/*.h ./src/*.cpp)
 find_package(OpenMP)
 if (OPENMP_FOUND)

@@ -35,9 +35,54 @@ ctest ..
 ```
 This starts the tests, and you can expect them to take some minutes to complete.
 
-## Building in Windows
-In the past, qlc3d has successfully been compiled using a 64 bit MinGW compiler, but this hasn't been attempted recently. The approach should be similar to building on Linux.
+## Creating a Distributable Release Build in Windows
+Following the steps below creates a single executable that should be runnable on any Windows computer. It includes all dependency libraries
+statically compiled using Mingw, so there is no need to worry about missing dll files. The executable is compiled in release mode, so has various optimisations and multi-threading
+turned on.
 
+This assumes you have installed CMake, Mingw-w64, Git and a version of Bash (e.g. Git Bash) on your build machine. 
+It is assumed you have the qlc3d code in directory `c:\qlc3d`. It's likely that creating a Release build in Linux is a very
+similar process (not currently tested).
+
+
+First, check your Mingw version by running `g++ --version` in Bash, and you should see something like below.
+```
+$ g++ --version
+g++.exe (GCC) 11.2.0
+Copyright (C) 2021 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+```
+
+### 1. Create a build directory `c:/qlc3d/build-release`
+```
+$ cd /c/qlc3d && mkdir build-release && cd build-release
+```
+
+### 2. Build the executable `qlc3d.exe`
+First run CMake to create the Mingw makefiles for a Release build type:
+```
+$ cmake -DCMAKE_BUILD_TYPE=Release \
+	-DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++ -static" \
+	.. -G "MinGW Makefiles" 
+```
+This should set the code optimisation switch `-O3`. It may be possible to improve performance further with other optimisation flags. 
+
+Then compile and link the code to produce the executable:
+```
+$ mingw32-make.exe -j10
+```
+
+This should result in the `qlc3d.exe` being created in a subdirectory `qlc3d`. For a quick sanity test, you can run it by 
+typing `./qlc3d/qlc3d.exe` in bash and should see something like below:
+```
+[INFO] qlc3d. Build date=Aug 19 2023, build time=15:47:51, git commit SHA=6c2cfce, build type=RELEASE.
+[INFO] Current directory: C:\qlc3d\build-release
+Error in file :./meshes/test.txt
+Settings file does not exist: ./meshes/test.txt
+[ERROR] An error has occurred
+```
+It's safe to ignore the errors, these are printed because no settings file was provided.  
 
 ## Building on a Mac
 This will probably not currently work as there are some Windows/Linux file system specific code, but it ***should*** be simple to replace these with standard c++17 code (TODO).

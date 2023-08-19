@@ -69,9 +69,10 @@ int runSimulation(Configuration &configuration) {
 
 void printInfo() {
     Qlc3dInfo info;
-    Log::info("qlc3d. Build date={}, build time={}, build type={}.",
+    Log::info("qlc3d. Build date={}, build time={}, git commit SHA={}, build type={}.",
               info.buildDate,
               info.buildTime,
+              info.gitCommitSha,
               info.isDebug ? "DEBUG" : "RELEASE");
     // print current directory
     Log::info("Current directory: {}", std::filesystem::current_path().string());

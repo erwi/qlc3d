@@ -872,7 +872,7 @@ void assemble_volumes(
     idx npLC = q->getnDoF();
     //init_shape();
     Shape4thOrder shapes;
-#ifndef DEBUG
+#ifdef NDEBUG
     #pragma omp parallel for
 #endif
     // LOOP OVER EACH ELEMENT  it
@@ -889,7 +889,7 @@ void assemble_volumes(
             int ri = t->getNode(it, i % 4) + npLC * (i / 4); // LOCAL TO GLOBAL
             idx eqr = q->getEquNode(ri);    // eqr IS MAPPED INDEX TO GLOBAL MATRIX ROW
             if (eqr != NOT_AN_INDEX) {  // ONLY FOR NON-FIXED NODES
-#ifndef DEBUG
+#ifdef NDEBUG
                 #pragma omp atomic
 #endif
                 L[eqr] += lL[i] * BIGNUM;
@@ -916,7 +916,7 @@ void assemble_Neumann_surfaces(
     double *p) {
     int npLC = q->getnDoF();
     init_shape_N();
-#ifndef DEBUG
+#ifdef NDEBUG
     #pragma omp parallel for
 #endif
     for (idx it = 0; it < surf_mesh->getnElements(); it++) { // LOOP OVER EVERY SURFACE ELEMENT
@@ -951,7 +951,7 @@ void assemble_Neumann_surfaces(
                 idx ri = ti[i % 4] + npLC * (i / 4);
                 idx eqr = q->getEquNode(ri);
                 if (eqr != NOT_AN_INDEX) { // IF NOT FIXED
-#ifndef DEBUG
+#ifdef NDEBUG
                     #pragma omp atomic
 #endif
                     L[eqr] += lL[i] * BIGNUM;
@@ -981,7 +981,7 @@ void assemble_surfaces(
     double *NodeNormals) {
     init_shape_surf();
     int npLC = q->getnDoF();
-#ifndef DEBUG
+#ifdef NDEBUG
     #pragma omp parallel for
 #endif
     for (idx ie = 0 ; ie < e->getnElements() ; ie ++) {
@@ -994,7 +994,7 @@ void assemble_surfaces(
                 idx ri  = e->getNode(ie, i % 3) + npLC * (i / 3);
                 idx eqr = q->getEquNode(ri);
                 if (eqr != NOT_AN_INDEX) { // IF NOT FIXED
-#ifndef DEBUG
+#ifdef NDEBUG
                     #pragma omp atomic
 #endif
                     L[eqr] += lL[i] * 2e16;
@@ -1288,7 +1288,7 @@ void assemble_prev_rhs(SpaMtrix::Vector &Ln,
     //int th = 0; // debug thread number
     Mesh &t = *geom.t;
     double *p = geom.getPtrTop();
-#ifndef DEBUG
+#ifdef NDEBUG
     #pragma omp parallel for
 #endif
     for (idx it = 0 ; it < elem_cnt ; it++) {
@@ -1302,7 +1302,7 @@ void assemble_prev_rhs(SpaMtrix::Vector &Ln,
                 int ri = t.getNode(it, i % 4) + npLC * (i / 4);
                 eqr = qn.getEquNode(ri);
                 if (eqr != NOT_AN_INDEX) { // IF NOT FIXED
-#ifndef DEBUG
+#ifdef NDEBUG
                     #pragma omp atomic
 #endif
                     Ln[eqr] += lL[i] * BIGNUM;

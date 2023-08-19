@@ -140,6 +140,11 @@ struct Qlc3dInfo {
     const bool isDebug = true;
 #endif
 
+#ifdef QLC3D_SHA
+  const char* gitCommitSha = QLC3D_SHA;
+#else
+  const char* gitCommitSha = "unknown";
+#endif
 };
 
 #endif
