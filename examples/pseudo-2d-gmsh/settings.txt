@@ -1,13 +1,11 @@
-MeshName = geometry.msh
+MeshName = ./geometry.msh
 
 dt = 0
-#EndCriterion = Change
-EndCriterion = iterations
+EndCriterion = Change
+EndValue = 1e-6
 
-EndValue = 50
-
-SaveIter = 1
-SaveFormat = [VTKUnstructuredAsciiGrid, LCView]
+SaveIter = 10
+SaveFormat = [VTKUnstructuredAsciiGrid]
 
 targetdQ=0.1
 
