@@ -67,7 +67,7 @@ public:
     }
 
     static void incrementIndent(unsigned int amount = 1) {
-        for (int i = 0; i < amount; i++) {
+        for (unsigned int i = 0; i < amount; i++) {
             Log::indent += ' ';
         }
     }

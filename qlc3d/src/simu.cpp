@@ -90,7 +90,7 @@ SimuBuilder &SimuBuilder::qMatrixSolver(const std::string &solverName) {
     } else if ("pcg" == solverName) {
         qMatrixSolver_ = Simu::QMatrixSolvers::PCG;
     } else if ("gmres" == solverName) {
-        qMatrixSolver_ == Simu::QMatrixSolvers::GMRES;
+        qMatrixSolver_ = Simu::QMatrixSolvers::GMRES;
     } else {
         throw runtime_error("valid Q solver names are [auto, pcg, gmres], got " + solverName);
     }
@@ -127,7 +127,7 @@ SimuBuilder &SimuBuilder::dtFunction(double v1, double v2, double v3, double v4)
 }
 
 SimuBuilder &SimuBuilder::endCriterion(const string &name) {
-    for (int i = 0; i < Simu::VALID_END_CRITERIA.size(); i++) {
+    for (unsigned int i = 0; i < Simu::VALID_END_CRITERIA.size(); i++) {
         if (Simu::VALID_END_CRITERIA[i] == name) {
             endCriterion_ = static_cast<Simu::EndCriteria>(i);
             return *this;

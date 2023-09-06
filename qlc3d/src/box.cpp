@@ -120,7 +120,7 @@ void Box::setParams(const std::vector<double> &params) {
     std::copy(params.begin(), params.end(), std::back_inserter(Params));
 }
 
-double Box::getParam(int i, double defaultValue) const {
+double Box::getParam(unsigned int i, double defaultValue) const {
     if (i < this->Params.size()) {
         return this->Params[i];
     } else {

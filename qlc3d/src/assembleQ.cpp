@@ -463,7 +463,7 @@ inline void localKL(const Coordinates &coordinates,
                     lK[i + 4 ][j + 12] += temp;
                     lK[j + 12][i + 4 ] += temp;
                     temp = 0.5 * ShCz * L2 * ShRx;
-                    temp + L3/2*ShCx*ShRz;
+                    temp += L3/2*ShCx*ShRz;
                     temp += (ShC * ShRx * q2z * rt2L * D2 + ShC * ShRz * q2x * rt2L * D2 + ShR * rt2L * q5x * ShCx * D2 - ShR * rt2L * q5y * ShCy * D2) * L6;
                     lK[i + 4 ][j + 16] += temp;
                     lK[j + 16][i + 4 ] += temp;
@@ -1300,7 +1300,6 @@ void assemble_prev_rhs(SpaMtrix::Vector &Ln,
     //#endif
     //int th = 0; // debug thread number
     Mesh &t = *geom.t;
-    const Coordinates &coordinates = geom.getCoordinates();
 #ifndef DEBUG
     #pragma omp parallel for
 #endif

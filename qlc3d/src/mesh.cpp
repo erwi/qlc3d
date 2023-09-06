@@ -523,8 +523,6 @@ void Mesh::removeElements(std::set<idx>& index) {
     RUNTIME_ERROR(fmt::format("Element {} does not exist. Number of elements = {}.", maxIndex, getnElements()));
   }
 
-  unsigned int numKeep = getnElements() - index.size();
-
   std::vector<idx> keepNodes;
   std::vector<idx> keepMaterials;
   std::vector<double> keepDeterminants;
@@ -572,8 +570,6 @@ void Mesh::ClearMesh(){
 }
 
 void Mesh::appendElements(const vector<idx> &nodeValues, const vector<idx> &materialValues) {
-
-    unsigned int oldNumElements = getnElements();
     // CHECK THAT EQUAL SIZE OF MATERIAL NUMBERS AND ELEMENT NODES
     idx nodesPerElem = (unsigned int) this->getnNodes();
     idx numNewElements = nodeValues.size() / nodesPerElem;

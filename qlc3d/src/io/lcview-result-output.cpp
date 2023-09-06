@@ -32,7 +32,9 @@ std::string LcViewResultFormatWriter::numberedMeshName(const SimulationState &si
 
 void LcViewResultFormatWriter::writeMeshIfRequired(const Geometry &geom, const SimulationState &simulationState) {
   std::string numberedMeshName = this->numberedMeshName(simulationState, meshName_);
-  if (simulationState.meshNumber() > lastMeshNumber_|| lastMeshNumber_ == -1) {
+  bool isFirstTime = lastMeshNumber_ == -1;
+  bool isNewMesh = simulationState.meshNumber() > (unsigned int) lastMeshNumber_;
+  if (isFirstTime || isNewMesh) {
     writtenMeshPath_ = outputDirectory / numberedMeshName;
     Log::info("Writing mesh file {}", writtenMeshPath_.string());
     writeMeshFile(geom.getCoordinates(), geom.t.get(), geom.e.get(), geom.getnp(), writtenMeshPath_);
@@ -179,7 +181,7 @@ void LcViewTxtResultFormatWriter::writeTextResultFile(const Coordinates& coordin
     text.append("\n** z Compression Ratio :  1.00000\n");
     text.append(meshFileName + "\n");
     fprintf(fid, "%s", text.c_str()); //** Result Time :    0.00000000\n** z Compression Ratio :  1.00000\nmeshout.txt\n");
-    for (int i = 0; i < np; i++) {
+    for (unsigned int i = 0; i < np; i++) {
       if (i < npLC) {
         const qlc3d::Director &n = dir[i];
         fprintf(fid, LCVIEW_TEXT_FORMAT_STRING, i + 1, n.nx(), n.ny(), n.nz(), v.getValue(i), n.S(), n.S()); // NOTE: same S value is written twice. Should be the two different order parameters, or biaxiality P?

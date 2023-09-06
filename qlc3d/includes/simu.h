@@ -116,12 +116,12 @@ public:
          maxError_(maxError), TargetdQ_(targetDQ),
          dtLimits_{dtLimits[0], dtLimits[1]},
          dtFunction_{dtFunction[0], dtFunction[1], dtFunction[2], dtFunction[3]},
-         endCriterion_(endCriterion), loadQ_(loadQ), saveDir_(saveDir), endValue_(endValue),
+         endCriterion_(endCriterion), loadQ_(loadQ), saveDir_(saveDir), saveDirAbsolutePath_(saveDirAbsolutePath), endValue_(endValue),
          stretchVector_{stretchVector[0], stretchVector[1], stretchVector[2]},
          regularGridSize_{regularGridSize[0], regularGridSize[1], regularGridSize[2]},
          outputEnergy_(outputEnergy), outputFormat_(outputFormat),
          saveIter_(saveIter), saveTime_(saveTime), saveFormat_(saveFormat), numAsseblyThreads_(numAsseblyThreads),
-         numMatrixSolverThreads_(numMatrixSolverThreads), saveDirAbsolutePath_(saveDirAbsolutePath)
+         numMatrixSolverThreads_(numMatrixSolverThreads)
     {}
 
 

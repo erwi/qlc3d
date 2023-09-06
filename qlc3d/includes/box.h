@@ -45,7 +45,7 @@ public:
     /** Set the params vector. Note: this can only be done once */
     void setParams(const std::vector<double> &p);
     /** return the i'th parameted or default if out of range */
-    [[nodiscard]] double getParam(int i, double defaultValue) const;
+    [[nodiscard]] double getParam(unsigned int i, double defaultValue) const;
 
     [[nodiscard]] std::string toString() const;
 };

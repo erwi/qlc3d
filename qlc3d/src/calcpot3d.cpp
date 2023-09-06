@@ -328,9 +328,6 @@ void localKL_N(
     double nx = n.x(), ny = n.y(), nz = n.z(); // interior normal?
     for (i = 0; i < 4; i++) {
       const double ShR  = mul * Sh[i];
-      const double ShRx = mul * dSh[i][0];
-      const double ShRy = mul * dSh[i][1];
-      const double ShRz = mul * dSh[i][2];
 
       // Flexoelectric polarisation terms, minus, since minus residual formed
       lL[i] -= -efe*ShR*( (nx*(q2x + q3y + q5z) + ny*(q3x + q4z - q2y)

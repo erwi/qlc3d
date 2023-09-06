@@ -442,73 +442,61 @@ void expand_periodic_boundaries(vector <Line>& lines, // lines to split
             // horizontal along X and horizontal along Y
 
             // corners A,B,C,D
-            if (litr->isFrontBackCornerLine( &geom ) )
-            {
+            if (litr->isFrontBackCornerLine( &geom )) {
                 // same strategy as for vertical corners c0,c1,c2,c3 above
                 int cc = 0; //corner count
                 double dir[3] = {0,1,0}; // make sure Y matches, allow X and Z shifts
-                if ( find_transl_line(*litr, plines.lcA, geom, dir, lotr ) )
-                {
+                if (find_transl_line(*litr, plines.lcA, geom, dir, lotr )) {
                     newlines.push_back(*lotr);
                     cc++;
                 }
-                if ( find_transl_line(*litr, plines.lcB, geom, dir, lotr ) )
-                {
+                if (find_transl_line(*litr, plines.lcB, geom, dir, lotr )) {
                     newlines.push_back(*lotr);
                     cc++;
                 }
-                if ( find_transl_line(*litr, plines.lcC, geom, dir, lotr ) )
-                {
+                if (find_transl_line(*litr, plines.lcC, geom, dir, lotr )) {
                     newlines.push_back(*lotr);
                     cc++;
                 }
-                if ( find_transl_line(*litr, plines.lcD, geom, dir, lotr ) )
-                {
+                if (find_transl_line(*litr, plines.lcD, geom, dir, lotr )) {
                     newlines.push_back(*lotr);
                     cc++;
                 }
-                if ( cc != 3) {
+                if (cc != 3) {
                     RUNTIME_ERROR("Problem finding periodic front-back corner lines.")
                 }
 
             }// end horizontal corner along y
-            else
-                if ( litr->isLeftRightCornerLine( &geom ) )
-                {
-                    int cc = 0; //corner count
-                    double dir[3] = {1,0,0}; // make sure X matches, allow Y and Z shifts
-                    if ( find_transl_line(*litr, plines.lca, geom, dir, lotr ) )
-                    {
-                        newlines.push_back(*lotr);
-                        cc++;
-                    }
-                    if ( find_transl_line(*litr, plines.lcb, geom, dir, lotr ) )
-                    {
-                        newlines.push_back(*lotr);
-                        cc++;
-                    }
-                    if ( find_transl_line(*litr, plines.lcc, geom, dir, lotr ) )
-                    {
-                        newlines.push_back(*lotr);
-                        cc++;
-                    }
-                    if ( find_transl_line(*litr, plines.lcd, geom, dir, lotr ) )
-                    {
-                        newlines.push_back(*lotr);
-                        cc++;
-                    }
-                    if ( cc != 3) {
-                        RUNTIME_ERROR("Problem finding periodic left-right corner lines.")
-                    }
-                }// end horizontal corner along X
-                RUNTIME_ERROR("Top-bottom periodicity not implemented in mesh refineement yet.");
+            else if (litr->isLeftRightCornerLine( &geom )) {
+                int cc = 0; //corner count
+                double dir[3] = {1,0,0}; // make sure X matches, allow Y and Z shifts
+                if ( find_transl_line(*litr, plines.lca, geom, dir, lotr )) {
+                    newlines.push_back(*lotr);
+                    cc++;
+                }
+                if ( find_transl_line(*litr, plines.lcb, geom, dir, lotr )) {
+                    newlines.push_back(*lotr);
+                    cc++;
+                }
+                if ( find_transl_line(*litr, plines.lcc, geom, dir, lotr )) {
+                    newlines.push_back(*lotr);
+                    cc++;
+                }
+                if ( find_transl_line(*litr, plines.lcd, geom, dir, lotr )) {
+                    newlines.push_back(*lotr);
+                    cc++;
+                }
+                if ( cc != 3) {
+                    RUNTIME_ERROR("Problem finding periodic left-right corner lines.")
+                }
+            }// end horizontal corner along X
+            RUNTIME_ERROR("Top-bottom periodicity not implemented in mesh refinement yet.");
         }// end if top/bottom surface is periodic
     }//end for i loop over each line
 
     // Add newly found periodic lines to bisectable lines and remove repetitions
     lines.insert(lines.end() , newlines.begin() , newlines.end() );
     uniquefy_line_vector( lines );
-
 }
 
 void expand_refinement_region(vector <unsigned int>& i_tet,	// index to tet bisectable lines counts

@@ -16,8 +16,8 @@ class LC {
     double gamma1_;
     // implicit values, calculated from the explicitly set ones
     double L1_, L2_, L3_, L4_, L5_, L6_;
-    double S0_;
     double u1_;
+    double S0_;
 
     double static calculateS0(double A, double B, double C);
     double static calculateL1(double K11, double K22, double K33, double A, double B, double C);
@@ -32,14 +32,14 @@ public:
        double e1, double e3, double gamma1):
     K11_{ K11 }, K22_{ K22 }, K33_{ K33 }, K24_{K24}, p0_{ p0 }, A_{ A }, B_{ B }, C_{ C }, eps_par_{ eps_par }, eps_per_{ eps_per },
     e1_{ e1 }, e3_{ e3 }, gamma1_{ gamma1 },
-    S0_{ LC::calculateS0(A, B, C) },
     L1_{ LC::calculateL1(K11, K22, K33, A, B, C) },
     L2_{ LC::calculateL2(K11, K22, A, B, C) },
     L3_{ LC::calculateL3(K24, A, B, C) },
     L4_{ calculateL4(p0, K22, A, B, C) },
     L5_{ 0 },
     L6_{ calculateL6(K11, K33, A, B, C) },
-    u1_{ calculateU1(gamma1, A, B, C) }
+    u1_{ calculateU1(gamma1, A, B, C) },
+    S0_{ LC::calculateS0(A, B, C) }
     {}
 
     [[nodiscard]] const double & K11() const { return K11_; }

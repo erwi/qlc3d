@@ -125,7 +125,7 @@ namespace vtkIOFun {
         os << "\n";
         os << "POINTS " << coordinates.size() << " float\n";
 
-        for (int i = 0; i < coordinates.size(); i++) {
+        for (unsigned int i = 0; i < coordinates.size(); i++) {
           auto &p = coordinates.getPoint(i);
             os << p.x() << " " << p.y() << " " << p.z() << "\n";
         }
@@ -140,7 +140,7 @@ namespace vtkIOFun {
 
         os << "\n";
         os << "CELLS " << numTetrahedra << " " << arrayLength << "\n";
-        for (int i = 0; i < numTetrahedra; i++) {
+        for (unsigned int i = 0; i < numTetrahedra; i++) {
             size_t n1 = tetrahedra.getNode(i, 0);
             size_t n2 = tetrahedra.getNode(i, 1);
             size_t n3 = tetrahedra.getNode(i, 2);
@@ -153,7 +153,7 @@ namespace vtkIOFun {
         os << "\n";
         os << "CELL_TYPES " << numTetrahedra << "\n";
         const int CELL_TYPE_TETRAHEDRON = 10;
-        for (int i = 0; i < numTetrahedra; i++) {
+        for (unsigned int i = 0; i < numTetrahedra; i++) {
             os << CELL_TYPE_TETRAHEDRON << "\n";
         }
     }
@@ -164,7 +164,7 @@ namespace vtkIOFun {
         os << "SCALARS potential float 1\n";
         os << "LOOKUP_TABLE default\n";
 
-        for (int i = 0; i < numPotentials; i++) {
+        for (unsigned int i = 0; i < numPotentials; i++) {
             os << potentials.getValue(i) << "\n";
         }
     }
@@ -172,13 +172,13 @@ namespace vtkIOFun {
     void UnstructuredGridWriter::writeLiquidCrystal(std::ostream &os, size_t numPoints, size_t numLcPoints, const SolutionVector &q) const {
         os << "\n";
         os << "VECTORS director float" << "\n";
-        for (int i = 0; i < numLcPoints; i++) {
+        for (unsigned int i = 0; i < numLcPoints; i++) {
             qlc3d::Director n = q.getDirector(i);
             os << n.nx() << " " << n.ny() << " " << n.nz() << "\n";
         }
 
         // for dielectric regions, write director with zero length.
-        for (int i = numLcPoints; i < numPoints; i++) {
+        for (unsigned int i = numLcPoints; i < numPoints; i++) {
             os << "0 0 0\n";
         }
 
@@ -186,13 +186,13 @@ namespace vtkIOFun {
         os << "\n";
         os << "SCALARS S float 1\n";
         os << "LOOKUP_TABLE default\n";
-        for (int i = 0; i < numLcPoints; i++) {
+        for (unsigned int i = 0; i < numLcPoints; i++) {
             qlc3d::Director n = q.getDirector(i);
             os << n.S() << "\n";
         }
 
         // for dielectric regions, write S = 1. This makes it easier to find low order regions than using 0
-        for (int i = numLcPoints; i < numPoints; i++) {
+        for (unsigned int i = numLcPoints; i < numPoints; i++) {
             os << "1\n";
         }
     }

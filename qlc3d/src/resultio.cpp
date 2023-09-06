@@ -16,9 +16,8 @@ void ResultIO::writeCsvUnstructured(const Coordinates &coordinates,
         throw std::runtime_error("could not open output file:" + fileName);
     }
 
-    idx stride = v.getnDoF();
     fs << "x, y, z, v, nx, ny, nz" << std::endl;
-    for (int i = 0; i < v.getnDoF(); i++) {
+    for (unsigned int i = 0; i < v.getnDoF(); i++) {
         // TODO: handle dielectric regions where no LC material exists
 
         auto n = qlc3d::TTensor {
