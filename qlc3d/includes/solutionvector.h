@@ -91,7 +91,8 @@ assert(n< getnDoF()*getnDimensions());
     void setValue(const idx n,const idx dim, const double val);// sets nth value of dimension dim to val
     void setToFixedValues();
     void setFixedNodesQ(const Alignment &alignment, const Mesh &e);
-    void setFixedNodesPot(Electrodes* electrodes);
+    /** Set the potential at the given electrode nodes to the given potential value. */
+    void setFixedNodesPot(const std::unordered_map<unsigned int, double> &potentialsByElectrode);
     void allocateFixedNodesArrays(Geometry& geom); // ALLOCATES FIXED NODE ARRAYS FOR POTENTIAL.
     void Resize(const unsigned int& n, const unsigned int& dim = 1); // resizes Values data, clears all data
     void ClearAll();

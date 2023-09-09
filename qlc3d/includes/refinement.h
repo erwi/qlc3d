@@ -99,7 +99,7 @@ bool autoref(Geometry& geom_orig,
              Simu& simu,
              SimulationState &simulationState,
              Alignment& alignment,
-             Electrodes& electrodes,
+             const Electrodes& electrodes,
              double S0);
 
 // Checks for maximum dq within an element, as specified in meshrefinement.

@@ -1,10 +1,66 @@
 #include <electrodes.h>
-#include <algorithm>
 #include <util/exception.h>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
+#include <geom/vec3.h>
+#include <util/logging.h>
+#include <eventlist.h>
+#include <algorithm>
 
 // SET MAGIC CONSTANT FOR INDICATING UNIFORM ELECTRIC FIELD
 const size_t SwitchingInstance::UNIFORM_E_FIELD = numeric_limits<size_t>::max();
+
+Electrode::Electrode(unsigned int electrodeNumber, std::vector<double> times, std::vector<double> potentials) {
+  this->electrodeNumber = electrodeNumber;
+
+  if (times.size() != potentials.size()) {
+    throw std::runtime_error(fmt::format("Number of times ({}) and potentials ({}) do not match for electrode {}.", times.size(), potentials.size(), electrodeNumber));
+  }
+
+  if (times.empty()) {
+    this->times = {0};
+    this->potentials = {0};
+  } else if (times[0] > 0) { // make sure we have a default potential and time for start time 0
+    Log::warn("No potential defined for electrode {} at time 0. Adding default potential 0.", electrodeNumber);
+    this->times = {0};
+    this->potentials = {0};
+  }
+
+  if (!std::is_sorted(times.begin(), times.end())) {
+    throw std::runtime_error(fmt::format("Times for electrode {} are not sorted.", electrodeNumber));
+  }
+
+  for (auto t : times) { this->times.push_back(t); }
+  for (auto p : potentials) { this->potentials.push_back(p); }
+}
+
+double Electrode::getPotentialAtTime(double queryTime) const {
+  if (queryTime < 0) {
+    RUNTIME_ERROR(fmt::format("Trying to access electrode potential at time {}.", queryTime));
+  }
+
+  // find index to first switching time equal or larger than provided time
+  auto itr = times.rbegin();
+  int ind = times.size() - 1;
+  while (itr != times.rend()) {
+    if (*itr <= queryTime) {
+      return potentials[ind];
+    }
+    ind--;
+    itr++;
+  }
+  RUNTIME_ERROR(fmt::format("Trying to access electrode potential at time {} when only potentials for times {} exist.", queryTime, times));
+}
+
+std::vector<Event*> Electrode::createSwitchingEvents() const {
+  std::vector<Event*> events;
+  for (double time : times) {
+    SwitchingInstance* si = new SwitchingInstance(time, getPotentialAtTime(time), electrodeNumber);
+
+    events.emplace_back(new Event(EVENT_SWITCHING, time, si));
+  }
+  return events;
+}
 
 //===========================================================
 //
@@ -12,13 +68,17 @@ const size_t SwitchingInstance::UNIFORM_E_FIELD = numeric_limits<size_t>::max();
 //
 //
 
-Electrodes::Electrodes():nElectrodes(0) {
+Electrodes::Electrodes() {
     eps_dielectric.push_back(1.0);
-    EField[0] = 0.0;
-    EField[1] = 0.0;
-    EField[2] = 0.0;
 }
-Electrodes::~Electrodes() { }
+
+std::shared_ptr<Electrodes> Electrodes::withInitialPotentials(std::vector<unsigned int> electrodeNumber, std::vector<double> potential) {
+  std::vector<std::shared_ptr<Electrode>> electrodes;
+  for (unsigned int i = 0; i < electrodeNumber.size(); i++) {
+    electrodes.emplace_back(std::shared_ptr<Electrode>(new Electrode(electrodeNumber[i], {0}, {potential[i]})));
+  }
+  return std::make_shared<Electrodes>(electrodes);
+}
 
 double Electrodes:: getDielectricPermittivity(int i) const {
 	if (i < (int) eps_dielectric.size() )
@@ -28,10 +88,9 @@ double Electrodes:: getDielectricPermittivity(int i) const {
     }
 }
 
-
 bool Electrodes::getCalcPot() const {
 /*! Returns whether potential calculations are necessary */
-    if (isEField()) { // if have fixed E-field
+    if (hasElectricField()) { // if have fixed E-field
         return false;
     }
     if (0 == getnElectrodes()) { // if have no electrodes
@@ -41,46 +100,36 @@ bool Electrodes::getCalcPot() const {
     return true;
 }
 
-bool Electrodes::isEField() const {
-    // CHECKS WHETHER UNIFORM E-FIELD HAS BEEN DEFINED
-    if ( ( this->EField[0]!= 0.0) ||
-         ( this->EField[1]!= 0.0) ||
-         ( this->EField[2]!= 0.0) )
-        return true;
-    else
-        return false;
-}
-void Electrodes::setEField(std::vector<double> const &vec3) {
-    if (vec3.size() != 3) {
-        RUNTIME_ERROR(fmt::format("Specified electric field must have 3 components, got {}."))
-    }
-    this->EField[0] = vec3[0];
-    this->EField[1] = vec3[1];
-    this->EField[2] = vec3[2];
+bool Electrodes::hasElectricField() const {
+  return electricField != nullptr;
 }
 
-void Electrodes::setElectrodePotential(const size_t &electrodeNumber, const double &potentialValue) {
-/*! SETS THE CURRENT POTENTIAL OF ELECTRODE electrodeNumbe TO VALUE potentialValue */
-    if (electrodeNumber >= getnElectrodes()) {
-        RUNTIME_ERROR(fmt::format("Electrode {} does not exist.", electrodeNumber + 1));
+Vec3 Electrodes::getElectricField() const {
+    if (!hasElectricField()) {
+        RUNTIME_ERROR("No uniform E-field has been defined.");
     }
-    currentElectrodePotentials[electrodeNumber] = potentialValue;
+    return {electricField->x(), electricField->y(), electricField->z()};
 }
 
-double Electrodes::getCurrentElectrodePotential(const size_t &eNum) const {
-// RETURNS THE CURRENT POTENTIAL OF ELECTRODE eln
-    if ( eNum >= getnElectrodes() ) {
-        RUNTIME_ERROR(fmt::format("Can't find potential for electrode {}. Potentials have been specified only "
-                                  "for {} electrodes.", eNum + 1, getnElectrodes()));
-    }
-    return currentElectrodePotentials[eNum];
+std::unordered_map<unsigned int, double> Electrodes::getCurrentPotentials(double currentTime) const {
+  std::unordered_map<unsigned int, double> currentPotentials;
+
+  for (auto &e : electrodeMap) {
+    currentPotentials[e.first] = e.second->getPotentialAtTime(currentTime);
+  }
+
+  return currentPotentials;
 }
 
-void Electrodes::setnElectrodes(const size_t &numE) {
-    if (nElectrodes != 0) {
-        RUNTIME_ERROR("num electrodes already set to " + std::to_string(nElectrodes));
-    }
+std::vector<Event*> Electrodes::createSwitchingEvents() const {
+  std::vector<Event*> events;
 
-    currentElectrodePotentials.resize(numE, 0.0);
-    nElectrodes = numE;
+  for (auto &e : electrodeMap) {
+    auto electrodeEvents = e.second->createSwitchingEvents();
+    for (auto &ev : electrodeEvents) {
+      events.push_back(ev);
+    }
+  }
+
+  return events;
 }

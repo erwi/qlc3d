@@ -161,7 +161,7 @@ bool autoref(Geometry &geom_orig,
              Simu &simu,
              SimulationState &simulationState,
              Alignment &alignment,
-             Electrodes &electrodes,
+             const Electrodes &electrodes,
              double S0) {
     bool bRefined{false};   // indicates whether mesh is changed or not
     unsigned int refiter{0};         // refinement iteration counter
@@ -216,8 +216,8 @@ bool autoref(Geometry &geom_orig,
     v.Resize(geom_temp.getnp() , 1);
     v.allocateFixedNodesArrays(geom_temp);
     v.setPeriodicEquNodes(geom_temp);
-    v.setFixedNodesPot(&electrodes);
-    v.setToFixedValues();
+    v.setFixedNodesPot(electrodes.getCurrentPotentials(simulationState.currentTime()));
+
     // REALLOCATE Q-TENSOR
     qn = q; // temp swap
     q.Resize(geom_temp.getnpLC(), 5);       // ALLOCATE FOR NEW MESH SIZE

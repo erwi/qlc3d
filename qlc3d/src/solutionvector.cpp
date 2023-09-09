@@ -242,19 +242,26 @@ void SolutionVector::allocateFixedNodesArrays(Geometry &geom) {
     setBooleanFixedNodeList();  // SET BOOLEAN FLAGS
 }
 
-void SolutionVector::setFixedNodesPot(Electrodes *electrodes) {
-    // SETS VALUES IN FixedValues
-    if (electrodes->isEField()) { // DON'T DO ANYTHING IF UNIFORM E-FIELD DEFINED
-      return;
+void SolutionVector::setFixedNodesPot(const std::unordered_map<unsigned int, double> &potentialsByElectrode) {
+  if (fixedNodes.empty()) {
+      RUNTIME_ERROR("no fixed nodes defined");
+  }
+    for (const auto& [electrodeNumber, potential] : potentialsByElectrode) {
+    Log::info("Setting Electrode{} nodes to potential {}", electrodeNumber, potential);
+  }
+
+  if (fixedNodes.size() != fixedValues.size()) {
+    RUNTIME_ERROR(fmt::format("fixedNodes.size() ({}) != fixedValues.size() ({})", fixedNodes.size(), fixedValues.size()));
+  }
+
+  for (idx i = 0; i < nFixed; i++) {
+    int mat = fixedNodeMaterial.at(i); // Get material number for ith fixed node
+    size_t electrodeNumber = MATNUM_TO_ELECTRODE_NUMBER((size_t) mat); // greater or equal to 1 if electrode, i.e. 0 if not electrode
+    if (electrodeNumber > 0) {
+      fixedValues.at(i) = potentialsByElectrode.at(electrodeNumber);
+      values[fixedNodes[i]] = fixedValues[i];
     }
-    for (idx i = 0 ; i < nFixed ; i++) {
-        int mat = fixedNodeMaterial.at(i); // GET MATERIAL NUMBER FOR ith FIXED NODE
-        size_t indE = MATNUM_TO_ELECTRODE_NUMBER((size_t) mat);
-        if (indE) {
-            double pot = electrodes->getCurrentElectrodePotential(indE - 1);
-            fixedValues.at(i) = pot;
-        }
-    }
+  }
 }
 
 void SolutionVector::setBooleanFixedNodeList() {

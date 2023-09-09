@@ -5,6 +5,7 @@
 #include <util/exception.h>
 #include <filesystem>
 #include <io/result-output.h>
+#include <potential/potential-solver.h>
 
 namespace fs = std::filesystem;
 
@@ -40,10 +41,15 @@ int runSimulation(Configuration &configuration) {
     try {
         configuration.readSettings();
 
-        auto simu = configuration.simu();
-        ResultOutput resultOutput(simu->getSaveFormat(), simu->meshName(), configuration.lc()->S0(), simu->getSaveDirAbsolutePath());
+        auto simu = configuration.getSimu();
+        auto electrodes = configuration.getElectrodes();
+        auto lc = configuration.getLC();
+        auto solverSettings = configuration.getSolverSettings();
 
-        SimulationContainer simulation(configuration, resultOutput);
+        ResultOutput resultOutput(simu->getSaveFormat(), simu->meshName(), lc->S0(), simu->getSaveDirAbsolutePath());
+        std::shared_ptr<PotentialSolver> potentialSolver = std::make_shared<PotentialSolver>(electrodes, lc, solverSettings);
+
+        SimulationContainer simulation(configuration, resultOutput, potentialSolver);
         Log::clearIndent();
         Log::info("Initialising.");
         Log::incrementIndent();

@@ -3,44 +3,44 @@
 #include <configuration.h>
 #include <simu.h>
 #include <electrodes.h>
-#include <lc.h>
-
 #include <box.h>
 #include <alignment.h>
 #include <meshrefinement.h>
 #include <regulargrid.h>
 #include <resultio.h>
-
 #include <qlc3d.h>
 #include <inits.h>
-#include <calcpot3d.h> // TODO: create PotentialSolver class?
 #include <eventhandler.h>
 #include <util/logging.h>
 #include <util/exception.h>
+#include <util/stringutil.h>
 #include <io/result-output.h>
+#include <potential/potential-solver.h>
+
 #include <geom/vec3.h>
 #include <spamtrix_ircmatrix.hpp>
 #include <util/stringutil.h>
 
 namespace fs = std::filesystem;
 
-SimulationContainer::SimulationContainer(Configuration &config, ResultOutput &resultOut) :
+SimulationContainer::SimulationContainer(Configuration &config, ResultOutput &resultOut, std::shared_ptr<PotentialSolver> potentialSolver) :
         configuration(config),
         resultOutput(resultOut),
-        electrodes(new Electrodes()),
+        potentialSolver(potentialSolver),
+        electrodes(nullptr),
         boxes(new Boxes()),
         alignment(new Alignment()),
         regGrid(new RegularGrid()),
-        eventList(new EventList()),
-        settings(new Settings()) {
+        eventList(new EventList()) {
 
     Energy_fid = nullptr;
 }
 
 void SimulationContainer::initialise() {
     simulationState_.state(RunningState::INITIALISING);
-    simu = configuration.simu();
-    lc = configuration.lc();
+    simu = configuration.getSimu();
+    lc = configuration.getLC();
+    electrodes = configuration.getElectrodes();
     // CHANGE CURRENT DIR TO WORKING DIRECTORY
     std::error_code ec;
     fs::current_path(configuration.currentDirectory(), ec);
@@ -70,14 +70,13 @@ void SimulationContainer::initialise() {
     eventList->setSaveTime(simu->getSaveTime());
 
     createMeshRefinementEvents(*configuration.refinement(), *eventList);
+    createElectrodeSwitchingEvents(*electrodes, *eventList);
 
     // read missing configuration from file. TODO: all parameters to be provided in Configuration, they should not be read in here
     ReadSettings(configuration.settingsFile(),
                  *boxes,
                  *alignment,
-                 *electrodes,
-                 *eventList,
-                 *settings);
+                 *eventList);
 
     simulationState_.change(0);
     simulationState_.currentTime(0);
@@ -147,10 +146,6 @@ void SimulationContainer::initialise() {
     solutionVectors.qn = &qn;
     solutionVectors.v = &v;
 
-    // Make matrices for potential and Q-tensor...
-    Log::info("Creating sparse matrix for potential");
-    Kpot = createPotentialMatrix(geom1, v, 0, *electrodes);
-
     Log::info("Creating matrix for Q-tensor");
     Kq = createQMatrix(geom1, q, MAT_DOMAIN1);
     //********************************************************************
@@ -169,10 +164,9 @@ void SimulationContainer::initialise() {
                         geometries,
                         solutionVectors,
                         *lc,
-                        *settings,
-                        Kpot,
                         Kq,
-                        resultOutput);
+                        resultOutput,
+                        *potentialSolver);
 
     simulationState_.currentIteration(1);
     simulationState_.currentTime(0);
@@ -251,10 +245,9 @@ void SimulationContainer::runIteration() {
                  geometries,
                  solutionVectors,
                  *lc,
-                 *settings,
-                 Kpot,
                  Kq,
-                 resultOutput);
+                 resultOutput,
+                 *potentialSolver);
 
     // TODO: should this be done together with incrementing time?
     simulationState_.currentIteration(simulationState_.currentIteration() + 1);
@@ -262,16 +255,6 @@ void SimulationContainer::runIteration() {
 
 void SimulationContainer::postSimulationTasks() {
     simulationState_.state(RunningState::COMPLETED);
-
-    /*
-    handleResultOutput(simulationState_,
-                       *simu.get(),
-                       lc->S0(),
-                       *geometries.geom,
-                       v,
-                       q);
-*/
-
     resultOutput.writeResults(*geometries.geom, v, q, simulationState_);
 }
 
@@ -281,16 +264,15 @@ const SimulationState &SimulationContainer::currentState() const {
 
 double SimulationContainer::updateSolutions() {
     double maxdq = 0;
+    potentialSolver->solvePotential(v, q, geom1);
+    int QSolver = configuration.getSolverSettings()->getQ_Solver();
 
-    calcpot3d(Kpot, &v, &q, *lc.get(), geom1, settings.get(), electrodes.get());
-
-    int QSolver = settings->getQ_Solver();
     switch (QSolver) {
         case Q_Solver_PCG: // TODO: cleanup. Exactly same calcQ3d function is called in both cases.
-            maxdq = calcQ3d(&q, &qn, &v, geom1, lc.get(), simu.get(), simulationState_, Kq, settings.get(), alignment.get());
+            maxdq = calcQ3d(&q, &qn, &v, geom1, lc.get(), simu.get(), simulationState_, Kq, configuration.getSolverSettings().get(), alignment.get());
             break;
         case Q_Solver_GMRES:
-            maxdq = calcQ3d(&q, &qn, &v, geom1, lc.get(), simu.get(), simulationState_, Kq, settings.get(), alignment.get());
+            maxdq = calcQ3d(&q, &qn, &v, geom1, lc.get(), simu.get(), simulationState_, Kq, configuration.getSolverSettings().get(), alignment.get());
             break;
         case Q_Solver_Explicit:
             RUNTIME_ERROR("Q_Solver_Explicit is not implemented yet.");

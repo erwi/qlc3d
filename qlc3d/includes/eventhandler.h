@@ -7,8 +7,7 @@
 #include <simu.h>
 #include <meshrefinement.h>
 #include <lc.h>
-#include <settings.h>
-#include <calcpot3d.h>
+#include <solver-settings.h>
 #include <resultio.h>
 
 // SPAMTRIX FORWARD DECLARATIONS
@@ -17,6 +16,7 @@ class IRCMatrix;
 }
 class SimulationState;
 class ResultOutput;
+class PotentialSolver;
 // CONVENIENCE STRUCT WITH POINTERS TO THE DIFFERENT GEOMETRY OBJECTS
 // NEEDED IN MESH REFINEMENT.
 struct Geometries {
@@ -38,17 +38,16 @@ void setElectrodePotentials(EventList &evel,
                             Simu &simu);
 
 void handleInitialEvents(SimulationState &simulationState,
-                         EventList &evel,
+                         EventList &eventList,
                          Electrodes &electr,
                          Alignment &alignment,
                          Simu &simu,
                          Geometries &geometries,
                          SolutionVectors &solutionvectors,
                          const LC &lc,
-                         Settings &settings,
-                         SpaMtrix::IRCMatrix &Kpot,
                          SpaMtrix::IRCMatrix &Kq,
-                         ResultOutput &resultOutput);
+                         ResultOutput &resultOutput,
+                         PotentialSolver &potentialSolver);
 
 void handleEvents(EventList &evel,
                   Electrodes &electr,
@@ -58,12 +57,12 @@ void handleEvents(EventList &evel,
                   Geometries &geometries,
                   SolutionVectors &solutionvectors,
                   const LC &lc,
-                  Settings &settings,
-                  SpaMtrix::IRCMatrix &Kpot,
                   SpaMtrix::IRCMatrix &Kq,
-                  ResultOutput &resultOutput);
+                  ResultOutput &resultOutput,
+                  PotentialSolver &potentialSolver);
 
-void handleMeshRefinement(std::list<Event *> &refEvents,
+/** return true/false depending on whether mesh was refined or not */
+bool handleMeshRefinement(std::list<Event *> &refEvents,
                           Geometries &geometries,
                           SolutionVectors &solutionvectors,
                           Simu &simu,
@@ -71,7 +70,6 @@ void handleMeshRefinement(std::list<Event *> &refEvents,
                           Alignment &alignment,
                           Electrodes &electrodes,
                           double S0,
-                          SpaMtrix::IRCMatrix &Kpot,
                           SpaMtrix::IRCMatrix &Kq);
 
 void handlePreRefinement(std::list<Event *> &refEvents,
@@ -82,7 +80,6 @@ void handlePreRefinement(std::list<Event *> &refEvents,
                          Alignment &alignment,
                          Electrodes &electrodes,
                          double S0,
-                         SpaMtrix::IRCMatrix &Kpot,
                          SpaMtrix::IRCMatrix &Kq);
 
 /*

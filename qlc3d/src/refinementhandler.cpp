@@ -7,7 +7,7 @@
 
 #include <spamtrix_ircmatrix.hpp>
 
-void handleMeshRefinement(std::list<Event*>& refEvents,
+bool handleMeshRefinement(std::list<Event*>& refEvents,
                           Geometries& geometries,
                           SolutionVectors& solutionvectors,
                           Simu& simu,
@@ -15,9 +15,7 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
                           Alignment& alignment,
                           Electrodes& electrodes,
                           double S0,
-                          SpaMtrix::IRCMatrix &Kpot,
-                          SpaMtrix::IRCMatrix &Kq)
-{
+                          SpaMtrix::IRCMatrix &Kq) {
     Log::info("Doing {} mesh refinements.", refEvents.size());
 
     // MAKE LIST OF ALL REFINFO OBJECTS THAT ARE HANDLES NOW
@@ -50,15 +48,10 @@ void handleMeshRefinement(std::list<Event*>& refEvents,
     // IF MESH HAS BEEN REFINED NEED TO RECREATE MATRIXES
     // FOR Q-TENSOR AND POTENTIAL
     if (isRefined){
-        Log::info("Creating new matrices for potential and Q-tensor solutions.");
-
-        Kpot = createPotentialMatrix(*geometries.geom,
-                                     *solutionvectors.v,
-                                     0,
-                                     electrodes);
-
+        Log::info("Creating new matrix for potential Q-tensor solutions.");
         Kq = createQMatrix(*geometries.geom, *solutionvectors.q);
     }
+    return isRefined;
 }
 
 
@@ -70,7 +63,6 @@ void handlePreRefinement(std::list<Event*>& refEvents,
                          Alignment& alignment,
                          Electrodes& electrodes,
                          double S0,
-                         SpaMtrix::IRCMatrix &Kpot,
                          SpaMtrix::IRCMatrix &Kq)
 {
 // PRE REFINMENT MODIFICATIONS TO THE MESH CARRY THROUGH THE
@@ -87,7 +79,6 @@ void handlePreRefinement(std::list<Event*>& refEvents,
                          alignment,
                          electrodes,
                          S0,
-                         Kpot,
                          Kq);
     // "ORIGINAL" MESH IS MODIFIED
     geometries.geom_orig->setTo( geometries.geom );

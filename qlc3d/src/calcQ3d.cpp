@@ -37,7 +37,7 @@ void solve_QTensor(SpaMtrix::IRCMatrix &K,
                    SpaMtrix::Vector &b,
                    SpaMtrix::Vector &x,
                    const Simu &simu,
-                   const Settings &settings,
+                   const SolverSettings &settings,
                    const LC &lc) {
     SpaMtrix::DiagPreconditioner M(K);
     // Iterative solvers' settings...
@@ -119,7 +119,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
                Simu* simu,
                SimulationState &simulationState,
                SpaMtrix::IRCMatrix &K,
-               Settings* settings,
+               SolverSettings* settings,
                Alignment* alignment) {
     const idx numCols = K.getNumCols();
     double maxdq = 10;

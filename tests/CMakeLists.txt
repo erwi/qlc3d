@@ -11,17 +11,18 @@ add_subdirectory(testutil)
 add_executable(cpp-test
         cpp/cpp-test.cpp
         cpp/configuration-tests.cpp
-        cpp/io/meshio-tests.cpp
         cpp/math-tests.cpp
+        cpp/meshrefinement-test.cpp
+        cpp/initial-lc-orientation-tests.cpp
+        cpp/init-events-tests.cpp
+        cpp/io/meshio-tests.cpp
         cpp/io/reader-test.cpp
         cpp/io/vtk-unstructured-grid-writer-tests.cpp
         cpp/io/gmsh-read-test.cpp
         cpp/io/meshreader-test.cpp
-        cpp/init-events-tests.cpp
-        cpp/meshrefinement-test.cpp
-        cpp/initial-lc-orientation-tests.cpp
         cpp/io/result-output-test.cpp
-        cpp/geom/geom-tests.cpp)
+        cpp/geom/geom-tests.cpp
+        cpp/potential/potential-solver-test.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 

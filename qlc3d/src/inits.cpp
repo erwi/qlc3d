@@ -160,3 +160,12 @@ void createMeshRefinementEvents(const MeshRefinement &meshRefinement,
         }
     }
 }
+
+void createElectrodeSwitchingEvents(const Electrodes &electrodes,
+                                    EventList &eventListOut) {
+  // pass ownership of event to eventlist
+  std::vector<Event*> events = electrodes.createSwitchingEvents();
+  for (auto event : events) {
+    eventListOut.insertTimeEvent(event);
+  }
+}

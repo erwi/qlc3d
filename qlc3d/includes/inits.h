@@ -2,6 +2,7 @@
 #define PROJECT_QLC3D_INITS_H
 #include <vector>
 #include <filesystem>
+#include <geom/vec3.h>
 
 class Geometry;
 class Coordinates;
@@ -41,4 +42,7 @@ void setStrongSurfacesQ(SolutionVector &q, const Alignment &alignment, double S0
  */
 void createMeshRefinementEvents(const MeshRefinement &refinement,
                                 EventList &eventListOut);
+
+void createElectrodeSwitchingEvents(const Electrodes &electrodes,
+                                    EventList &eventListOut);
 #endif //PROJECT_QLC3D_INITS_H

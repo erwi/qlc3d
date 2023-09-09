@@ -1,4 +1,4 @@
-#include <settings.h>
+#include <solver-settings.h>
 #include <simu.h>
 #include <spamtrix_ircmatrix.hpp>
 #include <spamtrix_vector.hpp>

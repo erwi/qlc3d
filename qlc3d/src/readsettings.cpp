@@ -113,6 +113,7 @@ void readAlignment(Alignment& alignment, Reader& reader) {
 } //end void readAlignment
 
 
+// TODO: this will be deleted
 void readElectrodes(Electrodes &electrodes,
                     EventList &evli,
                     Reader &reader) {
@@ -157,11 +158,11 @@ void readElectrodes(Electrodes &electrodes,
             evli.insertTimeEvent(event);
         }
     }// end for electrodeNumber
-    electrodes.setnElectrodes(numElectrodes);
+    //electrodes.setnElectrodes(numElectrodes);
     //
     // Read uniform bulk E-fields here
     if (reader.containsKey(SFK_E_FIELD)) {
-        electrodes.setEField(reader.get<vector<double>>());
+      //  electrodes.setEField(reader.get<vector<double>>());
         // A dummy switching event at time 0 is needed for uniform E-fields.
         // TODO: make this a part of the Event class
         Event *swEvent = new Event(EVENT_SWITCHING , 0.0);
@@ -172,8 +173,8 @@ void readElectrodes(Electrodes &electrodes,
     }
     //
     // Read dielectric permittivities
-    if (reader.containsKey(SFK_EPS_DIELECTRIC))
-        electrodes.eps_dielectric = reader.get<vector<double>>();
+    //if (reader.containsKey(SFK_EPS_DIELECTRIC))
+    //    electrodes.eps_dielectric = reader.get<vector<double>>();
     // Finally set internal flags when all other settings are done
     // electrodes.setImplicitVariables();
 }
@@ -259,7 +260,7 @@ void readRefinement(Reader &reader,
     }// end for event numbers
 } // end readRefinement
 
-void readSolverSettings(Settings &settings, Reader &reader) {
+void readSolverSettings(SolverSettings &settings, Reader &reader) {
     if (reader.containsKey(SFK_NUM_ASSEMBLY_THREADS))
         settings.setnThreads(reader.get<int>());
     if (reader.containsKey(SFK_Q_SOLVER))
@@ -270,7 +271,7 @@ void readSolverSettings(Settings &settings, Reader &reader) {
         settings.setQ_Newton_Panic_Iter(reader.get<int>());
     if (reader.containsKey(SFK_Q_NEWTON_PANIC_COEFF))
         settings.setQ_Newton_Panic_Coeff(reader.get<double>());
-    if (reader.containsKey(SFK_Q_PCG_PECONDITIONER))
+    if (reader.containsKey(SFK_Q_PCG_PRECONDITIONER))
         settings.setQ_PCG_Preconditioner(reader.get<int>());
     if (reader.containsKey(SFK_Q_PCG_MAXITER))
         settings.setQ_PCG_Maxiter(reader.get<int>());
@@ -304,9 +305,7 @@ void readSolverSettings(Settings &settings, Reader &reader) {
 void ReadSettings(const std::filesystem::path &settingsFileName,
                   Boxes &boxes,
                   Alignment &alignment,
-                  Electrodes &electrodes,
-                  EventList &eventList,
-                  Settings &settings) {
+                  EventList &eventList) {
     Reader reader;
     reader.setCaseSensitivity(false);
     reader.setEnvironmentVariableSubstitution(true);
@@ -318,9 +317,8 @@ void ReadSettings(const std::filesystem::path &settingsFileName,
         // TODO: work in progress, removing all the reading in this file and pass in the config objects to the app
         // as arguments
         readBoxes(boxes, reader);
-        readSolverSettings(settings, reader);
         readAlignment(alignment, reader);
-        readElectrodes( electrodes, eventList, reader);
+        //readElectrodes( electrodes, eventList, reader);
     } catch (ReaderError e) {
         e.printError();
     }

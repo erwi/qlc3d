@@ -5,6 +5,7 @@
 #include <geom/vec3.h>
 #include <inits.h>
 #include <test-util.h>
+#include <memory>
 
 const double MARGIN = 1e-12;
 
@@ -81,8 +82,11 @@ TEST_CASE("Initial LC surface orientations") {
   auto simu = std::unique_ptr<Simu>(SimuBuilder().build());
   auto lc = std::unique_ptr<LC>(LCBuilder().build());
   Boxes boxes; // volume orientations - leave empty, don't care in this test
-  Electrodes electrodes;
-  electrodes.setnElectrodes(2);
+
+  std::vector<std::shared_ptr<Electrode>> el;
+  el.push_back(std::make_shared<Electrode>(1, std::vector<double>(), std::vector<double>()));
+  el.push_back(std::make_shared<Electrode>(2, std::vector<double>(), std::vector<double>()));
+  Electrodes electrodes(el);
 
   prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, {1, 1, 1});
   SolutionVector q(geom.getnpLC(), 5);

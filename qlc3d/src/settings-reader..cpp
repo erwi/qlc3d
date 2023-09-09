@@ -5,7 +5,10 @@
 #include <utility>
 #include <cassert>
 #include <set>
-#include "electrodes.h"
+#include <electrodes.h>
+#include <geom/vec3.h>
+#include "solver-settings.h"
+
 
 SettingsReader::SettingsReader(const std::filesystem::path &fileName):
 fileName_(fileName),
@@ -32,11 +35,12 @@ void SettingsReader::read() {
         //readSimu(simu, eventList,reader);
         //readLC(lc, reader);
         //readBoxes(boxes, reader);
-        //readSolverSettings(settings, reader);
+
         //readAlignment(alignment, reader);
-        //readElectrodes( electrodes, eventList, reader);
+        readElectrodes( reader);
         //readRefinement(reader, eventList);
         readRefinement(reader);
+        readSolverSettings(reader);
     } catch (ReaderError &e) {
         e.printError();
         throw e;
@@ -58,6 +62,16 @@ std::unique_ptr<MeshRefinement> SettingsReader::refinement() {
     return std::move(meshRefinement_);
 }
 
+std::unique_ptr<Electrodes> SettingsReader::electrodes() {
+    assert(electrodes_ != nullptr);
+    return std::move(electrodes_);
+}
+
+std::unique_ptr<SolverSettings> SettingsReader::solverSettings() {
+    assert(solverSettings_ != nullptr);
+    return std::move(solverSettings_);
+}
+
 // <editor-fold desc="Private Methods">
 void SettingsReader::assertTrue(bool condition, const std::string &errorMsg) {
     if (!condition) {
@@ -65,9 +79,15 @@ void SettingsReader::assertTrue(bool condition, const std::string &errorMsg) {
     }
 }
 
-// reader reads optional value by given key. if a value is present, the consumer accepts it.
+/** reader reads optional value by given key. if a value is present, the consumer accepts it. */
 void readDouble(Reader &r, const std::string& key, std::function<void(double)> consumer) {
     if (auto v = r.getOptional<double>(key)) {
+        consumer(v.value());
+    }
+}
+
+void readInt(Reader &r, const std::string& key, std::function<void(int)> consumer) {
+    if (auto v = r.getOptional<int>(key)) {
         consumer(v.value());
     }
 }
@@ -145,6 +165,35 @@ void SettingsReader::readLC(Reader &reader) {
     lc_.reset(builder.build());
 }
 
+void SettingsReader::readElectrodes(Reader &reader) {
+
+  std::vector<double> eField = reader.getOptional<std::vector<double>>("efield").value_or(vector<double>());
+  assertTrue(eField.size() == 0 || eField.size() == 3, "Unexpected number of components in EField. Expected 3.");
+  std::shared_ptr<Vec3> eFieldVec;
+  if (eField.size() == 3) {
+    eFieldVec = std::make_shared<Vec3>(eField[0], eField[1], eField[2]);
+  }
+
+  std::vector<std::shared_ptr<Electrode>> electrodesVector;
+  for (unsigned int i = 1; i <= 99; i++) {
+    std::string switchingTimesKey = "e" + std::to_string(i) + ".time";
+    std::string switchingValuesKey = "e" + std::to_string(i) + ".pot";
+
+    auto maybeTimes = reader.getOptional<vector<double>>(switchingTimesKey);
+    auto maybePots = reader.getOptional<vector<double>>(switchingValuesKey);
+
+    auto times = maybeTimes.value_or(vector<double>());
+    auto pots = maybePots.value_or(vector<double>());
+    assertTrue(times.size() == pots.size(), "Electrode " + std::to_string(i) + " has different number of switching times and potentials");
+
+    if (!times.empty()) {
+      std::shared_ptr<Electrode> electrodePtr = std::make_shared<Electrode>(i, times, pots);
+      electrodesVector.emplace_back(electrodePtr);
+    }
+  }
+  electrodes_ = std::make_unique<Electrodes>(electrodesVector, eFieldVec);
+}
+
 void SettingsReader::readRefinement(Reader &reader) {
     using namespace std;
 
@@ -180,6 +229,33 @@ void SettingsReader::readRefinement(Reader &reader) {
         }
     }
     meshRefinement_->setRefinementConfig(std::move(refinement));
+}
+
+void SettingsReader::readSolverSettings(Reader &reader) {
+  // read all solver settings
+  solverSettings_ = std::make_unique<SolverSettings>();
+  readInt(reader, SFK_NUM_ASSEMBLY_THREADS, [&](int v) { solverSettings_->setnThreads(v); });
+
+  readInt(reader, SFK_Q_SOLVER, [&](int v) { solverSettings_->setQ_Solver(v); });
+  readInt(reader, SFK_Q_NEWTON_PANIC_ITER, [&](int v) { solverSettings_->setQ_Newton_Panic_Iter(v); });
+  readDouble(reader, SFK_Q_NEWTON_PANIC_COEFF, [&](double v) { solverSettings_->setQ_Newton_Panic_Coeff(v); });
+  readInt(reader, SFK_Q_PCG_PRECONDITIONER, [&](int v) { solverSettings_->setQ_PCG_Preconditioner(v); });
+  readInt(reader, SFK_Q_PCG_MAXITER, [&](int v) { solverSettings_->setQ_PCG_Maxiter(v); });
+  readDouble(reader, SFK_Q_PCG_TOLER, [&](double v) { solverSettings_->setQ_PCG_Toler(v); });
+  readInt(reader, SFK_Q_GMRES_PRECONDITIONER, [&](int v) { solverSettings_->setQ_GMRES_Preconditioner(v); });
+  readInt(reader, SFK_Q_GMRES_MAXITER, [&](int v) { solverSettings_->setQ_GMRES_Maxiter(v); });
+  readInt(reader, SFK_Q_GMRES_RESTART, [&](int v) { solverSettings_->setQ_GMRES_Restart(v); });
+  readDouble(reader, SFK_Q_GMRES_TOLER, [&](double v) { solverSettings_->setQ_GMRES_Toler(v); });
+
+  readInt(reader, SFK_V_SOLVER, [&](int v) { solverSettings_->setV_Solver(v); });
+  readInt(reader, SFK_V_PCG_PRECONDITIONER, [&](int v) { solverSettings_->setV_PCG_Preconditioner(v); });
+  readInt(reader, SFK_V_PCG_MAXITER, [&](int v) { solverSettings_->setV_PCG_Maxiter(v); });
+  readDouble(reader, SFK_V_PCG_TOLER, [&](double v) { solverSettings_->setV_PCG_Toler(v); });
+
+  readInt(reader, SFK_V_GMRES_PRECONDITIONER, [&](int v) { solverSettings_->setV_GMRES_Preconditioner(v); });
+  readInt(reader, SFK_V_GMRES_MAXITER, [&](int v) { solverSettings_->setV_GMRES_Maxiter(v); });
+  readInt(reader, SFK_V_GMRES_RESTART, [&](int v) { solverSettings_->setV_GMRES_Restart(v); });
+  readDouble(reader, SFK_V_GMRES_TOLER, [&](double v) { solverSettings_->setV_GMRES_Toler(v); });
 }
 
 // </editor-fold>

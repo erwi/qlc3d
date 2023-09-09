@@ -5,6 +5,7 @@
 #include <memory>
 #include <filesystem>
 class Simu;
+class SolverSettings;
 
 class Configuration {
     std::filesystem::path settingsFilePath_;
@@ -13,22 +14,24 @@ class Configuration {
 
     std::shared_ptr<Simu> simu_;
     std::shared_ptr<LC> lc_;
-
     std::shared_ptr<MeshRefinement> refinement_;
-
     std::shared_ptr<Electrodes> electrodes_;
+    std::shared_ptr<SolverSettings> solverSettings_;
 
 public:
     Configuration();
 
     void readSettings();
-    [[nodiscard]] std::shared_ptr<Simu> simu() const;
+    [[nodiscard]] std::shared_ptr<Simu> getSimu() const;
+    [[nodiscard]] std::shared_ptr<Electrodes> getElectrodes() const;
+
     void simu(Simu *simu) { simu_ = std::shared_ptr<Simu>(simu); }
-
-    [[nodiscard]] std::shared_ptr<LC> lc() const;
     void lc(LC *lc) { lc_ = std::shared_ptr<LC>(lc); }
+    void solverSettings(SolverSettings *solverSettings);
 
+    [[nodiscard]] std::shared_ptr<LC> getLC() const;
     [[nodiscard]] std::shared_ptr<MeshRefinement> refinement() const;
+    [[nodiscard]] std::shared_ptr<SolverSettings> getSolverSettings() const;
 
     /// The file name of the current settings file
     [[nodiscard]] const std::filesystem::path &settingsFile() const { return settingsFilePath_; };

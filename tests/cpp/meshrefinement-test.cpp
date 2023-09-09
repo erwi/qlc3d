@@ -7,6 +7,7 @@
 #include <electrodes.h>
 #include <refinement.h>
 #include <simulation-state.h>
+#include <memory>
 
 TEST_CASE("mesh refinement") {
     // ARRANGE - create required two geometries that are identical
@@ -18,8 +19,12 @@ TEST_CASE("mesh refinement") {
     alignment.addSurface(1, "strong", 1, {1, 0, 0}, 1, 1, {});
     alignment.addSurface(2, "strong", 1, {1, 0, 0}, 1, 1, {});
 
-    Electrodes electrodes;
-    electrodes.setnElectrodes(2); // Mesh contains two electrodes. This fakes them being defined in the settings file
+    std::vector<std::shared_ptr<Electrode>> electrodesVec;
+    electrodesVec.emplace_back(std::shared_ptr<Electrode>(new Electrode(1, {0}, {0})));
+    electrodesVec.emplace_back(std::shared_ptr<Electrode>(new Electrode(2, {0}, {0})));
+
+     // Mesh contains two electrodes. This fakes them being defined in the settings file
+    Electrodes electrodes(electrodesVec, nullptr);
 
     // reads and prepares test-mesh from resource file
     prepareGeometry(originalGeometry, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, {1, 1, 1});

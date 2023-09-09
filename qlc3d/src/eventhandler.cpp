@@ -1,8 +1,13 @@
 #include <eventhandler.h>
+#include <refinement.h>
 #include <simulation-state.h>
 #include <filesystem>
 #include <util/logging.h>
+#include <util/exception.h>
 #include <io/result-output.h>
+#include <qlc3d.h>
+#include <spamtrix_ircmatrix.hpp>
+#include <potential/potential-solver.h>
 
 void handleElectrodeSwitching(Event *currentEvent,
                               Electrodes &electr,
@@ -24,12 +29,9 @@ void handleElectrodeSwitching(Event *currentEvent,
         return;
     }
 
-    // SET THE NEW ELECTRODE VALUE. FIRST CHECK THAT
-    electr.setElectrodePotential(si->electrodeNumber, si->potential);
-
     // SET POTENTIAL BOUNDARY CONDITIONS FOR ALL ELECTRODES
-    v.setFixedNodesPot(&electr);
-    v.setToFixedValues();
+    auto potentialsByElectrode = electr.getCurrentPotentials(simulationState.currentTime());
+    v.setFixedNodesPot(potentialsByElectrode);
 }
 
 /**
@@ -48,10 +50,9 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
                          Geometries &geometries,
                          SolutionVectors &solutionvectors,
                          const LC &lc,
-                         Settings &settings,
-                         SpaMtrix::IRCMatrix &Kpot,
                          SpaMtrix::IRCMatrix &Kq,
-                         ResultOutput &resultOutput) {
+                         ResultOutput &resultOutput,
+                         PotentialSolver &potentialSolver) {
 
     int currentIteration = simulationState.currentIteration();
     double currentTime = simulationState.currentTime();
@@ -63,23 +64,20 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
     while (evel.eventOccursNow(simulationState)) {
         Event *currentEvent = evel.getCurrentEvent(simulationState); // removes event from queue to be processed
         EventType et = currentEvent->getEventType();
-        // REMOVE EVENT FROM LIST AND GET ITS TYPE
-        ///EventType et = evel.popCurrentEvent( simu );
 
-        // DEPENDING ON EVENT TYPE, DO STUFF
         switch (et) {
-            case (EVENT_SAVE): // INITIAL RESULT IS ALWAYS WRITTEN. SEE BELOW
+            case (EVENT_SAVE):
                 delete currentEvent;
                 break;
-            case (EVENT_SWITCHING):  // SWITCH ELECTRODES
+            case (EVENT_SWITCHING):
                 handleElectrodeSwitching(currentEvent,
                                          electrodes,
                                          *solutionvectors.v,
                                          simu,
                                          simulationState);
-                delete currentEvent; // NOT NEEDED ANYMORE
+                delete currentEvent;
                 break;
-            case (EVENT_REFINEMENT): // REFINE MESH
+            case (EVENT_REFINEMENT):
                 refEvents.push_back(currentEvent);
                 refineMesh = true;
                 break;
@@ -96,28 +94,12 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
                             alignment,
                             electrodes,
                             lc.S0(),
-                            Kpot,
                             Kq); // defined in refinementhandler.cpp
     }
 
     // ALWAYS CALCULATE INITIAL POTENTIAL
-    calcpot3d(Kpot,
-              solutionvectors.v,
-              solutionvectors.q,
-              lc,
-              *geometries.geom,
-              &settings,
-              &electrodes);
+    potentialSolver.solvePotential(*solutionvectors.v, *solutionvectors.q, *geometries.geom);
 
-    // WRITE INITIAL RESULT FILE. ALWAYS!
-    /*
-    handleResultOutput(simulationState,
-                       simu,
-                       lc.S0(),
-                       *geometries.geom,
-                       *solutionvectors.v,
-                       *solutionvectors.q);
-                       */
     Log::info("Writing initial results");
     resultOutput.writeResults(*geometries.geom, *solutionvectors.v, *solutionvectors.q, simulationState);
 
@@ -150,14 +132,10 @@ void handleEvents(EventList &evel,
                   Geometries &geometries,
                   SolutionVectors &solutionvectors,
                   const LC &lc,
-                  Settings &settings,
-                  SpaMtrix::IRCMatrix &Kpot,
                   SpaMtrix::IRCMatrix &Kq,
-                  ResultOutput &resultOutput
-) {
-    //int currentIteration = simulationState.currentIteration();
+                  ResultOutput &resultOutput,
+                  PotentialSolver &potentialSolver) {
 
-// LEAVE IF NO EVENTS LEFT IN QUEUE
     if (!evel.eventsInQueue()) {    // event queue is empty
         evel.manageReoccurringEvents(simulationState.currentIteration(),
                                      simulationState.currentTime(),
@@ -175,34 +153,33 @@ void handleEvents(EventList &evel,
     // USE FOLLOWING FLAGS TO DETERMINE THIS
     bool recalculatePotential = false;
     bool saveResult = false;
-    bool refineMesh = false;
+    bool needsMeshRefinement = false;
 
     // CHECK WHICH EVENTS ARE OCCURRING *NOW* AND SET CORRESPONDING
     // FLAGS + OTHER PRE-EVENT PROCESSING
     std::list<Event *> refEvents; // STORES REF-EVENTS THAT NEED TO BE EXECUTED
 
     while (evel.eventOccursNow(simulationState)) {
-        // REMOVE EVENT FROM LIST AND GET ITS TYPE
         Event *currentEvent = evel.getCurrentEvent(simulationState); // removes event from queue to be processed
         EventType et = currentEvent->getEventType();
 
-        // DEPENDING ON EVENT TYPE, DO STUFF
         switch (et) {
-            case (EVENT_SAVE): // SAVE RESULTS
+            case (EVENT_SAVE):
                 saveResult = true;
-                delete currentEvent; // NOT NEEDED ANYMORE
+                delete currentEvent;
                 break;
-            case (EVENT_SWITCHING):  // SWITCH ELECTRODES
+            case (EVENT_SWITCHING):
                 handleElectrodeSwitching(currentEvent, electrodes, *solutionvectors.v, simu, simulationState);
-                delete currentEvent; // NOT NEEDED ANYMORE
+                delete currentEvent;
                 recalculatePotential = true;
 
-                if ((evel.getSaveIter() > 1) || (evel.getSaveTime() > 0)) // OUTPUT RESULT ON SWITCHING ITERATION
-                    saveResult = true;
+                if ((evel.getSaveIter() > 1) || (evel.getSaveTime() > 0)) { // OUTPUT RESULT ON SWITCHING ITERATION
+                  saveResult = true;
+                }
 
                 break;
-            case (EVENT_REFINEMENT): // REFINE MESH
-                refineMesh = true;
+            case (EVENT_REFINEMENT):
+              needsMeshRefinement = true;
                 recalculatePotential = true;
                 saveResult = true;
                 refEvents.push_back(currentEvent);
@@ -217,9 +194,9 @@ void handleEvents(EventList &evel,
                                  simulationState.currentTime(),
                                  simulationState.dt());
 
-// IF MESH REFINEMENT
-    if (refineMesh) {
-        handleMeshRefinement(refEvents,
+
+    if (needsMeshRefinement) {
+        bool didRefineMesh = handleMeshRefinement(refEvents,
                              geometries,
                              solutionvectors,
                              simu,
@@ -227,18 +204,14 @@ void handleEvents(EventList &evel,
                              alignment,
                              electrodes,
                              lc.S0(),
-                             Kpot,
                              Kq); // defined in refinementhandler.cpp
+      if (didRefineMesh) {
+        potentialSolver.onGeometryChanged();
+      }
     }
 
     if (recalculatePotential) {
-        calcpot3d(Kpot,
-                  solutionvectors.v,
-                  solutionvectors.q,
-                  lc,
-                  *geometries.geom,
-                  &settings,
-                  &electrodes);
+      potentialSolver.solvePotential(*solutionvectors.v, *solutionvectors.q, *geometries.geom);
     }
 
     if (saveResult) {
@@ -248,6 +221,6 @@ void handleEvents(EventList &evel,
     if (simu.simulationMode() == TimeStepping) {
         reduceTimeStep(simulationState, evel);
     }
-}//end void HandleEvents
+}
 
 

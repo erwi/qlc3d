@@ -5,7 +5,7 @@ EndCriterion = Time
 EndValue = 10e-6
 
 SaveIter = 10
-SaveFormat = [VTKUnstructuredAsciiGrid, DIRSTACKZ]
+SaveFormat = [VTKUnstructuredAsciiGrid]
 
 RegularGridSize = [1, 1, 3]         # 3 points along z: bottom, middle, top
 targetdQ=0.1

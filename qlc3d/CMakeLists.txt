@@ -50,7 +50,10 @@ add_library(lib-qlc3d STATIC
         src/io/lcview-result-output.cpp
         includes/geom/coordinates.h
         src/geom/coordinates.cpp
-        includes/util/hash.h)
+        includes/util/hash.h
+        includes/potential/potential-solver.h
+        src/potential/calcpot3d.cpp
+        src/potential/potential-solver.cpp)
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 set_target_properties(lib-qlc3d PROPERTIES CXX_STANDARD 17)
 target_include_directories(lib-qlc3d

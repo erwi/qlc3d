@@ -185,3 +185,84 @@ TEST_CASE("read REFINEMENT from settings file") {
     REQUIRE((ref.iterations_.size() == 1 && ref.iterations_[0] == 3));
     REQUIRE((ref.values_.size() == 1 && ref.values_[0] == 0.12));
 }
+
+TEST_CASE("read electrodes from settings file") {
+  std::string contents;
+  contents += "MeshName= test.msh\n"; // required in every settings file
+
+  contents += "E1.Time = [0]\n";
+  contents += "E1.Pot = [0]\n";
+
+  contents += "E3.Time = [1, 2]\n";
+  contents += "E3.Pot = [3, 4]\n";
+
+  auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+  SettingsReader reader(settingsFile.name());
+
+  auto electrodes = reader.electrodes();
+
+  REQUIRE(2 == electrodes->getnElectrodes());
+
+  // potentials at time 0
+  auto potByElectrode = electrodes->getCurrentPotentials(0);
+  REQUIRE(0 == potByElectrode[1]);
+  REQUIRE(0 == potByElectrode[3]);
+
+  // potentials at time 1.1
+  potByElectrode = electrodes->getCurrentPotentials(1.1);
+  REQUIRE(0 == potByElectrode[1]);
+  REQUIRE(3 == potByElectrode[3]);
+
+  // potentials at time 1000
+  potByElectrode = electrodes->getCurrentPotentials(1000);
+  REQUIRE(0 == potByElectrode[1]);
+  REQUIRE(4 == potByElectrode[3]);
+}
+
+TEST_CASE("Read solver settings from settings file") {
+  std::string contents;
+  contents += "MeshName= test.msh\n"; // required in every settings file
+  contents += "NumAssemblyThreads = 1\n";
+  contents += "Q_Solver = 2\n";
+  contents += "V_Solver = 3\n";
+  contents += "Q_Newton_Panic_Iter = 4\n";
+  contents += "Q_Newton_Panic_Coeff = 0.5\n";
+  contents += "Q_PCG_Preconditioner = 6\n";
+  contents += "Q_PCG_Maxiter = 7\n";
+  contents += "Q_PCG_Toler = 8\n";
+  contents += "Q_GMRES_Preconditioner = 9\n";
+  contents += "Q_GMRES_Maxiter = 10\n";
+  contents += "Q_GMRES_Restart = 11\n";
+  contents += "Q_GMRES_Toler = 12\n";
+  contents += "V_PCG_Preconditioner = 13\n";
+  contents += "V_PCG_Maxiter = 14\n";
+  contents += "V_PCG_Toler = 15\n";
+  contents += "V_GMRES_Preconditioner = 16\n";
+  contents += "V_GMRES_Maxiter = 17\n";
+  contents += "V_GMRES_Restart = 18\n";
+  contents += "V_GMRES_Toler = 19\n";
+
+  auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+  SettingsReader reader(settingsFile.name());
+  auto solverSettings = reader.solverSettings();
+
+  REQUIRE(1 == solverSettings->getnThreads());
+  REQUIRE(2 == solverSettings->getQ_Solver());
+  REQUIRE(3 == solverSettings->getV_Solver());
+  REQUIRE(4 == solverSettings->getQ_Newton_Panic_Iter());
+  REQUIRE(0.5 == solverSettings->getQ_Newton_Panic_Coeff());
+  REQUIRE(6 == solverSettings->getQ_PCG_Preconditioner());
+  REQUIRE(7 == solverSettings->getQ_PCG_Maxiter());
+  REQUIRE(8 == solverSettings->getQ_PCG_Toler());
+  REQUIRE(9 == solverSettings->getQ_GMRES_Preconditioner());
+  REQUIRE(10 == solverSettings->getQ_GMRES_Maxiter());
+  REQUIRE(11 == solverSettings->getQ_GMRES_Restart());
+  REQUIRE(12 == solverSettings->getQ_GMRES_Toler());
+  REQUIRE(13 == solverSettings->getV_PCG_Preconditioner());
+  REQUIRE(14 == solverSettings->getV_PCG_Maxiter());
+  REQUIRE(15 == solverSettings->getV_PCG_Toler());
+  REQUIRE(16 == solverSettings->getV_GMRES_Preconditioner());
+  REQUIRE(17 == solverSettings->getV_GMRES_Maxiter());
+  REQUIRE(18 == solverSettings->getV_GMRES_Restart());
+  REQUIRE(19 == solverSettings->getV_GMRES_Toler());
+}

@@ -10,7 +10,7 @@
 #include <simu.h>
 #include <electrodes.h>
 #include <lc.h>
-#include <settings.h>
+#include <solver-settings.h>
 #include <box.h>
 #include <alignment.h>
 #include <meshrefinement.h>
@@ -26,19 +26,19 @@
 class Configuration;
 class SimulationState;
 class ResultOutput;
+class PotentialSolver;
 
 class SimulationContainer {
     Configuration &configuration;
     ResultOutput &resultOutput;
-
+    std::shared_ptr<PotentialSolver> potentialSolver;
     std::shared_ptr<Simu> simu;
-    std::unique_ptr<Electrodes> electrodes;
+    std::shared_ptr<Electrodes> electrodes;
     std::shared_ptr<LC> lc;
     std::unique_ptr<Boxes> boxes;
     std::unique_ptr<Alignment> alignment;
     std::unique_ptr<RegularGrid> regGrid;
     std::unique_ptr<EventList> eventList;
-    std::unique_ptr<Settings> settings;
 
     // state related internal variables. TODO clean them up
     std::chrono::steady_clock::time_point startInstant;
@@ -63,7 +63,6 @@ class SimulationContainer {
 
     // sparse matrices
     SpaMtrix::IRCMatrix Kq;
-    SpaMtrix::IRCMatrix Kpot;
 
     SimulationState simulationState_;
 
@@ -72,7 +71,7 @@ class SimulationContainer {
     void adjustTimeStepSize();
 
 public:
-    SimulationContainer(Configuration &config, ResultOutput &resultOutput);
+    SimulationContainer(Configuration &config, ResultOutput &resultOutput, std::shared_ptr<PotentialSolver> potentialSolver);
     /*!
      * Sets up simulation state. Reads configuration, loads mesh geometry etc.
      */

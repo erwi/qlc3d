@@ -42,6 +42,7 @@ public:
     RefInfo(const RefInfo& other);      // COPY CONSTRUCTOR
 
     [[nodiscard]] unsigned int getRefIter() const { return _refIter; }
+    [[nodiscard]] double getRefTime() const { return _time; }
     [[nodiscard]] double getValue(const size_t i) const;
     [[nodiscard]] const std::vector<double> & getX() const { return _x; }
     [[nodiscard]] const std::vector<double> & getY() const { return _y; }

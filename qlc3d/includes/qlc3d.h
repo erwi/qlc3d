@@ -12,7 +12,7 @@
 #include <solutionvector.h>
 #include <material_numbers.h>
 #include <eventlist.h>
-#include <settings.h>
+#include <solver-settings.h>
 #include <geometry.h>
 #include <energy.h>
 #include <line.h>
@@ -63,7 +63,7 @@ double calcQ3d(SolutionVector *q,
                Simu* simu,
                SimulationState &simulationState,
                SpaMtrix::IRCMatrix &Kq,
-               Settings* settings,
+               SolverSettings* settings,
                Alignment* alignment);
 
 class Electrodes;
@@ -72,10 +72,7 @@ void ReadSettings(
         const std::filesystem::path &settingsFilePath,
         Boxes &boxes,
         Alignment &alignment,
-        Electrodes &electrodes,
-        EventList &eventlist,
-        Settings &settings
-	);
+        EventList &eventlist);
 
 void CreateSaveDir(Simu* simu); //creates new save dir, if needed
 
