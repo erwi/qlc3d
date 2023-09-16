@@ -365,7 +365,7 @@ void assemble_volume(
   Shape4thOrder shapes;
   const unsigned int elementCount = geometry.getTetrahedra().getnElements();
 
-#ifndef DEBUG
+#ifdef NDEBUG
 #pragma omp parallel for
 #endif
 

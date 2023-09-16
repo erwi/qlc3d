@@ -1084,9 +1084,9 @@ inline void assemble_local_prev_volumes(double lL[20],
     double xr, xs, xt, yr, ys, yt, zr, zs, zt;
     xr = xs = xt = yr = ys = yt = zr = zs = zt = 0.0;
     for (int i = 0; i < 4; i++) {
-      double x = nodes[i].x();
-      double y = nodes[i].y();
-      double z = nodes[i].z();
+      double x = nodes[i].x() * 1e-6;
+      double y = nodes[i].y() * 1e-6;
+      double z = nodes[i].z() * 1e-6;
       xr += x * shapes.sh1r[0][i];
       xs += x * shapes.sh1s[0][i];
       xt += x * shapes.sh1t[0][i];
@@ -1300,7 +1300,7 @@ void assemble_prev_rhs(SpaMtrix::Vector &Ln,
     //#endif
     //int th = 0; // debug thread number
     Mesh &t = *geom.t;
-#ifndef DEBUG
+#ifdef NDEBUG
     #pragma omp parallel for
 #endif
     for (idx elementNum = 0; elementNum < elementCount; elementNum++) {
