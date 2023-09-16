@@ -43,7 +43,10 @@ add_library(lib-qlc3d STATIC
         src/io/result-output.cpp
         src/io/writeLCD.cpp
         includes/io/lcview-result-output.h
-        src/io/lcview-result-output.cpp includes/geom/coordinates.h src/geom/coordinates.cpp)
+        src/io/lcview-result-output.cpp
+        includes/geom/coordinates.h
+        src/geom/coordinates.cpp
+        includes/util/hash.h)
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 set_target_properties(lib-qlc3d PROPERTIES CXX_STANDARD 17)
 target_include_directories(lib-qlc3d
