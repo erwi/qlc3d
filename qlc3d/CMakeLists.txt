@@ -5,6 +5,10 @@ PROJECT (qlc3d)
 execute_process(COMMAND git rev-parse --short HEAD OUTPUT_VARIABLE QLC3D_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE)
 add_compile_definitions(QLC3D_SHA=\"${QLC3D_COMMIT}\")
 
+#if (LOG_DEBUG_HASH) # enables logging of some hash values. Helpful for detecting unintended changes until better test coverage
+#    add_definitions(-DLOG_DEBUG_HASH=1)
+#endif(LOG_DEBUG_HASH)
+
 set (CMAKE_CXX_FLAGS "-Wall -std=c++0x")
 set (CMAKE_CXX_FLAGS_DEBUG "-g")
 set (CMAKE_CXX_FLAGS_RELEASE "-Ofast -DNDEBUG")

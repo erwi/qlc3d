@@ -1,7 +1,5 @@
 #ifndef SOLUTIONVECTOR_H
 #define SOLUTIONVECTOR_H
-//#include <stdio.h>
-//#include <vector>
 #include <omp.h>
 #include <algorithm>
 #include <alignment.h>
@@ -117,6 +115,7 @@ assert(i < getnDoF()*getnDimensions() );
     [[nodiscard]] qlc3d::Director getDirector(idx i) const;
     [[nodiscard]] std::vector<qlc3d::Director> getDirector() const;
     [[nodiscard]] double& operator[](const unsigned int i) { return values[i]; }
+    [[nodiscard]] int64_t hashCode();
 };
 
 #endif

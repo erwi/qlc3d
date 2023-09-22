@@ -3,6 +3,7 @@
 #include <qlc3d.h>
 #include <simulation-state.h>
 #include <util/logging.h>
+#include <util/hash.h>
 #include <thread>
 
 // SpaMtrix INCLUDES
@@ -166,6 +167,15 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         omp_set_num_threads(numThreads);
 #endif
         assembleQ(K, L, q, v, geom.t.get(), geom.e.get(), geom.getCoordinates(), mat_par, timeStep, alignment, geom.getNodeNormals());
+
+#ifdef LOG_DEBUG_HASH
+        int64_t lHash = hashCode64(&L[0], &L[0] + L.getLength());
+        int64_t rhsHash = isTimeStepping ? hashCode64(&RHS[0], &RHS[0] + RHS.getLength()) : 0;
+        int64_t vHash = v->hashCode();
+        int64_t qHash = q->hashCode();
+        int64_t qnHash = qn->hashCode();
+        Log::info("lHash={:X}, rhsHash={:X}, vHash={:X}, qHash={:X}, qnHash{:}", lHash, rhsHash, vHash, qHash, qnHash);
+#endif
 
         if (isTimeStepping) { // make Non-linear Crank-Nicholson RHS
             for (idx i = 0; i < numCols; i++) {

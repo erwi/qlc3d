@@ -6,7 +6,7 @@
 #include <lc-representation.h>
 #include <util/exception.h>
 #include <util/logging.h>
-
+#include <util/hash.h>
 const double SolutionVector::BIGNUM = 1e99;
 
 // HACK DECLARATION OF TENSORTOVECTOR, NEEDED FOR FIXING POLYMERISED NODES
@@ -419,6 +419,9 @@ std::vector<qlc3d::Director> SolutionVector::getDirector() const {
     return directors;
 }
 
+int64_t SolutionVector::hashCode() {
+    return hashCode64(&values[0], &values[values.size()]);
+}
 
 
 
