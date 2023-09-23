@@ -81,6 +81,7 @@ private:
     //! initial time step is set by user in configuration, the actual time step may change_ during the simulation.
     const double initialTimeStep_;
     const QMatrixSolvers QMatrixSolver_;
+    /** convergence for Newton iterations in time stepping */
     const double maxError_;
     const double TargetdQ_;             // do newton iterations until this precision
     const double dtLimits_[2];          // min/max time-step values used in adaptive time stepping
