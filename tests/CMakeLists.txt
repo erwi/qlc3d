@@ -20,7 +20,8 @@ add_executable(cpp-test
         cpp/init-events-tests.cpp
         cpp/meshrefinement-test.cpp
         cpp/initial-lc-orientation-tests.cpp
-        cpp/io/result-output-test.cpp)
+        cpp/io/result-output-test.cpp
+        cpp/geom/geom-tests.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 

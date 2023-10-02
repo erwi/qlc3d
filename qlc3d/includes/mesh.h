@@ -69,16 +69,10 @@ public:
     idx getFixLCNumber(const idx e) const;  // gets alignment layer number, i.e. FixLC 1, 2, 3...
     idx getDielectricNumber(const idx e) const; // gets dielectric materials number, i.e. Dielectric 1, 2, 3 ....
 
-    double Calculate4x4Determinant(double *M) const;
     double getDeterminant(const idx i) const; // returns value of determinant of element i
 
     void setElementData(std::vector<unsigned int> &&nodes, std::vector<unsigned int> &&materials);
 
-    /**
-     *
-     * @deprecated use setElementData(std::vector<unsigned int> &&nodes, std::vector<unsigned int> &&materials)
-     */
-    void setElementData(const unsigned int* nodeValues, const unsigned int* materialValues, unsigned int numElements);
     void setConnectedVolume(Mesh *vol);     // sets indexes to connected LC volume elements
 
     /** copy all node values to the mesh */

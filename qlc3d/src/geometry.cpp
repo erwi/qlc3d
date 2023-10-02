@@ -98,6 +98,25 @@ void Geometry::addCoordinates(const vector<double> &coords) {
   setnpLC(coordinates_->size());
 }
 
+void Geometry::setMeshData(const std::shared_ptr<Coordinates> &coordinates,
+                 std::vector<unsigned int> &&tetNodes, std::vector<unsigned int> &&tetMaterials,
+                 std::vector<unsigned int> &&triNodes, std::vector<unsigned int> &&triMaterials) {
+  setCoordinates(coordinates);
+  t->setElementData(std::move(tetNodes), std::move(tetMaterials));
+  e->setElementData(std::move(triNodes), std::move(triMaterials));
+  ReorderDielectricNodes();
+  e->setConnectedVolume(t.get()); // neighbour index tri -> tet
+  t->calculateDeterminants3D(getCoordinates()); // calculate tetrahedral determinants
+  t->ScaleDeterminants(1e-18); // scale to microns
+
+  e->calculateSurfaceNormals(getCoordinates(), t.get()); // calculate triangle determinants and surface normal vectors
+  e->ScaleDeterminants(1e-12); // scale to microns
+
+  calculateNodeNormals();
+  checkForPeriodicGeometry(); // also makes periodic node indexes
+}
+
+
 unsigned int findMaxNodeNumber(const Mesh &m) {
   unsigned int maxNodeNumber = m.getNode(0, 0);
   for (unsigned int i = 0; i < m.getnElements(); i++) {
@@ -765,6 +784,10 @@ void Geometry::genIndToTetsByCoords(vector<unsigned int> &returnIndex,   // retu
     for an LC node on the boundary between LC and DE regions, i.e. it exists in both regions, but
     is only properly defined in the LC element.
     */
+    if (t == nullptr || getTetrahedra().getnElements() == 0) {
+      RUNTIME_ERROR("No tetrahedra elements defined");
+    }
+
   returnIndex.clear();
   unsigned int nt = (unsigned int) this->t->getnElements();
   returnIndex.assign(targetCoordinates.size(), nt);   // assing with a value that is one too much initially

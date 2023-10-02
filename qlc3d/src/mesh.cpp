@@ -77,22 +77,6 @@ void Mesh::setElementData(std::vector<unsigned int> &&nodes, std::vector<unsigne
   this->nElements = numElements;
 }
 
-void Mesh::setElementData(const unsigned int *nodeValues, const unsigned int *materialValues, unsigned int numElements) {
-  nodes.clear();
-  materials.clear();
-  nodes.reserve(getnNodes() * numElements);
-  materials.reserve(numElements);
-  nElements = numElements;
-
-  for (unsigned int i = 0; i < numElements; i++) {
-    materials.push_back(materialValues[i]);
-
-    for (unsigned int j = 0; j < getnNodes(); j++) {
-      nodes.push_back(nodeValues[i * getnNodes() + j]);
-    }
-  }
-}
-
 /**
  * copies all values from array nodes to this->Elem
  * @param nodes
@@ -204,33 +188,6 @@ void Mesh::setConnectedVolume(Mesh* vol) {
                 }
         } // end exclude electrode only surfaces
     }
-}
-double Mesh::Calculate4x4Determinant(double* M) const {
-    // CALCULATES DETERMINANT OF THE 4x4 MATRIX M, WHERE M
-    // MOST LIKELY HOLDS COORDINATE VALUES. THIS COULD BE MOVED ELSEWHERE
-    // (GENERAL UTULITY FUNCTIONS?) AS IT DOES NOT TOUCH ANY OF THE Mesh DATA.
-    double x[4], y[4], z[4];
-
-    for (int i = 0 ; i < 4 ; i++){
-        x[i] = M[i*3 + 0];
-        y[i] = M[i*3 + 1];
-        z[i] = M[i*3 + 2];
-    }
-
-    double A[3],B[3],C[3];
-    A[0] = x[1] - x[0]; A[1] = y[1] - y[0]; A[2] = z[1] - z[0];
-    B[0] = x[2] - x[0]; B[1] = y[2] - y[0]; B[2] = z[2] - z[0];
-    C[0] = x[3] - x[0]; C[1] = y[3] - y[0]; C[2] = z[3] - z[0];
-
-    // B x C
-    double cross[3];
-    cross[0] =   B[1]*C[2] - C[1]*B[2];
-    cross[1] = - B[0]*C[2] + C[0]*B[2];
-    cross[2] =   B[0]*C[1] - C[0]*B[1];
-
-    // determinant = A . (B x C)
-    double Determinant = A[0]*cross[0] + A[1]*cross[1] + A[2]*cross[2];
-    return Determinant;
 }
 
 double det3D(Vec3 c[4]) {
@@ -384,32 +341,34 @@ void Mesh::calculateSurfaceNormals(const Coordinates &coords, Mesh* tets) {
     // IF NOT REVERSE ITS ORIENTATION
     unsigned int t = getConnectedVolume(i); // index to neighbouring tet.
 
-    Vec3 triBary = (p0 + p1 + p2) / 3.;
+    if (t != NOT_AN_INDEX) { // index may only exist for LC tet connections.
+      Vec3 triBary = (p0 + p1 + p2) / 3.;
 
-    // calculate tet barycentre
-    idx ntet[4] = { tets->getNode(t,0) , tets->getNode(t,1) , tets->getNode(t,2), tets->getNode(t,3) };
+      // calculate tet barycentre
+      idx ntet[4] = {tets->getNode(t, 0), tets->getNode(t, 1), tets->getNode(t, 2), tets->getNode(t, 3)};
 
-    Vec3 c0 = coords.getPoint(ntet[0]);
-    Vec3 c1 = coords.getPoint(ntet[1]);
-    Vec3 c2 = coords.getPoint(ntet[2]);
-    Vec3 c3 = coords.getPoint(ntet[3]);
+      Vec3 c0 = coords.getPoint(ntet[0]);
+      Vec3 c1 = coords.getPoint(ntet[1]);
+      Vec3 c2 = coords.getPoint(ntet[2]);
+      Vec3 c3 = coords.getPoint(ntet[3]);
 
-    Vec3 tetBary = (c0 + c1 + c2 + c3) / 4.0;
+      Vec3 tetBary = (c0 + c1 + c2 + c3) / 4.0;
 
-    // vector from tri barycentre to tet barycentre
-    Vec3 v1 = tetBary - triBary;
+      // vector from tri barycentre to tet barycentre
+      Vec3 v1 = tetBary - triBary;
 
-    // dot product between surface normal and v1 determines orientation of surface normal
-    double dot = normalVec.dot(v1);
+      // dot product between surface normal and v1 determines orientation of surface normal
+      double dot = normalVec.dot(v1);
 
-    if (dot < 0.0 ) {
-      // IF SURFACE NORMAL IS IN WRONG DIRECTION,
-      // REVERSE NODE ORDER AND INVERT VECTOR DIRECTION
-      idx indexA = i * getnNodes() + 1; // 2nd node of triangle
-      idx indexB = i * getnNodes() + 2; // 3rd node of triangle
-      iter_swap(nodes.begin() + indexA, nodes.begin() + indexB); // swap 2nd and 3rd nodes
+      if (dot < 0.0) {
+        // IF SURFACE NORMAL IS IN WRONG DIRECTION,
+        // REVERSE NODE ORDER AND INVERT VECTOR DIRECTION
+        idx indexA = i * getnNodes() + 1; // 2nd node of triangle
+        idx indexB = i * getnNodes() + 2; // 3rd node of triangle
+        iter_swap(nodes.begin() + indexA, nodes.begin() + indexB); // swap 2nd and 3rd nodes
 
-      normalVec *= -1;
+        normalVec *= -1;
+      }
     }
 
     setSurfaceNormal(i, normalVec);
@@ -417,27 +376,48 @@ void Mesh::calculateSurfaceNormals(const Coordinates &coords, Mesh* tets) {
 }
 
 void Mesh::calcLocCoords(const idx elem, const Coordinates &coordinates, const Vec3 &targetPoint, double localCoordinates[4]) const {
-    // calculates 4 local coordinates of targetPoint in element elem returned in localCoordinates
-    //idx* n = this->getPtrToElement( elem );
-  unsigned int elemNodes[4] = {getNode(elem, 0), getNode(elem, 1), getNode(elem, 2), getNode(elem, 3)};
+  unsigned int elemNodes[4];
+  loadNodes(elem, elemNodes);
+  const double determinant = getDeterminant(elem) * 1e18;
 
-  double M[12]= {0,0,0,0,0,0,0,0,0,0,0,0};
+  // node 0 - opposite to [1, 2, 3]
+  Vec3 nodes[4] = {targetPoint,
+                   coordinates.getPoint(elemNodes[1]),
+                   coordinates.getPoint(elemNodes[2]),
+                   coordinates.getPoint(elemNodes[3])};
+  double det1 = std::abs(det3D(nodes));
+  localCoordinates[0] = det1 / determinant;
 
-  for (int c = 0 ; c < 4 ; c++) {
-    for (int i = 0 ; i < 4 ; i++) {
-      Vec3 p = coordinates.getPoint(elemNodes[i]);
-      M[i*3 + 0] = p.x(); //[ 3*n[i] + 0]; // x
-      M[i*3 + 1] = p.x(); //[ 3*n[i] + 1]; // y
-      M[i*3 + 2] = p.x(); //[ 3*n[i] + 2]; // z
-    }
+  // node 1 - opposite to [0, 2, 3]
+  nodes[1] = coordinates.getPoint(elemNodes[0]);
+  nodes[2] = coordinates.getPoint(elemNodes[2]);
+  nodes[3] = coordinates.getPoint(elemNodes[3]);
+  double det2 = std::abs(det3D(nodes));
+  localCoordinates[1] = det2 / determinant;
 
-    M[c*3 + 0 ] = targetPoint.x();
-    M[c*3 + 1 ] = targetPoint.y();
-    M[c*3 + 2 ] = targetPoint.z();
+  // node 2 - opposite to [0, 1, 3]
+  nodes[1] = coordinates.getPoint(elemNodes[0]);
+  nodes[2] = coordinates.getPoint(elemNodes[1]);
+  nodes[3] = coordinates.getPoint(elemNodes[3]);
+  double det3 = std::abs(det3D(nodes));
+  localCoordinates[2] = det3 / determinant;
 
-    double det = fabs( this->Calculate4x4Determinant(M) ) ;
-    localCoordinates[c] = det / (this->getDeterminant(elem) * 1e18 );
+  // node 3 - opposite to [0, 1, 2]
+  nodes[1] = coordinates.getPoint(elemNodes[0]);
+  nodes[2] = coordinates.getPoint(elemNodes[2]);
+  nodes[3] = coordinates.getPoint(elemNodes[1]);
+  double det4 = std::abs(det3D(nodes));
+  localCoordinates[3] = det4 / determinant;
+
+  // debug sanity check - sum of sub-tet determinants should equal total determinant
+#ifndef NDEBUG
+  double sum = det1 + det2 + det3 + det4;
+  double error = std::fabs(sum - getDeterminant(elem) * 1e18);
+  if (error > 1e-9) {
+    RUNTIME_ERROR(format("Error in local coordinates calculation for element {}. Sum of sub-determinants ({}) does not equal total determinant ({}).",
+                         elem, sum, getDeterminant(elem) * 1e18));
   }
+#endif
 }
 
 void Mesh::loadNodes(idx elementIndex, idx *nodesOut) const {

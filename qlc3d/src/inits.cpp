@@ -77,20 +77,10 @@ void prepareGeometry(Geometry& geom,
 
     auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
     coordinates->scale(stretchVector);
-    geom.setCoordinates(coordinates);
-    geom.t->setElementData(std::move(rawMeshData.tetNodes), std::move(rawMeshData.tetMaterials));
-    geom.e->setElementData(std::move(rawMeshData.triNodes), std::move(rawMeshData.triMaterials));
 
-    geom.ReorderDielectricNodes(); // Dielectric nodes are moved last
-    geom.e->setConnectedVolume(geom.t.get());		// neighbour index tri -> tet
-    geom.t->calculateDeterminants3D(geom.getCoordinates());		// calculate tetrahedral determinants
-    geom.t->ScaleDeterminants(1e-18); // scale to microns
-
-    geom.e->calculateSurfaceNormals(geom.getCoordinates(), geom.t.get());		// calculate triangle determinants and surface normal vectors
-    geom.e->ScaleDeterminants(1e-12); // scale to microns
-
-    geom.calculateNodeNormals();
-    geom.checkForPeriodicGeometry(); // also makes periodic node indexes
+    geom.setMeshData(coordinates,
+                   std::move(rawMeshData.tetNodes), std::move(rawMeshData.tetMaterials),
+                   std::move(rawMeshData.triNodes), std::move(rawMeshData.triMaterials));
 
     geom.makeRegularGrid(regularGridCountX, regularGridCountY, regularGridCountZ);
 }
@@ -107,7 +97,6 @@ FILE* createOutputEnergyFile(Simu& simu) {
     return fid;
 }
 
-// todo: sort out consts
 void initialiseLcSolutionVector(SolutionVector &q, const Simu &simu, const LC &lc, const Boxes &boxes, const Alignment &alignment, const Geometry &geom) {
   const double S0 = lc.S0();
   setVolumeQ(q, S0, boxes, geom.getCoordinates());

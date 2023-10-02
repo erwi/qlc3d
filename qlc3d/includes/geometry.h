@@ -53,6 +53,10 @@ public:
     ~Geometry();
     void setCoordinates(const std::shared_ptr<Coordinates>& coordinates);
 
+    void setMeshData(const std::shared_ptr<Coordinates> &coordinates,
+                     std::vector<unsigned int> &&tetNodes, std::vector<unsigned int> &&tetMaterials,
+                     std::vector<unsigned int> &&triNodes, std::vector<unsigned int> &&triMaterials);
+
     void addCoordinates(const vector<double> &coords);   // adds new coordinates to end of existing ones
     void calculateNodeNormals();      // calculates surface node normals
     void setnp(int n);
@@ -130,6 +134,7 @@ public:
     void countNodeReferences(vector <int> &refc, Mesh &mesh); // counts the number of times each node is used in mesh. DEBUG
 
     [[nodiscard]] const Mesh& getTetrahedra() const { return *t; }
+    [[nodiscard]] Mesh& getTetrahedra() { return const_cast<Mesh&>(*t); }
     [[nodiscard]] const Mesh& getTriangles() const { return *e; }
 };
 #endif
