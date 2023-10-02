@@ -18,12 +18,12 @@ namespace ResultIO {
 static const char LCVIEW_TEXT_FORMAT_STRING[] = "%i %f %f %f %f %f %f\n";
 
 
-void ReadResult(Simu& simu,         // READS AND LOADS Q-TENSOR VALUES FROM AN EXISTING RESULT FILE
+void ReadResult(const Simu& simu,         // READS AND LOADS Q-TENSOR VALUES FROM AN EXISTING RESULT FILE
                 SolutionVector& q); // TRIES TO FIGURE OUT WHETHER RESULT FILE IS IN TEXT OR BINARY FORMAT
 
-void ReadLCD_B(Simu* simu, SolutionVector* q);
+void ReadLCD_B(const Simu* simu, SolutionVector* q);
 
-void ReadLCD_T(Simu& simu, SolutionVector& q); // LOADS TEXT FORMAT LCVIEW RESULT FILE
+void ReadLCD_T(const Simu& simu, SolutionVector& q); // LOADS TEXT FORMAT LCVIEW RESULT FILE
 
 /**
  * Write a result file containing potential as well as LC director and order parameter on the unstructured mesh points.

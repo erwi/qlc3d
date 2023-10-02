@@ -9,6 +9,8 @@
 #include <util/exception.h>
 #include <geom/coordinates.h>
 #include <geom/vec3.h>
+#include <resultio.h>
+
 /**
  * Goes through all triangle material numbers and tries to check that all is well.
  * @param triMaterials triangle material numbers
@@ -58,9 +60,11 @@ void validateTetrahedralMaterials(const std::vector<idx> matt) {
 
 void prepareGeometry(Geometry& geom,
                      const std::filesystem::path &meshFileName,
-                     Simu& simu,
-                     Alignment& alignment,
-                     Electrodes& electrodes) {
+                     Electrodes& electrodes,
+                     const Vec3 &stretchVector,
+                     unsigned int regularGridCountX,
+                     unsigned int regularGridCountY,
+                     unsigned int regularGridCountZ) {
 
     // read mesh data from file. Allocates the data arrays.
     RawMeshData rawMeshData = MeshReader::readMesh(meshFileName);
@@ -72,7 +76,7 @@ void prepareGeometry(Geometry& geom,
     validateTetrahedralMaterials(rawMeshData.tetMaterials);
 
     auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
-    coordinates->scale(simu.getStretchVector());
+    coordinates->scale(stretchVector);
     geom.setCoordinates(coordinates);
     geom.t->setElementData(std::move(rawMeshData.tetNodes), std::move(rawMeshData.tetMaterials));
     geom.e->setElementData(std::move(rawMeshData.triNodes), std::move(rawMeshData.triMaterials));
@@ -88,10 +92,7 @@ void prepareGeometry(Geometry& geom,
     geom.calculateNodeNormals();
     geom.checkForPeriodicGeometry(); // also makes periodic node indexes
 
-    //geom.genIndWeakSurfaces(alignment);
-    geom.makeRegularGrid(simu.getRegularGridXCount(),
-                         simu.getRegularGridYCount(),
-                         simu.getRegularGridZCount());
+    geom.makeRegularGrid(regularGridCountX, regularGridCountY, regularGridCountZ);
 }
 
 FILE* createOutputEnergyFile(Simu& simu) {
@@ -104,6 +105,19 @@ FILE* createOutputEnergyFile(Simu& simu) {
       }
     }
     return fid;
+}
+
+// todo: sort out consts
+void initialiseLcSolutionVector(SolutionVector &q, const Simu &simu, const LC &lc, const Boxes &boxes, const Alignment &alignment, const Geometry &geom) {
+  const double S0 = lc.S0();
+  setVolumeQ(q, S0, boxes, geom.getCoordinates());
+  if (!simu.getLoadQ().empty()) {
+    ResultIO::ReadResult(simu, q);
+  }
+  setSurfacesQ(q, alignment, S0, geom);
+  q.setFixedNodesQ(alignment, geom.getTriangles());  // set fixed surface anchoring
+  q.setPeriodicEquNodes(geom);          // periodic nodes
+  q.EnforceEquNodes(geom);                // makes sure values at periodic boundaries match
 }
 
 void createMeshRefinementEvents(const MeshRefinement &meshRefinement,

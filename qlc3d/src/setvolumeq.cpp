@@ -70,17 +70,17 @@ void setHedgehogBox(Box box, std::vector<qlc3d::Director> &dir, const Coordinate
 /*!
  * Sets initial Q-tensor volume configuration for all boxes
  */
-void SetVolumeQ(
-	SolutionVector *q,
-	double S0,
-	Boxes* boxes,
-	const Coordinates & coordinates) {
-    Log::info("Setting initial LC configuration for {} boxes.", boxes->n_Boxes);
+void setVolumeQ(
+        SolutionVector &q,
+        double S0,
+        const Boxes &boxes,
+        const Coordinates & coordinates) {
+    Log::info("Setting initial LC configuration for {} boxes.", boxes.n_Boxes);
 
-    assert(q->getnDimensions() == 5);
-    assert(q->getnDoF() > 0);
+    assert(q.getnDimensions() == 5);
+    assert(q.getnDoF() > 0);
 
-    int npLC = q->getnDoF() ;
+    int npLC = q.getnDoF() ;
     // LC TILT AND TWIST IS FIRST CALCULATED AS VECTORS
     // AFTER THIS, A "T-TENSOR" REPRESENTATION IS THEN CALCULATED FROM THE VECTORS
 
@@ -89,8 +89,8 @@ void SetVolumeQ(
     std::vector<qlc3d::Director> dir(npLC, defaultDirector);
 
     // override the director within each box
-    for (int i = 0; i < boxes->n_Boxes; i++) {
-        Box &b = *boxes->box[i];
+    for (int i = 0; i < boxes.n_Boxes; i++) {
+        Box &b = *boxes.box[i];
         Log::info("BOX{}:{}.", i + 1, b.toString());
         switch (b.Type) {
             case Box::Normal:
@@ -109,7 +109,7 @@ void SetVolumeQ(
 
     // convert the director to tensor
     for (int i = 0; i < npLC; i++) {
-        q->setValue(i, qlc3d::TTensor::fromDirector(dir[i]));
+        q.setValue(i, qlc3d::TTensor::fromDirector(dir[i]));
     }
 }
 // end void setVolumeQ

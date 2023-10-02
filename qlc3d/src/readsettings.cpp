@@ -98,6 +98,7 @@ void readAlignment(Alignment& alignment, Reader& reader) {
             string k1Key = wildcardToNum(SFK_FIXLC_K1, i);
             string k2Key = wildcardToNum(SFK_FIXLC_K2, i);
             string paramsKey = wildcardToNum(SFK_FIXLC_PARAMS, i);
+            string overrideVolumeKey = wildcardToNum(SFK_FIXLC_OVERRIDE_VOLUME, i);
             // add surface to collection of surfaces
             alignment.addSurface(i,
                                  reader.get<string>(anchoringKey, Surface::DEFAULT_ANCHORING_TYPE),
@@ -105,7 +106,8 @@ void readAlignment(Alignment& alignment, Reader& reader) {
                                  reader.get<vector<double>>(easyKey, Surface::DEFAULT_ANCHORING_EASY),
                                  reader.get<double>(k1Key, Surface::DEFAULT_ANCHORING_K1),
                                  reader.get<double>(k2Key, Surface::DEFAULT_ANCHORING_K2),
-                                 reader.get<vector<double>>(paramsKey, Surface::DEFAULT_ANCHORING_PARAMS));
+                                 reader.get<vector<double>>(paramsKey, Surface::DEFAULT_ANCHORING_PARAMS),
+                                 reader.get<bool>(overrideVolumeKey, Surface::DEFAULT_ANCHORING_OVERRIDE_VOLUME));
         }
     }
 } //end void readAlignment

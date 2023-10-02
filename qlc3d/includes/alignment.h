@@ -8,7 +8,7 @@
 #include <math.h>
 #include <globals.h>
 
-
+class Vec3;
 enum AnchoringType {Strong = 0, Weak = 1, Homeotropic = 2,
                      Degenerate = 3, Freeze = 5, Polymerise = 6,
                      ManualNodes = 7, AnchoringTypesCount};
@@ -16,20 +16,17 @@ enum AnchoringType {Strong = 0, Weak = 1, Homeotropic = 2,
 class Surface {
     /*!The surface class represents a single FIXLC anchoring surface.*/
 private:
-
-
-    //string Anchoring;                   // name of anchoring type TODO recover this using index to VALID_TYPES instead
-    //unsigned int AnchoringNum;          // number 1, 2, 3 or 4 corresponding to anchoring type, as defined above
     AnchoringType Type;
     double Strength;
     double K1;
     double K2;
-    double Easy[3];                     // Easy direction angles
+    double easyAnglesDegrees[3];                     // Easy direction angles in degrees
     double v1[3];                       // First principal axis of anchoring
     double v2[3];                       // Second principal axis of anchoring
     double e[3];                        // Easy direction vector
     bool UsesSurfaceNormal;             // whether to use local surface normal vector or v1 and v2
     bool isFixed;                       // whether this surface is fixed or not
+    bool overrideVolume;               // whether to override volumes at startup. This is set to true by default
     void calcV1V2();                    // calculates v1 and v2 values from easy angles
 public:
     static const std::vector<std::string> VALID_ANCHORING_TYPES;
@@ -39,6 +36,7 @@ public:
     static const double DEFAULT_ANCHORING_K2;
     static const std::vector<double> DEFAULT_ANCHORING_EASY;
     static const std::vector<double> DEFAULT_ANCHORING_PARAMS;
+    static const bool DEFAULT_ANCHORING_OVERRIDE_VOLUME;
     int FixLCNumber;
     std::vector<double> Params;         // holds optional parameters, but is mostly empty
     Surface(int fxlcnum);
@@ -50,21 +48,22 @@ public:
     void setv1(double v[3]);
     void setv2(double v[3]);
     void setEasyVector(double v[3]);
+    void setEnforce(bool overrideVolume) { this->overrideVolume = overrideVolume; }
 
-    std::string getAnchoringTypeName() const;
-    AnchoringType getAnchoringType() const;
-    double getStrength() const;
-    double getK1() const;
-    double getK2() const;
-    double getEasyTilt() const;
-    double getEasyTwist() const;
-    double getEasyRot() const;
-    double *getPtrTov1();
-    double *getPtrTov2();
-    bool    getUsesSurfaceNormal() const;
-    bool    isStrong() const;
+  [[nodiscard]] std::string getAnchoringTypeName() const;
+  [[nodiscard]] AnchoringType getAnchoringType() const;
+  [[nodiscard]] double getStrength() const;
+  [[nodiscard]] double getK1() const;
+  [[nodiscard]] double getK2() const;
+  [[nodiscard]] double getEasyTilt() const;
+  [[nodiscard]] double getEasyTwist() const;
+  double *getPtrTov1();
+  double *getPtrTov2();
+  [[nodiscard]] bool getUsesSurfaceNormal() const;
+  [[nodiscard]] bool isStrong() const;
+  [[nodiscard]] bool getOverrideVolume() const { return overrideVolume; }
 
-    friend class Alignment;
+  friend class Alignment;
 };
 
 class Reader; // forward declaration of reader class
@@ -83,24 +82,21 @@ public:
     void addSurface(const int fixLcNumber,
                     const std::string &anchoring,
                     const double &strength,
-                    const std::vector<double> &easy,
+                    const std::vector<double> &easyAnglesDegrees,
                     const double &k1,
                     const double &k2,
-                    const std::vector<double> &params);
-    const Surface & getSurface(const idx& i) const; // returns read-only reference to i'th surface
+                    const std::vector<double> &params,
+                    const bool overrideVolume = true);
+    [[nodiscard]] const Surface & getSurface(const idx& i) const; // returns read-only reference to i'th surface
 
     double getStrength(int n);  // get strength of FixLCn
     double getK1(int n);        // get K1 of FixLCn
     double getK2(int n);        // get K2 of FixLCn
     double *getPtrTov1(int n);  // get pointer to v1 of FixLCn
     double *getPtrTov2(int n);  // get pointer to v2 of FicLCn
-    int getnSurfaces();
-    bool IsStrong(int n) const;       // is surface n strong?
-    //unsigned int getAnchoringNum(const int &n); // // returns anchoring number of alignment surface n
-    AnchoringType getTypeOfSurface(const idx &n) const; //returns type of n'th surface
+    [[nodiscard]] int getnSurfaces() const;
+    [[nodiscard]] bool IsStrong(int n) const;       // is surface n strong?
     bool getUsesSurfaceNormal(int n); // if n uses surface normal instead of v1 and v2 ?
     bool WeakSurfacesExist();   // checks if weak surfaces are defined
 };
-
-
 #endif

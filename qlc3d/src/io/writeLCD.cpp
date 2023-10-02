@@ -7,7 +7,7 @@
 #include <util/exception.h>
 
 namespace ResultIO {
-    void ReadResult(Simu &simu, SolutionVector &q) {
+    void ReadResult(const Simu &simu, SolutionVector &q) {
         /*!
         * Tries to figure out whether a LCView result file on disk
         * is in text or binary format and then load the data using appropriate
@@ -44,7 +44,7 @@ namespace ResultIO {
         }
     }
 
-    void ReadLCD_T(Simu &simu, SolutionVector &q) {
+    void ReadLCD_T(const Simu &simu, SolutionVector &q) {
         /*!
          * loads Q-tensor from a result file, assuming the file is written as a text file
          */
@@ -106,7 +106,7 @@ namespace ResultIO {
         }
     }
 
-    void ReadLCD_B(Simu *simu, SolutionVector *q) {
+    void ReadLCD_B(const Simu *simu, SolutionVector *q) {
         // READS BINARY FORMATED RESULT FILE
         string filename = simu->getLoadQ();
         FILE *fid = fopen(filename.c_str(), "rb");

@@ -65,6 +65,7 @@ const std::string SFK_FIXLC_EASY = "FIXLC*.Easy";
 const std::string SFK_FIXLC_K1 = "FIXLC*.K1";
 const std::string SFK_FIXLC_K2 = "FIXLC*.K2";
 const std::string SFK_FIXLC_PARAMS = "FIXLC*.Params";
+const std::string SFK_FIXLC_OVERRIDE_VOLUME = "FIXLC*.OverrideVolume";
 
 // Solver settings keys
 const std::string SFK_Q_SOLVER = "Q_Solver";

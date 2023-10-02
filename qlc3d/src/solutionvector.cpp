@@ -96,15 +96,15 @@ void SolutionVector::ClearAll() {
     fixedValues.clear();
 }
 
-void SolutionVector::setFixedNodesQ(Alignment *alignment, Mesh *e) {
+void SolutionVector::setFixedNodesQ(const Alignment &alignment, const Mesh &e) {
     /*! sets fixed nodes index list and value lists, assuming values are currently correct
-    FixedNodes is index list to all nodes that are fixied
+    FixedNodes is index list to all nodes that are fixed, i.e. strong anchoring
     FixedValues are the corresponding individual values that are fixed
     */
     // 1. First get index to all strong anchoring nodes
     vector <idx> ind_to_nodes;
-    for (int i = 0 ; i < alignment->getnSurfaces() ; i ++) {
-        auto surf = alignment->getSurface(i); // ref to i'th surface
+    for (int i = 0 ; i < alignment.getnSurfaces() ; i ++) {
+        auto surf = alignment.getSurface(i); // ref to i'th surface
 
         if (surf.isStrong()) {
             Log::info("FIXLC{} is strong", i + 1);
@@ -149,11 +149,11 @@ void SolutionVector::setFixedNodesQ(Alignment *alignment, Mesh *e) {
             //else{    // IF NOT POLYMERISED SURFACE, SELECT BY SURFACE MATERIAL NUMBER
             //e->listNodesOfMaterial( temp_index , curFixLC_MAT_NUMBER );
             else {
-                e->listFixLCSurfaces(temp_index, i + 1);
+                e.listFixLCSurfaces(temp_index, i + 1);
             }
             ind_to_nodes.insert(ind_to_nodes.end(), temp_index.begin(), temp_index.end());
         } else {
-            Log::info("FIXLC{} is not strong, it is {}", i + 1, alignment->surface[i]->getAnchoringTypeName());
+            Log::info("FIXLC{} is not strong, it is {}", i + 1, alignment.surface[i]->getAnchoringTypeName());
         }
     }// end for i
     // INDEX TO FIXED NODES MAY CONTAIN DUPLICATED ENTRIES, IF TWO FIXED
@@ -282,16 +282,16 @@ void SolutionVector::setToFixedValues() {
     }
 }
 
-void SolutionVector::setPeriodicEquNodes(Geometry *geom) {
+void SolutionVector::setPeriodicEquNodes(const Geometry &geom) {
     /*!
     SET VALUES IN THE ELIM ARRAY. THE ELIM ARRAY CONTAINS
     MAPPINGS FORM A NODE NUMBER TO ITS ACTUAL
     DEGREE OF FREEDOM (ITS ROW/COL POSITION IN THE GLOBAL MATRIX)
     */
     // IF NO PERIODIC NODES PRESENT, DON'T GENERATE EQUIVALENT NODES INDEXES
-    if (!geom->getleft_right_is_periodic() &&
-            !geom->gettop_bottom_is_periodic() &&
-            !geom->getfront_back_is_periodic() &&
+    if (!geom.getleft_right_is_periodic() &&
+            !geom.gettop_bottom_is_periodic() &&
+            !geom.getfront_back_is_periodic() &&
             (this->nFixed == 0)
        ) {
         return; // no periodic boundaries, can return
@@ -303,7 +303,7 @@ void SolutionVector::setPeriodicEquNodes(Geometry *geom) {
     // INDEPENDENT EQUIVALENT NODES
     std::vector <idx> elimt(nDoF, 0);    // convenience working copy of Elim
     for (idx i = 0 ; i < (idx) this->getnDoF() ; i++) {
-        elimt.at(i) =  geom->getPeriodicEquNode(i) ;
+        elimt.at(i) =  geom.getPeriodicEquNode(i) ;
     }
     // MARK FIXED NODES. THSE WILL BE LATER ON REMOVED FROM
     // FREE DEGREES OF FREEDOM

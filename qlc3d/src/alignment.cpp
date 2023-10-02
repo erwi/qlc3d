@@ -1,10 +1,9 @@
 #include <alignment.h>
 #include <algorithm>
 #include <iostream>
-#include <reader.h>
 #include <stringenum.h>
 #include <settings_file_keys.h>
-#include "util/exception.h"
+#include <util/exception.h>
 
 const std::vector<std::string> Surface::VALID_ANCHORING_TYPES = {"Strong", "Weak", "Homeotropic",
                                                        "Degenerate", "Freeze", "Polymerise",
@@ -13,16 +12,19 @@ const std::string Surface::DEFAULT_ANCHORING_TYPE = Surface::VALID_ANCHORING_TYP
 const double Surface::DEFAULT_ANCHORING_STRENGTH = 1e-4;
 const double Surface::DEFAULT_ANCHORING_K1 = 1;
 const double Surface::DEFAULT_ANCHORING_K2 = 1;
+const bool Surface::DEFAULT_ANCHORING_OVERRIDE_VOLUME = true;
 const std::vector<double> Surface::DEFAULT_ANCHORING_EASY = {0,0,0};
 const std::vector<double> Surface::DEFAULT_ANCHORING_PARAMS = {};
+
 Surface::Surface(int fxlcnum) {
-    FixLCNumber = fxlcnum;
-    Strength = DEFAULT_ANCHORING_STRENGTH;
-    K1 = 1;
-    K2 = 1;
-    this->setEasyAngles(DEFAULT_ANCHORING_EASY);
-    UsesSurfaceNormal = false;
-    isFixed = true;
+  FixLCNumber = fxlcnum;
+  Strength = DEFAULT_ANCHORING_STRENGTH;
+  K1 = DEFAULT_ANCHORING_K1;
+  K2 = DEFAULT_ANCHORING_K2;
+  this->setEasyAngles(DEFAULT_ANCHORING_EASY);
+  UsesSurfaceNormal = false;
+  isFixed = true;
+  overrideVolume = DEFAULT_ANCHORING_OVERRIDE_VOLUME;
 }
 
 void Surface::setAnchoringType(const std::string &atype) {
@@ -67,7 +69,7 @@ void Surface::setK1(double k1) { K1 = k1; }
 void Surface::setK2(double k2) { K2 = k2; }
 
 /**
-* set easy direction, tilt, twist & rotation
+* set easy direction, tilt, twist & rotation angles in degrees
 */
 void Surface::setEasyAngles(const std::vector<double> &e) {
     if (e.size() > 3) {
@@ -75,9 +77,9 @@ void Surface::setEasyAngles(const std::vector<double> &e) {
             " got " + std::to_string(e.size()) + ", but can only handle up to 3 (tilt, twist, rotation)";
         throw std::invalid_argument(errorMsg);
     }
-    Easy[0] = 0.0; Easy[1] = 0.0; Easy[2] = 0.0;
+  easyAnglesDegrees[0] = 0.0; easyAnglesDegrees[1] = 0.0; easyAnglesDegrees[2] = 0.0;
     for (size_t i = 0; i < e.size() ; i++) {
-        Easy[i] = e[i];
+      easyAnglesDegrees[i] = e[i];
     }
 
     this->calcV1V2(); // calculates primary anchoring axes from easy angles
@@ -93,9 +95,9 @@ void Surface::calcV1V2(){
 
     if (this->Type != Weak) // vectors are only set for 'Weak' anchoring type (why?)
         return;
-    double a = Easy[1] * PI / 180.0; // twist
-    double b = Easy[0] * PI / 180.0; // tilt
-    double g = Easy[2] * PI / 180.0; // rotation around
+    double a = easyAnglesDegrees[1] * PI / 180.0; // twist
+    double b = easyAnglesDegrees[0] * PI / 180.0; // tilt
+    double g = easyAnglesDegrees[2] * PI / 180.0; // rotation around
     double k[3] = {0.0, 0.0, 0.0};
     double l[3] = {0.0, 0.0, 0.0};
     // apply rotation matrices
@@ -125,15 +127,11 @@ AnchoringType Surface::getAnchoringType() const {
     return this->Type;
 }
 
-//unsigned int Surface::getAnchoringNum() const {
-//    return static_cast<unsigned int> (this->Type);
-//}
 double Surface::getStrength() const		{		return Strength;}
 double Surface::getK1() const				{		return K1;}
 double Surface::getK2() const				{		return K2;}
-double Surface::getEasyTilt() const{			return Easy[0];}
-double Surface::getEasyTwist() const{			return Easy[1];}
-double Surface::getEasyRot() const{			return Easy[2];}
+double Surface::getEasyTilt() const{			return easyAnglesDegrees[0];}
+double Surface::getEasyTwist() const{			return easyAnglesDegrees[1];}
 double* Surface::getPtrTov1(){			return &v1[0];}
 double* Surface::getPtrTov2(){			return &v2[0];}
 bool	Surface::getUsesSurfaceNormal() const {
@@ -166,21 +164,22 @@ void Alignment::addSurface(Surface* s){
 void Alignment::addSurface(const int fixLcNumber,
                            const std::string &anchoring,
                            const double &strength,
-                           const std::vector<double> &easy,
+                           const std::vector<double> &easyAnglesDegrees,
                            const double &k1,
                            const double &k2,
-                           const std::vector<double> &params) {
+                           const std::vector<double> &params,
+                           const bool overrideVolume) {
 
-    Surface *s = new Surface(fixLcNumber);
+    auto s = new Surface(fixLcNumber);
     s->setAnchoringType(anchoring);
     s->setStrength(strength);
-    s->setEasyAngles(easy);
+    s->setEasyAngles(easyAnglesDegrees);
     s->setK1(k1);
     s->setK2(k2);
+    s->setEnforce(overrideVolume);
     s->Params = params;
     this->addSurface(s);
 }
-
 
 const Surface& Alignment::getSurface(const idx &i) const {
     if (i >= (idx) this->surface.size()) {
@@ -192,17 +191,13 @@ const Surface& Alignment::getSurface(const idx &i) const {
 }
 
 
-int Alignment::getnSurfaces(){	return n_surfaces;}
+int Alignment::getnSurfaces() const {	return n_surfaces;}
 
 bool Alignment::IsStrong(int i) const {
     if (i >= (int) surface.size() ) {
         RUNTIME_ERROR("Invalid alignment surface FIXLC" + std::to_string(i + 1) + ", number of alignment surfaces is " + std::to_string(surface.size()));
     }
     return getSurface(i).isStrong();
-}
-
-AnchoringType Alignment::getTypeOfSurface(const idx &n) const {
-    return getSurface(n).getAnchoringType();
 }
 
 bool Alignment::WeakSurfacesExist(){

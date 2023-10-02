@@ -834,15 +834,15 @@ double Geometry::getAbsDistSqr(const unsigned int i, const double *const coord) 
   return t.distanceSquared(o);
 }
 
-bool Geometry::getleft_right_is_periodic() {
+bool Geometry::getleft_right_is_periodic() const {
     return left_right_is_periodic;
 }
 
-bool Geometry::getfront_back_is_periodic() {
+bool Geometry::getfront_back_is_periodic() const {
     return front_back_is_periodic;
 }
 
-bool Geometry::gettop_bottom_is_periodic() {
+bool Geometry::gettop_bottom_is_periodic() const {
     return top_bottom_is_periodic;
 }
 
@@ -850,16 +850,8 @@ const std::vector<Vec3>& Geometry::getNodeNormals() const {
   return nodeNormals;
 }
 
-double Geometry::getNodeNormalsX(int i)     {
-    return nodeNormals[i].x();
-}
-
-double Geometry::getNodeNormalsY(int i)     {
-    return nodeNormals[i].y();
-}
-
-double Geometry::getNodeNormalsZ(int i)     {
-    return nodeNormals[i].z();
+Vec3 Geometry::getNodeNormal(unsigned int i) const {
+  return nodeNormals[i];
 }
 
 double Geometry::getXmin()  {

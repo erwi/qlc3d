@@ -18,6 +18,7 @@ namespace qlc3d {
         const double &ny() const { return ny_; }
         const double &nz() const { return nz_; }
         const double &S() const { return S_; }
+        [[nodiscard]] Vec3 vector() const;
 
         Director static fromRadianAngles(const double &tiltRadians, const double &twistRadians, const double &S);
         Director static fromDegreeAngles(const double &tiltDegrees, const double &twistDegrees, const double &S);

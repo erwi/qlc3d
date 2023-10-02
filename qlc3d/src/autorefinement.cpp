@@ -4,13 +4,12 @@
 #include <solutionvector.h>
 #include <algorithm>
 #include <alignment.h>
-#include <lc.h>
 #include <box.h>
-#include <qlc3d.h>
 #include <simulation-state.h>
 #include <util/logging.h>
 #include <geom/vec3.h>
 #include <geom/coordinates.h>
+#include <inits.h>
 
 double intepolate_scalar(double *loc , double *S) {
     /*! Interpolates scalar value S[4] to a single value using four local coordinates in loc[4]*/
@@ -216,7 +215,7 @@ bool autoref(Geometry &geom_orig,
     // RECREATE POTENTIAL SOLUTIONVECTOR FROM SCRATCH FOR THE NEW GEOMETRY.
     v.Resize(geom_temp.getnp() , 1);
     v.allocateFixedNodesArrays(geom_temp);
-    v.setPeriodicEquNodes(& geom_temp);
+    v.setPeriodicEquNodes(geom_temp);
     v.setFixedNodesPot(&electrodes);
     v.setToFixedValues();
     // REALLOCATE Q-TENSOR
@@ -224,9 +223,9 @@ bool autoref(Geometry &geom_orig,
     q.Resize(geom_temp.getnpLC(), 5);       // ALLOCATE FOR NEW MESH SIZE
     interpolate(q, geom_temp, qn, geom);    // INTERPOLATE FROM PREVIOUS MESH
     // SET BOUNDARY CONDITIONS
-    setStrongSurfacesQ(&q, &alignment, S0, &geom_temp);
-    q.setFixedNodesQ(&alignment, geom_temp.e.get());
-    q.setPeriodicEquNodes(&geom_temp);
+    setStrongSurfacesQ(q, alignment, S0, geom_temp);
+    q.setFixedNodesQ(alignment, geom_temp.getTriangles());
+    q.setPeriodicEquNodes(geom_temp);
     q.EnforceEquNodes(geom_temp);
     qn = q;                                     // USE CURRENT Q FOR PREVIOUS TIME STEP Q-TENSOR
     geom.setTo(&geom_temp);

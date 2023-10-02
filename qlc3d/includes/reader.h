@@ -87,6 +87,7 @@ class Reader {
     inline void parseValue(const std::string &strVal, std::vector<std::string> &val)const; // make array of strings
     inline void parseValue(const std::string &strVal, size_t &val) const; // size_t conversion
     inline void parseValue(const std::string &strVal, unsigned int &val) const; // 32 bit unsigned int conversion
+    inline void parseValue(const std::string &strVal, bool &val) const; // bool conversion
 
     template <class T > inline void parseValue(const std::string &strVal, std::vector<T> &val) const {
         /*!
@@ -625,6 +626,17 @@ inline void Reader::parseValue(const std::string &strVal, unsigned int &val) con
     size_t tval(0);
     parseValue(strVal, tval);
     val = static_cast<unsigned int>(tval);
+}
+
+inline void Reader::parseValue(const std::string &strVal, bool &val) const {
+  if (strVal == "true" || strVal == "1") {
+    val = true;
+  } else if (strVal == "false" || strVal == "0") {
+    val = false;
+  } else {
+    std::string errMsg = _R_BAD_VALUE_ERROR_MSG + strVal + " , expected true or false.";
+    throw errMsg;
+  }
 }
 
 #endif // READER2_H

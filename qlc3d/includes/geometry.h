@@ -60,9 +60,9 @@ public:
     void ReorderDielectricNodes();  // reorder nodes so that dielectric material nodes are last
     void makePeriEquNodes();    // generates periodic equivalent nodes index
     void ClearGeometry();       // clears all data for geometry
-    bool getleft_right_is_periodic();
-    bool getfront_back_is_periodic();
-    bool gettop_bottom_is_periodic();
+    bool getleft_right_is_periodic() const;
+    bool getfront_back_is_periodic() const;
+    bool gettop_bottom_is_periodic() const;
 
     void genIndToTetsByCoords(vector <unsigned int> &returnIndex,   // Return index
                               const Coordinates &targetCoordinates,    // coordinates to search
@@ -126,9 +126,7 @@ public:
     //
     // NodeNormal methods
     [[nodiscard]] const std::vector<Vec3>& getNodeNormals() const;
-    double getNodeNormalsX(int i);
-    double getNodeNormalsY(int i);
-    double getNodeNormalsZ(int i);
+    Vec3 getNodeNormal(unsigned int i) const;
     void countNodeReferences(vector <int> &refc, Mesh &mesh); // counts the number of times each node is used in mesh. DEBUG
 
     [[nodiscard]] const Mesh& getTetrahedra() const { return *t; }

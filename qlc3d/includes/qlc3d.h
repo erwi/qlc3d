@@ -79,28 +79,6 @@ void ReadSettings(
 
 void CreateSaveDir(Simu* simu); //creates new save dir, if needed
 
-// -----------------------------
-//
-// INITIALISATION FUCTIONS
-//
-// -----------------------------
-void SetVolumeQ(SolutionVector *q, double S0, Boxes* boxes, const Coordinates &coordinates);
-
-// Sets all Q-tensor values to those specified in Alignment
-void setSurfacesQ(
-		SolutionVector* q,
-		Alignment* alignment,
-		double S0,
-		Geometry* geom);
-		
-// Sets Q-tensor values only for fixed nodes (strong, homeotropic anchoring), as specified in Alignment
-// defined in file : setsurfacesq.cpp
-void setStrongSurfacesQ(
-		SolutionVector* q,
-		Alignment* alignment,
-		double S0,
-		Geometry* geom);
-
 /*! tensortovector returns the director and two order parameters in an array.
  *  The returned vector must be freed outside this function.
  *  TODO: make the return a shared_ptr

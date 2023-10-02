@@ -1,6 +1,4 @@
-//
-// Created by eero on 03/04/2021.
-//
+
 #include <simulation-container.h>
 #include <configuration.h>
 #include <simu.h>
@@ -20,9 +18,9 @@
 #include <util/logging.h>
 #include <util/exception.h>
 #include <io/result-output.h>
-
+#include <geom/vec3.h>
 #include <spamtrix_ircmatrix.hpp>
-#include "util/stringutil.h"
+#include <util/stringutil.h>
 
 namespace fs = std::filesystem;
 
@@ -109,9 +107,11 @@ void SimulationContainer::initialise() {
     // mesh file is read and geometry is loaded in this function (in inits.cpp)
     prepareGeometry(geom_orig,
                     meshName,
-                    *simu,
-                    *alignment,
-                    *electrodes);
+                    *electrodes,
+                    simu->getStretchVector(),
+                    simu->getRegularGridXCount(),
+                    simu->getRegularGridYCount(),
+                    simu->getRegularGridZCount());
     geom1.setTo(&geom_orig);            // in the beginning working geometry is original
 
     // SET CONVENIENCE STRUCT OF POINTERS
@@ -126,7 +126,7 @@ void SimulationContainer::initialise() {
     Log::info("creating initial electric potential");
     v = SolutionVector((idx) geom1.getnp(), 1);
     v.allocateFixedNodesArrays(geom1);
-    v.setPeriodicEquNodes(&geom1); // periodic nodes
+    v.setPeriodicEquNodes(geom1); // periodic nodes
 
     // =============================================================
     //
@@ -137,26 +137,17 @@ void SimulationContainer::initialise() {
     Log::info("Creating initial Q tensor");
     q = SolutionVector(geom1.getnpLC(), 5);    //  Q-tensor for current time step
     qn = SolutionVector(geom1.getnpLC(), 5);   //  Q-tensor from previous time step
-    SetVolumeQ(&q, lc->S0(), boxes.get(), geom1.getCoordinates());
-    setSurfacesQ(&q, alignment.get(), lc->S0(), &geom1);
 
-    //  LOAD Q FROM RESULT FILE
-    if (!simu->getLoadQ().empty()) {
-        ResultIO::ReadResult(*simu, q);
-        setStrongSurfacesQ(&q, alignment.get(), lc->S0(), &geom1); // over writes surfaces with user specified values
-    }
-    q.setFixedNodesQ(alignment.get(), geom1.e.get());  // set fixed surface anchoring
-    q.setPeriodicEquNodes(&geom1);          // periodic nodes
-    q.EnforceEquNodes(geom1);                // makes sure values at periodic boundaies match
-    qn = q;                                   // q-previous = q-current in first iteration
+    initialiseLcSolutionVector(q, *simu, *lc, *boxes.get(), *alignment, geom1);
+
+    qn = q;  // q-previous = q-current in first iteration
 
     // SET CONVENIENCE POINTERS STRUCTURE
-    //solutionvectors;
     solutionVectors.q = &q;
     solutionVectors.qn = &qn;
     solutionVectors.v = &v;
 
-    // Make matrices for potential and Q-tensor..
+    // Make matrices for potential and Q-tensor...
     Log::info("Creating sparse matrix for potential");
     Kpot = createPotentialMatrix(geom1, v, 0, *electrodes);
 

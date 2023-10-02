@@ -7,6 +7,9 @@
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
 template <typename EnumType>
 class StringEnum{
     /*!
@@ -72,7 +75,8 @@ public:
             }
         }
         // input string did not belong to set of valid strings
-        throw std::exception();
+        auto msg = fmt::format("Invalid selection \"{}\", valid options are {}", sval, this->values);
+        throw std::runtime_error(msg);
     }
 
     void printErrorMessage(const std::string &s_in) const {

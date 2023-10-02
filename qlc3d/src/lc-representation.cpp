@@ -166,6 +166,10 @@ double Director::twistDegrees() const {
     return 180. * twistRadians() / M_PI;
 }
 
+Vec3 Director::vector() const {
+  return Vec3{nx_, ny_, nz_};
+}
+
 // </editor-fold>
 
 // <editor-fold desc="QTensor">

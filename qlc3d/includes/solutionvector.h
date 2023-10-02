@@ -90,12 +90,12 @@ assert(n< getnDoF()*getnDimensions());
     void setValuesTo(const SolutionVector& other); // copies values from other SolutionVector
     void setValue(const idx n,const idx dim, const double val);// sets nth value of dimension dim to val
     void setToFixedValues();
-    void setFixedNodesQ(Alignment* alignment, Mesh* e);
+    void setFixedNodesQ(const Alignment &alignment, const Mesh &e);
     void setFixedNodesPot(Electrodes* electrodes);
     void allocateFixedNodesArrays(Geometry& geom); // ALLOCATES FIXED NODE ARRAYS FOR POTENTIAL.
     void Resize(const unsigned int& n, const unsigned int& dim = 1); // resizes Values data, clears all data
     void ClearAll();
-    void setPeriodicEquNodes(Geometry* geom); // use this for generating nodal periodic equivalency lists
+    void setPeriodicEquNodes(const Geometry &geom); // use this for generating nodal periodic equivalency lists
     void ClearFixed(); // clears all fixed nodes and values
     void EnforceEquNodes(const Geometry& geom); // enforces periodicity
     [[nodiscard]] inline bool getIsFixed(const size_t i) {

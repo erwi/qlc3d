@@ -1,6 +1,7 @@
 #include <catch.h>
 #include <test-util.h>
 #include <geometry.h>
+#include <geom/vec3.h>
 #include <inits.h>
 #include <simu.h>
 #include <electrodes.h>
@@ -21,7 +22,7 @@ TEST_CASE("mesh refinement") {
     electrodes.setnElectrodes(2); // Mesh contains two electrodes. This fakes them being defined in the settings file
 
     // reads and prepares test-mesh from resource file
-    prepareGeometry(originalGeometry, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, *simu, alignment, electrodes);
+    prepareGeometry(originalGeometry, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, {1, 1, 1});
 
     workingGeometry.setTo(&originalGeometry);
 
