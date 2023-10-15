@@ -1,14 +1,17 @@
 #include <math.h>
-#include "solutionvector.h"
-#include "lc.h"
-#include "solver-settings.h"
-#include "geometry.h"
-#include "shapefunction3d.h"
-#include "shapefunction2d.h"
-#include "util/logging.h"
-#include "geom/coordinates.h"
-#include "geom/vec3.h"
+#include <solutionvector.h>
+#include <lc.h>
+#include <solver-settings.h>
+#include <geometry.h>
+#include <shapefunction3d.h>
+#include <shapefunction2d.h>
+#include <util/logging.h>
+#include <util/hash.h>
+#include <geom/coordinates.h>
+#include <geom/vec3.h>
 #include <potential/potential-solver.h>
+
+#include <random>
 
 // SPAMTRIX INCLUDES
 #include "spamtrix_ircmatrix.hpp"
@@ -220,7 +223,7 @@ void localKL_N(
   Vec3 n = surf_mesh.getSurfaceNormal(it);
   double eDet = surf_mesh.getDeterminant(it);
   double Jdet = mesh.getDeterminant(index_to_Neumann);
-#ifdef DEBUG
+#ifndef NDEBUG
   assert(eDet > 0);
   assert(Jdet > 0);
   if (abs(n.norm2() - 1.0) > 0.01) {
@@ -274,6 +277,7 @@ void localKL_N(
     double q1x = 0, q2x = 0, q3x = 0, q4x = 0, q5x = 0;
     double q1y = 0, q2y = 0, q3y = 0, q4y = 0, q5y = 0;
     double q1z = 0, q2z = 0, q3z = 0, q4z = 0, q5z = 0;
+
     for (i = 0; i < 4; i++) {
       q1 += Sh[i] * q.getValue(tt[i], 0);
       q2 += Sh[i] * q.getValue(tt[i], 1);
@@ -331,11 +335,17 @@ void localKL_N(
 // end void localKL
 
 
+bool isFixedNode(idx i) {
+  return i == NOT_AN_INDEX;
+}
 
+bool isFreeNode(idx i) {
+  return i < NOT_AN_INDEX;
+}
 
 void assemble_volume(
         const Geometry &geometry,
-        SolutionVector &v,
+        const SolutionVector &v,
         const SolutionVector &q,
         const LC &lc,
         SpaMtrix::IRCMatrix &K,
@@ -344,38 +354,40 @@ void assemble_volume(
   Shape4thOrder shapes;
   const unsigned int elementCount = geometry.getTetrahedra().getnElements();
 
-#ifdef NDEBUG
-#pragma omp parallel for
-#endif
+  double lK[npt][npt];
+  double lL[npt];
+  idx t[npt];
+  idx mapped[npt];
 
+#pragma omp parallel for default(none) shared(geometry, v, q, lc, K, L, shapes, electrodes, elementCount) private(lK, lL, t, mapped)
   for (idx elementIndex = 0; elementIndex < elementCount; elementIndex++) {
-    double lK[npt][npt];
-    double lL[npt];
-    unsigned int t[4] = {0, 0, 0, 0};
     geometry.getTetrahedra().loadNodes(elementIndex, t);
+    v.loadEquNodes(&t[0], &t[npt], mapped);
+
     localKL(geometry, lK, lL, elementIndex, q, lc, electrodes, shapes);
 
-    for (idx i = 0; i < npt; i++) { // FOR ROWS
-      idx ri = v.getEquNode(t[i]);
-      // RHS FIXED NODE HANDLING
-      if (ri == NOT_AN_INDEX) {  // IF THIS NODE IS FIXED
-        for (int j = 0; j < 4 ; j++) { // SET CONTRIBUTION TO CONNECTED *FREE* NODES
-          idx nc = v.getEquNode(t[j]);   // INDEX TO CONNECTED NODE DEGREE OF FREEDOM POSITION
-          if (nc != NOT_AN_INDEX) {
+    ///*
+    for (idx rowCounter = 0; rowCounter < npt; rowCounter++) {
+      idx rowDof = mapped[rowCounter];
+
+      for (idx colCounter = 0; colCounter < npt; colCounter++) {
+        idx colDof = mapped[colCounter];
+
+        if (isFreeNode(rowDof) && isFreeNode(colDof)) {
+          // Free node at row contributes to the LHS matrix only
+          //K.sparse_add(colDof, rowDof, lK[colCounter][rowCounter]); // OK periodic
+          K.sparse_add(rowDof, colDof, lK[rowCounter][colCounter]); // OK periodic
+        } else if (isFixedNode(rowDof) && isFreeNode(colDof)) {
+          // Fixed note at row contributes to the RHS vector only for free col values: L = -K * v
+          double fixedValue = v.getValue(t[rowCounter]);
+          const double update = lL[rowCounter] - lK[rowCounter][colCounter] * fixedValue;
 #pragma omp atomic
-            L[ nc ] += lL[i] - lK[i][j] * v.getValue(t[i]); // L = -K*v
-          }
+          L[colDof] += update;
         }
-      }// END IF ROW NODE IS FIXED
-      if (ri != NOT_AN_INDEX)
-        for (idx j = 0; j < npt  ; j++) { // FOR COLUMNS
-          idx rj = v.getEquNode(t[j]);
-          if (rj != NOT_AN_INDEX) {
-            K.sparse_add(rj, ri, lK[j][i]);
-          }
-        }//end for j
-    }//end for i
-  }//end for it
+      }
+    }
+
+  }
 }// end void assemble_volume
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -392,8 +404,14 @@ void assemble_Neumann(
   ShapeSurf4thOrder shapes;
 
   for (idx it = 0; it < surf_mesh.getnElements(); it++) {
+    bool isNeumann = surf_mesh.getMaterialNumber(it) == MAT_NEUMANN;
+    if (!isNeumann) {
+      continue;
+    }
     int index_to_Neumann = surf_mesh.getConnectedVolume(it);
-    if ((index_to_Neumann > -1) && (surf_mesh.getMaterialNumber(it) == MAT_NEUMANN)) { // if connected to LC tet
+    if (index_to_Neumann == -1) {
+      throw std::runtime_error(fmt::format("Surface element {} mit material Neumann is not connected to any volume element.", it));
+    }
       double lK[4][4];
       double lL[4];
       idx ee[3] = {   surf_mesh.getNode(it, 0) ,
@@ -414,27 +432,31 @@ void assemble_Neumann(
       }
       idx ti[4] = { ee[0], ee[1], ee[2], tt[intr] }; // reordered local element, internal node is always last
       localKL_N(coordinates, &ti[0], lK , lL, it, index_to_Neumann, mesh, surf_mesh, q, lc, shapes);
-      for (int i = 0; i < 4; i++) {
-        idx ri = v.getEquNode(ti[i]);
-        if (ri == NOT_AN_INDEX) { // HANDLE FIXED NODE
-          for (int j = 0; j < 4 ; j++) {
-            idx cr = v.getEquNode(ti[j]);   // CONNECTED NODE DOF ORDER
-            if (cr != NOT_AN_INDEX) {
-#pragma omp atomic
-              L[cr ] += lL[i] - lK[j][i] * v.getValue(ti[i]);
+      for (int rowCounter = 0; rowCounter < 4; rowCounter++) {
+        idx rowDof = v.getEquNode(ti[rowCounter]);
+        if (rowDof == NOT_AN_INDEX) { // HANDLE FIXED NODE
+          double fixedValue = v.getValue(ti[rowCounter]);
+
+          for (int colCounter = 0; colCounter < 4 ; colCounter++) {
+            idx colDof = v.getEquNode(ti[colCounter]);   // CONNECTED NODE DOF ORDER
+            if (colDof != NOT_AN_INDEX) {
+              //L[colDof ] += lL[rowCounter] - lK[colCounter][rowCounter] * v.getValue(ti[rowCounter]);
+              // Fixed note at row contributes to the RHS vector only for free col values: L = -K * v
+
+              const double update = lL[rowCounter] - lK[colCounter][rowCounter] * fixedValue;
+              L[colDof] += update;
             }
           }
         }// END HANDLE FIXED NODE
         else { // HANDLE FREE NODE
-          for (int j = 0; j < 4; j++) { // FOR COLUMNS
-            idx rj = v.getEquNode(ti[j]);
-            if (rj != NOT_AN_INDEX) {// NON-FIXED NODE
-              K.sparse_add(rj, ri, lK[j][i]);
+          for (int colCounter = 0; colCounter < 4; colCounter++) { // FOR COLUMNS
+            idx colDof = v.getEquNode(ti[colCounter]);
+            if (colDof != NOT_AN_INDEX) {// NON-FIXED NODE
+              K.sparse_add(rowDof, colDof, lK[rowCounter][colCounter]);
             }
           }//end for j
         }// END HANDLE FREE NODES
       }//end for i
-    }//end if LC
   }//end for it
 }//end void assemble_Neumann
 
@@ -467,8 +489,14 @@ void calcpot3d(
         }
     }
     // Assemble system
+    omp_set_num_threads(1);
     assemble_volume(geom, v, q, lc, Kpot , L, electrodes);
     assemble_Neumann(geom.getCoordinates() , v , q , lc , geom.getTetrahedra() , geom.getTriangles(), Kpot , L);
+
+#ifdef LOG_DEBUG_HASH
+    int64_t lHash = hashCode64(&L[0], &L[L.getLength() - 1]);
+    Log::info("Calcpot. lHash={:X}", lHash);
+#endif
     // GMRES SOLVER
     Pot_GMRES(Kpot, L, V, settings);
     // COPY NON-FIXED VALUES BACK TO SOLUTIONVECTOR

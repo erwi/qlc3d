@@ -1,8 +1,8 @@
 MeshName = ./geometry.msh
 
 dt = 1e-6
-EndCriterion = Time
-EndValue = 10e-6
+EndCriterion = Iterations
+EndValue = 0#10e-6
 
 SaveIter = 10
 SaveFormat = [VTKUnstructuredAsciiGrid]

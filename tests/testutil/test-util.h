@@ -9,6 +9,8 @@ namespace TestUtil {
 
   const std::string RESOURCE_THIN_GID_MESH = "resources/thin.msh";
   const std::string RESOURCE_SMALL_CUBE_GMSH_MESH = "resources/gmsh-small-cube.msh";
+  /** 1 x 0.1 x 1 mesh with left/right Neumann boundaries and front/back periodic boundaries. Electrode1/FixLC1 on top, Electrode2/FixLC2 on bottom */
+  const std::string RESOURCE_PSEUDO_2D_NEUMANN_GMSH_MESH = "resources/pseudo-2d-neumann.msh";
 
   /**
    * TemporaryFile is a file created in the OS temp directory. It deletes itself when going out of scope.

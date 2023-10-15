@@ -149,7 +149,7 @@ SimuBuilder &SimuBuilder::saveDir(const std::string &saveDir) {
 }
 
 SimuBuilder &SimuBuilder::endValue(double endValue) {
-    assertTrue(endValue > 0, "endValue should be > 0");
+    assertTrue(endValue >= 0, "endValue should be >= 0");
     endValue_ = endValue;
     return *this;
 }

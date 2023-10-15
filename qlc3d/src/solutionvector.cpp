@@ -406,6 +406,12 @@ void SolutionVector::setValue(idx i, const qlc3d::Director &d) {
     setValue(i, qlc3d::TTensor::fromDirector(d));
 }
 
+void SolutionVector::loadEquNodes(const idx* start, const idx* end, idx* equNodesOut) const {
+  for (idx* i = const_cast<idx *>(start); i != end; ++i) {
+    equNodesOut[i - start] = getEquNode(*i);
+  }
+}
+
 qlc3d::Director SolutionVector::getDirector(idx i) const {
     assert(getnDimensions() == 5); // this should be SolutionVector for director, not potential solution
     return qlc3d::TTensor(

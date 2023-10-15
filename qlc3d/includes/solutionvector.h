@@ -82,7 +82,9 @@ assert(n< getnDoF()*getnDimensions());
         }
     }
 
-    [[nodiscard]] inline double getValue(const idx n) const { return values[n]; }
+  void loadEquNodes(const idx *start, const idx *end, idx *equNodesOut) const;
+
+  [[nodiscard]] inline double getValue(const idx n) const { return values[n]; }
     [[nodiscard]] inline double getValue(const idx n , const idx dim) const { return values[n + dim*nDoF]; }
 
     void setnFixed(idx n);
