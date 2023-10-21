@@ -294,6 +294,7 @@ void Mesh::calculateDeterminants3D(const Coordinates &coords) {
     }
   }
   TotalSize = TotalSize / 6.0; // scale tet determinant to volume
+  Log::info("Tetrahedral mesh total volume = {}", TotalSize);
 }
 
 void Mesh::calculateSurfaceNormals(const Coordinates &coords, Mesh* tets) {
@@ -373,6 +374,7 @@ void Mesh::calculateSurfaceNormals(const Coordinates &coords, Mesh* tets) {
 
     setSurfaceNormal(i, normalVec);
   }
+  Log::info("Triangle mesh total surface area = {}", TotalSize);
 }
 
 void Mesh::calcLocCoords(const idx elem, const Coordinates &coordinates, const Vec3 &targetPoint, double localCoordinates[4]) const {

@@ -107,13 +107,14 @@ assert(i < getnDoF()*getnDimensions() );
 #endif
         return isFixed.at(i);
     }
-    bool test();
 
     // Q-tensor related only
     //! set all of the 5 tensor values for te n'th DoF.
     void setValue(idx n, const qlc3d::TTensor &t);
 
     void setValue(idx i, const qlc3d::Director &d);
+
+    void loadValues(const idx *start, const idx *end, double *valuesOut, idx dim = 0) const;
 
     [[nodiscard]] qlc3d::Director getDirector(idx i) const;
     [[nodiscard]] std::vector<qlc3d::Director> getDirector() const;

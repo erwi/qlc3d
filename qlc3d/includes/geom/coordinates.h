@@ -26,6 +26,7 @@ public:
   void clear();
   void append(const std::vector<double> &p);
   void scale(const Vec3& scale);
+  void loadCoordinates(const idx *start, const idx *end, Vec3 *coordinatesOut) const;
   /** create a deep copy of this object */
   [[nodiscard]] std::shared_ptr<Coordinates> clone() const;
 private:

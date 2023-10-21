@@ -406,6 +406,12 @@ void SolutionVector::setValue(idx i, const qlc3d::Director &d) {
     setValue(i, qlc3d::TTensor::fromDirector(d));
 }
 
+void SolutionVector::loadValues(const idx *start, const idx *end, double *valuesOut, idx dim) const {
+    for (idx* i = const_cast<idx *>(start); i != end; ++i) {
+        valuesOut[i - start] = getValue(*i, dim);
+    }
+}
+
 void SolutionVector::loadEquNodes(const idx* start, const idx* end, idx* equNodesOut) const {
   for (idx* i = const_cast<idx *>(start); i != end; ++i) {
     equNodesOut[i - start] = getEquNode(*i);

@@ -3,7 +3,7 @@
 #include <omp.h>
 #include <time.h>
 #include <qlc3d.h>
-#include <shapefunction3d.h>
+#include "fe/shapefunction3d.h"
 #include <qassembly_macros.h>
 #include <spamtrix_ircmatrix.hpp>
 #include <spamtrix_vector.hpp>

@@ -71,6 +71,12 @@ void Coordinates::scale(const Vec3 &scale) {
   }
 }
 
+void Coordinates::loadCoordinates(const idx *start, const idx *end, Vec3 *coordinatesOut) const {
+  for (auto i = start; i != end; ++i) {
+    coordinatesOut[i - start] = points[*i];
+  }
+}
+
 void Coordinates::clear() {
   points.clear();
 }

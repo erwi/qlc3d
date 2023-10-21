@@ -44,6 +44,7 @@ TEST_CASE("Solve potential 1D mesh - Expect v = z") {
 
   auto lc = std::shared_ptr<LC>(LCBuilder().build());
   auto solverSettings = std::make_shared<SolverSettings>();
+  solverSettings->setV_GMRES_Toler(1e-9);
   PotentialSolver solver(electrodes, lc, solverSettings);
 
   // ACT
@@ -93,7 +94,12 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
   solver.solvePotential(v, q, geom);
 
   // ASSERT
-  // TODO: check that potential values on any x-y plane are same. This is not the case currently.
+  // Check that potential values equal the z-coordinate value everywhere
+  for (unsigned int i = 0; i < geom.getnp(); i++) {
+    double z = geom.getCoordinates().getPoint(i).z();
+    double pot = v.getValue(i);
+    REQUIRE(pot == Approx(z).margin(1e-6));
+  }
 
   //vtkIOFun::UnstructuredGridWriter writer;
   //writer.write("/home/eero/Desktop/pseudo2d.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);

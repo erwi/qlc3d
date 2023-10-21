@@ -3,21 +3,19 @@
 #include <lc.h>
 #include <solver-settings.h>
 #include <geometry.h>
-#include <shapefunction3d.h>
-#include <shapefunction2d.h>
+#include "fe/shapefunction3d.h"
+#include "fe/shapefunction2d.h"
 #include <util/logging.h>
-#include <util/hash.h>
 #include <geom/coordinates.h>
 #include <geom/vec3.h>
 #include <potential/potential-solver.h>
-
-#include <random>
 
 // SPAMTRIX INCLUDES
 #include "spamtrix_ircmatrix.hpp"
 #include "spamtrix_vector.hpp"
 #include "spamtrix_iterativesolvers.hpp"
 #include "spamtrix_luincpreconditioner.hpp"
+#include "fe/fe-util.h"
 
 const idx npt = 4; //Number of Points per Tetrahedra
 
@@ -193,6 +191,101 @@ inline void localKL(
   }//end for igp
 }// end void localKL
 
+void localKL(const Geometry &geom,
+             double lK[npt][npt],
+             double lL[npt],
+             unsigned int elementIndex,
+             const SolutionVector &q,
+             const LC &lc,
+             const Electrodes &electrodes,
+             ShapeFunction &s) {
+  idx i, j;
+  double eper, deleps;
+  double S0 = lc.S0();
+  eper    = 0;
+  deleps  = 0;
+  double efe = 0.0, efe2 = 0.0;
+  const Mesh &mesh = geom.getTetrahedra();
+  if (mesh.getMaterialNumber(elementIndex) == MAT_DOMAIN1) { // if LC element
+    eper = lc.eps_per() / S0;
+    deleps = (lc.eps_par() - lc.eps_per()) / S0;
+    efe  = 2.0 / (9 * S0) * (lc.e1() + 2 * lc.e3());
+    efe2 = 4.0 / (9 * S0 * S0) * (lc.e1() - lc.e3());
+  } else { // otherwise dielectric
+    idx ind_de = mesh.getDielectricNumber(elementIndex) - 1; // -1 for 0 indexing
+    eper = electrodes.getDielectricPermittivity(ind_de);
+  }
+  memset(lK, 0, 4 * 4 * sizeof(double));
+  memset(lL, 0, 4 * sizeof(double));
+  idx elemNodeInds[4];
+  Vec3 elemCoords[4];
+  geom.getTetrahedra().loadNodes(elementIndex, elemNodeInds);
+  geom.getCoordinates().loadCoordinates(&elemNodeInds[0], &elemNodeInds[4], elemCoords);
+  elemCoords[0] *= 1e-6;
+  elemCoords[1] *= 1e-6;
+  elemCoords[2] *= 1e-6;
+  elemCoords[3] *= 1e-6;
+  const double determinant = geom.getTetrahedra().getDeterminant(elementIndex);
+
+  s.initialiseElement(elemCoords, determinant);
+
+  // Calculate the permittivity values e12, e13, e23, e11, e22, e33 from the q-tensor nodal values
+  double q1[4], q2[4], q3[4], q4[4], q5[4];
+
+  q.loadValues(&elemNodeInds[0], &elemNodeInds[4], q1, 0);
+  q.loadValues(&elemNodeInds[0], &elemNodeInds[4], q2, 1);
+  q.loadValues(&elemNodeInds[0], &elemNodeInds[4], q3, 2);
+  q.loadValues(&elemNodeInds[0], &elemNodeInds[4], q4, 3);
+  q.loadValues(&elemNodeInds[0], &elemNodeInds[4], q5, 4);
+
+  // nodal values of permittivity
+  double en11[4], en22[4], en33[4], en12[4], en13[4], en23[4];
+  for (int i = 0; i < 4; i++) {
+    en11[i] = (((2.0 / 3.0 / S0) * (-q1[i] / rt6 + q2[i] / rt2) + (1.0 / 3.0)) * deleps + eper); //~nx*nx
+    en22[i] = (((2.0 / 3.0 / S0) * (-q1[i] / rt6 - q2[i] / rt2) + (1.0 / 3.0)) * deleps + eper); //~ny*ny
+    en33[i] = (((2.0 / 3.0 / S0) * (2.0 * q1[i] / rt6)        + (1.0 / 3.0)) * deleps + eper); //~nz*nz
+    en12[i] = (2.0 / 3.0 / S0) * (q3[i] / rt2) * deleps;           //~nx*ny
+    en13[i] = (2.0 / 3.0 / S0) * (q5[i] / rt2) * deleps;           //~nx*nz
+  }
+
+  // convert nodal permittivities to element permittivities
+  double e11 = s.calculate(en11);
+  double e22 = s.calculate(en22);
+  double e33 = s.calculate(en33);
+  double e12 = s.calculate(en12);
+  double e13 = s.calculate(en13);
+  double e23 = s.calculate(en23);
+
+  for (; s.hasNextPoint(); s.nextPoint()) {
+    double mul = s.getWeight() * determinant;
+
+    // convert nodal permittivities to element permittivities
+    double e11 = s.calculate(en11);
+    double e22 = s.calculate(en22);
+    double e33 = s.calculate(en33);
+    double e12 = s.calculate(en12);
+    double e13 = s.calculate(en13);
+    double e23 = s.calculate(en23);
+
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        lK[i][j] += mul * (
+                s.Nx(i) * s.Nx(j) * e11 +
+                s.Ny(i) * s.Ny(j) * e22 +
+                s.Nz(i) * s.Nz(j) * e33 +
+
+                s.Nx(i) * s.Ny(j) * e12 +
+                s.Ny(i) * s.Nx(j) * e12 +
+                s.Nx(i) * s.Nz(j) * e13 +
+                s.Nz(i) * s.Nx(j) * e13 +
+                s.Ny(i) * s.Nz(j) * e23 +
+                s.Nz(i) * s.Ny(j) * e23);
+      }
+    }
+  }
+}
+
+
 void localKL_N(
         const Coordinates &coordinates,
         idx *tt,
@@ -204,7 +297,7 @@ void localKL_N(
         const Mesh &surf_mesh,
         const SolutionVector &q,
         const LC &lc,
-        const ShapeSurf4thOrder &shapes) {
+        ShapeSurf4thOrder &shapes) {
   int i, j;
   double S0 = lc.S0();
   double eper   = 4.5;
@@ -231,6 +324,73 @@ void localKL_N(
   }
 #endif
 
+  const idx iTri = it;
+  const idx iTet = surf_mesh.getConnectedVolume(iTri);
+
+  const double tetDet = mesh.getDeterminant(iTet);
+  const double triDet = surf_mesh.getDeterminant(iTri);
+  idx tetNodes[4], triNodes[3];
+
+  mesh.loadNodes(iTet, tetNodes);
+  surf_mesh.loadNodes(iTri, triNodes);
+  reorderTetNodes(tetNodes, triNodes);
+
+  Vec3 tetCoords[4];
+  coordinates.loadCoordinates(&tetNodes[0], &tetNodes[4], tetCoords);
+  tetCoords[0] *= 1e-6;
+  tetCoords[1] *= 1e-6;
+  tetCoords[2] *= 1e-6;
+  tetCoords[3] *= 1e-6;
+
+  shapes.initialiseElement(tetCoords, tetDet);
+
+  // Calculate the permittivity values e12, e13, e23, e11, e22, e33 from the q-tensor nodal values
+  double q1[4], q2[4], q3[4], q4[4], q5[4];
+
+  q.loadValues(&tetNodes[0], &tetNodes[4], q1, 0);
+  q.loadValues(&tetNodes[0], &tetNodes[4], q2, 1);
+  q.loadValues(&tetNodes[0], &tetNodes[4], q3, 2);
+  q.loadValues(&tetNodes[0], &tetNodes[4], q4, 3);
+  q.loadValues(&tetNodes[0], &tetNodes[4], q5, 4);
+
+  // nodal values of permittivity
+  double en11[4], en22[4], en33[4], en12[4], en13[4], en23[4];
+  for (int i = 0; i < 4; i++) {
+    en11[i] = (((2.0 / 3.0 / S0) * (-q1[i] / rt6 + q2[i] / rt2) + (1.0 / 3.0)) * deleps + eper); //~nx*nx
+    en22[i] = (((2.0 / 3.0 / S0) * (-q1[i] / rt6 - q2[i] / rt2) + (1.0 / 3.0)) * deleps + eper); //~ny*ny
+    en33[i] = (((2.0 / 3.0 / S0) * (2.0 * q1[i] / rt6)        + (1.0 / 3.0)) * deleps + eper); //~nz*nz
+    en12[i] = (2.0 / 3.0 / S0) * (q3[i] / rt2) * deleps;           //~nx*ny
+    en13[i] = (2.0 / 3.0 / S0) * (q5[i] / rt2) * deleps;           //~nx*nz
+  }
+
+
+
+  for (;shapes.hasNextPoint(); shapes.nextPoint()) {
+    // convert nodal permittivities to element permittivities
+    double e11 = shapes.calculate(en11);
+    double e22 = shapes.calculate(en22);
+    double e33 = shapes.calculate(en33);
+    double e12 = shapes.calculate(en12);
+    double e13 = shapes.calculate(en13);
+    double e23 = shapes.calculate(en23);
+
+
+    double mul = shapes.getWeight() * triDet;
+    for (int i =0; i < 4; i++) {
+      double Ni = shapes.N(i);
+      for (int j = 0; j < 4; j++) {
+        double Njx = shapes.Nx(j);
+        double Njy = shapes.Ny(j);
+        double Njz = shapes.Nz(j);
+        lK[i][j] += mul * Ni * (((e11 - 1) * Njx + e12 * Njy + e13 * Njz) * n.x()
+                                   + (e12 * Njx + (e22 - 1) * Njy + e23 * Njz) * n.y()
+                                   + (e13 * Njx + e23 * Njy + (e33 - 1) * Njz) * n.z());
+      }
+    }
+  }
+
+
+/*
   double xr, xs, xt, yr, ys, yt, zr, zs, zt;
   xr = xs = xt = yr = ys = yt = zr = zs = zt = 0.0;
   for (i = 0; i < 4; i++) {
@@ -331,6 +491,7 @@ void localKL_N(
       }//end for j
     }//end for i
   }//end for igp
+  */
 }
 // end void localKL
 
@@ -351,7 +512,8 @@ void assemble_volume(
         SpaMtrix::IRCMatrix &K,
         SpaMtrix::Vector &L,
         const Electrodes &electrodes) {
-  Shape4thOrder shapes;
+  //Shape4thOrder shapes;
+  ShapeFunction shapes;
   const unsigned int elementCount = geometry.getTetrahedra().getnElements();
 
   double lK[npt][npt];
@@ -441,7 +603,7 @@ void assemble_Neumann(
             idx colDof = v.getEquNode(ti[colCounter]);   // CONNECTED NODE DOF ORDER
             if (colDof != NOT_AN_INDEX) {
               //L[colDof ] += lL[rowCounter] - lK[colCounter][rowCounter] * v.getValue(ti[rowCounter]);
-              // Fixed note at row contributes to the RHS vector only for free col values: L = -K * v
+              // Fixed node at row contributes to the RHS vector only for free col values: L = -K * v
 
               const double update = lL[rowCounter] - lK[colCounter][rowCounter] * fixedValue;
               L[colDof] += update;
