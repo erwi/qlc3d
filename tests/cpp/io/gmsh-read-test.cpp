@@ -2,6 +2,9 @@
 #include <test-util.h>
 #include <io/gmsh-read.h>
 #include <iostream>
+#include <algorithm>
+#include <set>
+#include "material_numbers.h"
 
 TEST_CASE("throw exception when") {
     GmshFileReader reader;
@@ -55,4 +58,27 @@ TEST_CASE("read Gmsh mesh raw data") {
         vector<unsigned int> volumeMaterialNumbers = mapper.maptTetrahedraNamesToMaterialNumbers();
         REQUIRE(volumeMaterialNumbers.size() == elements->_numTetrahedra);
     }
+}
+
+TEST_CASE("Read Gmsh mesh with dielectric and LC volumes") {
+  GmshFileReader reader;
+  auto fileData = reader.readGmsh(TestUtil::RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_GMSH_MESH);
+
+  GmshPhysicalNamesMapper mapper(fileData->getPhysicalNames(), fileData->getEntities(), fileData->getElements());
+
+  auto surfaceMaterialNumbers = mapper.mapTriangleNamesToMaterialNumbers();
+  auto volumeMaterialNumbers = mapper.maptTetrahedraNamesToMaterialNumbers();
+
+  std::set<unsigned int> surfaceMaterialsSet(surfaceMaterialNumbers.begin(), surfaceMaterialNumbers.end());
+  std::set<unsigned int> volumeMaterialsSet(volumeMaterialNumbers.begin(), volumeMaterialNumbers.end());
+
+  REQUIRE(4 == surfaceMaterialsSet.size());
+  REQUIRE(1 == surfaceMaterialsSet.count(MAT_NEUMANN)); // side boundaries
+  REQUIRE(1 == surfaceMaterialsSet.count(MAT_ELECTRODE2)); // bottom boundary
+  REQUIRE(1 == surfaceMaterialsSet.count(MAT_FIXLC2)); // middle boundary between LC and dielectric region
+  REQUIRE(1 == surfaceMaterialsSet.count(MAT_ELECTRODE1 | MAT_FIXLC1)); // top boundary
+
+  REQUIRE(2 == volumeMaterialsSet.size());
+  REQUIRE(1 == volumeMaterialsSet.count(MAT_DOMAIN1));
+  REQUIRE(1 == volumeMaterialsSet.count(MAT_DIELECTRIC1));
 }

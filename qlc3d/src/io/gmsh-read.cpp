@@ -166,7 +166,16 @@ std::unique_ptr<SectionPhysicalNames> GmshFileReader::readPhysicalNames() {
         std::transform(physicalName.begin(), physicalName.end(), physicalName.begin(),
                        [](unsigned char c) { return std::tolower(c); });
 
+        if (materials.find(physicalTag) != materials.end()) {
+            // duplicate physical tag found
+            auto message = fmt::format("Duplicate physical tag {}->{} found when trying to add new mapping of {}->{}. This is probably a problem in the mesh file {}",
+                                       physicalTag, materials[physicalTag], physicalTag, physicalName, _fileName.string());
+            Log::error(message);
+            throw runtime_error(message);
+        }
+
         if (qlc3d::MATERIAL_NUMBER_BY_NAME.count(physicalName) == 0) {
+            // physical name not recognised. Log the valid names and throw an error
             // create list of valid names, sorted alphabetically
             std::vector<std::string> validNames;
             for (auto &entry : qlc3d::MATERIAL_NUMBER_BY_NAME) {
