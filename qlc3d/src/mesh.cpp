@@ -153,39 +153,29 @@ void Mesh::setConnectedVolume(Mesh* vol) {
             set <idx> ::iterator itr;
             itr = final.begin();
             if ( final.size() == 1) { // IF SINGLE TET FOUND
-                if (vol->getMaterialNumber( *itr ) <= MAT_DOMAIN7 ) { // only connect to an LC element
-                    connectedVolumes[i] = *itr;
-                }
-                else if ( ( vol->getMaterialNumber( *itr) >= MAT_DIELECTRIC1 ) &&
-                          (vol->getMaterialNumber(*itr) <= MAT_DIELECTRIC7) ){
-                    // MAKE SURE THAT WE DONT HAVE A FIXLC SURFACE THAT IS ONLY CONNECTED TO A DIELECTRIC TET
-                    idx surfMat = this->getMaterialNumber(i);
-                    surfMat = MATNUM_TO_FIXLC_NUMBER((size_t) surfMat);
-                    if ((surfMat > 0) && (surfMat < 10)) {
-                        throw std::runtime_error(format("Found a FxLC{} surface only connected to a dielectric "
-                                                        "volume, but no LC volume in {}, {}.", surfMat, __FILE__, __func__));
-                    }
-
-                    connectedVolumes[i] = -2; // set to -2 if connected to dielectric
-                }
+              connectedVolumes[i] = *itr;
             }
-            else
-                if ( final.size() == 2) {
-                    // CHECK BOTH FIRST AND SECOND INDICES
-                    if (vol->getMaterialNumber( *itr ) <= MAT_DOMAIN7 ) {// only connect to an LC element
-                      connectedVolumes[i] = *itr;
-                    }
-                    else {
-                        ++itr;
-                        if (vol->getMaterialNumber( *itr ) <= MAT_DOMAIN7 ) {// only connect to an LC element
-                          connectedVolumes[i] = *itr;
-                        }
-                    }
+            else if ( final.size() == 2) {
+              // probably a surface between LC and dielectric. Prefer connection to LC
+              unsigned int tetMaterial = vol->getMaterialNumber(*itr);
+              if (isLCMaterial(tetMaterial)) {
+                connectedVolumes[i] = *itr;
+              }
+              else {
+                ++itr;
+                tetMaterial = vol->getMaterialNumber(*itr);
+                if (isLCMaterial(tetMaterial)) {
+                  connectedVolumes[i] = *itr;
                 }
                 else {
-                    throw std::runtime_error(format("Triangle {} is connected to {} tetrahedra, but expected 2, "
-                                                    "in {}, {}", i, final.size(), __FILE__, __func__));
+                  RUNTIME_ERROR(fmt::format("Triangle {} is connected to two non-LC tetrahedara", i));
                 }
+              }
+            }
+            else {
+              throw std::runtime_error(format("Triangle {} is connected to {} tetrahedra, but expected 2, "
+                                              "in {}, {}", i, final.size(), __FILE__, __func__));
+            }
         } // end exclude electrode only surfaces
     }
 }

@@ -77,7 +77,6 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
   // Set LC director to uniform 45 degree tilt angle
   SolutionVector q(geom.getnpLC(), 5);
   auto director = qlc3d::Director::fromDegreeAngles(45, 0, 0.5);
-  const double maxZ = geom.getZmax();
   for (idx i = 0; i < geom.getnpLC(); i++) {
     q.setValue(i, director);
   }
@@ -103,4 +102,102 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
 
   //vtkIOFun::UnstructuredGridWriter writer;
   //writer.write("/home/eero/Desktop/pseudo2d.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
+}
+
+TEST_CASE("Set uniform Electric field along z-axis") {
+  // ARRANGE: minimal set-up required. Presence of electric field in electrodes is sufficient.
+  Geometry geom;
+  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
+  electrodes->setElectricField({0, 0, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, {1, 1, 1});
+  auto lc = std::shared_ptr<LC>(LCBuilder().build());
+  auto solverSettings = std::make_shared<SolverSettings>();
+
+  SolutionVector v(geom.getnp(), 1);
+  SolutionVector q(geom.getnpLC(), 5);
+
+  PotentialSolver solver(electrodes, lc, solverSettings);
+
+  // ACT
+  solver.solvePotential(v, q, geom);
+
+  // ASSERT
+  for (unsigned int i = 0; i < v.getnDoF(); i++) {
+    double pot = v.getValue(i);
+    Vec3 p = geom.getCoordinates().getPoint(i);
+
+    double expectedPot = p.z() - 0.5; // expect 0 potential at centre of mesh, with z-bounds 0 to 1
+    REQUIRE(pot == Approx(expectedPot).margin(1e-12));
+  }
+}
+
+TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries") {
+  // ARRANGE:
+  Geometry geom;
+  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
+  electrodes->setDielectricPermittivities({1});
+
+  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_GMSH_MESH, *electrodes, {1, 1, 1});
+
+  SolutionVector v(geom.getnp(), 1);
+  v.allocateFixedNodesArrays(geom);
+  v.setPeriodicEquNodes(geom);
+  v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
+
+  // Set LC director to uniform 45 degree tilt angle
+  SolutionVector q(geom.getnpLC(), 5);
+  auto director = qlc3d::Director::fromDegreeAngles(45, 0, 0.5);
+  for (idx i = 0; i < geom.getnpLC(); i++) {
+    q.setValue(i, director);
+  }
+
+  auto solverSettings = std::make_shared<SolverSettings>();
+
+  SECTION("LC material with permittivity to match the dielectric layer") {
+    // LC material that matches permittivity of dielectric layer
+    auto lc = std::shared_ptr<LC>(LCBuilder()
+                                          .eps_par(1)
+                                          .eps_per(1)
+                                          .build());
+
+    // ACT
+    PotentialSolver solver(electrodes, lc, solverSettings);
+    solver.solvePotential(v, q, geom);
+
+    // ASSERT
+    // check that potential value is 0.5 * z for every point, since mesh ranges from 0 to 2 along z-axis
+    for (unsigned int i = 0; i < geom.getCoordinates().size(); i++) {
+      double z = geom.getCoordinates().getPoint(i).z();
+      double pot = v.getValue(i);
+      REQUIRE(pot == Approx(0.5 * z).margin(3e-4));
+    }
+  }
+
+  SECTION("LC material with permittivity 2x that of the dielectric layer") {
+    // LC material that matches permittivity of dielectric layer
+    auto lc = std::shared_ptr<LC>(LCBuilder()
+                                          .eps_par(2)
+                                          .eps_per(2)
+                                          .build());
+
+    // ACT
+    PotentialSolver solver(electrodes, lc, solverSettings);
+    solver.solvePotential(v, q, geom);
+
+    // ASSERT
+    // check that potential value is 0.5 * z for every point, since mesh ranges from 0 to 2 along z-axis
+    for (unsigned int i = 0; i < geom.getCoordinates().size(); i++) {
+      double z = geom.getCoordinates().getPoint(i).z();
+      double pot = v.getValue(i);
+      if (z < 1) { // dielectric region
+        // about double the gradient so ranging from 0 to 0.333
+        double expected = 2 * z / 3.;
+        REQUIRE(pot == Approx(expected).margin(3e-4));
+      } else if (z > 1) {
+        // about half the gradient, so ranging from 0.666 to 1.0;
+        double expected = 2./ 3 + (z - 1) / 3;
+        REQUIRE(pot == Approx(expected).margin(3e-4));
+      }
+    }
+  }
 }

@@ -1,8 +1,6 @@
 #include <solutionvector.h>
 #include <material_numbers.h>
 #include <algorithm>
-#include <stdlib.h>
-#include <omp.h>
 #include <lc-representation.h>
 #include <util/exception.h>
 #include <util/logging.h>
@@ -406,10 +404,31 @@ void SolutionVector::setValue(idx i, const qlc3d::Director &d) {
     setValue(i, qlc3d::TTensor::fromDirector(d));
 }
 
-void SolutionVector::loadValues(const idx *start, const idx *end, double *valuesOut, idx dim) const {
-    for (idx* i = const_cast<idx *>(start); i != end; ++i) {
-        valuesOut[i - start] = getValue(*i, dim);
+void SolutionVector::loadValues(const idx *start, const idx *end, double *valuesOut) const {
+  for (idx* i = const_cast<idx *>(start); i != end; ++i) {
+#ifndef NDEBUG
+    if (*i >= getnDoF()) {
+      RUNTIME_ERROR("index out of bounds " + std::to_string(*i));
     }
+#endif
+    valuesOut[i - start] = getValue(*i);
+  }
+}
+
+void SolutionVector::loadQtensorValues(const idx *start, const idx *end, qlc3d::TTensor* tensorOut) const {
+  for (idx* i = const_cast<idx *>(start); i != end; ++i) {
+#ifndef NDEBUG
+    if (*i >= getnDoF()) {
+      RUNTIME_ERROR("index out of bounds " + std::to_string(*i));
+    }
+#endif
+    tensorOut[i - start] = qlc3d::TTensor(
+            getValue(*i, 0),
+            getValue(*i, 1),
+            getValue(*i, 2),
+            getValue(*i, 3),
+            getValue(*i, 4));
+  }
 }
 
 void SolutionVector::loadEquNodes(const idx* start, const idx* end, idx* equNodesOut) const {

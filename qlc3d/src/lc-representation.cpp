@@ -226,4 +226,43 @@ QTensor TTensor::toQTensor() const {
 Director TTensor::toDirector() const {
     return toQTensor().toDirector();
 }
+
+void TTensor::set(double t1, double t2, double t3, double t4, double t5) {
+  t1_ = t1;
+  t2_ = t2;
+  t3_ = t3;
+  t4_ = t4;
+  t5_ = t5;
+}
+// </editor-fold>
+
+// <editor-fold desc="DielectricPermittivity">
+DielectricPermittivity::DielectricPermittivity(double e11, double e22, double e33, double e12, double e13, double e23) {
+  e[0] = e11;
+  e[1] = e22;
+  e[2] = e33;
+  e[3] = e12;
+  e[4] = e13;
+  e[5] = e23;
+}
+
+DielectricPermittivity DielectricPermittivity::fromTTensor(const qlc3d::TTensor &t, double S0, double deleps, double eper) {
+  double e11 = (((2.0 / 3.0 / S0) * (-t.t1() / rt6 + t.t2() / rt2) + (1.0 / 3.0)) * deleps + eper); //~nx*nx
+  double e22 = (((2.0 / 3.0 / S0) * (-t.t1() / rt6 - t.t2() / rt2) + (1.0 / 3.0)) * deleps + eper); //~ny*ny
+  double e33 = (((2.0 / 3.0 / S0) * (2.0 * t.t1() / rt6)        + (1.0 / 3.0)) * deleps + eper); //~nz*nz
+  double e12 = (2.0 / 3.0 / S0) * (t.t3() / rt2) * deleps;           //~nx*ny
+  double e13 = (2.0 / 3.0 / S0) * (t.t5() / rt2) * deleps;           //~nx*nz
+  double e23 = (2.0 / 3.0 / S0) * (t.t4() / rt2) * deleps;       //~ny*nz
+  return {e11, e22, e33, e12, e13, e23};
+}
+
+void DielectricPermittivity::set(double e11, double e22, double e33, double e12, double e13, double e23) {
+  e[0] = e11;
+  e[1] = e22;
+  e[2] = e33;
+  e[3] = e12;
+  e[4] = e13;
+  e[5] = e23;
+}
+
 // </editor-fold>

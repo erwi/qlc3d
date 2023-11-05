@@ -52,7 +52,7 @@ private:
 
   std::unordered_map<unsigned int, std::shared_ptr<Electrode>> electrodeMap;
   std::shared_ptr<Vec3> electricField; // optional uniform electric field
-  std::vector <double> eps_dielectric; // relative dielectric permittivity of dielectric regions
+  std::vector<double> eps_dielectric; // relative dielectric permittivity of dielectric regions
 public:
 
     Electrodes();
@@ -72,9 +72,13 @@ public:
     [[nodiscard]] std::shared_ptr<Electrode> getElectrode(unsigned int electrode) const;
 
     double getDielectricPermittivity(int i) const;  // gets relative dielectric permittivity of dielectric#i
-    bool getCalcPot() const;
+    void setDielectricPermittivities(std::vector<double> eps);
+
+    bool isPotentialCalculationRequired() const;
     bool hasElectricField() const;              // returns true if uniform E-field has been defined
     [[nodiscard]] Vec3 getElectricField() const;
+    void setElectricField(const Vec3 &eField);
+
     [[nodiscard]] std::unordered_map<unsigned int, double> getCurrentPotentials(double currentTime) const;
     /** Create list of all electrode switching events */
     [[nodiscard]] std::vector<Event*> createSwitchingEvents() const;

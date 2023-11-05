@@ -106,6 +106,14 @@ size_t MATNUM_TO_ELECTRODE_NUMBER(const size_t &mat) {
     return eleNum;
 }
 
+inline bool isDielectricMaterial(unsigned int i) {
+  return (i >= MAT_DIELECTRIC1) && (i <= MAT_DIELECTRIC7);
+}
+
+inline bool isLCMaterial(unsigned int i) {
+  return i == MAT_DOMAIN1;
+}
+
 inline
 size_t MATNUM_TO_FIXLC_NUMBER(const size_t &mat) {
     // RETURNS INDEX NUMBER OF A FIXLC SURFACE

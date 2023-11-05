@@ -81,14 +81,20 @@ std::shared_ptr<Electrodes> Electrodes::withInitialPotentials(std::vector<unsign
 }
 
 double Electrodes:: getDielectricPermittivity(int i) const {
-	if (i < (int) eps_dielectric.size() )
-		return eps_dielectric[i];
-    else {
-        RUNTIME_ERROR(fmt::format("Trying to access dielectic {} when only {} dielected materials exist.", i, eps_dielectric.size()));
-    }
+#ifndef NDEBUG
+  if (i < 0 || i >= (int) eps_dielectric.size()) {
+    RUNTIME_ERROR(fmt::format("Trying to access dielectic {} when only {} dielected materials exist.", i,
+                              eps_dielectric.size()));
+  }
+#endif
+	return eps_dielectric[i];
 }
 
-bool Electrodes::getCalcPot() const {
+void Electrodes::setDielectricPermittivities(std::vector<double> eps) {
+  eps_dielectric = std::move(eps);
+}
+
+bool Electrodes::isPotentialCalculationRequired() const {
 /*! Returns whether potential calculations are necessary */
     if (hasElectricField()) { // if have fixed E-field
         return false;
@@ -109,6 +115,10 @@ Vec3 Electrodes::getElectricField() const {
         RUNTIME_ERROR("No uniform E-field has been defined.");
     }
     return {electricField->x(), electricField->y(), electricField->z()};
+}
+
+void Electrodes::setElectricField(const Vec3 &eField) {
+    electricField = std::make_shared<Vec3>(eField);
 }
 
 std::unordered_map<unsigned int, double> Electrodes::getCurrentPotentials(double currentTime) const {

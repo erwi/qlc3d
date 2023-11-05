@@ -114,7 +114,8 @@ assert(i < getnDoF()*getnDimensions() );
 
     void setValue(idx i, const qlc3d::Director &d);
 
-    void loadValues(const idx *start, const idx *end, double *valuesOut, idx dim = 0) const;
+    void loadValues(const idx *start, const idx *end, double *valuesOut) const;
+    void loadQtensorValues(const idx *start, const idx *end, qlc3d::TTensor* tensorOut) const;
 
     [[nodiscard]] qlc3d::Director getDirector(idx i) const;
     [[nodiscard]] std::vector<qlc3d::Director> getDirector() const;

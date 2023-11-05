@@ -53,7 +53,7 @@ public:
     void    setV_Solver(int s);
     void    setQ_Newton_Panic_Iter(int i);
     void    setQ_Newton_Panic_Coeff(double c);
-    int     getnThreads() const;
+    [[nodiscard]] unsigned int getnThreads() const;
     int     getQ_Solver() const;
     int     getV_Solver() const;
     int     getQ_Newton_Panic_Iter() const;

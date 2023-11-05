@@ -2,6 +2,7 @@
 #define PROJECT_QLC3D_LC_REPRESENTATION_H
 
 #include <cmath>
+#include <string>
 class Vec3;
 
 namespace qlc3d {
@@ -55,21 +56,55 @@ namespace qlc3d {
     };
 
     /*!
-     * TTensor representation, used in simulations instead of the Q-Tensor. TODO: add link to reference.
+     * TTensor: traceless representation of Q-tensor, used in simulations instead of the Q-Tensor.
      */
     class TTensor {
-        double t1_, t2_, t3_, t4_, t5_;
+        double t1_, t2_, t3_, t4_, t5_; // todo array of length 5
+
     public:
-        TTensor(const double &t1, const double &t2, const double &t3, const double &t4, const double &t5);
-        [[nodiscard]] TTensor static fromQTensor(const QTensor &q);
-        [[nodiscard]] TTensor static fromDirector(const Director &d);
-        [[nodiscard]] QTensor toQTensor() const;
-        [[nodiscard]] Director toDirector() const;
-        [[nodiscard]] const double &t1() const { return t1_; }
-        [[nodiscard]] const double &t2() const { return t2_; }
-        [[nodiscard]] const double &t3() const { return t3_; }
-        [[nodiscard]] const double &t4() const { return t4_; }
-        [[nodiscard]] const double &t5() const { return t5_; }
+      /** Un-initialised TTensor */
+      TTensor() = default;
+      TTensor(const double &t1, const double &t2, const double &t3, const double &t4, const double &t5);
+      [[nodiscard]] TTensor static fromQTensor(const QTensor &q);
+      [[nodiscard]] TTensor static fromDirector(const Director &d);
+      [[nodiscard]] QTensor toQTensor() const;
+      [[nodiscard]] Director toDirector() const;
+      [[nodiscard]] const double &t1() const { return t1_; }
+      [[nodiscard]] const double &t2() const { return t2_; }
+      [[nodiscard]] const double &t3() const { return t3_; }
+      [[nodiscard]] const double &t4() const { return t4_; }
+      [[nodiscard]] const double &t5() const { return t5_; }
+
+      void set(double t1, double t2, double t3, double t4, double t5);
+
+      const double& operator[](int i) const {
+        switch (i) {
+          case 0: return t1_;
+          case 1: return t2_;
+          case 2: return t3_;
+          case 3: return t4_;
+          case 4: return t5_;
+          default: throw "DielectricPermittivity index out of range " + std::to_string(i);
+        }
+      }
+    };
+
+    class DielectricPermittivity {
+      //double e11_, e22_, e33_, e12_, e13_, e23_;
+      double e[6];
+    public:
+      DielectricPermittivity() = default;
+      DielectricPermittivity(double e11, double e22, double e33, double e12, double e13, double e23);
+      [[nodiscard]] DielectricPermittivity static fromTTensor(const TTensor &t, double S0, double deleps, double eper);
+      [[nodiscard]] const double &e11() const { return e[0]; }
+      [[nodiscard]] const double &e22() const { return e[1]; }
+      [[nodiscard]] const double &e33() const { return e[2]; }
+      [[nodiscard]] const double &e12() const { return e[3]; }
+      [[nodiscard]] const double &e13() const { return e[4]; }
+      [[nodiscard]] const double &e23() const { return e[5]; }
+      void set(double e11, double e22, double e33, double e12, double e13, double e23);
+
+      const double& operator[](int i) const { return e[i]; }
     };
 }
 

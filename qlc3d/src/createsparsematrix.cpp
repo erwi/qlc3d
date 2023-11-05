@@ -65,7 +65,7 @@ SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
                                           SolutionVector &sol,
                                           const int &MatNum,
                                           const Electrodes &electrodes) {
-    if (!electrodes.getCalcPot()) {
+    if (!electrodes.isPotentialCalculationRequired()) {
         Log::info("Potential calculation not required. Creating empty matrix for Potential solver.");
         return SpaMtrix::IRCMatrix();
     }

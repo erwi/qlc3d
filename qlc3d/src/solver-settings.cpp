@@ -27,8 +27,11 @@ SolverSettings::SolverSettings():
     V_GMRES_Toler(DEFAULT_Matrix_Toler) {
 }
 
-void SolverSettings::setnThreads(int num)         {
-    nThreads = num;
+void SolverSettings::setnThreads(int num) {
+  if (nThreads < 0) {
+    throw std::runtime_error("Number of threads must be 0 or positive");
+  }
+  nThreads = num;
 }
 void SolverSettings::setQ_Solver(int s)           {
     Q_Solver = s;
@@ -37,8 +40,11 @@ void SolverSettings::setV_Solver(int s)           {
     V_Solver = s;
 }
 
-int SolverSettings::getnThreads() const           {
-    return nThreads;
+unsigned int SolverSettings::getnThreads() const           {
+  if (nThreads < 0) {
+    throw std::runtime_error("Number of threads must be 0 or positive");
+  }
+  return (unsigned int) nThreads;
 }
 int SolverSettings::getQ_Solver() const           {
     return Q_Solver;
