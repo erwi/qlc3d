@@ -24,17 +24,17 @@ BOX1.Type = Normal                 # Initial bulk orientation region1
 BOX1.Params = [1.0000 , 0.0000 ]   # region X, Y, Z limits
 BOX1.X = [0.0, 1.0]
 BOX1.Y = [0.0, 1.0]
-BOX1.Z = [0.0, 0.5]
-BOX1.Tilt  = [5, 55]            # bottom tilt
+BOX1.Z = [0.0, 1.0]
+BOX1.Tilt  = [5, 0]            # bottom tilt
 BOX1.Twist = [0, 0]            # bottom twist, delta twist
 
-BOX2.Type = Normal                 # Initial bulk orientation region1
-BOX2.Params = [1.0000 , 0.0000 ]   # region X, Y, Z limits
-BOX2.X = [0.0, 1.0]
-BOX2.Y = [0.0, 1.0]
-BOX2.Z = [0.5, 1.0]
-BOX2.Tilt  = [60.0, -55]            # bottom tilt
-BOX2.Twist = [0, 0]            # bottom twist, delta twist
+#BOX2.Type = Normal                 # Initial bulk orientation region1
+#BOX2.Params = [1.0000 , 0.0000 ]   # region X, Y, Z limits
+#BOX2.X = [0.0, 1.0]
+#BOX2.Y = [0.0, 1.0]
+#BOX2.Z = [0.5, 1.0]
+#BOX2.Tilt  = [60.0, -55]            # bottom tilt
+#BOX2.Twist = [0, 0]            # bottom twist, delta twist
 
 FIXLC1.Anchoring = Strong          # Strong anchoring
 FIXLC1.Easy = [5.0, 0.0, 0.0]     # easy tilt, twist, rotation angles

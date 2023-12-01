@@ -53,6 +53,7 @@ public:
 
     [[nodiscard]] const double & eps_par() const { return eps_par_; }
     [[nodiscard]] const double & eps_per() const { return eps_per_; }
+    [[nodiscard]] double deleps() const { return (eps_par_ - eps_per_) / S0(); }
 
     [[nodiscard]] const double & e1() const { return e1_; }
     [[nodiscard]] const double & e3() const { return e3_; }

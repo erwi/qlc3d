@@ -200,7 +200,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         if (damping < 1.0) { // if damped, display by how much
             Log::warn("Damping by {}.", damping);
         }
-
+/*
         // PANIC!! if looks like no convergence
         if (newton_iter > settings->getQ_Newton_Panic_Iter() ) {
 
@@ -218,13 +218,15 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
         if (newton_iter == 1) {
             maxdq_initial = maxdq;
         }
-
+        */
         // DETERMINE WHETHER NEWTON LOOP IS DONE
         if (!isTimeStepping) {
             LOOP = false;
         } else if ( fabs(maxdq) < simu->getMaxError() ) { // EXIT IF ACCURATE ENOUGH
             LOOP = false;
         }
+
+
     }
     return maxdq_initial;
 }

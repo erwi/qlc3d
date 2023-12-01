@@ -100,6 +100,7 @@ SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
                               const int &MatNum,
                               const Electrodes &electrodes);
 // CREATES SPAMTRIX SPARSE MATRIX FOR Q-TENSOR
+// TODO: delete this declaration whne sparsematrix.h is used everywhere instead
 SpaMtrix::IRCMatrix createQMatrix(Geometry &geom,
                         SolutionVector &q,
                         const int& MatNum = MAT_DOMAIN1);
