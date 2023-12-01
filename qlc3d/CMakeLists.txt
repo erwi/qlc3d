@@ -33,6 +33,7 @@ add_library(lib-qlc3d STATIC
         includes/io/meshreader.h
         includes/io/vtkiofun.h
         includes/io/lcview-result-output.h
+        includes/io/result-output.h
         src/io/meshreader.cpp
         src/io/ReadGiDMesh3D.cpp
         src/io/gmsh-read.cpp
@@ -48,14 +49,18 @@ add_library(lib-qlc3d STATIC
         src/util/logging.cpp
         src/util/stringutil.cpp
         includes/util/stringutil.h
-        includes/io/result-output.h
         includes/geom/coordinates.h
         src/geom/coordinates.cpp
         includes/potential/potential-solver.h
         src/potential/potential-solver.cpp
         includes/fe/fe-util.h
         includes/fe/gaussian-quadrature.h
-        )
+        includes/lc/lc-solver.h
+        src/lc/lc-solver.cpp
+        includes/sparsematrix.h
+        src/sparsematrix.cpp
+        includes/lc/lc-energy-terms.h
+)
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 set_target_properties(lib-qlc3d PROPERTIES CXX_STANDARD 17)
 target_include_directories(lib-qlc3d

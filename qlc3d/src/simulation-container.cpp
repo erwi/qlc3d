@@ -16,6 +16,7 @@
 #include <util/stringutil.h>
 #include <io/result-output.h>
 #include <potential/potential-solver.h>
+#include <lc/lc-solver.h>
 
 #include <geom/vec3.h>
 #include <spamtrix_ircmatrix.hpp>
@@ -23,10 +24,11 @@
 
 namespace fs = std::filesystem;
 
-SimulationContainer::SimulationContainer(Configuration &config, ResultOutput &resultOut, std::shared_ptr<PotentialSolver> potentialSolver) :
+SimulationContainer::SimulationContainer(Configuration &config, ResultOutput &resultOut, std::shared_ptr<PotentialSolver> potentialSolver, std::shared_ptr<LCSolver> lcSolver) :
         configuration(config),
         resultOutput(resultOut),
         potentialSolver(potentialSolver),
+        lcSolver(lcSolver),
         electrodes(nullptr),
         boxes(new Boxes()),
         alignment(new Alignment()),
@@ -194,7 +196,8 @@ bool SimulationContainer::hasIteration() const {
             Log::info("|dQ| = {}, EndValue = {}", fabs(currentChange), endValue);
         }
         if (currentChange <= endValue) {
-            return false;
+          Log::info("Change {} is smaller than end value {}, ending simulation.", currentChange, endValue);
+          return false;
         }
     } else {
         assert(false);
@@ -269,10 +272,12 @@ double SimulationContainer::updateSolutions() {
 
     switch (QSolver) {
         case Q_Solver_PCG: // TODO: cleanup. Exactly same calcQ3d function is called in both cases.
-            maxdq = calcQ3d(&q, &qn, &v, geom1, lc.get(), simu.get(), simulationState_, Kq, configuration.getSolverSettings().get(), alignment.get());
+            //maxdq = calcQ3d(&q, &qn, &v, geom1, lc.get(), simu.get(), simulationState_, Kq, configuration.getSolverSettings().get(), alignment.get());
+            maxdq = lcSolver->solve(q, v, geom1, simulationState_);
             break;
         case Q_Solver_GMRES:
-            maxdq = calcQ3d(&q, &qn, &v, geom1, lc.get(), simu.get(), simulationState_, Kq, configuration.getSolverSettings().get(), alignment.get());
+            //maxdq = calcQ3d(&q, &qn, &v, geom1, lc.get(), simu.get(), simulationState_, Kq, configuration.getSolverSettings().get(), alignment.get());
+          maxdq = lcSolver->solve(q, v, geom1, simulationState_);
             break;
         case Q_Solver_Explicit:
             RUNTIME_ERROR("Q_Solver_Explicit is not implemented yet.");

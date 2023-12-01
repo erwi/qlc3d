@@ -23,7 +23,9 @@ add_executable(cpp-test
         cpp/io/result-output-test.cpp
         cpp/geom/geom-tests.cpp
         cpp/potential/potential-solver-test.cpp
-        cpp/fe/gaussian-integration-tests.cpp)
+        cpp/fe/gaussian-integration-tests.cpp
+        cpp/lc/lc-solver-tests.cpp
+        cpp/lc/lc-solver-tests.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 

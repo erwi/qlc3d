@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <io/result-output.h>
 #include <potential/potential-solver.h>
+#include <lc/lc-solver.h>
 
 namespace fs = std::filesystem;
 
@@ -49,7 +50,9 @@ int runSimulation(Configuration &configuration) {
         ResultOutput resultOutput(simu->getSaveFormat(), simu->meshName(), lc->S0(), simu->getSaveDirAbsolutePath());
         std::shared_ptr<PotentialSolver> potentialSolver = std::make_shared<PotentialSolver>(electrodes, lc, solverSettings);
 
-        SimulationContainer simulation(configuration, resultOutput, potentialSolver);
+        std::shared_ptr<LCSolver> lcSolver = std::make_shared<LCSolver>(*lc, *solverSettings);
+
+        SimulationContainer simulation(configuration, resultOutput, potentialSolver, lcSolver);
         Log::clearIndent();
         Log::info("Initialising.");
         Log::incrementIndent();
