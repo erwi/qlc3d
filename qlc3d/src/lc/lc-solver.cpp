@@ -2,6 +2,7 @@
 #include <lc/lc-energy-terms.h>
 #include <qlc3d.h>
 #include <solver-settings.h>
+#include <simulation-state.h>
 #include <spamtrix_ircmatrix.hpp>
 #include <spamtrix_vector.hpp>
 #include <sparsematrix.h>
@@ -34,7 +35,8 @@ double LCSolver::solve(SolutionVector &q, const SolutionVector &v, const Geometr
   double dq = 0;
   double dqFirst = 0;
   int newtonIter = 1;
-  initialiseMatrixSystem(q, geom);
+  double dt = simulationState.dt();
+  initialiseMatrixSystem(q, geom, 0);
 
   do {
     assembleMatrixSystem(q, v, geom);
@@ -55,7 +57,7 @@ void LCSolver::solveMatrixSystem() {
   SpaMtrix::DiagPreconditioner M(*K);
   idx maxiter 	= solverSettings.getQ_GMRES_Maxiter();
   idx restart 	= solverSettings.getQ_GMRES_Restart();
-  real toler      = solverSettings.getQ_GMRES_Toler();
+  real toler    = solverSettings.getQ_GMRES_Toler();
   SpaMtrix::IterativeSolvers solver(maxiter, restart, toler);
 
   if (isSymmetricMatrix) {
@@ -89,7 +91,7 @@ double LCSolver::updateQ(SolutionVector &q) {
   return maxdqOut;
 }
 
-void LCSolver::initialiseMatrixSystem(const SolutionVector &q, const Geometry &geom) {
+void LCSolver::initialiseMatrixSystem(const SolutionVector &q, const Geometry &geom, double dt) {
   if (K != nullptr) {
     return;
   }

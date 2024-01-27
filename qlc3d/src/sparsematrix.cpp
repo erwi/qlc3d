@@ -84,6 +84,49 @@ std::unique_ptr<SpaMtrix::IRCMatrix> createQMatrix(const Geometry &geom,
   return std::unique_ptr<SpaMtrix::IRCMatrix>(mm.newIRCMatrix());
 }
 
+std::unique_ptr<SpaMtrix::IRCMatrix> createQMassMatrix(const Geometry &geom,
+                                                       const SolutionVector &q,
+                                                       const int& materialNumber) {
+
+
+  const idx N = q.getnFreeNodes();
+  SpaMtrix::MatrixMaker mm(5 * N, 5 * N);
+
+  const Mesh &tets = geom.getTetrahedra();
+  for (idx it = 0; it < tets.getnElements(); it++) {
+    if (materialNumber != tets.getMaterialNumber(it)) {
+      continue;
+    }
+    idx tetNodes[4];
+    tets.loadNodes(it, tetNodes);
+    q.loadEquNodes(tetNodes, tetNodes + 4, tetNodes);
+
+    for (idx i = 0; i < 4; i++) {
+      if (tetNodes[i] == NOT_AN_INDEX) {
+        continue;
+      }
+      // add diagonal non-zero entries
+      for (idx dim = 0; dim < 5; dim++) {
+        mm.addNonZero(tetNodes[i] + dim * N, tetNodes[i] + dim * N);
+      }
+
+      for (idx j = i + 1; j < 4; j++) {
+        if (tetNodes[j] == NOT_AN_INDEX) {
+          continue;
+        }
+
+        // add off-diagonal non-zero entries
+        for (idx dim = 0; dim < 5; dim++) {
+          mm.addNonZero(tetNodes[i] + dim * N, tetNodes[j] + dim * N);
+          mm.addNonZero(tetNodes[j] + dim * N, tetNodes[i] + dim * N);
+        }
+      }
+    }
+  }
+
+  return std::unique_ptr<SpaMtrix::IRCMatrix>(mm.newIRCMatrix());
+}
+
 SpaMtrix::IRCMatrix createQMatrix(Geometry &geom,
                                   SolutionVector &q,
                                   const int &MatNum) {

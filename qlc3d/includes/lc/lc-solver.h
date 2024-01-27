@@ -16,6 +16,7 @@ namespace SpaMtrix {
 }
 
 class LCSolver {
+protected:
   const double rt2 = std::sqrt(2.0);
   const double rt3 = std::sqrt(3.0);
   const double rt6 = std::sqrt(6.0);
@@ -31,7 +32,7 @@ class LCSolver {
   std::unique_ptr<SpaMtrix::Vector> L;
   std::unique_ptr<SpaMtrix::Vector> X;
 
-  void initialiseMatrixSystem(const SolutionVector &q, const Geometry &geom);
+  void initialiseMatrixSystem(const SolutionVector &q, const Geometry &geom, double dt);
   void assembleMatrixSystem(const SolutionVector &q, const SolutionVector &v, const Geometry &geom);
   void assembleVolumeTerms(const SolutionVector &q, const SolutionVector &v, const Geometry &geom);
   void solveMatrixSystem();
@@ -57,7 +58,7 @@ public:
   ~LCSolver();
   LCSolver(const LC &lc, const SolverSettings &solverSettings);
 
-  double solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState);
+  virtual double solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState);
 
 
 };
