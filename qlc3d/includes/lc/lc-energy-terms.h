@@ -36,6 +36,7 @@ namespace LcEnergyTerms {
       lL[i + 12] += (A * q4 + D3 * 0.5 * B * (3.0 * q3 * rt2 * q5 + q4 * q1 * rt6 - 3.0 * q4 * q2 * rt2) + C * R * q4) * ShR;
       lL[1 + 16] += (A * q5 + D3 * 0.5 * B * (q5 * q1 * rt6 + 3.0 * q5 * q2 * rt2 + 3.0 * q3 * rt2 * q4) + C * R * q5) * ShR;
 
+      if (lK == nullptr) { continue; }
       for (int j = 0; j < 4; j++) {
         const double ShRC = shapes.N(i) * shapes.N(j) * mul;
         // Matrix diagonal terms 11, 22, 33, 44, 55
@@ -105,6 +106,7 @@ namespace LcEnergyTerms {
       lL[i + 12] += (ShRx * q4x + ShRy * q4y + ShRz * q4z) * L1 * mul;
       lL[i + 16] += (ShRx * q5x + ShRy * q5y + ShRz * q5z) * L1 * mul;
 
+      if (lK == nullptr) { continue; }
       for (int j = 0; j < 4; j++) {
         const double ShCx = shapes.Nx(j);
         const double ShCy = shapes.Ny(j);
@@ -204,6 +206,7 @@ namespace LcEnergyTerms {
                ShRz * q1 * rt23 * q5z * D3) * L6;
       lL[i + 16] += temp * mul;
 
+      if (lK == nullptr) { continue; }
       for (int j = 0; j < 4; j++) {
         const double ShC = shapes.N(j);
         const double ShCx = shapes.Nx(j);

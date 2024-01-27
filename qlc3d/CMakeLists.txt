@@ -60,6 +60,9 @@ add_library(lib-qlc3d STATIC
         includes/sparsematrix.h
         src/sparsematrix.cpp
         includes/lc/lc-energy-terms.h
+        src/lc/time-stepping-lc-solver.cpp
+        includes/lc/steady-state-lc-solver.h
+        includes/lc/time-stepping-lc-solver.h
 )
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 set_target_properties(lib-qlc3d PROPERTIES CXX_STANDARD 17)
