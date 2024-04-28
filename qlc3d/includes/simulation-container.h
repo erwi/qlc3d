@@ -22,18 +22,19 @@
 #include <eventhandler.h>
 
 #include <simulation-state.h>
+#include "lc/lc-solver.h"
 
 class Configuration;
 class SimulationState;
 class ResultOutput;
 class PotentialSolver;
-class LCSolver;
+class ILCSolver;
 
 class SimulationContainer {
     Configuration &configuration;
     ResultOutput &resultOutput;
     std::shared_ptr<PotentialSolver> potentialSolver;
-    std::shared_ptr<LCSolver> lcSolver;
+    ILCSolver &lcSolver;
     std::shared_ptr<Simu> simu;
     std::shared_ptr<Electrodes> electrodes;
     std::shared_ptr<LC> lc;
@@ -73,7 +74,7 @@ class SimulationContainer {
     void adjustTimeStepSize();
 
 public:
-    SimulationContainer(Configuration &config, ResultOutput &resultOutput, std::shared_ptr<PotentialSolver> potentialSolver, std::shared_ptr<LCSolver> lcSolver);
+    SimulationContainer(Configuration &config, ResultOutput &resultOut, std::shared_ptr<PotentialSolver> potentialSolver, ILCSolver &lcSolver);
     /*!
      * Sets up simulation state. Reads configuration, loads mesh geometry etc.
      */

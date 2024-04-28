@@ -152,6 +152,7 @@ void SolutionVector::setFixedNodesQ(const Alignment &alignment, const Mesh &e) {
             ind_to_nodes.insert(ind_to_nodes.end(), temp_index.begin(), temp_index.end());
         } else {
             Log::info("FIXLC{} is not strong, it is {}", i + 1, alignment.surface[i]->getAnchoringTypeName());
+          RUNTIME_ERROR("fixme - only strong anchoring is supported"); // until surface term assembly is implemented
         }
     }// end for i
     // INDEX TO FIXED NODES MAY CONTAIN DUPLICATED ENTRIES, IF TWO FIXED

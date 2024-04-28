@@ -24,6 +24,7 @@ L1{lc.L1()}, L2{lc.L2()}, L3{lc.L3()}, L6{lc.L6()},
 deleps{lc.deleps()},
 solverSettings{solverSettings}
 {
+  Log::info("Creating steady state solver for Q-tensor");
   // The matrix is symmetric if all elastic constants are equal and there is no chirality
   isThreeElasticConstants = lc.K11() != lc.K22() || lc.K11() != lc.K33();
   isSymmetricMatrix = lc.p0() == 0.0;
@@ -32,24 +33,11 @@ solverSettings{solverSettings}
 
 
 double LCSolver::solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState) {
-  double dq = 0;
-  double dqFirst = 0;
-  int newtonIter = 1;
-  double dt = simulationState.dt();
   initialiseMatrixSystem(q, geom, 0);
-
-  do {
-    assembleMatrixSystem(q, v, geom);
-    solveMatrixSystem();
-    dq = updateQ(q);
-    if (newtonIter == 1) {
-      dqFirst = dq;
-    }
-    Log::info("newton iteration {}, max change in Q-tensor: {}", newtonIter, dq);
-    newtonIter ++;
-  } while(dq > 1e-9);
-
-  return dqFirst;
+  assembleMatrixSystem(q, v, geom);
+  solveMatrixSystem();
+  double dq = updateQ(q);
+  return dq;
 }
 
 void LCSolver::solveMatrixSystem() {

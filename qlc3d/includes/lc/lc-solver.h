@@ -15,7 +15,14 @@ namespace SpaMtrix {
   class Vector;
 }
 
-class LCSolver {
+class ILCSolver {
+public:
+  virtual ~ILCSolver() = default;
+  virtual double solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState) = 0;
+};
+
+
+class LCSolver : public ILCSolver {
 protected:
   const double rt2 = std::sqrt(2.0);
   const double rt3 = std::sqrt(3.0);
@@ -55,10 +62,10 @@ protected:
                          const unsigned int tetDofs[4]);
 
 public:
-  ~LCSolver();
+  virtual ~LCSolver();
   LCSolver(const LC &lc, const SolverSettings &solverSettings);
 
-  virtual double solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState);
+  double solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState) override;
 
 
 };

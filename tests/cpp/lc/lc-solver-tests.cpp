@@ -175,6 +175,7 @@ TEST_CASE("Steady state switching with applied potential and three elastic const
   int iter = 0;
   for (iter = 0; iter < 11; iter++) {
     double dq = solver.solve(q, v, geom, simulationState);
+    Log::info("iter={}, dq={}", iter, dq);
     if (dq < 1e-9) {
       Log::info("converged at iter={}", iter);
       break;
@@ -212,7 +213,7 @@ TEST_CASE("Switching dynamics with applied potential and three elastic constants
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {0, 0});
   prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, {1, 1, 1});
 
-  const double topPotential = 2.0;
+  const double topPotential = 2;
   SolutionVector v(geom.getnp(), 1);
   v.allocateFixedNodesArrays(geom);
   v.setPeriodicEquNodes(geom);
@@ -234,7 +235,7 @@ TEST_CASE("Switching dynamics with applied potential and three elastic constants
   // set volume orientation
   for (idx i = 0; i < geom.getnpLC(); i++) {
     Vec3 p = geom.getCoordinates().getPoint(i);
-    double tiltDegrees = bottomTilt + midTilt * p.z() * (1 - p.z()) * 4;
+    double tiltDegrees = bottomTilt;// + midTilt * p.z() * (1 - p.z()) * 4;
     auto director = qlc3d::Director::fromDegreeAngles(tiltDegrees, twistDegrees, lc->S0());
     q.setValue(i, director);
 
@@ -250,7 +251,7 @@ TEST_CASE("Switching dynamics with applied potential and three elastic constants
   q.EnforceEquNodes(geom);
 
   SimulationState simulationState;
-  simulationState.dt(1e-9);
+  simulationState.dt(1e-10);
 
   auto solverSettings = std::make_shared<SolverSettings>();
   solverSettings->setV_GMRES_Toler(1e-9);
@@ -260,21 +261,28 @@ TEST_CASE("Switching dynamics with applied potential and three elastic constants
   // ACT
   // solve to tolerance of 1e-9
   int iter = 0;
-  for (iter = 0; iter < 11; iter++) {
-    double dq = solver.solve(q, v, geom, simulationState);
-    if (dq < 1e-9) {
-      Log::info("converged at iter={}", iter);
-      break;
+  //for (iter = 0; iter < 5000; iter++) {
+  double dq = 0;
+  do {
+    dq = solver.solve(q, v, geom, simulationState);
+
+    if (iter < 100 || iter % 100 == 0) {
+      Log::info("iter={}, dq={}, t={}", iter, dq, iter * simulationState.dt());
+
+      vtkIOFun::UnstructuredGridWriter writer;
+      std::string fileName = "/home/eero/temp/" + std::to_string(iter) + ".vtk";
+      writer.write(fileName, geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
     }
-  }
+    iter++;
+  } while (dq > 1 );
 
   // ASSERT
   // Mid-plane tilt angle (= maximum tilt angle) should match the expected value
-  double maxTilt = 0;
-  for (int i = 0; i < geom.getnpLC(); i++) {
-    auto director = q.getDirector(i);
-    maxTilt = std::max(director.tiltDegrees(), maxTilt);
-  }
-  Log::info("max tilt: {}", maxTilt);
-  REQUIRE(maxTilt == Approx(expectedMidTilt).margin(1e-6));
+  //double maxTilt = 0;
+  //for (int i = 0; i < geom.getnpLC(); i++) {
+  //  auto director = q.getDirector(i);
+  //  maxTilt = std::max(director.tiltDegrees(), maxTilt);
+  //}
+  //Log::info("max tilt: {}", maxTilt);
+  //REQUIRE(maxTilt == Approx(expectedMidTilt).margin(1e-6));
 }

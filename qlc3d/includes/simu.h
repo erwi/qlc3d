@@ -159,6 +159,10 @@ public:
     [[nodiscard]] const std::vector<std::string> getSaveFormatStrings() const;
     [[nodiscard]] EndCriteria  getEndCriterion()const {return endCriterion_;}
     [[nodiscard]] QMatrixSolvers getQMatrixSolver()const {return QMatrixSolver_;}
+    [[nodiscard]] size_t getRegularGridXCount()const{return regularGridSize_[0];}
+    [[nodiscard]] size_t getRegularGridYCount()const{return regularGridSize_[1];}
+    [[nodiscard]] size_t getRegularGridZCount()const{return regularGridSize_[2];
+    }
 // REGULAR GRID SIZE
     size_t getRegularGridXCount(){return regularGridSize_[0];}
     size_t getRegularGridYCount(){return regularGridSize_[1];}

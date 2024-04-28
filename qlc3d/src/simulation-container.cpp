@@ -24,7 +24,7 @@
 
 namespace fs = std::filesystem;
 
-SimulationContainer::SimulationContainer(Configuration &config, ResultOutput &resultOut, std::shared_ptr<PotentialSolver> potentialSolver, std::shared_ptr<LCSolver> lcSolver) :
+SimulationContainer::SimulationContainer(Configuration &config, ResultOutput &resultOut, std::shared_ptr<PotentialSolver> potentialSolver, ILCSolver &lcSolver) :
         configuration(config),
         resultOutput(resultOut),
         potentialSolver(potentialSolver),
@@ -230,7 +230,7 @@ void SimulationContainer::runIteration() {
 
     // CALCULATES Q-TENSOR AND POTENTIAL
     maxdq = updateSolutions();
-
+    Log::info("maxdq = {}", maxdq);
     /// UPDATE CURRENT TIME
     simulationState_.change(maxdq);
     simulationState_.currentTime(simulationState_.currentTime() + simulationState_.dt());
@@ -273,11 +273,11 @@ double SimulationContainer::updateSolutions() {
     switch (QSolver) {
         case Q_Solver_PCG: // TODO: cleanup. Exactly same calcQ3d function is called in both cases.
             //maxdq = calcQ3d(&q, &qn, &v, geom1, lc.get(), simu.get(), simulationState_, Kq, configuration.getSolverSettings().get(), alignment.get());
-            maxdq = lcSolver->solve(q, v, geom1, simulationState_);
+            maxdq = lcSolver.solve(q, v, geom1, simulationState_);
             break;
         case Q_Solver_GMRES:
             //maxdq = calcQ3d(&q, &qn, &v, geom1, lc.get(), simu.get(), simulationState_, Kq, configuration.getSolverSettings().get(), alignment.get());
-          maxdq = lcSolver->solve(q, v, geom1, simulationState_);
+          maxdq = lcSolver.solve(q, v, geom1, simulationState_);
             break;
         case Q_Solver_Explicit:
             RUNTIME_ERROR("Q_Solver_Explicit is not implemented yet.");

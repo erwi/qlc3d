@@ -59,7 +59,7 @@ class Reader {
     const std::string _R_BAD_VALUE_ERROR_MSG = "Bad value format :";
     const std::string _R_BAD_KEY_VALUE_ERROR_MSG = "Bad key/value assignment";
     // CHARACTERS USED FOR VALIDATING KEYS AND VALUES
-    const std::string _R_WHITE_SPACE = " \t"; // white space characters
+    const std::string _R_WHITE_SPACE = " \t\r"; // white space characters
     const std::string _R_COMMENT_CHARS = "#";
     const std::string _R_DIGIT_CHARS = "1234567890-.";
 

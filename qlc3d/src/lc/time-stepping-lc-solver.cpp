@@ -1,5 +1,6 @@
 #include <lc/time-stepping-lc-solver.h>
 #include <lc/lc-energy-terms.h>
+#include <lc.h>
 #include <sparsematrix.h>
 #include <material_numbers.h>
 #include <spamtrix_ircmatrix.hpp>
@@ -26,16 +27,17 @@ struct Params {
 };
 
 TimeSteppingLCSolver::TimeSteppingLCSolver(const LC &lc, const SolverSettings &solverSettings) :
-LCSolver(lc, solverSettings) {
-
+  lc(lc),
+  solverSettings(solverSettings) {
+  Log::info("Creating time stepping solver for Q-tensor");
 }
-
 
 bool isFixedNode(idx i) {
   return i == NOT_AN_INDEX;
 }
 
-void addToGlobalMatrix(const double lK[4][4], idx tetDofs[4], SpaMtrix::IRCMatrix &M, const SolutionVector &q) {
+void addToGlobalMatrix(const double lK[4][4], idx tetDofs[4], SpaMtrix::IRCMatrix &M) {
+  const unsigned int numFreeNodes = M.getNumRows() / 5;
 
   for (idx i = 0; i < 4; i++) {
     const idx iDof = tetDofs[i];
@@ -45,11 +47,11 @@ void addToGlobalMatrix(const double lK[4][4], idx tetDofs[4], SpaMtrix::IRCMatri
       const idx jDof = tetDofs[j];
       if (isFixedNode(jDof)) { continue; }
 
-      M.sparse_add(iDof, jDof, lK[i][j]);
-
+      for (int dof = 0; dof < 5; dof ++) {
+        M.sparse_add(iDof + dof * numFreeNodes, jDof + dof * numFreeNodes, lK[i][j]);
+      }
     }
   }
-
 }
 
 void assembleLocalMassMatrix(double lK[4][4], idx tetNodes[4], double tetDeterminant, const Geometry &geom, GaussianQuadratureTet<11> &shapes) {
@@ -77,7 +79,7 @@ void assembleMassMatrix(SpaMtrix::IRCMatrix &M, const Geometry &geom, const Solu
   GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
   const Mesh tetMesh = geom.getTetrahedra();
   const idx tetCount = tetMesh.getnElements();
-  const idx numFreeNodes = q.getnFreeNodes();
+  //const idx numFreeNodes = q.getnFreeNodes();
   double lK[4][4];
   idx tetNodes[4];
   idx tetDofs[4];
@@ -92,7 +94,7 @@ void assembleMassMatrix(SpaMtrix::IRCMatrix &M, const Geometry &geom, const Solu
 
     assembleLocalMassMatrix(lK, tetNodes, tetMesh.getDeterminant(tetIndex), geom, shapes);
 
-    addToGlobalMatrix(lK, tetDofs, M, numFreeNodes);
+    addToGlobalMatrix(lK, tetDofs, M);
   }
 }
 
@@ -129,11 +131,11 @@ void assembleLocalRhsVector(double lL[20], const idx tetNodes[4], double tetDete
     Vz = shapes.sampleZ(potential);
 
     LcEnergyTerms::assembleThermotropic(nullptr, lL, shapes, tetDeterminant, q1, q2, q3, q4, q5, params.A, params.B, params.C);
-    //LcEnergyTerms::assembleElasticL1(nullptr, lL, shapes, tetDeterminant, q1x, q1y, q1z, q2x, q2y, q2z, q3x, q3y, q3z, q4x, q4y, q4z, q5x, q5y, q5z, params.L1);
+    LcEnergyTerms::assembleElasticL1(nullptr, lL, shapes, tetDeterminant, q1x, q1y, q1z, q2x, q2y, q2z, q3x, q3y, q3z, q4x, q4y, q4z, q5x, q5y, q5z, params.L1);
     //LcEnergyTerms::assembleThreeElasticConstants(nullptr, lL, shapes, tetDeterminant, q1, q2, q3, q4, q5, q1x, q1y, q1z, q2x, q2y, q2z, q3x, q3y, q3z, q4x, q4y, q4z, q5x, q5y, q5z, params.L2, params.L3, params.L6);
 
     if (Vx != 0.0 || Vy != 0.0 || Vz != 0.0) {
-      //LcEnergyTerms::assembleDielectric(lL, shapes, tetDeterminant, Vx, Vy, Vz, params.deleps);
+      LcEnergyTerms::assembleDielectric(lL, shapes, tetDeterminant, Vx, Vy, Vz, params.deleps);
     }
   }
 
@@ -155,7 +157,6 @@ void assembleRhsVector(SpaMtrix::Vector &L, const SolutionVector &q, const Solut
     }
 
     tetMesh.loadNodes(tetIndex, tetNodes);
-    //q.loadEquNodes(tetNodes, tetNodes + 4, tetDofs);
 
     assembleLocalRhsVector(lL, tetNodes, tetMesh.getDeterminant(tetIndex), geom, q, v, shapes, params);
 
@@ -176,11 +177,6 @@ void TimeSteppingLCSolver::initialiseMatrixSystem(const SolutionVector &q, const
   }
 
   K = createQMassMatrix(geom, q, MAT_DOMAIN1);
-
-  if (K->sparse_get(1, 1) != 0.0) {
-    int g = 0;
-  }
-
 
   L = std::make_unique<SpaMtrix::Vector>(K->getNumRows());
   X = std::make_unique<SpaMtrix::Vector>(K->getNumRows());
@@ -230,7 +226,7 @@ double TimeSteppingLCSolver::solve(SolutionVector &q, const SolutionVector &v, c
   L->setAllValuesTo(0);
   X->setAllValuesTo(0);
 
-  Params params = {A, B, C, L1, L2, L3, L6, deleps};
+  Params params = {lc.A(), lc.B(), lc.C(), lc.L1(), lc.L2(), lc.L3(), lc.L6(), lc.deleps()};
   assembleRhsVector(*L, q, v, geom, params);
 
   solveMatrixSystema(*K, *L, *X);
