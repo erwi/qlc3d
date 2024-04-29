@@ -123,6 +123,43 @@ TEST_CASE("Linear tet 3D shape function") {
       }
     }
   }
+
+  SECTION("Sampling 6 nodal values (permittivity tensor)") {
+    double nodalValues[4][6] = {
+            {1, 2, 3, 4, 5, 6}, // values at node 1
+            {1, 2, 3, 4, 5, 6}, // values at node 2
+            {1, 2, 3, 4, 5, 6}, // values at node 3
+            {1, 2, 3, 4, 5, 6}  // values at node 4
+            };
+
+    double v1, v2, v3, v4, v5, v6;
+    g.sampleAll(nodalValues, v1, v2, v3, v4, v5, v6);
+
+    REQUIRE(v1 == Approx(1).margin(1e-12));
+    REQUIRE(v2 == Approx(2).margin(1e-12));
+    REQUIRE(v3 == Approx(3).margin(1e-12));
+    REQUIRE(v4 == Approx(4).margin(1e-12));
+    REQUIRE(v5 == Approx(5).margin(1e-12));
+    REQUIRE(v6 == Approx(6).margin(1e-12));
+  }
+
+  SECTION("Sampling 5 nodal values (Q-tensor)") {
+    double nodalValues[4][5] = {
+            {1, 2, 3, 4, 5}, // values at node 1
+            {1, 2, 3, 4, 5}, // values at node 2
+            {1, 2, 3, 4, 5}, // values at node 3
+            {1, 2, 3, 4, 5}  // values at node 4
+    };
+
+    double v1, v2, v3, v4, v5;
+    g.sampleAll(nodalValues, v1, v2, v3, v4, v5);
+
+    REQUIRE(v1 == Approx(1).margin(1e-12));
+    REQUIRE(v2 == Approx(2).margin(1e-12));
+    REQUIRE(v3 == Approx(3).margin(1e-12));
+    REQUIRE(v4 == Approx(4).margin(1e-12));
+    REQUIRE(v5 == Approx(5).margin(1e-12));
+  }
 }
 
 TEST_CASE("3D boundary integral in a unit cube") {

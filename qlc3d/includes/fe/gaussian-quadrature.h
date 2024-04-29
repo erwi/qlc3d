@@ -239,11 +239,9 @@ public:
     }
   }
 
-
-
   template<typename Src>
   void sampleAll(const Src* source, double &v1, double &v2, double &v3, double &v4, double &v5, double &v6) const {
-    v1 = v2 = v3 = v4 = v5 = 0;
+    v1 = v2 = v3 = v4 = v5 = v6 = 0;
     for (unsigned int i = 0; i < NPE; i++) {
       v1 += source[i][0] * N(i);
       v2 += source[i][1] * N(i);
