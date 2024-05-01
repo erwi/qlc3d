@@ -118,76 +118,18 @@ public:
            values[3] * N(3);
   }
 
-    [[nodiscard]] double sampleX(const double *values) const {
-      return values[0] * Nx(0) + values[1] * Nx(1) + values[2] * Nx(2) + values[3] * Nx(3);
-    }
-
-    [[nodiscard]] double sampleY(const double *values) const {
-      return values[0] * Ny(0) + values[1] * Ny(1) + values[2] * Ny(2) + values[3] * Ny(3);
-    }
-
-    [[nodiscard]] double sampleZ(const double *values) const {
-      return values[0] * Nz(0) + values[1] * Nz(1) + values[2] * Nz(2) + values[3] * Nz(3);
-    }
-
-    /*
-    void sample(qlc3d::DielectricPermittivity* source, qlc3d::DielectricPermittivity& out) const {
-      double e11 = 0, e22 = 0, e33 = 0, e12 = 0, e13 = 0;
-      for (int i = 0; i < NPE; i++) {
-        e11 += source[i].e11() * N(i);
-        e22 += source[i].e22() * N(i);
-        e33 += source[i].e33() * N(i);
-        e12 += source[i].e12() * N(i);
-        e13 += source[i].e13() * N(i);
-      }
-      out.set(e11, e22, e33, e12, e13);
-    }
-     */
-
-
-/*
-  template <typename T>
-  void sample(T* source, T& out) const {
-    double t1 = 0, t2 = 0, t3 = 0, t4 = 0, t5 = 0;
-    for (unsigned int i = 0; i < NPE; i++) {
-      t1 += source[i][0] * N(i);
-      t2 += source[i][1] * N(i);
-      t3 += source[i][2] * N(i);
-      t4 += source[i][3] * N(i);
-      t5 += source[i][4] * N(i);
-    }
-    out[0] = t1;
-    out[1] = t2;
-    out[2] = t3;
-    out[3] = t4;
-    out[4] = t5;
+  [[nodiscard]] double sampleX(const double *values) const {
+    return values[0] * Nx(0) + values[1] * Nx(1) + values[2] * Nx(2) + values[3] * Nx(3);
   }
-  */
-/*
-    void sample(qlc3d::TTensor* source, qlc3d::TTensor& out) const {
-      double t1 = 0, t2 = 0, t3 = 0, t4 = 0, t5 = 0;
-      for (int i = 0; i < NPE; i++) {
-        t1 += source[i].t1() * N(i);
-        t2 += source[i].t2() * N(i);
-        t3 += source[i].t3() * N(i);
-        t4 += source[i].t4() * N(i);
-        t5 += source[i].t5() * N(i);
-      }
-      out.set(t1, t2, t3, t4, t5);
-    }
 
-    void sampleX(qlc3d::TTensor* source, qlc3d::TTensor& out) const {
-      double t1 = 0, t2 = 0, t3 = 0, t4 = 0, t5 = 0;
-      for (int i = 0; i < NPE; i++) {
-        t1 += source[i].t1() * Nx(i);
-        t2 += source[i].t2() * Nx(i);
-        t3 += source[i].t3() * Nx(i);
-        t4 += source[i].t4() * Nx(i);
-        t5 += source[i].t5() * Nx(i);
-      }
-      out.set(t1, t2, t3, t4, t5);
-    }
-*/
+  [[nodiscard]] double sampleY(const double *values) const {
+    return values[0] * Ny(0) + values[1] * Ny(1) + values[2] * Ny(2) + values[3] * Ny(3);
+  }
+
+  [[nodiscard]] double sampleZ(const double *values) const {
+    return values[0] * Nz(0) + values[1] * Nz(1) + values[2] * Nz(2) + values[3] * Nz(3);
+  }
+
   template<typename Src>
   void sampleAll(const Src* source, double &v1, double &v2, double &v3, double &v4, double &v5) const {
     v1 = v2 = v3 = v4 = v5 = 0;

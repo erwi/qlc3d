@@ -123,6 +123,14 @@ std::string Surface::getAnchoringTypeName() const {
     return Surface::VALID_ANCHORING_TYPES[this->Type];
 }
 
+std::string Surface::toString() const {
+  return fmt::format("FIXLC{}, Anchoring:{}, Strength:{}, K1:{}, K2:{},"
+                     " EasyAngles:[{},{},{}], v1:[{},{},{}], v2:[{},{},{}]",
+                     FixLCNumber, getAnchoringTypeName(), getStrength(), getK1(), getK2(),
+                     easyAnglesDegrees[0], easyAnglesDegrees[1], easyAnglesDegrees[2],
+                     v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]);
+}
+
 AnchoringType Surface::getAnchoringType() const {
     return this->Type;
 }

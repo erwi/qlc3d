@@ -103,6 +103,7 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
     Log::info("Writing initial results");
     resultOutput.writeResults(*geometries.geom, *solutionvectors.v, *solutionvectors.q, simulationState);
 
+  RUNTIME_ERROR("TODO: delete me, exiting early");
     // ADD REOCCURRING EVENTS
     evel.manageReoccurringEvents(currentIteration, currentTime, timeStep);
 }

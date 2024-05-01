@@ -139,7 +139,7 @@ void PotentialSolver::assembleMatrixSystem(const SolutionVector &v, const Soluti
   omp_set_num_threads(numAssemblyThreads);
 
   assembleVolume(v, q, geom);
-  assembleNeumann(v, q, geom);
+  assembleNeumann(v, q, geom); // dielectric material test pass if this is commented out
 }
 
 void PotentialSolver::addToGlobalMatrix(const double lK[4][4], const double lL[4],
@@ -293,12 +293,13 @@ void PotentialSolver::localKL(const Geometry &geom,
   for (; s.hasNextPoint(); s.nextPoint()) {
     double mul = s.weight() * determinant;
 
-    double e11, e22, e33, e12, e13, e23;
+    double exx, eyy, ezz, exy, exz, eyz;
     if (isLCElement) {
-      s.sampleAll(eNodal, e11, e22, e33, e12, e13, e23);
+      s.sampleAll(eNodal, exx, eyy, ezz, exy, exz, eyz);
     } else {
-      e11 = e22 = e33 = s.sample(&eper);
-      e12 = e13 = e23 = 0.;
+      exx = eper * (s.N(0) + s.N(1) + s.N(2) + s.N(3)); // same permittivity at each node
+      eyy = ezz = exx;
+      exy = exz = eyz = 0.;
     }
 
     if (isFlexoElectric) {
@@ -329,14 +330,13 @@ void PotentialSolver::localKL(const Geometry &geom,
 
     for (int i = 0; i < 4; i++) {
       for (int j = 0; j < 4; j++) {
-        lK[i][j] += mul * (
-                s.Nx(i) * s.Nx(j) * e11 +
-                s.Ny(i) * s.Ny(j) * e22 +
-                s.Nz(i) * s.Nz(j) * e33 +
-
-                (s.Nx(i) * s.Ny(j) + s.Ny(i) * s.Nx(j)) * e12 +
-                (s.Nx(i) * s.Nz(j) + s.Nz(i) * s.Nx(j)) * e13 +
-                (s.Ny(i) * s.Nz(j) + s.Nz(i) * s.Ny(j)) * e23);
+        lK[i][j] -= mul * (
+                s.Nx(i) * s.Nx(j) * exx +
+                s.Ny(i) * s.Ny(j) * eyy +
+                s.Nz(i) * s.Nz(j) * ezz +
+                (s.Nx(i) * s.Ny(j) + s.Ny(i) * s.Nx(j)) * exy +
+                (s.Nx(i) * s.Nz(j) + s.Nz(i) * s.Nx(j)) * exz +
+                (s.Ny(i) * s.Nz(j) + s.Nz(i) * s.Ny(j)) * eyz);
       }
     }
   }
@@ -403,8 +403,8 @@ void PotentialSolver::localKLNeumann(
       }
     }
 
-    double e11, e22, e33, e12, e13, e23;
-    shapes.sampleAll(eNodal, e11, e22, e33, e12, e13, e23);
+    double exx, eyy, ezz, exy, exz, eyz;
+    shapes.sampleAll(eNodal, exx, eyy, ezz, exy, exz, eyz);
 
     for (int i =0; i < 4; i++) {
       double Ni = shapes.N(i);
@@ -412,9 +412,11 @@ void PotentialSolver::localKLNeumann(
         const double Njx = shapes.Nx(j);
         const double Njy = shapes.Ny(j);
         const double Njz = shapes.Nz(j);
-        lK[i][j] += mul * Ni * (((e11 - 1) * Njx + e12 * Njy + e13 * Njz) * n.x()
-                                + (e12 * Njx + (e22 - 1) * Njy + e23 * Njz) * n.y()
-                                + (e13 * Njx + e23 * Njy + (e33 - 1) * Njz) * n.z());
+
+        // negative as surface normal is pointing in towards LC, but convention in FE equations is outward
+        lK[i][j] -= mul * Ni * (((exx - 1) * Njx + exy * Njy + exz * Njz) * n.x()
+                                + (exy * Njx + (eyy - 1) * Njy + eyz * Njz) * n.y()
+                                + (exz * Njx + eyz * Njy + (ezz - 1) * Njz) * n.z());
       }
     }
   }
@@ -442,6 +444,21 @@ void PotentialSolver::solveMatrixSystem(SolutionVector &v) {
     }
   }
 }
+
+double calculateConditionNumber(const SpaMtrix::IRCMatrix &m) {
+  int rows = m.getNumRows();
+
+  double minDiag = abs(m.getValue(0, 0));
+  double maxDiag = abs(m.getValue(0, 0));
+  for (int i = 0; i < rows; i++) {
+    double v = abs(m.getValue(i, i));
+    minDiag = std::min(minDiag, v);
+    maxDiag = std::max(maxDiag, v);
+  }
+  Log::info("maxDiag={}, minDiag={}", maxDiag, minDiag);
+  return maxDiag / minDiag;
+}
+
 //</editor-fold>
 
 //<editor-fold desc="public">
@@ -460,6 +477,11 @@ void PotentialSolver::solvePotential(SolutionVector &vOut,
   initialiseMatrixSystem(vOut, geom);
 
   assembleMatrixSystem(vOut, q, geom);
+
+#ifndef NDEBUG
+  double conditionNumber = calculateConditionNumber(*this->K);
+  Log::info("Condition number of potential matrix is {}", conditionNumber);
+#endif
 
   solveMatrixSystem(vOut);
 }

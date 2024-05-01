@@ -470,6 +470,25 @@ void Mesh::listFixLCSurfaces(std::vector<idx> &nodes, const idx FixLCNumber) con
     }
 }
 
+std::set<idx> Mesh::listFixLCSurfaceNodes(const idx FixLCNum) const {
+  if (FixLCNum < 1 || FixLCNum > 9) {
+    RUNTIME_ERROR(format("FixLC number {} is not in range 1-9.", FixLCNum));
+  }
+
+  std::set<idx> nodes;
+  for(idx i = 0; i < getnElements(); i++) {
+    const idx curMat = this->getMaterialNumber(i);
+    const idx curFixLCNum = curMat / MAT_FIXLC1;
+    if (curFixLCNum == FixLCNum) {
+      for (idx n = 0; n < getnNodes(); n++) {
+        nodes.insert(getNode(i, n));
+      }
+    }
+  }
+
+  return nodes;
+}
+
 //
 //void Mesh::CopySurfaceNormal(idx i, double* norm) const {
 //#ifdef DEBUG

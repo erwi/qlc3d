@@ -20,10 +20,10 @@ private:
     double Strength;
     double K1;
     double K2;
-    double easyAnglesDegrees[3];                     // Easy direction angles in degrees
-    double v1[3];                       // First principal axis of anchoring
-    double v2[3];                       // Second principal axis of anchoring
-    double e[3];                        // Easy direction vector
+    double easyAnglesDegrees[3] = {0, 0, 0};                     // Easy direction angles in degrees
+    double v1[3] = {0, 0, 0};                       // First principal axis of anchoring
+    double v2[3] = {0, 0, 0};                       // Second principal axis of anchoring
+    double e[3] = {0, 0, 0};                        // Easy direction vector
     bool UsesSurfaceNormal;             // whether to use local surface normal vector or v1 and v2
     bool isFixed;                       // whether this surface is fixed or not
     bool overrideVolume;               // whether to override volumes at startup. This is set to true by default
@@ -63,6 +63,7 @@ public:
   [[nodiscard]] bool isStrong() const;
   [[nodiscard]] bool getOverrideVolume() const { return overrideVolume; }
 
+  [[nodiscard]] std::string toString() const;
   friend class Alignment;
 };
 

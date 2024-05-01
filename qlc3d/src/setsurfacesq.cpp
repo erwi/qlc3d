@@ -9,21 +9,16 @@ void setGlobalAngles(SolutionVector &q,
                      double S0,
                      double tiltDegrees,
                      double twistDegrees,
-                     const vector<idx>& ind_nodes) {
+                     const std::set<idx>& ind_nodes) {
     auto director = qlc3d::Director::fromDegreeAngles(tiltDegrees, twistDegrees, S0);
-    auto tensor = qlc3d::TTensor::fromDirector(director);
-    for (unsigned int ind_node : ind_nodes) {
-        q.setValue(ind_node,0, tensor.t1());
-        q.setValue(ind_node,1, tensor.t2());
-        q.setValue(ind_node,2, tensor.t3());
-        q.setValue(ind_node,3, tensor.t4());
-        q.setValue(ind_node,4, tensor.t5());
+    for (unsigned int i : ind_nodes) {
+      q.setValue(i, director);
     }
 }
 
 void setHomeotropic(SolutionVector& q,
                     double S0,
-                    const vector<idx> &ind_nodes,
+                    const std::set<idx> &ind_nodes,
                     const Geometry &geom){
     for (auto i : ind_nodes) {
       Vec3 normal = geom.getNodeNormal(i);
@@ -44,25 +39,20 @@ void setStrongSurfacesQ(SolutionVector &q,
                         double S0,
                         const Geometry &geom) {
     // sets only strong anchoring surfaces
-    vector<idx> ind_nodes;
     for (int i = 0 ; i < alignment.getnSurfaces() ; i++ ){
-        ind_nodes.clear();
-        // creates index of all nodes of this alignment surface type
-        // 08/02/12 geom->e->FindIndexToMaterialNodes((i+1)*MAT_FIXLC1, &ind_nodes);
-        //geom->e->listNodesOfMaterial( ind_nodes, (i+1)*MAT_FIXLC1 );
-        geom.getTriangles().listFixLCSurfaces(ind_nodes, i+1);
+        std::set<idx> indSurfaceNodes = geom.getTriangles().listFixLCSurfaceNodes(i + 1);
 
-        if (!ind_nodes.empty()) { // if nodes found
-            // get type of current surface
+        if (!indSurfaceNodes.empty()) { // if nodes found
+          // get type of current surface
             AnchoringType aType = alignment.surface[i]->getAnchoringType();
             // depending on type, do different things...
             if (aType == Strong) {
                 double tilt = alignment.surface[i]->getEasyTilt();
                 double twist= alignment.surface[i]->getEasyTwist();
-                setGlobalAngles(q, S0, tilt, twist, ind_nodes);
+                setGlobalAngles(q, S0, tilt, twist, indSurfaceNodes);
             }
             else if (aType == Homeotropic) {
-                setHomeotropic(q, S0, ind_nodes, geom);
+                setHomeotropic(q, S0, indSurfaceNodes, geom);
             }
             else if (aType == Freeze) {
               // nothing needs to be done
@@ -78,36 +68,37 @@ void setManualNodesAnchoring(SolutionVector &q, double S0, Surface& surf){
     double twist = surf.getEasyTwist();
 
     // CONVERT SURFACE PARAMS TO VALID NODE INDEX VECTOR
-    vector<idx> nodes_idx;
+    std::set<idx> nodes_idx;
     for (size_t i = 0 ; i < surf.Params.size() ; i++){
         if ( (surf.Params[i] < 0 ) ){
             RUNTIME_ERROR("Negative node index when setting ManualNodesAnchoring.");
         }
         idx nodeIdx = static_cast<idx>(surf.Params[i]);
-        nodes_idx.push_back( nodeIdx);
+        nodes_idx.insert(nodeIdx);
     }
     setGlobalAngles(q, S0, tilt, twist, nodes_idx);
 }
 
+/*! sets q-tensor values for all surfaces. */
 void setSurfacesQ(SolutionVector &q, const Alignment &alignment, double S0,  const Geometry &geom) {
-  /*! sets q-tensor values for all surfaces. */
-  vector<idx> ind_nodes;
+  Log::info("Setting initial LC configuration for {} surfaces.", alignment.getnSurfaces());
 
   // loop over all surfaces loaded from settings file
   for (int i = 0 ; i < alignment.getnSurfaces() ; i++) {
     const Surface &surf = alignment.getSurface(i);
+    Log::info(" Setting surface {}", surf.toString());
+
     if (!surf.getOverrideVolume()) {
       Log::info("not setting initial orientation for FixLC{} because overrideVolume is false", i + 1);
       continue;
     }
 
-    ind_nodes.clear();
-    geom.getTriangles().listFixLCSurfaces(ind_nodes, i+1);
-    // MANUAL NODES HAVE NO SURFACE TRIANGLES IN MESH AND MUST BE HANDLED SEPARATELY
+    std::set<idx> indSurfaceNodes = geom.getTriangles().listFixLCSurfaceNodes(i + 1);
+
     if (surf.getAnchoringType() == ManualNodes) {
       Log::info("FIXLC{} is manual nodes anchoring.", i + 1);
       // MANUAL NODES SHOULD NOT DE DEFINED FOR A FIXLC# THAT IS PRESENT IN THE MESH
-      if (!ind_nodes.empty()) {
+      if (!indSurfaceNodes.empty()) {
         RUNTIME_ERROR(fmt::format("Can not set ManualNodes for FIXLC{}. Manual nodes should not be defined for a "
                                   "FIXLC number that is present in the mesh. First available surface for this type is FIXLC{}",
                                   i + 1, alignment.getnSurfaces() + 1));
@@ -117,8 +108,8 @@ void setSurfacesQ(SolutionVector &q, const Alignment &alignment, double S0,  con
     }
     //
     // creates index of all nodes of this alignment surface type
-    if ( !ind_nodes.empty() ) { // if nodes found
 
+    if (!indSurfaceNodes.empty() ) { // if nodes found
       AnchoringType aType = surf.getAnchoringType();
       double strength = surf.getStrength();
 
@@ -127,12 +118,12 @@ void setSurfacesQ(SolutionVector &q, const Alignment &alignment, double S0,  con
           (aType == Degenerate && strength >= 0)) {
         double tilt = alignment.surface[i]->getEasyTilt();
         double twist= alignment.surface[i]->getEasyTwist();
-        setGlobalAngles(q, S0, tilt, twist, ind_nodes);
+        setGlobalAngles(q, S0, tilt, twist, indSurfaceNodes);
       }
         // if homeotropic OR degenerate with negative strength
       else if ((aType == Homeotropic) ||
                ((aType == Degenerate) && (strength < 0))) {
-        setHomeotropic(q, S0, ind_nodes, geom);
+        setHomeotropic(q, S0, indSurfaceNodes, geom);
       }
       else if (aType == Freeze) {
         // nothing needs to be done, just use the current q-tensor values
@@ -147,7 +138,7 @@ void setSurfacesQ(SolutionVector &q, const Alignment &alignment, double S0,  con
       RUNTIME_ERROR(fmt::format("FIXLC{} has ben defined in settings file, but no such surface found in "
                                 "the mesh.", i + 1));
     }
-  }// end for loop over alignment surfaces
+  }
 }
 
 

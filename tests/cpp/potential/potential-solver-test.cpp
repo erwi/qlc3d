@@ -92,6 +92,9 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
   // ACT
   solver.solvePotential(v, q, geom);
 
+  //vtkIOFun::UnstructuredGridWriter writer;
+  //writer.write("/home/eero/Desktop/pseudo2d.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
+
   // ASSERT
   // Check that potential values equal the z-coordinate value everywhere
   for (unsigned int i = 0; i < geom.getnp(); i++) {
@@ -99,9 +102,6 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
     double pot = v.getValue(i);
     REQUIRE(pot == Approx(z).margin(1e-6));
   }
-
-  //vtkIOFun::UnstructuredGridWriter writer;
-  //writer.write("/home/eero/Desktop/pseudo2d.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
 }
 
 TEST_CASE("Set uniform Electric field along z-axis") {
@@ -200,4 +200,45 @@ TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries")
       }
     }
   }
+}
+
+TEST_CASE("Convenience debugging set-up, not a test!") {
+  return;
+
+  // set the path to an existing mesh file to calculate potential on it
+  auto path = std::filesystem::path("/path/to/mesh/file.msh");
+  Geometry geom;
+  auto electrodes = Electrodes::withInitialPotentials({1, 2, 3, 4, 5, 6}, {5, 0, 0, 0, 0, 0});
+  electrodes->setDielectricPermittivities({1});
+
+
+  prepareGeometry(geom, path, *electrodes, {1, 1, 1});
+
+  SolutionVector v(geom.getnp(), 1);
+  v.allocateFixedNodesArrays(geom);
+  v.setPeriodicEquNodes(geom);
+  v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
+
+  // Set LC director to uniform 45 degree tilt angle
+  SolutionVector q(geom.getnpLC(), 5);
+  auto director = qlc3d::Director::fromDegreeAngles(3, 45, 0.5);
+  for (idx i = 0; i < geom.getnpLC(); i++) {
+    q.setValue(i, director);
+  }
+
+  auto defaultSolverSettings = std::make_shared<SolverSettings>();
+
+  // LC material that matches permittivity of dielectric layer
+  auto lc = std::shared_ptr<LC>(LCBuilder()
+                                        .eps_par(23.1)
+                                        .eps_per(6.1)
+                                        .build());
+
+  // ACT
+  PotentialSolver solver(electrodes, lc, defaultSolverSettings);
+  solver.solvePotential(v, q, geom);
+
+  // Write result to file for visualisation
+  vtkIOFun::UnstructuredGridWriter writer;
+  writer.write("/home/eero/Desktop/pseudo2d.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
 }

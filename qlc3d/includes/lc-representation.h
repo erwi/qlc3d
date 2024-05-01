@@ -90,7 +90,6 @@ namespace qlc3d {
     };
 
     class DielectricPermittivity {
-      //double e11_, e22_, e33_, e12_, e13_, e23_;
       double e[6];
     public:
       DielectricPermittivity() = default;

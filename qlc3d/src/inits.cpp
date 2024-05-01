@@ -11,12 +11,19 @@
 #include <geom/vec3.h>
 #include <resultio.h>
 
+#include <lc-representation.h>
+
 /**
  * Goes through all triangle material numbers and tries to check that all is well.
  * @param triMaterials triangle material numbers
  * @param ne number of triangles
  */
 void validateTriangleMaterials(const std::vector<idx> &triMaterials, const Electrodes &electrodes) {
+
+    std::set<idx> uniqueMaterials(triMaterials.begin(), triMaterials.end());
+    Log::info("Checking mesh surface materials. Found {} material numbers: {}",
+              uniqueMaterials.size(), fmt::format("{}", fmt::join(uniqueMaterials, ", ")));
+
     for (idx i = 0; i < triMaterials.size(); ++i) {
         idx m = triMaterials[i];
         if ((m == MAT_PERIODIC) || (m == MAT_NEUMANN)) {

@@ -88,7 +88,13 @@ public:
 
     // Creates list of all nodes belonging to elements of material mat
     void listNodesOfMaterial(std::vector <idx> &nodes, const idx mat) const;
+    /** Deprecated use the other listFixLCSurfaceNodes(FixLC num) instead */
     void listFixLCSurfaces(std::vector <idx> &nodes, const idx FixLCNum) const; // list all nodes of given FixLC surface number (FixLCNum = 1,2,3...)
+    /**
+     * Return a vector of all surface nodes by given FIXLC number.
+     */
+    std::set<idx> listFixLCSurfaceNodes(const idx FixLCNum) const;
+
     bool containsCoordinate(idx elem, const Coordinates& coordinates, const Vec3 p) const; // checks whether point p is within element elem
     void CompleteNodesSet(const idx elem, std::vector<idx> &nodes) const; // completes nodes vector with those from element, if nodes is empty returns all elements
     void calculateDeterminants3D(const Coordinates &coords); // calculates determinants of all elements
