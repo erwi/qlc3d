@@ -217,6 +217,10 @@ inline void Reader::cleanLineEnds(std::string &line) const {
     if (ind < line.size() - 1) {
         line = line.substr(0, ind + 1);
     }
+
+    // remove new line characters
+    line.erase(std::remove(line.begin(), line.end(), '\n'), line.cend());
+    line.erase(std::remove(line.begin(), line.end(), '\r'), line.cend());
 }
 
 inline void Reader::removeComments(std::string &line) const {
