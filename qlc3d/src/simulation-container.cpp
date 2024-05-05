@@ -109,6 +109,7 @@ void SimulationContainer::initialise() {
     prepareGeometry(geom_orig,
                     meshName,
                     *electrodes,
+                    *alignment,
                     simu->getStretchVector(),
                     simu->getRegularGridXCount(),
                     simu->getRegularGridYCount(),

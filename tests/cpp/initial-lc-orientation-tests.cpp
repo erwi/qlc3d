@@ -88,15 +88,16 @@ TEST_CASE("Initial LC surface orientations") {
   el.push_back(std::make_shared<Electrode>(2, std::vector<double>(), std::vector<double>()));
   Electrodes electrodes(el);
 
-  prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, {1, 1, 1});
-  SolutionVector q(geom.getnpLC(), 5);
-
   Alignment alignment;
   std::vector<idx> surfaceNodesIndex;
   geom.getTriangles().listFixLCSurfaces(surfaceNodesIndex, 1);
 
-  SECTION("Weak homeotropic anchoring") {
-    alignment.addSurface(1, "Degenerate", -1e-3, {1, 0, 0}, 1., 1., {});
+    SECTION("Weak homeotropic anchoring") {
+      // expected to fail until weak anchoring is re-enabled
+    alignment.addSurface(Surface::ofPlanarDegenerate(1, -1e-3));
+    alignment.addSurface(Surface::ofPlanarDegenerate(2, -1e-3));
+    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    SolutionVector q(geom.getnpLC(), 5);
 
     // ACT
     initialiseLcSolutionVector(q, *simu, *lc, boxes, alignment, geom);
@@ -115,8 +116,10 @@ TEST_CASE("Initial LC surface orientations") {
   }
 
   SECTION("Strong homeotropic anchoring") {
-    alignment.addSurface(1, "Homeotropic", -1e-3, {1, 0, 0}, 1., 1., {});
-
+    alignment.addSurface(Surface::ofHomeotropic(1));
+    alignment.addSurface(Surface::ofHomeotropic(2));
+    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    SolutionVector q(geom.getnpLC(), 5);
     // ACT
     initialiseLcSolutionVector(q, *simu, *lc, boxes, alignment, geom);
 
@@ -135,10 +138,12 @@ TEST_CASE("Initial LC surface orientations") {
   }
 
   SECTION("Week with pre-tilt and pre-twist") {
+    // expected to fail until weak anchoring is re-enabled
     double tiltDegrees = 5;
     double twistDegrees = 12;
     alignment.addSurface(1, "Weak", 1e-3, {tiltDegrees, twistDegrees, 0}, 1., 1., {});
-
+    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    SolutionVector q(geom.getnpLC(), 5);
     // ACT
     initialiseLcSolutionVector(q, *simu, *lc, boxes, alignment, geom);
 
@@ -156,6 +161,8 @@ TEST_CASE("Initial LC surface orientations") {
   }
 
   SECTION("Dont set surface orientation when enforce is false") {
+    // expected to fail until weak anchoring is re-enabled
+
     // ARRANGE
     // Set up surface with 90-degree tilt, 0 degree twist and enforce flag set to false
     // This means that the surface should not override the volume LC orientation and the LC director should be
@@ -163,7 +170,8 @@ TEST_CASE("Initial LC surface orientations") {
     double tiltDegrees = 90;
     double twistDegrees = 0;
     alignment.addSurface(1, "Weak", 1e-3, {tiltDegrees, twistDegrees, 0}, 1., 1., {}, false);
-
+    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    SolutionVector q(geom.getnpLC(), 5);
     // ACT
     initialiseLcSolutionVector(q, *simu, *lc, boxes, alignment, geom);
 

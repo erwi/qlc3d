@@ -28,6 +28,8 @@ private:
     bool isFixed;                       // whether this surface is fixed or not
     bool overrideVolume;               // whether to override volumes at startup. This is set to true by default
     void calcV1V2();                    // calculates v1 and v2 values from easy angles
+    unsigned int fixLcNumber = 0;
+    void setAnchoringType(const std::string &atype);
 public:
     static const std::vector<std::string> VALID_ANCHORING_TYPES;
     static const std::string DEFAULT_ANCHORING_TYPE;
@@ -37,10 +39,9 @@ public:
     static const std::vector<double> DEFAULT_ANCHORING_EASY;
     static const std::vector<double> DEFAULT_ANCHORING_PARAMS;
     static const bool DEFAULT_ANCHORING_OVERRIDE_VOLUME;
-    int FixLCNumber;
     std::vector<double> Params;         // holds optional parameters, but is mostly empty
-    Surface(int fxlcnum);
-    void setAnchoringType(const std::string &atype);
+
+    Surface(int fxlcnum, const std::string &type);
     void setStrength(double str);
     void setK1(double k1);
     void setK2(double k2);
@@ -64,7 +65,13 @@ public:
   [[nodiscard]] bool getOverrideVolume() const { return overrideVolume; }
 
   [[nodiscard]] std::string toString() const;
+  [[nodiscard]] unsigned int getFixLCNumber() const { return fixLcNumber; }
+  void setFixLCNumber(unsigned int fixLcNumber);
   friend class Alignment;
+
+  [[nodiscard]] static Surface* ofStrongAnchoring(unsigned int fixLcNumber, double tiltDegrees, double twistDegrees);
+  [[nodiscard]] static Surface* ofPlanarDegenerate(unsigned int fixLcNumber, double strength);
+  [[nodiscard]] static Surface* ofHomeotropic(unsigned int fixLcNumber);
 };
 
 class Reader; // forward declaration of reader class
@@ -73,7 +80,6 @@ class Alignment {
     /*! A collection of Surface objects, each representing a FIXLC surface*/
 private:
     int n_surfaces; // TODO: why not just return surface.size() ??
-    void addSurface(Surface *s);
     void setnSurfaces(int n);
 public:
     std::vector<Surface *> surface;
@@ -88,6 +94,9 @@ public:
                     const double &k2,
                     const std::vector<double> &params,
                     const bool overrideVolume = true);
+
+    void addSurface(Surface *s);
+
     [[nodiscard]] const Surface & getSurface(const idx& i) const; // returns read-only reference to i'th surface
 
     double getStrength(int n);  // get strength of FixLCn
@@ -99,5 +108,6 @@ public:
     [[nodiscard]] bool IsStrong(int n) const;       // is surface n strong?
     bool getUsesSurfaceNormal(int n); // if n uses surface normal instead of v1 and v2 ?
     bool WeakSurfacesExist();   // checks if weak surfaces are defined
+    [[nodiscard]] bool hasSurface(unsigned int fixLcNumber) const;
 };
 #endif

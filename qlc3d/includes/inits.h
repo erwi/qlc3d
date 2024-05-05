@@ -19,6 +19,7 @@ class Vec3;
 void prepareGeometry(Geometry& geom,
                     const std::filesystem::path &meshFileName,
                     Electrodes& electrodes,
+                    const Alignment& alignment,
                     const Vec3& stretchVector,
                     unsigned int regularGridCountX = 1,
                     unsigned int regularGridCountY = 1,

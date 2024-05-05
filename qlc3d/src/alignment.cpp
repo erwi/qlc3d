@@ -16,11 +16,12 @@ const bool Surface::DEFAULT_ANCHORING_OVERRIDE_VOLUME = true;
 const std::vector<double> Surface::DEFAULT_ANCHORING_EASY = {0,0,0};
 const std::vector<double> Surface::DEFAULT_ANCHORING_PARAMS = {};
 
-Surface::Surface(int fxlcnum) {
-  FixLCNumber = fxlcnum;
+Surface::Surface(int fxlcnum, const std::string &type) {
+  fixLcNumber = fxlcnum;
   Strength = DEFAULT_ANCHORING_STRENGTH;
   K1 = DEFAULT_ANCHORING_K1;
   K2 = DEFAULT_ANCHORING_K2;
+  setAnchoringType(type);
   this->setEasyAngles(DEFAULT_ANCHORING_EASY);
   UsesSurfaceNormal = false;
   isFixed = true;
@@ -28,7 +29,7 @@ Surface::Surface(int fxlcnum) {
 }
 
 void Surface::setAnchoringType(const std::string &atype) {
-    std::string typeKey = wildcardToNum(SFK_FIXLC_ANCHORING, this->FixLCNumber);
+    std::string typeKey = wildcardToNum(SFK_FIXLC_ANCHORING, getFixLCNumber());
     StringEnum<AnchoringType> validator(typeKey, Surface::VALID_ANCHORING_TYPES);
     this->Type = validator.getEnumValue(atype);
     switch (Type) {
@@ -126,7 +127,7 @@ std::string Surface::getAnchoringTypeName() const {
 std::string Surface::toString() const {
   return fmt::format("FIXLC{}, Anchoring:{}, Strength:{}, K1:{}, K2:{},"
                      " EasyAngles:[{},{},{}], v1:[{},{},{}], v2:[{},{},{}]",
-                     FixLCNumber, getAnchoringTypeName(), getStrength(), getK1(), getK2(),
+                     getFixLCNumber(), getAnchoringTypeName(), getStrength(), getK1(), getK2(),
                      easyAnglesDegrees[0], easyAnglesDegrees[1], easyAnglesDegrees[2],
                      v1[0], v1[1], v1[2], v2[0], v2[1], v2[2]);
 }
@@ -148,6 +149,45 @@ bool	Surface::getUsesSurfaceNormal() const {
 bool    Surface::isStrong() const {
     return isFixed;
 }
+
+Surface* Surface::ofStrongAnchoring(unsigned int fixLcNumber_, double tiltDegrees, double twistDegrees) {
+  if (fixLcNumber_ == 0 || fixLcNumber_ > 9) {
+    RUNTIME_ERROR(fmt::format("FixLC number must be in range 1 - 9, got {}", fixLcNumber_));
+  }
+  auto *s = new Surface((int) fixLcNumber_, "Strong");
+  s->setAnchoringType("Strong");
+  s->setStrength(0);
+  s->setEasyAngles({tiltDegrees, twistDegrees, 0});
+  s->setK1(1.);
+  s->setK2(1.);
+  return s;
+}
+
+Surface* Surface::ofPlanarDegenerate(unsigned int fixLcNumber, double strength) {
+  if (fixLcNumber == 0 || fixLcNumber > 9) {
+    RUNTIME_ERROR(fmt::format("FixLC number must be in range 1 - 9, got {}", fixLcNumber));
+  }
+  auto *s = new Surface((int) fixLcNumber, "Degenerate");
+  s->setStrength(strength);
+  s->setEasyAngles({0, 0, 0});
+  s->setK1(1.);
+  s->setK2(1.);
+  return s;
+}
+
+Surface* Surface::ofHomeotropic(unsigned int fixLcNumber) {
+  if (fixLcNumber == 0 || fixLcNumber > 9) {
+    RUNTIME_ERROR(fmt::format("FixLC number must be in range 1 - 9, got {}", fixLcNumber));
+  }
+  auto *s = new Surface((int) fixLcNumber, "Homeotropic");
+
+  s->setStrength(0);
+  s->setEasyAngles({0, 0, 0});
+  s->setK1(1.);
+  s->setK2(1.);
+  return s;
+}
+
 //====================================================
 //
 //		Alignment
@@ -165,8 +205,13 @@ Alignment::~Alignment(){
 void Alignment::setnSurfaces(int n){	n_surfaces = n;}
 
 void Alignment::addSurface(Surface* s){
-    surface.push_back(s);
-    n_surfaces++;
+  // check against adding multiple surfaces with the same FixLC number
+  if (hasSurface(s->getFixLCNumber())) {
+    throw std::invalid_argument("Surface with FixLC number " + std::to_string(s->getFixLCNumber()) + " already exists");
+  }
+
+  surface.push_back(s);
+  n_surfaces++;
 }
 
 void Alignment::addSurface(const int fixLcNumber,
@@ -178,8 +223,7 @@ void Alignment::addSurface(const int fixLcNumber,
                            const std::vector<double> &params,
                            const bool overrideVolume) {
 
-    auto s = new Surface(fixLcNumber);
-    s->setAnchoringType(anchoring);
+    auto s = new Surface(fixLcNumber, anchoring);
     s->setStrength(strength);
     s->setEasyAngles(easyAnglesDegrees);
     s->setK1(k1);
@@ -224,3 +268,12 @@ double Alignment::getK2(int n)			{return surface[n-1]->getK2();}
 double* Alignment::getPtrTov1(int n)		{return surface[n-1]->getPtrTov1();}
 double* Alignment::getPtrTov2(int n)		{return surface[n-1]->getPtrTov2();}
 bool Alignment::getUsesSurfaceNormal(int n)  {return surface[n-1]->getUsesSurfaceNormal();}
+
+bool Alignment::hasSurface(unsigned int fixLcNumber) const {
+    for (const auto &s : surface) {
+        if (s->getFixLCNumber() == fixLcNumber) {
+            return true;
+        }
+    }
+    return false;
+}

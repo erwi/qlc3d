@@ -27,7 +27,7 @@ TEST_CASE("mesh refinement") {
     Electrodes electrodes(electrodesVec, nullptr);
 
     // reads and prepares test-mesh from resource file
-    prepareGeometry(originalGeometry, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, {1, 1, 1});
+    prepareGeometry(originalGeometry, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
 
     workingGeometry.setTo(&originalGeometry);
 

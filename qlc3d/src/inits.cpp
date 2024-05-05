@@ -18,7 +18,7 @@
  * @param triMaterials triangle material numbers
  * @param ne number of triangles
  */
-void validateTriangleMaterials(const std::vector<idx> &triMaterials, const Electrodes &electrodes) {
+void validateTriangleMaterials(const std::vector<idx> &triMaterials, const Electrodes &electrodes, const Alignment &alignment) {
 
     std::set<idx> uniqueMaterials(triMaterials.begin(), triMaterials.end());
     Log::info("Checking mesh surface materials. Found {} material numbers: {}",
@@ -42,6 +42,12 @@ void validateTriangleMaterials(const std::vector<idx> &triMaterials, const Elect
         }
         else if (eNum > electrodes.getnElectrodes()) {
             RUNTIME_ERROR(fmt::format("Triangle {} has electrode number {} but only {} electrode(s) have been defined.", i, eNum, electrodes.getnElectrodes()));
+        }
+
+        // If alignment surface material, check alignment has been defined for it
+        size_t fixLCNum = MATNUM_TO_FIXLC_NUMBER(m);
+        if (fixLCNum > 0 && !alignment.hasSurface(fixLCNum)) {
+            RUNTIME_ERROR(fmt::format("Triangle {} has material number {} which is FixLC{} but no alignment surface has been defined for it.", i, m, fixLCNum));
         }
     }
 }
@@ -68,6 +74,7 @@ void validateTetrahedralMaterials(const std::vector<idx> matt) {
 void prepareGeometry(Geometry& geom,
                      const std::filesystem::path &meshFileName,
                      Electrodes& electrodes,
+                     const Alignment& alignment,
                      const Vec3 &stretchVector,
                      unsigned int regularGridCountX,
                      unsigned int regularGridCountY,
@@ -79,7 +86,7 @@ void prepareGeometry(Geometry& geom,
     Log::info("num points = {}", rawMeshData.points.size());
 
     // Throw exception if invalid element material numbers are detected.
-    validateTriangleMaterials(rawMeshData.triMaterials,electrodes);
+    validateTriangleMaterials(rawMeshData.triMaterials, electrodes, alignment);
     validateTetrahedralMaterials(rawMeshData.tetMaterials);
 
     auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));

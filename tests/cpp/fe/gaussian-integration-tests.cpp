@@ -15,7 +15,10 @@ TEST_CASE("Linear tet 3D shape function") {
 
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
-  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, *electrodes, {1, 1, 1});
+  auto alignment = Alignment();
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, *electrodes, alignment, {1, 1, 1});
   auto tets = geom.getTetrahedra();
   auto coords = geom.getCoordinates();
   idx elemNodes[4] = {0, 0, 0, 0};
@@ -176,7 +179,10 @@ TEST_CASE("3D boundary integral in a unit cube") {
 
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
-  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, *electrodes, {1, 1, 1});
+  auto alignment = Alignment();
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, *electrodes, alignment, {1, 1, 1});
   auto tets = geom.getTetrahedra();
   auto tris = geom.getTriangles();
   auto coords = geom.getCoordinates();

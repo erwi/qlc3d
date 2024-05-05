@@ -28,7 +28,10 @@ TEST_CASE("Solve potential 1D mesh - Expect v = z") {
   // has no effect on the potential solution and the potential should vary linearly from 0 to 1 w.r.t. the mesh z-coordinate
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, {1, 1, 1});
+  auto alignment = Alignment();
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, alignment, {1, 1, 1});
 
   SolutionVector v(geom.getnp(), 1);
   v.allocateFixedNodesArrays(geom);
@@ -67,7 +70,11 @@ TEST_CASE("Solve potential 1D mesh - Expect v = z") {
 TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
-  prepareGeometry(geom, TestUtil::RESOURCE_PSEUDO_2D_NEUMANN_GMSH_MESH, *electrodes, {1, 1, 1});
+  auto alignment = Alignment();
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+
+  prepareGeometry(geom, TestUtil::RESOURCE_PSEUDO_2D_NEUMANN_GMSH_MESH, *electrodes, alignment, {1, 1, 1});
 
   SolutionVector v(geom.getnp(), 1);
   v.allocateFixedNodesArrays(geom);
@@ -109,7 +116,11 @@ TEST_CASE("Set uniform Electric field along z-axis") {
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
   electrodes->setElectricField({0, 0, 1});
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, {1, 1, 1});
+  Alignment alignment;
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, alignment, {1, 1, 1});
   auto lc = std::shared_ptr<LC>(LCBuilder().build());
   auto solverSettings = std::make_shared<SolverSettings>();
 
@@ -136,8 +147,10 @@ TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries")
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
   electrodes->setDielectricPermittivities({1});
-
-  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_GMSH_MESH, *electrodes, {1, 1, 1});
+  Alignment alignment;
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_GMSH_MESH, *electrodes, alignment, {1, 1, 1});
 
   SolutionVector v(geom.getnp(), 1);
   v.allocateFixedNodesArrays(geom);
@@ -211,8 +224,8 @@ TEST_CASE("Convenience debugging set-up, not a test!") {
   auto electrodes = Electrodes::withInitialPotentials({1, 2, 3, 4, 5, 6}, {5, 0, 0, 0, 0, 0});
   electrodes->setDielectricPermittivities({1});
 
-
-  prepareGeometry(geom, path, *electrodes, {1, 1, 1});
+  Alignment alignment;
+  prepareGeometry(geom, path, *electrodes, alignment, {1, 1, 1});
 
   SolutionVector v(geom.getnp(), 1);
   v.allocateFixedNodesArrays(geom);

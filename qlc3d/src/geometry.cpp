@@ -288,8 +288,6 @@ void Geometry::setFacePeriNodes(list<size_t> &face0,
       }
     }// end for B
     if (!found) {
-      //double *c0 = getPtrTop() + *F0;  // coordinates of face 0 coords
-      //double *c1 = getPtrTop() + ind_n;  // face 1 coords
       Vec3 c0 = coordinates_->getPoint(*F0);
       Vec3 c1 = coordinates_->getPoint(ind_n);
 
