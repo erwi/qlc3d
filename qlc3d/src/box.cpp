@@ -21,8 +21,6 @@ const std::vector<double> Box::DEFAULT_TILT_TWIST = {0,0};
 using std::vector;
 using std::cerr;
 Box::Box(int boxnum) {
-    //Type = Normal;
-    setBoxType(Box::DEFAULT_TYPE);
     BoxNumber = boxnum;
     Params = Box::DEFAULT_PARAMS;
     X = Box::DEFAULT_X_Y_Z;
@@ -30,6 +28,7 @@ Box::Box(int boxnum) {
     Z = Box::DEFAULT_X_Y_Z;;
     Tilt = Box::DEFAULT_TILT_TWIST;
     Twist = Box::DEFAULT_TILT_TWIST;
+    setBoxType(Box::DEFAULT_TYPE);
 }
 
 void Box::setX(std:: vector<double> x) {
