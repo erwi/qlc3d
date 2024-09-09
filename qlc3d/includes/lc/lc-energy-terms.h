@@ -315,6 +315,7 @@ namespace LcEnergyTerms {
     }
   }
 
+
   inline void assembleDielectric(double lL[20],
                                  const GaussianQuadratureTet<11> &shapes,
                                  const double &tetDeterminant,
@@ -332,5 +333,7 @@ namespace LcEnergyTerms {
       lL[i + 16] += (-rt2 * Vx * Vz * deleps * D3 * eps0) * ShR;
     }
   }
+
 }
+
 #endif //PROJECT_QLC3D_LC_ENERGY_TERMS_H

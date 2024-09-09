@@ -67,7 +67,6 @@ protected:
   const double L1, L2, L3, L6;
   const double deleps;
 
-  //std::unique_ptr<SpaMtrix::IRCMatrix> K;
   std::unique_ptr<SpaMtrix::Vector> L;
   std::unique_ptr<SpaMtrix::Vector> X;
 
