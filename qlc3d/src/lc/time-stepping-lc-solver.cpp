@@ -11,25 +11,12 @@
 #include <fe/gaussian-quadrature.h>
 #include <geometry.h>
 #include <geom/coordinates.h>
-#include "spamtrix_diagpreconditioner.hpp"
-#include "spamtrix_iterativesolvers.hpp"
-#include "util/logging.h"
+#include <spamtrix_blas.hpp>
+#include <util/logging.h>
+#include <solver-settings.h>
 
-struct Params {
-  double A;
-  double B;
-  double C;
-  double L1;
-  double L2;
-  double L3;
-  double L6;
-  double deleps;
-};
-
-TimeSteppingLCSolver::TimeSteppingLCSolver(const LC &lc, const SolverSettings &solverSettings) :
-  lc(lc),
-  solverSettings(solverSettings) {
-  Log::info("Creating time stepping solver for Q-tensor");
+TimeSteppingLCSolver::TimeSteppingLCSolver(const LC &lc, const SolverSettings &solverSettings) : ImplicitLCSolver(lc, solverSettings) {
+  Log::info("Creating time stepping solver for Q-tensor, isTreeElasticConstants={}, isSymmetricMatrix={}", isThreeElasticConstants, isSymmetricMatrix);
 }
 
 bool isFixedNode(idx i) {
@@ -54,7 +41,7 @@ void addToGlobalMatrix(const double lK[4][4], idx tetDofs[4], SpaMtrix::IRCMatri
   }
 }
 
-void assembleLocalMassMatrix(double lK[4][4], idx tetNodes[4], double tetDeterminant, const Geometry &geom, GaussianQuadratureTet<11> &shapes) {
+void assembleElementMassMatrix(double lK[4][4], idx tetNodes[4], double tetDeterminant, const Geometry &geom, GaussianQuadratureTet<11> &shapes) {
   memset(lK, 0, 4 * 4 * sizeof(double));
   Vec3 coordinates[4];
   geom.getCoordinates().loadCoordinates(tetNodes, tetNodes + 4, coordinates);
@@ -75,11 +62,10 @@ void assembleLocalMassMatrix(double lK[4][4], idx tetNodes[4], double tetDetermi
   }
 }
 
-void assembleMassMatrix(SpaMtrix::IRCMatrix &M, const Geometry &geom, const SolutionVector &q) {
+void assembleGlobalMassMatrix(SpaMtrix::IRCMatrix &M, const Geometry &geom, const SolutionVector &q) {
   GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
   const Mesh tetMesh = geom.getTetrahedra();
   const idx tetCount = tetMesh.getnElements();
-  //const idx numFreeNodes = q.getnFreeNodes();
   double lK[4][4];
   idx tetNodes[4];
   idx tetDofs[4];
@@ -92,16 +78,50 @@ void assembleMassMatrix(SpaMtrix::IRCMatrix &M, const Geometry &geom, const Solu
     tetMesh.loadNodes(tetIndex, tetNodes);
     q.loadEquNodes(tetNodes, tetNodes + 4, tetDofs);
 
-    assembleLocalMassMatrix(lK, tetNodes, tetMesh.getDeterminant(tetIndex), geom, shapes);
+    assembleElementMassMatrix(lK, tetNodes, tetMesh.getDeterminant(tetIndex), geom, shapes);
 
     addToGlobalMatrix(lK, tetDofs, M);
   }
 }
 
-void assembleLocalRhsVector(double lL[20], const idx tetNodes[4], double tetDeterminant,
-                             const Geometry &geom, const SolutionVector &q, const SolutionVector &v,
-                             GaussianQuadratureTet<11> &shapes, const Params &params) {
-  memset(lL, 0, 20 * sizeof(double));
+void TimeSteppingLCSolver::addToGlobalMatrix(double lK[20][20], double lL[20], const SolutionVector &q, const unsigned int tetNodes[4]) {
+  idx npLC = q.getnDoF();
+  for (int i = 0; i < 20; i++) {
+    idx ri = tetNodes[i % 4] + npLC * (i / 4);
+    idx eqr = q.getEquNode(ri);
+
+    if (eqr == NOT_AN_INDEX) { // this row is fixed, so doesn't even exist in the system
+      continue;
+    }
+
+    (*L)[eqr] += lL[i];
+    for (int j = 0 ; j < 20 ; j++) { // LOOP OVER COLUMNS
+      idx rj = tetNodes[j % 4] + npLC * (j / 4);
+      idx eqc = q.getEquNode(rj);
+
+      // Note: we can simply ignore fixed columns as they correspond to fixed zeroes in the RHS vector L,
+      // so that their contribution to other rows in L would be zero anyway. We only set the free rows/columns
+      // to the global matrix
+      if (eqc != NOT_AN_INDEX) { // it's free
+        K->sparse_add(eqr, eqc, lK[i][j]);
+      }
+    }
+  }
+}
+
+void TimeSteppingLCSolver::assembleLocalVolumeMatrix_impl(unsigned int indTet,
+                                                          double (*lK)[20],
+                                                          double *lL,
+                                                          unsigned int *tetNodes,
+                                                          unsigned int *tetDofs,
+                                                          GaussianQuadratureTet<11> shapes,
+                                                          const SolutionVector &q,
+                                                          const SolutionVector &v,
+                                                          const Geometry &geom,
+                                                          const Params &params) {
+
+  memset(lK, 0., 20 * 20 * sizeof(double));
+  memset(lL, 0., 20 * sizeof(double));
   Vec3 tetCoords[4];
   geom.getCoordinates().loadCoordinates(tetNodes, tetNodes + 4, tetCoords);
   tetCoords[0] *= 1e-6;
@@ -109,6 +129,7 @@ void assembleLocalRhsVector(double lL[20], const idx tetNodes[4], double tetDete
   tetCoords[2] *= 1e-6;
   tetCoords[3] *= 1e-6;
 
+  const double tetDeterminant = geom.getTetrahedra().getDeterminant(indTet);
   shapes.initialiseElement(tetCoords, tetDeterminant);
 
   qlc3d::TTensor qNodal[4];
@@ -122,6 +143,8 @@ void assembleLocalRhsVector(double lL[20], const idx tetNodes[4], double tetDete
   shapes.sampleAllY(qNodal, q1y, q2y, q3y, q4y, q5y);
   shapes.sampleAllZ(qNodal, q1z, q2z, q3z, q4z, q5z);
 
+  double Ml[4][4] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
+  const double timeMultiplier = 2. * params.u1 / params.dt; // effect of viscosity and time step size
   for (; shapes.hasNextPoint(); shapes.nextPoint()) {
     double q1, q2, q3, q4, q5;
     double Vx, Vy, Vz;
@@ -130,109 +153,152 @@ void assembleLocalRhsVector(double lL[20], const idx tetNodes[4], double tetDete
     Vy = shapes.sampleY(potential);
     Vz = shapes.sampleZ(potential);
 
-    LcEnergyTerms::assembleThermotropic(nullptr, lL, shapes, tetDeterminant, q1, q2, q3, q4, q5, params.A, params.B, params.C);
-    LcEnergyTerms::assembleElasticL1(nullptr, lL, shapes, tetDeterminant, q1x, q1y, q1z, q2x, q2y, q2z, q3x, q3y, q3z, q4x, q4y, q4z, q5x, q5y, q5z, params.L1);
-    //LcEnergyTerms::assembleThreeElasticConstants(nullptr, lL, shapes, tetDeterminant, q1, q2, q3, q4, q5, q1x, q1y, q1z, q2x, q2y, q2z, q3x, q3y, q3z, q4x, q4y, q4z, q5x, q5y, q5z, params.L2, params.L3, params.L6);
+    LcEnergyTerms::assembleThermotropic(lK, lL, shapes, tetDeterminant, q1, q2, q3, q4, q5, params.A, params.B, params.C);
+    LcEnergyTerms::assembleElasticL1(lK, lL, shapes, tetDeterminant, q1x, q1y, q1z, q2x, q2y, q2z, q3x, q3y, q3z, q4x, q4y, q4z, q5x, q5y, q5z, params.L1);
+    LcEnergyTerms::assembleThreeElasticConstants(lK, lL, shapes, tetDeterminant, q1, q2, q3, q4, q5, q1x, q1y, q1z, q2x, q2y, q2z, q3x, q3y, q3z, q4x, q4y, q4z, q5x, q5y, q5z, params.L2, params.L3, params.L6);
 
     if (Vx != 0.0 || Vy != 0.0 || Vz != 0.0) {
       LcEnergyTerms::assembleDielectric(lL, shapes, tetDeterminant, Vx, Vy, Vz, params.deleps);
     }
+
+    LcEnergyTerms::assembleMassMatrix(Ml, shapes, tetDeterminant, timeMultiplier);
   }
 
-
+  for (idx i = 0; i < 4; i++) {
+    // add M to local Jacobian matrix
+    for (idx j = 0; j < 4; j++) {
+      const double m = Ml[i][j];
+      lK[i][j] += m;
+      lK[i + 4][j + 4] += m;
+      lK[i + 8][j + 8] += m;
+      lK[i + 12][j + 12] += m;
+      lK[i + 16][j + 16] += m;
+    }
+  }
 }
 
-
-void assembleRhsVector(SpaMtrix::Vector &L, const SolutionVector &q, const SolutionVector &v, const Geometry &geom, const Params &params) {
+void TimeSteppingLCSolver::assembleVolumeTerms_impl(const SolutionVector &q, const SolutionVector &v, const Geometry &geom,
+                                               const Params &params) {
   GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
-  const Mesh tetMesh = geom.getTetrahedra();
-  const idx tetCount = tetMesh.getnElements();
-  double lL[20];
+  const unsigned int elementCount = geom.getTetrahedra().getnElements();
+  const Mesh &tets = geom.getTetrahedra();
+  double lK[4 * 5][4 * 5];
+  double lL[4 * 5];
   idx tetNodes[4];
-  const idx npLC = q.getnDoF();
+  idx tetDofs[4];
 
-  for (idx tetIndex = 0; tetIndex < tetCount; tetIndex++) {
-    if (tetMesh.getMaterialNumber(tetIndex) != MAT_DOMAIN1) {
+  for (unsigned int indTet = 0; indTet < elementCount; indTet++) {
+    if (tets.getMaterialNumber(indTet) != MAT_DOMAIN1) {
       continue;
     }
+    tets.loadNodes(indTet, tetNodes);
+    q.loadEquNodes(tetNodes, tetNodes + 4, tetDofs);
 
-    tetMesh.loadNodes(tetIndex, tetNodes);
+    assembleLocalVolumeMatrix_impl(indTet, lK, lL, tetNodes, tetDofs, shapes, q, v, geom, params);
 
-    assembleLocalRhsVector(lL, tetNodes, tetMesh.getDeterminant(tetIndex), geom, q, v, shapes, params);
-
-    for (idx i = 0; i < 20; i++) {
-      idx ri = tetNodes[i % 4] + npLC * (i / 4);
-      idx eqr = q.getEquNode(ri);
-
-      if (isFixedNode(eqr)) { continue; } // this row should not even exist in the matrix
-
-      L[eqr] += lL[i];
-    }
+    addToGlobalMatrix(lK, lL, q, tetNodes);
   }
 }
 
-void TimeSteppingLCSolver::initialiseMatrixSystem(const SolutionVector &q, const Geometry &geom, double dt) {
+void TimeSteppingLCSolver::initialiseMatrixSystem(const SolutionVector &q, const Geometry &geom) {
   if (K != nullptr) {
     return;
   }
+  const idx numFreeNodes = q.getnFreeNodes();
+  const idx N = numFreeNodes * 5;
 
-  K = createQMassMatrix(geom, q, MAT_DOMAIN1);
+  M = createQMassMatrix(geom, q, MAT_DOMAIN1);
+  assembleGlobalMassMatrix(*M, geom, q);
 
-  L = std::make_unique<SpaMtrix::Vector>(K->getNumRows());
-  X = std::make_unique<SpaMtrix::Vector>(K->getNumRows());
+  K = createQMatrix(geom, q, MAT_DOMAIN1);
+  L = std::make_unique<SpaMtrix::Vector>(N);
+  X = std::make_unique<SpaMtrix::Vector>(N);
+
+  q1 = std::make_unique<SpaMtrix::Vector>(N);
+  f_prev = std::make_unique<SpaMtrix::Vector>(N);
+  *f_prev = 0;
 }
 
-void solveMatrixSystema(const SpaMtrix::IRCMatrix &M, const SpaMtrix::Vector &L, SpaMtrix::Vector &X) {
-  SpaMtrix::DiagPreconditioner I(M);
-  idx maxiter 	= M.getNumRows(); //solverSettings.getQ_GMRES_Maxiter();
-  idx restart 	= 0; //solverSettings.getQ_GMRES_Restart();
-  real toler    = 1e-9; //solverSettings.getQ_GMRES_Toler();
-  SpaMtrix::IterativeSolvers solver(maxiter, restart, toler);
+void calculateRhsResidualVector(SpaMtrix::Vector &r,
+                                const SpaMtrix::Vector &q1,
+                                const SpaMtrix::Vector &q2,
+                                const SpaMtrix::Vector &f1,
+                                const SpaMtrix::Vector &f2,
+                                const SpaMtrix::IRCMatrix &M,
+                                double timeMultiplier
+                  ) {
 
-  if (!solver.pcg(M, X, L, I)) {
-    Log::warn("PCG did not converge in {} iterations. Tolerance achieved is {}.", solver.maxIter, solver.toler);
-  }
+  assert(r.getLength() == q1.getLength());
+  assert(r.getLength() == q2.getLength());
+  assert(r.getLength() == f1.getLength());
+  assert(r.getLength() == f2.getLength());
+  assert(r.getLength() == M.getNumRows());
+
+  SpaMtrix::Vector temp(r.getLength());
+
+  // timeMultiplier * M (q2 - q1)
+  temp = q2;
+  temp -= q1;
+  temp *= timeMultiplier;
+  SpaMtrix::multiply(M, temp, r);
+
+  r += f1;
+  r += f2;
 }
 
-double updateSolutionVector(SolutionVector &q, const SpaMtrix::Vector &X, double dt, double viscosity) {
-  const idx npLC = q.getnDoF();
-  double maxdqOut = 0.0;
-  for (unsigned int i = 0; i < 5; i++) {
-    for (idx j = 0; j < q.getnDoF(); j++) {
-      const idx n = j + i * npLC;
-      const idx effDoF = q.getEquNode(n);
-
-      if (effDoF != NOT_AN_INDEX) {
-        const double dqj = X[ effDoF ]; // TODO: should we multiply by "damping" here, it looks like it's never used !!
-        q[n] -= (dt / viscosity) * dqj;
-        // KEEP TRACK OF LARGEST CHANGE IN Q-TENSOR
-        maxdqOut = fabs(dqj) > maxdqOut ? fabs(dqj) : maxdqOut;
-      }
-    }
-  }
-
-  return maxdqOut;
-}
-
-
-double TimeSteppingLCSolver::solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom,
+LCSolverResult TimeSteppingLCSolver::solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom,
                                    SimulationState &simulationState) {
 
   if (K == nullptr) {
-    initialiseMatrixSystem(q, geom, simulationState.dt());
-    assembleMassMatrix(*K, geom, q);
+    initialiseMatrixSystem(q, geom);
   }
 
-  L->setAllValuesTo(0);
-  X->setAllValuesTo(0);
+  Log::incrementIndent();
 
-  Params params = {lc.A(), lc.B(), lc.C(), lc.L1(), lc.L2(), lc.L3(), lc.L6(), lc.deleps()};
-  assembleRhsVector(*L, q, v, geom, params);
+  Params params = {lc.A(), lc.B(), lc.C(), lc.L1(), lc.L2(), lc.L3(), lc.L6(), lc.deleps(), simulationState.dt(), lc.u1()};
+  double maxDq = 0., firstDq = 0.;
+  unsigned int iter = 0;
 
-  solveMatrixSystema(*K, *L, *X);
+  //copyFreeNodes(q, *q1); // q1 is q from previous time step
+  q.copyFreeDofsTo(*q1); // q1 is q from previous time step
+  SpaMtrix::Vector r((*q1).getLength());
+  SpaMtrix::Vector q2((*q1).getLength());
 
-  double dq = updateSolutionVector(q, *X, simulationState.dt(), 0.1);
+  SolutionVector q_prev = q;
 
-  return dq;
+
+  const double timeMultiplier = 2. * params.u1 / params.dt;
+  bool solverConverged = true;
+  string message = "Newton iterations: {}";
+  do {
+    //copyFreeNodes(q, q2); // make sure q2 is updated with the latest q values from previous iteration
+    q.copyFreeDofsTo(q2); // make sure q2 is updated with the latest q values from previous iteration
+    (*L) = 0;
+    (*K) = 0;
+    (*X) = 0;
+
+    assembleVolumeTerms_impl(q, v, geom, params); // updates K and L using q2
+
+    if (isFirstRun) {
+      *f_prev = *L;
+      isFirstRun = false;
+    }
+    calculateRhsResidualVector(r, *q1, q2, *f_prev, *L, *M, timeMultiplier);
+
+    // X = K^-1 * r
+    solverConverged = solverConverged && solveMatrixSystem(*K, r, *X);
+
+    // q(m+1) = q(m) - dq(m)
+    q.incrementFreeDofs(*X, -1.0); // decrement the result of the solver from the Q-tensor
+    maxDq = maxAbs(*X);
+    if (iter == 0) {
+      firstDq = maxDq;
+    }
+    Log::info("Newton iteration={} maxDq={}", ++iter, maxDq);
+  } while (maxDq > 1e-3);
+  Log::decrementIndent();
+  // save RHS vector for next time step
+  *f_prev = *L;
+  return {LCSolverType::TIME_STEPPING, iter, firstDq, solverConverged};
 }
 

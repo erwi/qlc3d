@@ -93,7 +93,7 @@ std::unique_ptr<SpaMtrix::IRCMatrix> createQMassMatrix(const Geometry &geom,
   idx nnz = mm.calcNumNonZeros();
   SpaMtrix::IRCMatrix* massMatrix = mm.newIRCMatrix();
 
-  Log::info("Created sparse matrix of size {}x{}, with {} non-zeros for Q-tensor solver.",
+  Log::info("Created sparse mass-matrix of size {}x{}, with {} non-zeros for Q-tensor solver.",
             massMatrix->getNumRows(), massMatrix->getNumCols(), nnz);
 
   return std::unique_ptr<SpaMtrix::IRCMatrix>(massMatrix);

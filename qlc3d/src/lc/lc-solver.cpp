@@ -14,69 +14,73 @@
 #include <spamtrix_diagpreconditioner.hpp>
 #include <spamtrix_iterativesolvers.hpp>
 #include <util/logging.h>
+#include "util/exception.h"
 
+// <editor-fold ImplicitLCSolver>
+ImplicitLCSolver::ImplicitLCSolver(const LC &lc, const SolverSettings &solverSettings) : lc(lc), solverSettings(solverSettings),
+  isSymmetricMatrix(lc.p0() == 0.0),
+  isThreeElasticConstants(lc.K11() != lc.K22() || lc.K11() != lc.K33()) {
+  Log::info("Creating steady state solver for Q-tensor");
+}
 
+bool ImplicitLCSolver::solveMatrixSystem(const SpaMtrix::IRCMatrix &Kmatrix, const SpaMtrix::Vector &r, SpaMtrix::Vector &x) const {
+  // check that matrix and vector sizes match
+  if (Kmatrix.getNumRows() != r.getLength() || Kmatrix.getNumCols() != r.getLength() || Kmatrix.getNumCols() != x.getLength()) {
+    RUNTIME_ERROR("Matrix and vector sizes do not match");
+  }
+
+  SpaMtrix::DiagPreconditioner I(Kmatrix);
+  idx maxiter 	=  solverSettings.getQ_GMRES_Maxiter();
+  idx restart 	=  solverSettings.getQ_GMRES_Restart();
+  real toler    =  solverSettings.getQ_GMRES_Toler();
+  SpaMtrix::IterativeSolvers solver(maxiter, restart, toler);
+
+  bool converged;
+  std::string method = "Unknown";
+  if (isSymmetricMatrix) {
+    method = "PCG";
+    converged = solver.pcg(Kmatrix, x, r, I);
+  } else {
+    method = "GMRES";
+    converged = solver.gmres(Kmatrix, x, r, I);
+  }
+
+  if (!converged) {
+    Log::warn("{} Solver did not converge in {} iterations to required tolerance {}. Tolerance achieved is {}.", method, solver.maxIter, toler, solver.toler);
+  }
+  return converged;
+}
+
+double ImplicitLCSolver::maxAbs(const SpaMtrix::Vector &v) const {
+  double max = 0.0;
+  for (idx i = 0; i < v.getLength(); i++) {
+    max = std::max(max, fabs(v[i]));
+  }
+  return max;
+}
+
+// </editor-fold>
+
+// <editor-fold LCSolver>
 LCSolver::~LCSolver() = default;
 
 LCSolver::LCSolver(const LC &lc, const SolverSettings &solverSettings) :
-A{lc.A()}, B{lc.B()}, C{lc.C()},
-L1{lc.L1()}, L2{lc.L2()}, L3{lc.L3()}, L6{lc.L6()},
-deleps{lc.deleps()},
-solverSettings{solverSettings}
-{
-  Log::info("Creating steady state solver for Q-tensor");
-  // The matrix is symmetric if all elastic constants are equal and there is no chirality
-  isThreeElasticConstants = lc.K11() != lc.K22() || lc.K11() != lc.K33();
-  isSymmetricMatrix = lc.p0() == 0.0;
+        ImplicitLCSolver(lc, solverSettings),
+        A{lc.A()}, B{lc.B()}, C{lc.C()},
+        L1{lc.L1()}, L2{lc.L2()}, L3{lc.L3()}, L6{lc.L6()},
+        deleps{lc.deleps()}
+        {
+  Log::info("Creating steady state solver for Q-tensor with isTreElasticConstants = {}, isSymmetricMatrix={}", isThreeElasticConstants, isSymmetricMatrix);
 }
 
-
-
-double LCSolver::solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState) {
+LCSolverResult LCSolver::solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState) {
   initialiseMatrixSystem(q, geom, 0);
   assembleMatrixSystem(q, v, geom);
-  solveMatrixSystem();
-  double dq = updateQ(q);
-  return dq;
-}
 
-void LCSolver::solveMatrixSystem() {
-  // Solve linear system
-  SpaMtrix::DiagPreconditioner M(*K);
-  idx maxiter 	= solverSettings.getQ_GMRES_Maxiter();
-  idx restart 	= solverSettings.getQ_GMRES_Restart();
-  real toler    = solverSettings.getQ_GMRES_Toler();
-  SpaMtrix::IterativeSolvers solver(maxiter, restart, toler);
+  bool solverConverged = solveMatrixSystem(*K, *L, *X);
+  q.incrementFreeDofs(*X, -1.0); // decrement the result of the solver from the Q-tensor
 
-  if (isSymmetricMatrix) {
-    if (!solver.pcg(*K, *X, *L, M)) {
-      Log::warn("PCG did not converge in {} iterations. Tolerance achieved is {}.", solver.maxIter, solver.toler);
-    }
-  } else {
-    if (!solver.gmres(*K, *X, *L, M)) {
-      Log::warn("GMRES did not converge in {} iterations. Tolerance achieved is {}.", solver.maxIter, solver.toler);
-    }
-  }
-}
-
-double LCSolver::updateQ(SolutionVector &q) {
-  const idx npLC = q.getnDoF();
-  double maxdqOut = 0.0;
-  for (unsigned int i = 0; i < 5; i++) {
-    for (idx j = 0; j < q.getnDoF(); j++) {
-      const idx n = j + i * npLC;
-      const idx effDoF = q.getEquNode(n);
-
-      if (effDoF != NOT_AN_INDEX) {
-        const double dqj = (*X)[ effDoF ]; // TODO: should we multiply by "damping" here, it looks like it's never used !!
-        q[n] -= dqj;
-        // KEEP TRACK OF LARGEST CHANGE IN Q-TENSOR
-        maxdqOut = fabs(dqj) > maxdqOut ? fabs(dqj) : maxdqOut;
-      }
-    }
-  }
-
-  return maxdqOut;
+  return {LCSolverType::STEADY_STATE, 1, maxAbs(*X), solverConverged};
 }
 
 void LCSolver::initialiseMatrixSystem(const SolutionVector &q, const Geometry &geom, double dt) {
@@ -190,3 +194,4 @@ void LCSolver::addToGlobalMatrix(double lK[20][20], double lL[20], const Solutio
     }
   }
 }
+// </editor-fold>

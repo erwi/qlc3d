@@ -15,14 +15,50 @@ namespace SpaMtrix {
   class Vector;
 }
 
-class ILCSolver {
-public:
-  virtual ~ILCSolver() = default;
-  virtual double solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState) = 0;
+enum class LCSolverType {
+  STEADY_STATE,
+  TIME_STEPPING
+};
+
+struct LCSolverResult {
+  const LCSolverType solverType;
+  const unsigned int iterations;
+  const double dq;
+  const bool converged;
 };
 
 
-class LCSolver : public ILCSolver {
+class ILCSolver {
+public:
+  virtual ~ILCSolver() = default;
+  virtual LCSolverResult solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState) = 0;
+};
+
+class ImplicitLCSolver {
+
+protected:
+  const LC &lc;
+  const SolverSettings &solverSettings;
+  const bool isSymmetricMatrix;
+  const bool isThreeElasticConstants;
+
+  /** Jacobian matrix */
+  std::unique_ptr<SpaMtrix::IRCMatrix> K;
+
+  /**
+   * Solve the matrix system Kx = r. The result is written into the vector x.
+   * Returns true/false depnding on whether converged to required tolerance
+   */
+  bool solveMatrixSystem(const SpaMtrix::IRCMatrix &Kmatrix, const SpaMtrix::Vector &r, SpaMtrix::Vector &x) const;
+  double maxAbs(const SpaMtrix::Vector &v) const;
+public:
+  ImplicitLCSolver(const LC &lc, const SolverSettings &solverSettings);
+
+};
+
+
+
+class LCSolver : public ILCSolver, protected ImplicitLCSolver {
 protected:
   const double rt2 = std::sqrt(2.0);
   const double rt3 = std::sqrt(3.0);
@@ -30,19 +66,14 @@ protected:
   const double A, B, C;
   const double L1, L2, L3, L6;
   const double deleps;
-  const SolverSettings &solverSettings;
 
-  bool isSymmetricMatrix;
-  bool isThreeElasticConstants;
-
-  std::unique_ptr<SpaMtrix::IRCMatrix> K;
+  //std::unique_ptr<SpaMtrix::IRCMatrix> K;
   std::unique_ptr<SpaMtrix::Vector> L;
   std::unique_ptr<SpaMtrix::Vector> X;
 
   void initialiseMatrixSystem(const SolutionVector &q, const Geometry &geom, double dt);
   void assembleMatrixSystem(const SolutionVector &q, const SolutionVector &v, const Geometry &geom);
   void assembleVolumeTerms(const SolutionVector &q, const SolutionVector &v, const Geometry &geom);
-  void solveMatrixSystem();
   double updateQ(SolutionVector &q);
 
   void assembleLocalVolumeMatrix(unsigned int indTet,
@@ -65,7 +96,7 @@ public:
   virtual ~LCSolver();
   LCSolver(const LC &lc, const SolverSettings &solverSettings);
 
-  double solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState) override;
+  LCSolverResult solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState) override;
 
 
 };

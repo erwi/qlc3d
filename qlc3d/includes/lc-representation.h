@@ -87,6 +87,10 @@ namespace qlc3d {
           default: throw "DielectricPermittivity index out of range " + std::to_string(i);
         }
       }
+
+      TTensor operator-(const TTensor &rhs) const {
+        return {t1_ - rhs.t1_, t2_ - rhs.t2_, t3_ - rhs.t3_, t4_ - rhs.t4_, t5_ - rhs.t5_};
+      }
     };
 
     class DielectricPermittivity {

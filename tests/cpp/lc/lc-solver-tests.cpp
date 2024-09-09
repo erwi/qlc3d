@@ -82,13 +82,17 @@ TEST_CASE("Relax elastic distortions") {
   // solve to tolerance of 1e-9
   int iter = 0;
   for (iter = 0; iter < 11; iter++) {
-    double dq = solver.solve(q, v, geom, simulationState);
+    LCSolverResult solverResult = solver.solve(q, v, geom, simulationState);
 
 
-    if (dq < 1e-9) {
+    if (solverResult.dq < 1e-9) {
       Log::info("converged at iter={}", iter);
       break;
     }
+
+    REQUIRE(solverResult.converged);
+    REQUIRE(solverResult.solverType == LCSolverType::STEADY_STATE);
+    REQUIRE(solverResult.iterations == 1);
   }
 
   //writer.write("/home/eero/Desktop/after.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
@@ -175,9 +179,14 @@ TEST_CASE("Steady state switching with applied potential and three elastic const
   // solve to tolerance of 1e-9
   int iter = 0;
   for (iter = 0; iter < 11; iter++) {
-    double dq = solver.solve(q, v, geom, simulationState);
-    Log::info("iter={}, dq={}", iter, dq);
-    if (dq < 1e-9) {
+    auto solverResult = solver.solve(q, v, geom, simulationState);
+    Log::info("iter={}, dq={}", iter, solverResult.dq);
+
+    REQUIRE(solverResult.solverType == LCSolverType::STEADY_STATE);
+    REQUIRE(solverResult.converged == true);
+    REQUIRE(solverResult.iterations == 1);
+
+    if (solverResult.dq < 1e-9) {
       Log::info("converged at iter={}", iter);
       break;
     }
@@ -195,7 +204,6 @@ TEST_CASE("Steady state switching with applied potential and three elastic const
 }
 
 TEST_CASE("Switching dynamics with applied potential and three elastic constants") {
-  return; // TODO: fix this test
   // ARRANGE
   // Solve for steady state switching with uniform e-field. The expected mid-plane tilt angle is
   // assumed to be correct, determined at a time when the "examples/steady-state-switching-1d" example
@@ -237,7 +245,7 @@ TEST_CASE("Switching dynamics with applied potential and three elastic constants
   // set volume orientation
   for (idx i = 0; i < geom.getnpLC(); i++) {
     Vec3 p = geom.getCoordinates().getPoint(i);
-    double tiltDegrees = bottomTilt;// + midTilt * p.z() * (1 - p.z()) * 4;
+    double tiltDegrees = bottomTilt + midTilt * p.z() * (1 - p.z()) * 4;
     auto director = qlc3d::Director::fromDegreeAngles(tiltDegrees, twistDegrees, lc->S0());
     q.setValue(i, director);
 
@@ -253,7 +261,7 @@ TEST_CASE("Switching dynamics with applied potential and three elastic constants
   q.EnforceEquNodes(geom);
 
   SimulationState simulationState;
-  simulationState.dt(1e-10);
+  simulationState.dt(1e-4);
 
   auto solverSettings = std::make_shared<SolverSettings>();
   solverSettings->setV_GMRES_Toler(1e-9);
@@ -262,29 +270,12 @@ TEST_CASE("Switching dynamics with applied potential and three elastic constants
 
   // ACT
   // solve to tolerance of 1e-9
-  int iter = 0;
-  //for (iter = 0; iter < 5000; iter++) {
-  double dq = 0;
-  do {
-    dq = solver.solve(q, v, geom, simulationState);
-
-    if (iter < 100 || iter % 100 == 0) {
-      Log::info("iter={}, dq={}, t={}", iter, dq, iter * simulationState.dt());
-
-      vtkIOFun::UnstructuredGridWriter writer;
-      std::string fileName = "/home/eero/temp/" + std::to_string(iter) + ".vtk";
-      writer.write(fileName, geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
-    }
-    iter++;
-  } while (dq > 1 );
+  auto solverResult = solver.solve(q, v, geom, simulationState);
 
   // ASSERT
-  // Mid-plane tilt angle (= maximum tilt angle) should match the expected value
-  //double maxTilt = 0;
-  //for (int i = 0; i < geom.getnpLC(); i++) {
-  //  auto director = q.getDirector(i);
-  //  maxTilt = std::max(director.tiltDegrees(), maxTilt);
-  //}
-  //Log::info("max tilt: {}", maxTilt);
-  //REQUIRE(maxTilt == Approx(expectedMidTilt).margin(1e-6));
+  // Solver should have converged to required tolerance in given number of iterations. Required number of iterations
+  // is observation and may change with changes to the solver.
+  REQUIRE(solverResult.solverType == LCSolverType::TIME_STEPPING);
+  REQUIRE(solverResult.converged == true);
+  REQUIRE(solverResult.iterations <= 6);
 }

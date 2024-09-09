@@ -137,11 +137,12 @@ TEST_CASE("Initial LC surface orientations") {
     }
   }
 
-  SECTION("Week with pre-tilt and pre-twist") {
+  SECTION("Weak with pre-tilt and pre-twist") {
     // expected to fail until weak anchoring is re-enabled
     double tiltDegrees = 5;
     double twistDegrees = 12;
     alignment.addSurface(1, "Weak", 1e-3, {tiltDegrees, twistDegrees, 0}, 1., 1., {});
+    alignment.addSurface(2, "Weak", 1e-3, {tiltDegrees, twistDegrees, 0}, 1., 1., {});
     prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
     SolutionVector q(geom.getnpLC(), 5);
     // ACT
@@ -170,6 +171,7 @@ TEST_CASE("Initial LC surface orientations") {
     double tiltDegrees = 90;
     double twistDegrees = 0;
     alignment.addSurface(1, "Weak", 1e-3, {tiltDegrees, twistDegrees, 0}, 1., 1., {}, false);
+    alignment.addSurface(2, "Weak", 1e-3, {tiltDegrees, twistDegrees, 0}, 1., 1., {}, false);
     prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
     SolutionVector q(geom.getnpLC(), 5);
     // ACT

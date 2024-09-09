@@ -13,7 +13,10 @@ class SolutionVector;
 std::unique_ptr<SpaMtrix::IRCMatrix> createQMatrix(const Geometry &geom,
                                   const SolutionVector &q,
                                   const int& materialNumber);
-
+/**
+ * Creates an empty mass-matrix for Q-tensor solution. Non-zeroes are expanded along the diagonal so that the matrix
+ * contains 5 blocks of the same size, once per Q-tensor component.
+ */
 std::unique_ptr<SpaMtrix::IRCMatrix> createQMassMatrix(const Geometry &geom,
                                       const SolutionVector &q,
                                       const int& materialNumber);

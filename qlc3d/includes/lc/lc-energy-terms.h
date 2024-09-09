@@ -12,6 +12,16 @@ namespace LcEnergyTerms {
   const double rt6 = std::sqrt(6.0);
   const double eps0 = 8.854187817e-12;
 
+  inline void assembleMassMatrix(double M[4][4], const GaussianQuadratureTet<11> &shapes, const double &tetDeterminant, const double multiplier = 1.0) {
+  const double mul = shapes.weight() * tetDeterminant;
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        const double m = mul * shapes.N(i) * shapes.N(j) * multiplier;
+        M[i][j] += m;
+      }
+    }
+  }
+
   inline void assembleThermotropic(double lK[20][20],
                                    double lL[20],
                                    const GaussianQuadratureTet<11> &shapes,
