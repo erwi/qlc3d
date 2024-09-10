@@ -15,16 +15,12 @@
 #include "util/logging.h"
 #include "spamtrix_matrixmaker.hpp"
 #include "spamtrix_vector.hpp"
-#include "spamtrix_diagpreconditioner.hpp"
-#include "spamtrix_iterativesolvers.hpp"
-#include "lc/time-stepping-lc-solver.h"
-#include <qassembly_macros.h>
 #include <geom/coordinates.h>
 
 TEST_CASE("Create Solver") {
   auto lc = std::shared_ptr<LC>(LCBuilder().build());
   auto settings = std::make_shared<SolverSettings>();
-  LCSolver solver(*lc, *settings);
+  SteadyStateLCSolver solver(*lc, *settings);
 }
 
 TEST_CASE("Relax elastic distortions") {
@@ -73,7 +69,7 @@ TEST_CASE("Relax elastic distortions") {
 
   auto solverSettings = std::make_shared<SolverSettings>();
   solverSettings->setV_GMRES_Toler(1e-9);
-  LCSolver solver(*lc, *solverSettings);
+  SteadyStateLCSolver solver(*lc, *solverSettings);
 
   //vtkIOFun::UnstructuredGridWriter writer;
   //writer.write("/home/eero/Desktop/before.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
@@ -173,7 +169,7 @@ TEST_CASE("Steady state switching with applied potential and three elastic const
 
   auto solverSettings = std::make_shared<SolverSettings>();
   solverSettings->setV_GMRES_Toler(1e-9);
-  LCSolver solver(*lc, *solverSettings);
+  SteadyStateLCSolver solver(*lc, *solverSettings);
 
   // ACT
   // solve to tolerance of 1e-9

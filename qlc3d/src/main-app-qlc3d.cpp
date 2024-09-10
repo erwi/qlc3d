@@ -7,7 +7,6 @@
 #include <io/result-output.h>
 #include <potential/potential-solver.h>
 #include <lc/lc-solver.h>
-#include <lc/time-stepping-lc-solver.h>
 
 namespace fs = std::filesystem;
 
@@ -52,7 +51,7 @@ int runSimulation(Configuration &configuration) {
     std::shared_ptr<PotentialSolver> potentialSolver = std::make_shared<PotentialSolver>(electrodes, lc, solverSettings);
 
     unique_ptr<ILCSolver> lcSolver = simu->simulationMode() == SteadyState ?
-                                     unique_ptr<ILCSolver>(new LCSolver(*lc, *solverSettings)) :
+                                     unique_ptr<ILCSolver>(new SteadyStateLCSolver(*lc, *solverSettings)) :
                                      unique_ptr<ILCSolver>(new TimeSteppingLCSolver(*lc, *solverSettings));
 
     SimulationContainer simulation(configuration, resultOutput, potentialSolver, *lcSolver); // todo pass raw ptr to lcSolver
