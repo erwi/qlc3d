@@ -22,6 +22,7 @@ public:
 class Log {
 
     static std::string indent;
+    inline static std::string info_eol = "\n";
 
     static void fallbackError(const std::string &message) {
         std::cerr << "[ERROR] Could not format log message when formatString=\"" << message << "\"" << std::endl;
@@ -32,13 +33,24 @@ public:
     template <typename... T>
     static void inline info(fmt::format_string<T...> formatString, T&&... args) {
         try {
-            std::string message{"[INFO] " + Log::indent + fmt::vformat(formatString, fmt::make_format_args(args...)) + "\n"};
+            std::string message{"[INFO] " + Log::indent + fmt::vformat(formatString, fmt::make_format_args(args...)) + info_eol};
             fmt::print(message);
             fflush(stdout);
         } catch (...) {
             Log::fallbackError(fmt::to_string(formatString));
         }
     }
+
+  template <typename... T>
+  static void inline append_info(fmt::format_string<T...> formatString, T&&... args) {
+    try {
+      std::string message{fmt::vformat(formatString, fmt::make_format_args(args...)) + info_eol};
+      fmt::print(message);
+      fflush(stdout);
+    } catch (...) {
+      Log::fallbackError(fmt::to_string(formatString));
+    }
+  }
 
     template <typename... T>
     static void inline error(fmt::format_string<T...> formatString, T&&... args) {
@@ -70,6 +82,10 @@ public:
         for (unsigned int i = 0; i < amount; i++) {
             Log::indent += ' ';
         }
+    }
+
+    static void enableInfoNewline(bool enable) {
+      Log::info_eol = enable ? "\n" : "";
     }
 
     static void decrementIndent(unsigned int amount = 1) {

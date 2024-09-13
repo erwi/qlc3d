@@ -120,6 +120,7 @@ class TimeSteppingLCSolver : public ILCSolver, protected ImplicitLCSolver {
   std::unique_ptr<SpaMtrix::IRCMatrix> M;
   /** Q-tensor at previous time step */
   std::unique_ptr<SpaMtrix::Vector> q1;
+  std::unique_ptr<SpaMtrix::Vector> dqdt; // time derivative of Q-tensor, estimated at end of time step
   /** RHS vector at previous time step */
   std::unique_ptr<SpaMtrix::Vector> f_prev;
   bool isFirstRun = true;

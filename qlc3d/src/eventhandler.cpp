@@ -113,12 +113,14 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
 void reduceTimeStep(SimulationState &simulationState, EventList &eventList) {
     double dt = simulationState.dt();
     double currentTime = simulationState.currentTime();
-    assert(dt > 0);
 
     // FIND TIME UNTIL NEXT EVENT
     double tNext = eventList.timeUntilNextEvent(currentTime);
-    assert(tNext > 0); // next time step should be in future
-
+    if (tNext < 0) {
+      RUNTIME_ERROR(
+              fmt::format("Time until next event should be positive, but is tNext={}, dt={}, currentTime={}",
+                          tNext, dt, currentTime));
+    }
     if (tNext < dt) {
         simulationState.dt(tNext);
     }

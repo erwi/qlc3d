@@ -292,6 +292,7 @@ void TimeSteppingLCSolver::initialiseMatrixSystem(const SolutionVector &q, const
   X = std::make_unique<SpaMtrix::Vector>(N);
 
   q1 = std::make_unique<SpaMtrix::Vector>(N);
+  dqdt = std::make_unique<SpaMtrix::Vector>(N);
   f_prev = std::make_unique<SpaMtrix::Vector>(N);
   *f_prev = 0;
 }
@@ -355,6 +356,10 @@ LCSolverResult TimeSteppingLCSolver::solve(SolutionVector &q, const SolutionVect
   SpaMtrix::Vector r((*q1).getLength());
   SpaMtrix::Vector q2((*q1).getLength());
 
+  // prediction based on dqdt from previous time step: q = q + dt * dqdt
+  *dqdt *= params.dt;
+  q.incrementFreeDofs(*dqdt);
+
   const double timeMultiplier = 2. * params.u1 / params.dt;
   bool solverConverged = true;
   string message = "Newton iterations: {}";
@@ -376,12 +381,26 @@ LCSolverResult TimeSteppingLCSolver::solve(SolutionVector &q, const SolutionVect
     maxDq = maxAbs(*X);
     if (iter == 0) {
       firstDq = maxDq;
+      Log::enableInfoNewline(false);
+      Log::info("Newton iterations. dQ={:.4e}", maxDq);
+    } else {
+      Log::append_info(", {:.4e}", maxDq);
     }
-    Log::info("Newton iteration={} maxDq={}", ++iter, maxDq);
-  } while (maxDq > 1e-3);
+    iter++;
+  } while (maxDq > 1e-6);
+  Log::enableInfoNewline(true);
   Log::decrementIndent();
+
   // save RHS vector for next time step
   *f_prev = *L;
+
+  // calculate dq/dt and save it for next time step
+  q.copyFreeDofsTo(*dqdt);
+  *dqdt -= *q1;
+  *dqdt *= 1.0 / params.dt;
+  double maxDqdt = maxAbs(*dqdt);
+  Log::append_info(". dQ/dt={:.4e}", maxDqdt);
+
   return {LCSolverType::TIME_STEPPING, iter, firstDq, solverConverged};
 }
 // </editor-fold>

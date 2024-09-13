@@ -231,7 +231,7 @@ void SimulationContainer::runIteration() {
 
     // CALCULATES Q-TENSOR AND POTENTIAL
     maxdq = updateSolutions();
-    Log::info("maxdq = {}", maxdq);
+    //Log::info("maxdq = {}", maxdq);
     /// UPDATE CURRENT TIME
     simulationState_.change(maxdq);
     simulationState_.currentTime(simulationState_.currentTime() + simulationState_.dt());
@@ -339,7 +339,7 @@ void SimulationContainer::adjustTimeStepSize() {
         if (S > Smax) S = Smax;
     }
 
-    Log::info("Scaling dt by {}.", S);
+    //Log::info("Scaling dt by {}.", S);
     double newdt = dt * S;
     if (newdt < simu->getMindt()) {
       Log::info("limiting time step to min dt = {}", simu->getMindt());

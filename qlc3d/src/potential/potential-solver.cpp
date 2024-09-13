@@ -455,7 +455,6 @@ double calculateConditionNumber(const SpaMtrix::IRCMatrix &m) {
     minDiag = std::min(minDiag, v);
     maxDiag = std::max(maxDiag, v);
   }
-  Log::info("maxDiag={}, minDiag={}", maxDiag, minDiag);
   return maxDiag / minDiag;
 }
 
@@ -477,11 +476,6 @@ void PotentialSolver::solvePotential(SolutionVector &vOut,
   initialiseMatrixSystem(vOut, geom);
 
   assembleMatrixSystem(vOut, q, geom);
-
-#ifndef NDEBUG
-  double conditionNumber = calculateConditionNumber(*this->K);
-  Log::info("Condition number of potential matrix is {}", conditionNumber);
-#endif
 
   solveMatrixSystem(vOut);
 }
