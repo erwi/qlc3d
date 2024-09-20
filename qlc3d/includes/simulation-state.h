@@ -1,9 +1,8 @@
-//
-// Created by eero on 03/04/2021.
-//
 #ifndef PROJECT_QLC3D_SIMULATION_STATE_H
 #define PROJECT_QLC3D_SIMULATION_STATE_H
 #include <cassert>
+#include "simulation-time.h"
+
 enum class RunningState {
     INITIALISING, RUNNING, COMPLETED
 };
@@ -12,7 +11,8 @@ struct Progress {
     //! the current iteration
     int iteration_;
     //! the current simulation time
-    double simulationTime_;
+    //double simulationTime_;
+    SimulationTime simulationTime_;
     //! the current simulation time step
     double dt_;
     //! the currently elapsed real time
@@ -21,6 +21,10 @@ struct Progress {
     double change_;
     //! the current running state
     RunningState runningState_;
+
+    Progress() : iteration_{0}, simulationTime_{0.0}, dt_{0.0}, realTime_{0.0}, change_{0.0}, runningState_{RunningState::INITIALISING}
+    { }
+
 };
 
 struct Events {
@@ -54,8 +58,9 @@ public:
     void currentIteration(int iteration) { progress_.iteration_ = iteration; }
     [[nodiscard]] int currentIteration() const { return progress_.iteration_; }
 
-    [[nodiscard]] double currentTime() const { return progress_.simulationTime_; }
-    void currentTime(const double &time) { progress_.simulationTime_ = time; }
+    [[nodiscard]] SimulationTime currentTime() const { return progress_.simulationTime_; }
+    [[nodiscard]] SimulationTime &currentTime() { return progress_.simulationTime_; }
+    void setCurrentTime(const double &time) { progress_.simulationTime_.setTime(time); }
 
     [[nodiscard]] double dt() const { return progress_.dt_; }
     void dt(const double& dt) {

@@ -1,6 +1,7 @@
 #include <qlc3d.h>
 #include <configuration.h>
 #include <simulation-container.h>
+#include <simulation-adaptive-time-step.h>
 #include <util/logging.h>
 #include <util/exception.h>
 #include <filesystem>
@@ -52,9 +53,18 @@ int runSimulation(Configuration &configuration) {
 
     unique_ptr<ILCSolver> lcSolver = simu->simulationMode() == SteadyState ?
                                      unique_ptr<ILCSolver>(new SteadyStateLCSolver(*lc, *solverSettings)) :
-                                     unique_ptr<ILCSolver>(new TimeSteppingLCSolver(*lc, *solverSettings));
+                                     unique_ptr<ILCSolver>(new TimeSteppingLCSolver(*lc, *solverSettings, simu->getMaxError()));
+    EventList eventList;
+    SimulationState simulationState;
 
-    SimulationContainer simulation(configuration, resultOutput, potentialSolver, *lcSolver); // todo pass raw ptr to lcSolver
+    SimulationAdaptiveTimeStepParameters parameters = { simu->simulationMode() == SteadyState,
+                                                        simu->getMindt(), simu->getMaxdt(),
+                                                        simu->getTargetdQ(),
+                                                        simu->getdtFunction() };
+    SimulationAdaptiveTimeStep adaptiveTimeStep(parameters);
+
+
+    SimulationContainer simulation(configuration, resultOutput, potentialSolver, *lcSolver, eventList, simulationState, adaptiveTimeStep);
     Log::clearIndent();
     Log::info("Initialising.");
     Log::incrementIndent();

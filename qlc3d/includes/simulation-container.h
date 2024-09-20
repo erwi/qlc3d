@@ -23,9 +23,11 @@
 
 #include <simulation-state.h>
 #include "lc/lc-solver.h"
+#include "simulation-adaptive-time-step.h"
 
 class Configuration;
 class SimulationState;
+class SimulationAdaptiveTimeStep;
 class ResultOutput;
 class PotentialSolver;
 class ILCSolver;
@@ -41,7 +43,7 @@ class SimulationContainer {
     std::unique_ptr<Boxes> boxes;
     std::unique_ptr<Alignment> alignment;
     std::unique_ptr<RegularGrid> regGrid;
-    std::unique_ptr<EventList> eventList;
+    EventList &eventList;
 
     // state related internal variables. TODO clean them up
     std::chrono::steady_clock::time_point startInstant;
@@ -67,14 +69,21 @@ class SimulationContainer {
     // sparse matrices
     SpaMtrix::IRCMatrix Kq;
 
-    SimulationState simulationState_;
+    SimulationState &simulationState;
+    SimulationAdaptiveTimeStep &adaptiveTimeStep;
 
     // private methods
     double updateSolutions();
     void adjustTimeStepSize();
 
 public:
-    SimulationContainer(Configuration &config, ResultOutput &resultOut, std::shared_ptr<PotentialSolver> potentialSolver, ILCSolver &lcSolver);
+    SimulationContainer(Configuration &config,
+                        ResultOutput &resultOut,
+                        std::shared_ptr<PotentialSolver> potentialSolver,
+                        ILCSolver &lcSolver,
+                        EventList &eventList,
+                        SimulationState &simulationState,
+                        SimulationAdaptiveTimeStep &adaptiveTimeStep);
     /*!
      * Sets up simulation state. Reads configuration, loads mesh geometry etc.
      */

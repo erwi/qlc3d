@@ -262,7 +262,7 @@ TEST_CASE("Switching dynamics with applied potential and three elastic constants
   auto solverSettings = std::make_shared<SolverSettings>();
   solverSettings->setV_GMRES_Toler(1e-9);
 
-  TimeSteppingLCSolver solver(*lc, *solverSettings);
+  TimeSteppingLCSolver solver(*lc, *solverSettings, 1e-6);
 
   // ACT
   // solve to tolerance of 1e-9
@@ -273,5 +273,5 @@ TEST_CASE("Switching dynamics with applied potential and three elastic constants
   // is observation and may change with changes to the solver.
   REQUIRE(solverResult.solverType == LCSolverType::TIME_STEPPING);
   REQUIRE(solverResult.converged == true);
-  REQUIRE(solverResult.iterations <= 6);
+  REQUIRE(solverResult.iterations <= 8);
 }

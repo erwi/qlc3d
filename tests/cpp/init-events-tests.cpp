@@ -77,7 +77,7 @@ TEST_CASE("Initialise mesh refinement events") {
       REQUIRE(0 == nextEventTime);
 
       SimulationState simulationState;
-      simulationState.currentTime(nextEventTime);
+    simulationState.setCurrentTime(nextEventTime);
 
       Event* e1 = eventList.getCurrentEvent(simulationState);
       Event* e2 = eventList.getCurrentEvent(simulationState);
@@ -85,16 +85,16 @@ TEST_CASE("Initialise mesh refinement events") {
       delete e1;
       delete e2;
 
-      nextEventTime = eventList.timeUntilNextEvent(simulationState.currentTime());
+      nextEventTime = eventList.timeUntilNextEvent(simulationState.currentTime().getTime());
       REQUIRE(0.2 == nextEventTime);
-      simulationState.currentTime(0.2);
+    simulationState.setCurrentTime(0.2);
       Event* e3 = eventList.getCurrentEvent(simulationState);
       REQUIRE(e3->time == 0.2);
       delete e3;
 
-      nextEventTime = eventList.timeUntilNextEvent(simulationState.currentTime());
+      nextEventTime = eventList.timeUntilNextEvent(simulationState.currentTime().getTime());
       REQUIRE(0.2 == nextEventTime);
-      simulationState.currentTime(0.4);
+    simulationState.setCurrentTime(0.4);
       Event* e4 = eventList.getCurrentEvent(simulationState);
       REQUIRE(e4->time == 0.4);
       delete e4;

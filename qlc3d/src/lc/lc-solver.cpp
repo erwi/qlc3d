@@ -208,7 +208,7 @@ void SteadyStateLCSolver::initialiseMatrixSystem(const SolutionVector &q, const 
 
 // <editor-fold TimeSteppingLCSolver>
 
-TimeSteppingLCSolver::TimeSteppingLCSolver(const LC &lc, const SolverSettings &solverSettings) : ImplicitLCSolver(lc, solverSettings) {
+TimeSteppingLCSolver::TimeSteppingLCSolver(const LC &lc, const SolverSettings &solverSettings, double maxError) : ImplicitLCSolver(lc, solverSettings), maxError(maxError) {
   Log::info("Creating time stepping solver for Q-tensor, isTreeElasticConstants={}, isSymmetricMatrix={}", isThreeElasticConstants, isSymmetricMatrix);
 }
 
@@ -346,8 +346,6 @@ LCSolverResult TimeSteppingLCSolver::solve(SolutionVector &q, const SolutionVect
     initialiseMatrixSystem(q, geom);
   }
 
-  Log::incrementIndent();
-
   LCSolverParams params = {lc.A(), lc.B(), lc.C(), lc.L1(), lc.L2(), lc.L3(), lc.L6(), lc.deleps(), simulationState.dt(), lc.u1()};
   double maxDq = 0., firstDq = 0.;
   unsigned int iter = 0;
@@ -387,9 +385,8 @@ LCSolverResult TimeSteppingLCSolver::solve(SolutionVector &q, const SolutionVect
       Log::append_info(", {:.4e}", maxDq);
     }
     iter++;
-  } while (maxDq > 1e-6);
+  } while (maxDq > maxError);
   Log::enableInfoNewline(true);
-  Log::decrementIndent();
 
   // save RHS vector for next time step
   *f_prev = *L;

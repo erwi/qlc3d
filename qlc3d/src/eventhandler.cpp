@@ -1,6 +1,7 @@
 #include <eventhandler.h>
-#include <refinement.h>
 #include <simulation-state.h>
+#include <simulation-time.h>
+#include <simulation-adaptive-time-step.h>
 #include <filesystem>
 #include <util/logging.h>
 #include <util/exception.h>
@@ -30,7 +31,7 @@ void handleElectrodeSwitching(Event *currentEvent,
     }
 
     // SET POTENTIAL BOUNDARY CONDITIONS FOR ALL ELECTRODES
-    auto potentialsByElectrode = electr.getCurrentPotentials(simulationState.currentTime());
+    auto potentialsByElectrode = electr.getCurrentPotentials(simulationState.currentTime().getTime());
     v.setFixedNodesPot(potentialsByElectrode);
 }
 
@@ -52,10 +53,10 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
                          const LC &lc,
                          SpaMtrix::IRCMatrix &Kq,
                          ResultOutput &resultOutput,
-                         PotentialSolver &potentialSolver) {
+                         PotentialSolver &potentialSolver,
+                         SimulationAdaptiveTimeStep &adaptiveTimeStep) {
 
     int currentIteration = simulationState.currentIteration();
-    double currentTime = simulationState.currentTime();
     double timeStep = simulationState.dt();
 // IF NEEDS PRE-REFINEMENT. DO IT FIRST
     bool refineMesh = false;
@@ -104,27 +105,10 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
     resultOutput.writeResults(*geometries.geom, *solutionvectors.v, *solutionvectors.q, simulationState);
 
     // ADD REOCCURRING EVENTS
-    evel.manageReoccurringEvents(currentIteration, currentTime, timeStep);
+    evel.manageReoccurringEvents(currentIteration, simulationState.currentTime(), timeStep);
+    adaptiveTimeStep.setNextEventTime(evel.nextEventTime());
 }
 
-/*!
- * Reduces time step if necessary so that next time step does not skip over next event.
- */
-void reduceTimeStep(SimulationState &simulationState, EventList &eventList) {
-    double dt = simulationState.dt();
-    double currentTime = simulationState.currentTime();
-
-    // FIND TIME UNTIL NEXT EVENT
-    double tNext = eventList.timeUntilNextEvent(currentTime);
-    if (tNext < 0) {
-      RUNTIME_ERROR(
-              fmt::format("Time until next event should be positive, but is tNext={}, dt={}, currentTime={}",
-                          tNext, dt, currentTime));
-    }
-    if (tNext < dt) {
-        simulationState.dt(tNext);
-    }
-}
 
 void handleEvents(EventList &evel,
                   Electrodes &electrodes,
@@ -136,18 +120,13 @@ void handleEvents(EventList &evel,
                   const LC &lc,
                   SpaMtrix::IRCMatrix &Kq,
                   ResultOutput &resultOutput,
-                  PotentialSolver &potentialSolver) {
+                  PotentialSolver &potentialSolver,
+                  SimulationAdaptiveTimeStep &adaptiveTimeStep) {
 
-    if (!evel.eventsInQueue()) {    // event queue is empty
-        evel.manageReoccurringEvents(simulationState.currentIteration(),
-                                     simulationState.currentTime(),
-                                     simulationState.dt());
-        if (simu.simulationMode() == TimeStepping) {
-            reduceTimeStep(simulationState, evel);
-        }
-        return;
-    }
-
+  SimulationTime nextEventTime = evel.nextEventTime();
+  if (simulationState.currentTime().greaterThan(nextEventTime)) {
+    RUNTIME_ERROR(fmt::format("nextEventTime={} is in the past, currentTime={}", nextEventTime.getTime(), simulationState.currentTime().getTime()));
+  }
     // EVENTS ARE ORDERED BY TIME/ITERATION NUMBER,
     // BUT NOT ACCORDING TO TYPE. HOWEVER, DIFFERENT
     // EVENT TYPES SHOULD ALSO BE EXECUTED IN PARTICULAR ORDER
@@ -161,41 +140,44 @@ void handleEvents(EventList &evel,
     // FLAGS + OTHER PRE-EVENT PROCESSING
     std::list<Event *> refEvents; // STORES REF-EVENTS THAT NEED TO BE EXECUTED
 
-    while (evel.eventOccursNow(simulationState)) {
-        Event *currentEvent = evel.getCurrentEvent(simulationState); // removes event from queue to be processed
-        EventType et = currentEvent->getEventType();
+   while (evel.eventOccursNow(simulationState)) {
+     Event *currentEvent = evel.getCurrentEvent(simulationState); // removes event from queue to be processed
+     EventType et = currentEvent->getEventType();
 
-        switch (et) {
-            case (EVENT_SAVE):
-                saveResult = true;
-                delete currentEvent;
-                break;
-            case (EVENT_SWITCHING):
-                handleElectrodeSwitching(currentEvent, electrodes, *solutionvectors.v, simu, simulationState);
-                delete currentEvent;
-                recalculatePotential = true;
+     switch (et) {
+       case (EVENT_SAVE):
+         saveResult = true;
+         delete currentEvent;
+         break;
+       case (SAVE_PERIODICALLY_BY_TIME):
+         saveResult = true;
+         delete currentEvent;
+         break;
+       case (EVENT_SWITCHING):
+         handleElectrodeSwitching(currentEvent, electrodes, *solutionvectors.v, simu, simulationState);
+         delete currentEvent;
+         recalculatePotential = true;
 
-                if ((evel.getSaveIter() > 1) || (evel.getSaveTime() > 0)) { // OUTPUT RESULT ON SWITCHING ITERATION
-                  saveResult = true;
-                }
+         if ((evel.getSaveIter() > 1) || (evel.getSaveTime() > 0)) { // OUTPUT RESULT ON SWITCHING ITERATION
+           saveResult = true;
+         }
 
-                break;
-            case (EVENT_REFINEMENT):
-              needsMeshRefinement = true;
-                recalculatePotential = true;
-                saveResult = true;
-                refEvents.push_back(currentEvent);
-                break;
-            default:
-                throw std::runtime_error(fmt::format("Unknown event type in {}, {}", __FILE__, __func__));
-        }
-    }
+         break;
+       case (EVENT_REFINEMENT):
+         needsMeshRefinement = true;
+         recalculatePotential = true;
+         saveResult = true;
+         refEvents.push_back(currentEvent);
+         break;
+       default:
+         RUNTIME_ERROR(fmt::format("Unknown event type {}", et));
+     }
+   }
 
 // ADDS REOCCURRING EVENTS TO QUEUE FOR NEXT ITERATION
     evel.manageReoccurringEvents(simulationState.currentIteration(),
                                  simulationState.currentTime(),
                                  simulationState.dt());
-
 
     if (needsMeshRefinement) {
         bool didRefineMesh = handleMeshRefinement(refEvents,
@@ -209,6 +191,7 @@ void handleEvents(EventList &evel,
                              Kq); // defined in refinementhandler.cpp
       if (didRefineMesh) {
         potentialSolver.onGeometryChanged();
+        simulationState.restrictedTimeStep(true);
       }
     }
 
@@ -220,9 +203,7 @@ void handleEvents(EventList &evel,
       resultOutput.writeResults(*geometries.geom, *solutionvectors.v, *solutionvectors.q, simulationState);
     }
 
-    if (simu.simulationMode() == TimeStepping) {
-        reduceTimeStep(simulationState, evel);
-    }
+    adaptiveTimeStep.setNextEventTime(evel.nextEventTime());
 }
 
 

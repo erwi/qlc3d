@@ -37,12 +37,15 @@ const int Simu::DEFAULT_NUM_ASSEMBLY_THREADS = 0;
 const int Simu::DEFAULT_NUM_MATRIX_SOLVER_THREADS = 0;
 const Simu::EndCriteria Simu::DEFAULT_END_CRITERION = Simu::EndCriteria::Time;
 
-// TODO: use array of length 4 instead of pointer?
-void Simu::getdtFunction(double *f) {
+void Simu::getdtFunction(double f[4]) const  {
     f[0] = dtFunction_[0];
     f[1] = dtFunction_[1];
     f[2] = dtFunction_[2];
     f[3] = dtFunction_[3];
+}
+
+std::vector<double> Simu::getdtFunction() const {
+  return {dtFunction_[0], dtFunction_[1], dtFunction_[2], dtFunction_[3]};
 }
 
 const std::vector<std::string> Simu::getSaveFormatStrings() const {

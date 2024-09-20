@@ -32,6 +32,8 @@ namespace SpaMtrix{
 
 class Configuration;
 
+const static double TIME_RESOLUTION = 1e-15;
+
 // Assembles previous time step part of RHS when doing non-linear Crank-Nicholson
 void assemble_prev_rhs(SpaMtrix::Vector &Ln,
 		       SolutionVector& qn,

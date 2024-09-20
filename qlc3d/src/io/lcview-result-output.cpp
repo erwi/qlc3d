@@ -83,7 +83,7 @@ void LcViewBinaryResultFormatWriter::writeResult(const Geometry &geom, const Sim
 
   writeBinaryResultFile(potential,
                         qTensor,
-                        simulationState.currentTime(),
+                        simulationState.currentTime().getTime(),
                         S0_,
                         writtenMeshPath_.filename().string(),
                         outputFilePath);
@@ -156,7 +156,7 @@ void LcViewTxtResultFormatWriter::writeResult(const Geometry &geom, const Simula
                       geom.e.get(),
                       *potential,
                       *directors,
-                      simulationState.currentTime(),
+                      simulationState.currentTime().getTime(),
                       writtenMeshPath_.filename().string(),
                       filePath);
 }

@@ -1,21 +1,24 @@
 #include <eventlist.h>
-#include <math.h>
+#include <cmath>
+#include <string>
 #include <meshrefinement.h>
 #include <simulation-state.h>
 #include <util/logging.h>
 #include <util/exception.h>
 
 const char *Event::getEventString(const EventType e) {
-    switch (e) {
+  switch (e) {
     case (EVENT_SAVE):
-        return "EVENT_SAVE";
+      return "EVENT_SAVE";
     case (EVENT_SWITCHING):
-        return "EVENT_SWITCHING";
+      return "EVENT_SWITCHING";
     case (EVENT_REFINEMENT):
-        return "EVENT_REFINEMENT";
+      return "EVENT_REFINEMENT";
+    case (SAVE_PERIODICALLY_BY_TIME):
+      return "SAVE_PERIODICALLY_BY_TIME";
     default:
-        return "EVENT_INVALID";
-    }
+      RUNTIME_ERROR(fmt::format("Unknown event type {}", e));
+  }
 }
 
 Event::~Event() noexcept(false) {
@@ -53,6 +56,16 @@ bool compare_iterptr(const Event *first, const Event *second) {
     return (first->iteration < second->iteration);
 }
 
+std::string Event::toString() const {
+    std::string eventString = fmt::format("Event type: {}, ", getEventString(eventType_));
+    if (eventOccurrence_ == EVENT_TIME) {
+        eventString += fmt::format("Time: {}", time);
+    } else {
+        eventString += fmt::format("Iteration: {}", iteration);
+    }
+    return eventString;
+}
+
 // -------------EventList DEFINITIONS --------------
 EventList::EventList():
     NO_TIME_EVENTS(std::numeric_limits<double>::max()),
@@ -71,10 +84,12 @@ EventList::~EventList() {
     // ITERATE THROUGH LISTS DELETING REMAINING EVENT OBJECT POINTERS
     list<Event *> :: iterator itr;
     if (!timeEvents_.empty()) {
-        Log::warn("There are {} unhandled time events in the queue.", timeEvents_.size());
-        for (itr = timeEvents_.begin(); itr != timeEvents_.end(); itr++) {
-            delete *itr;
-        }
+      Log::warn("There are {} unhandled time events in the queue.", timeEvents_.size());
+      auto eventString = this->toString();
+      Log::warn("EventList: {}", eventString);
+      for (itr = timeEvents_.begin(); itr != timeEvents_.end(); itr++) {
+          delete *itr;
+      }
     }
     if (!iterationEvents_.empty()) {
         Log::warn("There are {} unhandled iteration events in the queue.", iterationEvents_.size());
@@ -98,10 +113,8 @@ bool EventList::eventsInQueue() const {
 }
 
 bool EventList::eventOccursNow(const SimulationState &simulationState) const {
-// RETURNS TRUE IF AN EVENT OCCURS RIGHT NOW!!
-    // OTHER EXPLICITLY SPECIFIED EVENTS
-    return ((nextIterEvent_ == (size_t)simulationState.currentIteration()) || // IF EVENT SCHEDULED FOR CURRENT ITERATION
-            (nextTimeEvent_ == simulationState.currentTime())) ;    // IF EVENT SCHEDULED FOR CURRENT TIME
+    return (nextIterEvent_ == (size_t)simulationState.currentIteration()) || // IF EVENT SCHEDULED FOR CURRENT ITERATION
+            simulationState.currentTime().equals(nextTimeEvent_) ;    // IF EVENT SCHEDULED FOR CURRENT TIME
 }
 
 Event *EventList::getCurrentEvent(const SimulationState &simulationState) {
@@ -111,7 +124,7 @@ Event *EventList::getCurrentEvent(const SimulationState &simulationState) {
 // AND REMOVES THE CORRESPONDING POINTER FROM QUEUE.
 // ACTUAL DELETION OF OBJECT MUST BE PERFORMED ELSEWHERE
 // FIRST CHECK TIME EVENTS
-    if (nextTimeEvent_ == simulationState.currentTime()) {
+    if (simulationState.currentTime().equals(nextTimeEvent_)) {
         if (timeEvents_.empty()) {
             RUNTIME_ERROR("Time events queue is empty.");
         }
@@ -185,16 +198,30 @@ void EventList::addRepRefInfo(Event *e) {
 }
 
 
-void EventList::manageReoccurringEvents(int currentIteration, double currentTime, double timeStep) {
+void EventList::manageReoccurringEvents(int currentIteration, const SimulationTime &currentTime, double timeStep) {
     unsigned int nextIter = currentIteration+ 1;
-    double nextTime = currentTime + timeStep; // TIME AT NEXT ITERATION
+    //double nextTime = currentTime + timeStep; // TIME AT NEXT ITERATION
     // REOCCURRING SAVE ITERATION
-    if ((saveIter_ > 0) &&
-            (nextIter % saveIter_) == 0) {
+    if (isPeriodicSaveIteration(nextIter)) {
         prependReoccurringIterEvent(new Event(EVENT_SAVE ,  nextIter));
     }
     // REOCCURRING SAVE TIME
     if (saveTime_ > 0) {
+
+        // Find next instance in time when periodic save event should occur
+        SimulationTime nextSaveTime((saveTimeCount_ + 1) * saveTime_);
+
+        auto firstSaveEvent = std::find_if(timeEvents_.begin(), timeEvents_.end(),
+                                        [](Event *e) { return e->getEventType() == SAVE_PERIODICALLY_BY_TIME; });
+
+        if (firstSaveEvent == timeEvents_.end() || (*firstSaveEvent)->time > nextSaveTime.getTime()) {
+
+          Log::info("Adding save event {} to occur at time {}, currentTime={}", saveTimeCount_, nextSaveTime.getTime(), currentTime);
+          insertTimeEvent(new Event(SAVE_PERIODICALLY_BY_TIME, nextSaveTime.getTime()));
+          saveTimeCount_++;
+        }
+
+        /*
         // PREDICTED NUM SAVE EVENTS BY NEXT TIME STEP, IF dt IS NOT ADJUSTED
         size_t num_next = static_cast<size_t>(nextTime / saveTime_);
         // IF A REOCCURRING SAVE EVENT BETWEEN NOW AND NEXT TIME STEP
@@ -204,7 +231,10 @@ void EventList::manageReoccurringEvents(int currentIteration, double currentTime
             this->insertTimeEvent(new Event(EVENT_SAVE, t_next));
             saveTimeCount_++;
         }
+         */
     }
+
+
     // REOCCURRING REFINEMENT ITERATION
     if ((repRefIter_ > 0) &&
             (nextIter % repRefIter_) == 0) {
@@ -254,4 +284,36 @@ double EventList::timeUntilNextEvent(const double &currentTime) const {
     } else {
         return NO_TIME_EVENTS;
     }
+}
+
+
+SimulationTime EventList::nextEventTime() const {
+    return SimulationTime(nextTimeEvent_);
+}
+
+
+std::string EventList::toString() const {
+  // append all events to a string
+  std::string eventString;
+  eventString += "{{";
+  eventString += "nextTimeEvent_=" + std::to_string(nextTimeEvent_) + ", nextIterEvent_=" + std::to_string(nextIterEvent_) + ",";
+  eventString += "timeEvents_=[";
+  for (auto &event : timeEvents_) {
+    eventString += event->toString();
+  }
+  eventString += "], iterationEvents_=[";
+  for (auto &event : iterationEvents_) {
+    eventString += event->toString();
+  }
+  // add repeating refinements
+  eventString += "], repRefinements_=[";
+  for (auto &event : repRefinements_) {
+    eventString += event->toString();
+  }
+  // add periodically occurring events' periods
+  eventString += "], saveIter_=" + std::to_string(saveIter_) + ", saveTime_=" + std::to_string(saveTime_) + ", saveTimeCount_=" + std::to_string(saveTimeCount_) + ",";
+  eventString += "repRefIter_=" + std::to_string(repRefIter_) + ", repRefTime_=" + std::to_string(repRefTime_) + ", repRefTimeCount_=" + std::to_string(repRefTimeCount_);
+
+  eventString += "}}";
+  return eventString;
 }

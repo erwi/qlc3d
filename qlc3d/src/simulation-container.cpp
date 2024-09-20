@@ -17,14 +17,19 @@
 #include <io/result-output.h>
 #include <potential/potential-solver.h>
 #include <lc/lc-solver.h>
-
 #include <geom/vec3.h>
+#include <simulation-adaptive-time-step.h>
 #include <spamtrix_ircmatrix.hpp>
-#include <util/stringutil.h>
 
 namespace fs = std::filesystem;
 
-SimulationContainer::SimulationContainer(Configuration &config, ResultOutput &resultOut, std::shared_ptr<PotentialSolver> potentialSolver, ILCSolver &lcSolver) :
+SimulationContainer::SimulationContainer(Configuration &config,
+                                         ResultOutput &resultOut,
+                                         std::shared_ptr<PotentialSolver> potentialSolver,
+                                         ILCSolver &lcSolver,
+                                         EventList &eventList,
+                                         SimulationState &simulationState,
+                                         SimulationAdaptiveTimeStep &adaptiveTimeStep) :
         configuration(config),
         resultOutput(resultOut),
         potentialSolver(potentialSolver),
@@ -33,13 +38,15 @@ SimulationContainer::SimulationContainer(Configuration &config, ResultOutput &re
         boxes(new Boxes()),
         alignment(new Alignment()),
         regGrid(new RegularGrid()),
-        eventList(new EventList()) {
+        eventList(eventList),
+        simulationState(simulationState),
+        adaptiveTimeStep(adaptiveTimeStep) {
 
     Energy_fid = nullptr;
 }
 
 void SimulationContainer::initialise() {
-    simulationState_.state(RunningState::INITIALISING);
+    simulationState.state(RunningState::INITIALISING);
     simu = configuration.getSimu();
     lc = configuration.getLC();
     electrodes = configuration.getElectrodes();
@@ -68,22 +75,22 @@ void SimulationContainer::initialise() {
       throw std::runtime_error("Regular grid is required by at least one result file format, but it has not been defined in the settings file.");
     }
 
-    eventList->setSaveIter(simu->getSaveIter());
-    eventList->setSaveTime(simu->getSaveTime());
+    eventList.setSaveIter(simu->getSaveIter());
+    eventList.setSaveTime(simu->getSaveTime());
 
-    createMeshRefinementEvents(*configuration.refinement(), *eventList);
-    createElectrodeSwitchingEvents(*electrodes, *eventList);
+    createMeshRefinementEvents(*configuration.refinement(), eventList);
+    createElectrodeSwitchingEvents(*electrodes, eventList);
 
     // read missing configuration from file. TODO: all parameters to be provided in Configuration, they should not be read in here
     ReadSettings(configuration.settingsFile(),
                  *boxes,
                  *alignment,
-                 *eventList);
+                 eventList);
 
-    simulationState_.change(0);
-    simulationState_.currentTime(0);
-    simulationState_.dt(simu->initialTimeStep());
-    simulationState_.currentIteration(0);
+    simulationState.change(0);
+    simulationState.setCurrentTime(0);
+    simulationState.dt(simu->initialTimeStep());
+    simulationState.currentIteration(0);
 
     // Create a backup settings file in the results directory
     std::filesystem::path settingsBackup = simu->getSaveDirAbsolutePath() / "settings.qfg";
@@ -159,8 +166,8 @@ void SimulationContainer::initialise() {
     Log::info("Saving starting configuration");
     Energy_fid = createOutputEnergyFile(*simu); // done in inits
 
-    handleInitialEvents(simulationState_,
-                        *eventList,
+    handleInitialEvents(simulationState,
+                        eventList,
                         *electrodes,
                         *alignment,
                         *simu,
@@ -169,12 +176,13 @@ void SimulationContainer::initialise() {
                         *lc,
                         Kq,
                         resultOutput,
-                        *potentialSolver);
+                        *potentialSolver,
+                        adaptiveTimeStep);
 
-    simulationState_.currentIteration(1);
-    simulationState_.currentTime(0);
-    simulationState_.change(0);
-    simulationState_.dt(simu->initialTimeStep());
+    simulationState.currentIteration(1);
+    simulationState.setCurrentTime(0);
+    simulationState.change(0);
+    simulationState.dt(simu->initialTimeStep());
     startInstant = std::chrono::steady_clock::now();
     maxdq = 0;
 }
@@ -183,16 +191,16 @@ bool SimulationContainer::hasIteration() const {
     auto end = simu->getEndCriterion();
     double endValue = simu->getEndValue();
     if (end == Simu::Iterations) {
-        return simulationState_.currentIteration() <= (int) endValue;
+        return simulationState.currentIteration() <= (int) endValue;
     } else if (end == Simu::Time) {
-        return simulationState_.currentTime() <= endValue;
+        return simulationState.currentTime().equals(endValue) || simulationState.currentTime().lessThan(endValue);
     } else if (end == Simu::Change) {
         // Change is unknown until at leas one iteration has run, so at lest run one iteration.
-        if (simulationState_.currentIteration() == 1) {
+        if (simulationState.currentIteration() == 1) {
             return true;
         }
 
-        double currentChange = simulationState_.change();
+        double currentChange = simulationState.change();
         if (simu->simulationMode() == TimeStepping) {
             Log::info("|dQ| = {}, EndValue = {}", fabs(currentChange), endValue);
         }
@@ -207,63 +215,60 @@ bool SimulationContainer::hasIteration() const {
 }
 
 void SimulationContainer::runIteration() {
-    simulationState_.state(RunningState::RUNNING);
-    std::chrono::duration<double> elapsedSeconds = std::chrono::steady_clock::now() - startInstant;
+  simulationState.state(RunningState::RUNNING);
+  //adjustTimeStepSize(); // calculate time step size for this iteration.
+  adaptiveTimeStep.calculateTimeStep(simulationState);
 
-    Log::clearIndent();
-    Log::info("Iteration {}, Time = {:e}s. Real time = {:.3}s. dt = {}s.",
-           simulationState_.currentIteration(),
-           simulationState_.currentTime(),
-           elapsedSeconds.count(),
-           simulationState_.dt());
+  std::chrono::duration<double> elapsedSeconds = std::chrono::steady_clock::now() - startInstant;
 
-    Log::incrementIndent();
-    // mve this to event handling/result output
-    if (simu->getOutputEnergy()) {
-        CalculateFreeEnergy(Energy_fid,
-                            simulationState_.currentIteration(),
-                            simulationState_.currentTime(),
-                            *lc,
-                            &geom1,
-                            &v,
-                            &q);
-    }
+  Log::clearIndent();
+  Log::info("Iteration {}, Time = {:e}s. Real time = {:.3}s. dt = {}s.",
+            simulationState.currentIteration(),
+            simulationState.currentTime().getTime(),
+            elapsedSeconds.count(),
+            simulationState.dt());
 
-    // CALCULATES Q-TENSOR AND POTENTIAL
-    maxdq = updateSolutions();
-    //Log::info("maxdq = {}", maxdq);
-    /// UPDATE CURRENT TIME
-    simulationState_.change(maxdq);
-    simulationState_.currentTime(simulationState_.currentTime() + simulationState_.dt());
+  Log::incrementIndent();
 
-    /// CALCULATE NEW TIME STEP SIZE BASED ON maxdq
-    adjustTimeStepSize();
-    /// INCREMENT ITERATION COUNTER
+  // mve this to event handling/result output
+  if (simu->getOutputEnergy()) {
+    CalculateFreeEnergy(Energy_fid,
+                        simulationState.currentIteration(),
+                        simulationState.currentTime().getTime(),
+                        *lc,
+                        &geom1,
+                        &v,
+                        &q);
+  }
 
-    ///EVENTS (ELECTRODES SWITCHING, RESULT OUTPUT ETC.)
-    handleEvents(*eventList,
-                 *electrodes,
-                 *alignment,
-                 *simu,
-                 simulationState_,
-                 geometries,
-                 solutionVectors,
-                 *lc,
-                 Kq,
-                 resultOutput,
-                 *potentialSolver);
+  // CALCULATES Q-TENSOR AND POTENTIAL
+  maxdq = updateSolutions();
+  simulationState.change(maxdq);
 
-    // TODO: should this be done together with incrementing time?
-    simulationState_.currentIteration(simulationState_.currentIteration() + 1);
+  simulationState.currentTime().increment(simulationState.dt());
+  simulationState.currentIteration(simulationState.currentIteration() + 1);
+
+  handleEvents(eventList,
+               *electrodes,
+               *alignment,
+               *simu,
+               simulationState,
+               geometries,
+               solutionVectors,
+               *lc,
+               Kq,
+               resultOutput,
+               *potentialSolver,
+               adaptiveTimeStep);
 }
 
 void SimulationContainer::postSimulationTasks() {
-    simulationState_.state(RunningState::COMPLETED);
-    resultOutput.writeResults(*geometries.geom, v, q, simulationState_);
+    simulationState.state(RunningState::COMPLETED);
+    resultOutput.writeResults(*geometries.geom, v, q, simulationState);
 }
 
 const SimulationState &SimulationContainer::currentState() const {
-    return simulationState_;
+    return simulationState;
 }
 
 double SimulationContainer::updateSolutions() {
@@ -274,11 +279,11 @@ double SimulationContainer::updateSolutions() {
     switch (QSolver) {
         case Q_Solver_PCG: // TODO: cleanup. Exactly same calcQ3d function is called in both cases.
             //maxdq = calcQ3d(&q, &qn, &v, geom1, lc.get(), simu.get(), simulationState_, Kq, configuration.getSolverSettings().get(), alignment.get());
-            maxdq = lcSolver.solve(q, v, geom1, simulationState_).dq;
+            maxdq = lcSolver.solve(q, v, geom1, simulationState).dq;
             break;
         case Q_Solver_GMRES:
             //maxdq = calcQ3d(&q, &qn, &v, geom1, lc.get(), simu.get(), simulationState_, Kq, configuration.getSolverSettings().get(), alignment.get());
-          maxdq = lcSolver.solve(q, v, geom1, simulationState_).dq;
+          maxdq = lcSolver.solve(q, v, geom1, simulationState).dq;
             break;
         case Q_Solver_Explicit:
             RUNTIME_ERROR("Q_Solver_Explicit is not implemented yet.");
@@ -290,16 +295,21 @@ double SimulationContainer::updateSolutions() {
 }
 
 void SimulationContainer::adjustTimeStepSize() {
+  /*
     if (simu->simulationMode() == SteadyState) {
         return;
     }
+    if (simulationState.currentIteration() == 1) { // no previous iteration to compare to, so keep initial time step size.
+      return;
+    }
+
     // if electrode switching etc. has just happened, dont adapt time step this time
     // but set switch to false to allow adjustment starting next step
-    if (simulationState_.restrictedTimeStep()) {
-        simulationState_.restrictedTimeStep(false);
+    if (simulationState.restrictedTimeStep()) { // TODO: this isn't happening at the moment. add it!
+        simulationState.restrictedTimeStep(false);
         return;
     }
-    double dt = simulationState_.dt();
+    double dt = simulationState.dt();
 
 
     // INCREMENT CURRENT TIME BEFORE CHANGING TIME STEP SIZE
@@ -350,5 +360,18 @@ void SimulationContainer::adjustTimeStepSize() {
       newdt = simu->getMaxdt();
     }
 
-    simulationState_.dt(newdt);
+    // make sure this time step size does not cause skipping an event
+    SimulationTime currentTime = simulationState.currentTime();
+    SimulationTime nextTime = SimulationTime(currentTime).increment(newdt);
+    SimulationTime nextEventTime = eventList->nextEventTime();
+
+    if (nextTime.greaterThan(nextEventTime)) { // would skip over next event
+        newdt = nextEventTime.getTime() - currentTime.getTime();
+        if (newdt < simu->getMindt()) {
+          Log::warn("dt={} is less than min dt to accommodate timing of next event.", newdt);
+        }
+    }
+
+    simulationState.dt(newdt);
+    */
 }

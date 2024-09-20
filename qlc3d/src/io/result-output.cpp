@@ -125,7 +125,7 @@ void RegularVecMatFormatWriter::writeResult(const Geometry &geom, const Simulati
   rGrid->writeVecMat(filePath.c_str(),       // WRITE REGULAR GRID RESULT FILE
                     *potential,
                     *directors,
-                    simulationState.currentTime());
+                    simulationState.currentTime().getTime());
 }
 //</editor-fold>
 
@@ -140,7 +140,7 @@ void DirStackZFormatWriter::writeResult(const Geometry &geom, const SimulationSt
   fs::path filePath = outputDirectory / filename;
   rGrid->writeDirStackZ(filePath.c_str(),
                        *directors,
-                       simulationState.currentTime());
+                       simulationState.currentTime().getTime());
 }
 //</editor-fold>
 

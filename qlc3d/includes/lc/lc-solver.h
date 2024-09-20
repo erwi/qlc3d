@@ -116,6 +116,7 @@ public:
  * at mid-points between time steps.
  */
 class TimeSteppingLCSolver : public ILCSolver, protected ImplicitLCSolver {
+  const double maxError;
   /** Mass matrix, required by implicit time stepping */
   std::unique_ptr<SpaMtrix::IRCMatrix> M;
   /** Q-tensor at previous time step */
@@ -128,7 +129,7 @@ class TimeSteppingLCSolver : public ILCSolver, protected ImplicitLCSolver {
   void initialiseMatrixSystem(const SolutionVector &q, const Geometry &geom);
 
 public:
-  TimeSteppingLCSolver(const LC &lc, const SolverSettings &solverSettings);
+  TimeSteppingLCSolver(const LC &lc, const SolverSettings &solverSettings, double maxError);
   ~TimeSteppingLCSolver() = default;
   LCSolverResult solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState) override;
 };

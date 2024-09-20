@@ -128,8 +128,8 @@ public:
 
     [[nodiscard]] SimulationMode simulationMode() const { return initialTimeStep_ > 0 ? TimeStepping : SteadyState; }
 
-    void getdtFunction(double* f );
-
+    void getdtFunction(double f[4] ) const;
+    [[nodiscard]] std::vector<double> getdtFunction() const;
     // METHOD VARIABLE ACCESS
     [[nodiscard]] unsigned int getAssemblyThreadCount()const {return numAsseblyThreads_;}
     [[nodiscard]] unsigned int getMatrixSolverThreadCount()const {return numMatrixSolverThreads_;}

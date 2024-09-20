@@ -7,25 +7,23 @@
 #include <electrodes.h>
 #include <limits>
 
-// Forward declarations
 class Simu;
 class SimulationState;
+class SimulationTime;
 class Reader;
 class RefInfo;
 using namespace std;
-// EVENT CAN OCCUR:
-//      AT PRE-DEFINED TIMES
-//      AT PRE-DEFINED ITERATIONS
-//      WITH REPEATING TIME-INTERVALLS (EVERY Nth SECOND)
-//      WITH REPEATING ITERATION-INTERVALLS (EVERY Nth ITERATION)
-enum EventType {    EVENT_SWITCHING,    // SWITCH ELECTRODE
-                    EVENT_SAVE,         // SAVE RESULT
-                    EVENT_REFINEMENT,   // MESH REFINEMENT
-                    EVENT_INVALID
-               };
+
+enum EventType {
+  EVENT_SWITCHING,
+  EVENT_SAVE,
+  EVENT_REFINEMENT,
+  SAVE_PERIODICALLY_BY_TIME//
+  //SAVE_PERIODICALLY_BY_ITERATION,
+};
 enum EventOccurrence {
-    EVENT_TIME,         // EVENT OCCUREENCE DETERMINED BY TIME
-    EVENT_ITERATION     // EVENT OCCURRENVE DETERMINED BY ITERATION NUMBER
+    EVENT_TIME,         // EVENT OCCURRENCE DETERMINED BY TIME
+    EVENT_ITERATION     // EVENT OCCURRENCE DETERMINED BY ITERATION NUMBER
 };
 
 class Event {
@@ -70,6 +68,8 @@ public:
     void setEventDataPtr(void *ed) {
         eventData_ = ed;
     }
+
+    std::string toString() const;
     static const char *getEventString(const EventType);     // DEBUG, RETURN EVENT TYPE STRING
 };
 
@@ -94,10 +94,17 @@ private:
     double repRefTime_ = 0;             // REFINEMENT PERIOD IN SECONDS    0 -> NEVER
     size_t repRefTimeCount_;        // KEEPS COUNT OF PROCESSED ROCCURRING REFINEMENT EVENT SO FAR
     void prependReoccurringIterEvent(Event *iEvent); // ADDS REOCCURRING TIME EVENT TO FRONT OF QUEUE
+
+
+    [[nodiscard]] bool isPeriodicSaveIteration(unsigned int iter) {
+      return saveIter_ > 0 && iter % saveIter_ == 0;
+    }
+
 public:
     EventList();
     ~EventList();
     bool eventsInQueue() const; // return true if further events exist in queue
+    /** Whether an event occurs now */
     bool eventOccursNow(const SimulationState &simulationState) const;
     void insertTimeEvent(Event *tEvent);
     void insertIterEvent(Event *iEvent);
@@ -124,10 +131,12 @@ public:
     void addRepRefInfo(Event *repRefEvent);
 
     Event *getCurrentEvent(const SimulationState &simulationState);   // removes current event from queue and returns a copy of it
-    double timeUntilNextEvent(const double &currentTime) const;
+    [[nodiscard]] double timeUntilNextEvent(const double &currentTime) const;
+    [[nodiscard]] SimulationTime nextEventTime() const;
 
     //! Adds reoccurring event to queue
-    void manageReoccurringEvents(int currentIteration, double currentTime, double timeStep);
+    void manageReoccurringEvents(int currentIteration, const SimulationTime &currentTime, double timeStep);
+    std::string toString() const;
 };
 #endif
 

@@ -216,7 +216,7 @@ bool autoref(Geometry &geom_orig,
     v.Resize(geom_temp.getnp() , 1);
     v.allocateFixedNodesArrays(geom_temp);
     v.setPeriodicEquNodes(geom_temp);
-    v.setFixedNodesPot(electrodes.getCurrentPotentials(simulationState.currentTime()));
+    v.setFixedNodesPot(electrodes.getCurrentPotentials(simulationState.currentTime().getTime()));
 
     // REALLOCATE Q-TENSOR
     qn = q; // temp swap

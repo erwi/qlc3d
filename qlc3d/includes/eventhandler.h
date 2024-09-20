@@ -10,13 +10,14 @@
 #include <solver-settings.h>
 #include <resultio.h>
 
-// SPAMTRIX FORWARD DECLARATIONS
+
 namespace SpaMtrix {
 class IRCMatrix;
 }
 class SimulationState;
 class ResultOutput;
 class PotentialSolver;
+class SimulationAdaptiveTimeStep;
 // CONVENIENCE STRUCT WITH POINTERS TO THE DIFFERENT GEOMETRY OBJECTS
 // NEEDED IN MESH REFINEMENT.
 struct Geometries {
@@ -33,10 +34,6 @@ struct SolutionVectors {
     SolutionVectors(): q(NULL), qn(NULL), v(NULL) {}
 };
 
-void setElectrodePotentials(EventList &evel,
-                            Electrodes &electr,
-                            Simu &simu);
-
 void handleInitialEvents(SimulationState &simulationState,
                          EventList &eventList,
                          Electrodes &electr,
@@ -47,7 +44,8 @@ void handleInitialEvents(SimulationState &simulationState,
                          const LC &lc,
                          SpaMtrix::IRCMatrix &Kq,
                          ResultOutput &resultOutput,
-                         PotentialSolver &potentialSolver);
+                         PotentialSolver &potentialSolver,
+                         SimulationAdaptiveTimeStep &simulationAdaptiveTimeStep);
 
 void handleEvents(EventList &evel,
                   Electrodes &electr,
@@ -59,7 +57,8 @@ void handleEvents(EventList &evel,
                   const LC &lc,
                   SpaMtrix::IRCMatrix &Kq,
                   ResultOutput &resultOutput,
-                  PotentialSolver &potentialSolver);
+                  PotentialSolver &potentialSolver,
+                  SimulationAdaptiveTimeStep &adaptiveTimeStep);
 
 /** return true/false depending on whether mesh was refined or not */
 bool handleMeshRefinement(std::list<Event *> &refEvents,
@@ -81,13 +80,4 @@ void handlePreRefinement(std::list<Event *> &refEvents,
                          Electrodes &electrodes,
                          double S0,
                          SpaMtrix::IRCMatrix &Kq);
-
-/*
-void handleResultOutput(SimulationState &simulationState,
-                        Simu &simu,
-                        double S0,
-                        Geometry &geom,
-                        SolutionVector &v,
-                        SolutionVector &q);
-*/
 #endif // EVENTHANDLER_H
