@@ -128,11 +128,7 @@ void ImplicitLCSolver::addToGlobalMatrix(double lK[20][20], double lL[20], const
   }
 }
 
-void ImplicitLCSolver::assembleMatrixSystem(const SolutionVector &q, const SolutionVector &v, const Geometry &geom, const LCSolverParams &params) {
-  *(K) = 0.;
-  *(L) = 0.;
-  *(X) = 0.;
-
+void ImplicitLCSolver::assembleMatrixSystemVolumeTerms(const SolutionVector &q, const SolutionVector &v, const Geometry &geom, const LCSolverParams &params) {
   GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
   const unsigned int elementCount = geom.getTetrahedra().getnElements();
   const Mesh &tets = geom.getTetrahedra();
@@ -152,6 +148,16 @@ void ImplicitLCSolver::assembleMatrixSystem(const SolutionVector &q, const Solut
 
     addToGlobalMatrix(lK, lL, q, tetNodes);
   }
+}
+
+void ImplicitLCSolver::assembleMatrixSystem(const SolutionVector &q, const SolutionVector &v, const Geometry &geom, const LCSolverParams &params) {
+  *(K) = 0.;
+  *(L) = 0.;
+  *(X) = 0.;
+
+  assembleMatrixSystemVolumeTerms(q,v, geom, params);
+
+
 }
 
 

@@ -242,3 +242,70 @@ TEST_CASE("3D boundary integral in a unit cube") {
     REQUIRE(totalArea == Approx(4.0).margin(1e-9));
   }
 }
+
+TEST_CASE("Linear triangle 2D share function") {
+  GaussianQuadratureTri<7> g = gaussianQuadratureTri4thOrder();
+
+  SECTION("Sum of weights should equal 0.5") {
+    double sumWeight = 0;
+    for (; g.hasNextPoint(); g.nextPoint()) {
+      sumWeight += g.weight();
+    }
+    REQUIRE(sumWeight == Approx(0.5).margin(1e-12)); // because determinant is 2x triangle area
+  }
+
+  SECTION("Integrate total area of a triangle") {
+
+    // triangle with coordinates (0, 0, 0), (1, 0, 0), (0, 1, 0)
+    Vec3 elemCoordinates[3] = {Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, 1, 0)};
+    const double area = 0.5;
+    double determinant = 2 * area; // determinant is half triangle are;
+
+    g.initialiseElement(elemCoordinates, determinant);
+
+    double totalArea = 0;
+    for (; g.hasNextPoint(); g.nextPoint()) {
+      double mul = g.weight() * determinant;
+      for (int i = 0; i < 3; i++) {
+       totalArea += mul * g.N(i);
+      }
+    }
+
+    REQUIRE(totalArea == Approx(area).margin(1e-12));
+  }
+
+  SECTION("Integrate total surface area of a unit cube mesh") {
+    Geometry geom;
+    auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
+    auto alignment = Alignment();
+    alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+    alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+    prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, *electrodes, alignment, {1, 1, 1});
+    auto tris = geom.getTriangles();
+    auto coords = geom.getCoordinates();
+    idx elemNodes[3] = {0, 0, 0};
+    Vec3 elemCoords[3] = {Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0)};
+
+    double totalArea = 0;
+    for (idx it = 0; it < tris.getnElements(); it++) {
+      tris.loadNodes(it, elemNodes);
+      coords.loadCoordinates(&elemNodes[0], &elemNodes[3], elemCoords);
+
+      double determinant = tris.getDeterminant(it);
+      g.initialiseElement(elemCoords, determinant);
+
+      double area = 0;
+      for (; g.hasNextPoint(); g.nextPoint()) {
+        double mul = g.weight() * determinant;
+        for (int i = 0; i < 3; i++) {
+          area += mul * g.N(i);
+        }
+      }
+      totalArea += area;
+    }
+
+    // convert coordinates from microns to metres
+    totalArea *= 1e12;
+    REQUIRE(totalArea == Approx(6.0).margin(1e-9));
+  }
+}

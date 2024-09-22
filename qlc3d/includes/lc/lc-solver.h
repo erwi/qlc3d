@@ -87,6 +87,7 @@ protected:
                                  const LCSolverParams &params);
 
   void addToGlobalMatrix(double lK[20][20], double lL[20], const SolutionVector &q, const unsigned int tetNodes[4]);
+  void assembleMatrixSystemVolumeTerms(const SolutionVector &q, const SolutionVector &v, const Geometry &geom, const LCSolverParams &params);
   void assembleMatrixSystem(const SolutionVector &q, const SolutionVector &v, const Geometry &geom, const LCSolverParams &params);
 public:
   ImplicitLCSolver(const LC &lc, const SolverSettings &solverSettings);

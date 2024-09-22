@@ -3,6 +3,8 @@
 #ifndef SHAPEFUNCTION3D_H
 #define SHAPEFUNCTION3D_H
 
+// TODO: remove this file. It is only used by old version of FE code.
+
 // forward declarations
 namespace qlc3d {
   class TTensor;
