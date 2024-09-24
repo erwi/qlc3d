@@ -26,8 +26,6 @@ private:
     const Vec3 v1 = {0, 0, 0};                       // First principal axis of anchoring
     const Vec3 v2 = {0, 0, 0};                       // Second principal axis of anchoring
     const Vec3 e = {0, 0, 0};                        // Easy direction vector
-    const bool usesSurfaceNormal;             // whether to use local surface normal vector or v1 and v2
-    const bool isFixed;                       // whether this surface is fixed or not
     const bool overrideVolume;               // whether to override volumes at startup. This is set to true by default
     const unsigned int fixLcNumber = 0;
 
@@ -35,9 +33,7 @@ private:
     * Calculates v1 and v2 vectors given tilt and twist angles Rotation matrices are given in
     * Willman, IEEE Trans. Electron Dev. 54, 10, 2007
     **/
-    //void calcV1V2();
-    //void setAnchoringType(const std::string &atype);
-    [[nodiscard]] static Vec3 calculateV1(double tiltDegrees, double twistDecrees, double rotDegrees = 0);
+    [[nodiscard]] static Vec3 calculateV1(double tiltDegrees, double twistDegrees, double rotDegrees = 0);
     [[nodiscard]] static Vec3 calculateV2(double tiltDegrees, double twistDegrees, double rotDegrees = 0);
 public:
     static const std::vector<std::string> VALID_ANCHORING_TYPES;
@@ -51,8 +47,7 @@ public:
     std::vector<double> Params;         // holds optional parameters, but is mostly empty
     Surface(AnchoringType anchoringType, double strength, double k1, double k2,
             const double easyAnglesDegrees[3],
-            //const Vec3 &v1, const Vec3 &v2,
-            bool usesSurfaceNormal, bool isFixed, bool overrideVolume, unsigned int fixLcNumber);
+            bool overrideVolume, unsigned int fixLcNumber);
 
     [[nodiscard]] static Surface ofStrongAnchoring(unsigned int fixLcNumber, double tiltDegrees, double twistDegrees);
     [[nodiscard]] static Surface ofPlanarDegenerate(unsigned int fixLcNumber, double strength);
@@ -93,7 +88,7 @@ public:
 
     void addSurface(Surface s);
 
-    [[nodiscard]] const Surface & getSurface(const idx& i) const; // returns read-only reference to i'th surface
+    [[nodiscard]] const Surface & getSurface(const idx& i) const;
 
     double getStrength(int n);  // get strength of FixLCn
     double getK1(int n);        // get K1 of FixLCn

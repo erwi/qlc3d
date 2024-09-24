@@ -9,6 +9,7 @@
 #include <meshrefinement.h>
 #include <electrodes.h>
 #include <solver-settings.h>
+#include <alignment.h>
 
 class SettingsReader {
     std::filesystem::path fileName_;
@@ -17,6 +18,7 @@ class SettingsReader {
     std::unique_ptr<Electrodes> electrodes_;
     std::unique_ptr<MeshRefinement> meshRefinement_;
     std::unique_ptr<SolverSettings> solverSettings_;
+    std::unique_ptr<Alignment> alignment_;
 
     /*!
      * Reads the contents of the settings file. Be sure to call this before accessing any of the read settings
@@ -30,8 +32,10 @@ class SettingsReader {
     /** Reads optional mesh refinement configuration */
     void readRefinement(Reader &reader);
     void readSolverSettings(Reader &reader);
+    void readAlignment(Reader &reader);
     //! utility assertion for checking some input file format related stuff. Throws ReaderError
     void assertTrue(bool condition, const std::string &msg);
+
 public:
     SettingsReader(const std::filesystem::path &fileName);
 
@@ -40,5 +44,6 @@ public:
     std::unique_ptr<MeshRefinement> refinement();
     std::unique_ptr<Electrodes> electrodes();
     std::unique_ptr<SolverSettings> solverSettings();
+    std::unique_ptr<Alignment> alignment();
 };
 #endif //PROJECT_QLC3D_SETTINGS_READER_H

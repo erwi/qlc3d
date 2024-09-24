@@ -54,7 +54,7 @@ public:
   }
 
   /** check whether distance between this and that is less than eps */
-  [[nodiscard]] bool equals(const Vec3 &that, double eps) {
+  [[nodiscard]] bool equals(const Vec3 &that, double eps) const {
     return distanceSquared(that) < (eps * eps);
   }
 

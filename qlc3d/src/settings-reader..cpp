@@ -12,7 +12,7 @@
 
 SettingsReader::SettingsReader(const std::filesystem::path &fileName):
 fileName_(fileName),
-simu_(nullptr) {
+simu_(nullptr), lc_(nullptr), electrodes_(nullptr), meshRefinement_(nullptr), solverSettings_(nullptr), alignment_(nullptr) {
     read();
 }
 
@@ -36,10 +36,9 @@ void SettingsReader::read() {
         //readLC(lc, reader);
         //readBoxes(boxes, reader);
 
-        //readAlignment(alignment, reader);
-        readElectrodes( reader);
-        //readRefinement(reader, eventList);
+        readAlignment(reader);
         readRefinement(reader);
+        readElectrodes( reader);
         readSolverSettings(reader);
     } catch (ReaderError &e) {
         e.printError();
@@ -70,6 +69,11 @@ std::unique_ptr<Electrodes> SettingsReader::electrodes() {
 std::unique_ptr<SolverSettings> SettingsReader::solverSettings() {
     assert(solverSettings_ != nullptr);
     return std::move(solverSettings_);
+}
+
+std::unique_ptr<Alignment> SettingsReader::alignment() {
+    assert(alignment_ != nullptr);
+    return std::move(alignment_);
 }
 
 // <editor-fold desc="Private Methods">
@@ -188,7 +192,7 @@ void SettingsReader::readElectrodes(Reader &reader) {
 
     if (!times.empty()) {
       std::shared_ptr<Electrode> electrodePtr = std::make_shared<Electrode>(i, times, pots);
-      electrodesVector.emplace_back(electrodePtr);
+      electrodesVector.push_back(electrodePtr);
     }
   }
   electrodes_ = std::make_unique<Electrodes>(electrodesVector, eFieldVec);
@@ -256,6 +260,41 @@ void SettingsReader::readSolverSettings(Reader &reader) {
   readInt(reader, SFK_V_GMRES_MAXITER, [&](int v) { solverSettings_->setV_GMRES_Maxiter(v); });
   readInt(reader, SFK_V_GMRES_RESTART, [&](int v) { solverSettings_->setV_GMRES_Restart(v); });
   readDouble(reader, SFK_V_GMRES_TOLER, [&](double v) { solverSettings_->setV_GMRES_Toler(v); });
+}
+
+void SettingsReader::readAlignment(Reader &reader) {
+    alignment_ = std::make_unique<Alignment>();
+
+    if (reader.containsKeyWithPrefix("FIXLC")) {
+        for (int i = 1; i <= 99; i++) {
+          string keyBase = "FIXLC" + to_string(i);
+          if (!reader.containsKeyWithPrefix(keyBase)) {
+            continue;
+          }
+
+          auto type = reader.getValueByKey<string>(keyBase + ".Anchoring");
+
+          if (type == "strong") {
+            auto easyAngles = reader.getValueByKey<std::vector<double>>(keyBase + ".Easy");
+            assertTrue(easyAngles.size() == 2 || easyAngles.size() == 3, keyBase + " easy angles should have 2 or 3 components, got " + std::to_string(easyAngles.size()));
+            alignment_->addSurface(Surface::ofStrongAnchoring(i, easyAngles[0], easyAngles[1]));
+          } else if (type == "homeotropic") {
+            alignment_->addSurface(Surface::ofHomeotropic(i));
+          } else if (type == "weak") {
+            auto easyAngles = reader.getValueByKey<std::vector<double>>(keyBase + ".Easy");
+            assertTrue(easyAngles.size() == 2 || easyAngles.size() == 3, keyBase + " easy angles should have 2 or 3 components, got " + std::to_string(easyAngles.size()));
+            auto strength = reader.getValueByKey<double>(keyBase + ".Strength");
+            auto k1 = reader.getValueByKey<double>(keyBase + ".K1");
+            auto k2 = reader.getValueByKey<double>(keyBase + ".K2");
+            alignment_->addSurface(Surface::ofWeakAnchoring(i, easyAngles[0], easyAngles[1], strength, k1, k2));
+          } else if (type == "degenerate") {
+            auto strength = reader.getValueByKey<double>(keyBase + ".Strength");
+            alignment_->addSurface(Surface::ofPlanarDegenerate(i, strength));
+          } else {
+            throw ReaderError("Invalid anchoring type: " + type, fileName_.string() + ". This may be a typo in the settings file or it has not yet been implemented");
+          }
+        }
+    }
 }
 
 // </editor-fold>

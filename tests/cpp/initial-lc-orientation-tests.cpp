@@ -6,6 +6,7 @@
 #include <inits.h>
 #include <test-util.h>
 #include <memory>
+#include <alignment.h>
 
 const double MARGIN = 1e-12;
 
@@ -141,8 +142,8 @@ TEST_CASE("Initial LC surface orientations") {
     // expected to fail until weak anchoring is re-enabled
     double tiltDegrees = 5;
     double twistDegrees = 12;
-    alignment.addSurface(1, "Weak", 1e-3, {tiltDegrees, twistDegrees, 0}, 1., 1., {});
-    alignment.addSurface(2, "Weak", 1e-3, {tiltDegrees, twistDegrees, 0}, 1., 1., {});
+    alignment.addSurface(Surface::ofWeakAnchoring(1, tiltDegrees, twistDegrees, 1e-3, 1, 1));
+    alignment.addSurface(Surface::ofWeakAnchoring(2, tiltDegrees, twistDegrees, 1e-3, 1, 1));
     prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
     SolutionVector q(geom.getnpLC(), 5);
     // ACT
@@ -170,8 +171,8 @@ TEST_CASE("Initial LC surface orientations") {
     // equal to (1, 0, 0) everywhere
     double tiltDegrees = 90;
     double twistDegrees = 0;
-    alignment.addSurface(1, "Weak", 1e-3, {tiltDegrees, twistDegrees, 0}, 1., 1., {}, false);
-    alignment.addSurface(2, "Weak", 1e-3, {tiltDegrees, twistDegrees, 0}, 1., 1., {}, false);
+    alignment.addSurface(Surface::ofWeakAnchoring(1, tiltDegrees, twistDegrees, 1e-3, 1, 1));
+    alignment.addSurface(Surface::ofWeakAnchoring(2, tiltDegrees, twistDegrees, 1e-3, 1, 1));
     prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
     SolutionVector q(geom.getnpLC(), 5);
     // ACT
@@ -189,4 +190,33 @@ TEST_CASE("Initial LC surface orientations") {
       REQUIRE(director.S() == Approx(lc->S0()).margin(MARGIN));
     }
   }
+}
+
+TEST_CASE("Surface easy direction calculation from angles should match director definition from angles") {
+  double tiltDegrees = 45;
+  double twistDegrees = 45;
+
+  auto n = qlc3d::Director::fromDegreeAngles(tiltDegrees, twistDegrees, 1);
+
+  Surface s = Surface::ofStrongAnchoring(1, tiltDegrees, twistDegrees);
+
+  auto easy = s.getEasyVector();
+
+  REQUIRE(easy.equals(n.vector(), 1e-15));
+  REQUIRE(easy.equals(s.getV1().cross(s.getV2()), 1e-15));
+}
+
+
+TEST_CASE("Surface easy direction vectors for 0 tilt 0 twist") {
+  double tiltDegrees = 0;
+  double twistDegrees = 0;
+
+  Surface s = Surface::ofStrongAnchoring(1, tiltDegrees, twistDegrees);
+
+  auto easy = s.getEasyVector();
+
+  // we require easy axis is v1 x v2
+  REQUIRE(easy.equals({1, 0, 0}, 1e-15));
+  REQUIRE(s.getV1().equals({0, 1, 0}, 1e-15));
+  REQUIRE(s.getV2().equals({0, 0, 1}, 1e-15));
 }

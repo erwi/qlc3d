@@ -20,9 +20,6 @@ const std::vector<double> Surface::DEFAULT_ANCHORING_PARAMS = {};
 Surface::Surface(AnchoringType anchoringType,
                  double strength, double k1, double k2,
                  const double easyAnglesDegrees[3],
-                 //const Vec3 &v1, const Vec3 &v2,
-                 bool usesSurfaceNormal,
-                 bool isFixed,
                  bool overrideVolume,
                  unsigned int fixLcNumber)
     : Type(anchoringType), Strength(strength), K1(k1), K2(k2),
@@ -30,32 +27,31 @@ Surface::Surface(AnchoringType anchoringType,
 
     v1(calculateV1(easyAnglesDegrees[0], easyAnglesDegrees[1], easyAnglesDegrees[2])),
     v2(calculateV2(easyAnglesDegrees[0], easyAnglesDegrees[1], easyAnglesDegrees[2])),
-    e(v1.cross(v2)),
-    usesSurfaceNormal(usesSurfaceNormal), isFixed(isFixed), overrideVolume(overrideVolume), fixLcNumber(fixLcNumber) {
+    e(v1.cross(v2)), overrideVolume(overrideVolume), fixLcNumber(fixLcNumber) {
 
 }
 
-Vec3 Surface::calculateV1(double tiltDegrees, double twistDecrees, double rotDegrees) {
-  double a = twistDecrees * PI / 180.0; // twist
+Vec3 Surface::calculateV1(double tiltDegrees, double twistDegrees, double rotDegrees) {
+  double a = -twistDegrees * PI / 180.0; // twist
   double b = tiltDegrees * PI / 180.0; // tilt
   double g = rotDegrees * PI / 180.0; // rotation around
 
   return {
-          sin(a) * sin(g) - cos(a) * sin(b) * cos(g),
-          cos(a)*sin(g) + sin(a)*sin(b)*cos(g),
-          cos(b)*cos(g)
+    sin(a)*cos(g) + cos(a)*sin(b)*sin(g),
+    cos(a)*cos(g) - sin(a)*sin(b)*sin(g),
+    -cos(b)*sin(g)
   };
 }
 
 Vec3 Surface::calculateV2(double tiltDegrees, double twistDegrees, double rotDegrees) {
-  double a = twistDegrees * PI / 180.0; // twist
+  double a = -twistDegrees * PI / 180.0; // twist
   double b = tiltDegrees * PI / 180.0; // tilt
   double g = rotDegrees * PI / 180.0; // rotation around
 
   return {
-          sin(a)*cos(g) + cos(a)*sin(b)*sin(g),
-          cos(a)*cos(g) - sin(a)*sin(b)*sin(g),
-          -sin(b)*sin(g),
+    sin(a) * sin(g) - cos(a) * sin(b) * cos(g),
+    cos(a) * sin(g) + sin(a) * sin(b) * cos(g),
+    cos(b) * cos(g)
   };
 }
 
@@ -83,10 +79,12 @@ double Surface::getEasyTilt() const{			return easyAnglesDegrees[0];}
 double Surface::getEasyTwist() const{			return easyAnglesDegrees[1];}
 
 bool	Surface::getUsesSurfaceNormal() const {
-    return usesSurfaceNormal;
+  AnchoringType type = getAnchoringType();
+  return type == AnchoringType::Degenerate || type == AnchoringType::Homeotropic;
 }
 bool    Surface::isStrong() const {
-    return isFixed;
+  AnchoringType type = getAnchoringType();
+  return type != AnchoringType::Weak && type != AnchoringType::Degenerate;
 }
 
 Surface Surface::ofStrongAnchoring(unsigned int fixLcNumber_, double tiltDegrees, double twistDegrees) {
@@ -97,7 +95,7 @@ Surface Surface::ofStrongAnchoring(unsigned int fixLcNumber_, double tiltDegrees
   return {AnchoringType::Strong,
           DEFAULT_ANCHORING_STRENGTH, 1, 1,
           easyAnglesDegrees,
-          false, true, true,
+          true,
           fixLcNumber_};
 }
 
@@ -108,9 +106,10 @@ Surface Surface::ofPlanarDegenerate(unsigned int fixLcNumber, double strength) {
   double easyAnglesDegrees[3] = {0, 0, 0};
 
   return {AnchoringType::Degenerate,
-          strength, 1, 1,
+          strength, 0, 1,
           easyAnglesDegrees, // actually calculated for each node from surface normal
-          true, false, true, fixLcNumber};
+          true,
+          fixLcNumber};
 }
 
 Surface Surface::ofHomeotropic(unsigned int fixLcNumber) {
@@ -122,8 +121,6 @@ Surface Surface::ofHomeotropic(unsigned int fixLcNumber) {
   return {AnchoringType::Homeotropic,
           DEFAULT_ANCHORING_STRENGTH, 1, 1,
           easyAnglesDegrees, // actually calculated for each node from surface normal
-          true,
-          true,
           true,
           fixLcNumber};
 }
@@ -137,8 +134,8 @@ Surface Surface::ofWeakAnchoring(unsigned int fixLcNumber, double tiltDegrees, d
   return {AnchoringType::Weak,
           strength, k1, k2,
           easyAnglesDegrees,
-          false, false, true, fixLcNumber
-
+          true,
+          fixLcNumber
   };
 }
 
