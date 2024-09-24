@@ -17,7 +17,7 @@ class Configuration {
     std::shared_ptr<MeshRefinement> refinement_;
     std::shared_ptr<Electrodes> electrodes_;
     std::shared_ptr<SolverSettings> solverSettings_;
-
+    std::shared_ptr<Alignment> alignment_;
 public:
     Configuration();
 
@@ -32,7 +32,7 @@ public:
     [[nodiscard]] std::shared_ptr<LC> getLC() const;
     [[nodiscard]] std::shared_ptr<MeshRefinement> refinement() const;
     [[nodiscard]] std::shared_ptr<SolverSettings> getSolverSettings() const;
-
+    [[nodiscard]] std::shared_ptr<Alignment> getAlignment() const;
     /// The file name of the current settings file
     [[nodiscard]] const std::filesystem::path &settingsFile() const { return settingsFilePath_; };
     void settingsFileName(const std::filesystem::path &path) { settingsFilePath_ = path; }

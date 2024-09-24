@@ -16,8 +16,8 @@ TEST_CASE("mesh refinement") {
 
     std::unique_ptr<Simu> simu(SimuBuilder().build());
     Alignment alignment;
-    alignment.addSurface(1, "strong", 1, {1, 0, 0}, 1, 1, {});
-    alignment.addSurface(2, "strong", 1, {1, 0, 0}, 1, 1, {});
+    alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+    alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
 
     std::vector<std::shared_ptr<Electrode>> electrodesVec;
     electrodesVec.emplace_back(std::shared_ptr<Electrode>(new Electrode(1, {0}, {0})));

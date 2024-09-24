@@ -19,6 +19,7 @@ void Configuration::readSettings() {
     refinement_ = reader.refinement();
     electrodes_ = reader.electrodes();
     solverSettings_ = reader.solverSettings();
+    alignment_ = reader.alignment();
 }
 
 void Configuration::solverSettings(SolverSettings *solverSettings) {
@@ -48,4 +49,9 @@ std::shared_ptr<MeshRefinement> Configuration::refinement() const {
 std::shared_ptr<SolverSettings> Configuration::getSolverSettings() const {
     assert(solverSettings_ != nullptr);
     return solverSettings_;
+}
+
+std::shared_ptr<Alignment> Configuration::getAlignment() const {
+    assert(alignment_ != nullptr);
+    return alignment_;
 }

@@ -4,6 +4,7 @@
 #include <reader.h>
 #include <test-util.h>
 #include "geom/vec3.h"
+#include "lc-representation.h"
 
 TEST_CASE("Catch library should work") {
     REQUIRE(true);
@@ -199,7 +200,7 @@ TEST_CASE("read electrodes from settings file") {
   auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
 
   SettingsReader reader(settingsFile.name());
-/*
+
   auto electrodes = reader.electrodes();
 
   REQUIRE(2 == electrodes->getnElectrodes());
@@ -218,7 +219,6 @@ TEST_CASE("read electrodes from settings file") {
   potByElectrode = electrodes->getCurrentPotentials(1000);
   REQUIRE(0 == potByElectrode[1]);
   REQUIRE(4 == potByElectrode[3]);
-  */
 }
 
 TEST_CASE("Read solver settings from settings file") {
@@ -267,4 +267,82 @@ TEST_CASE("Read solver settings from settings file") {
   REQUIRE(17 == solverSettings->getV_GMRES_Maxiter());
   REQUIRE(18 == solverSettings->getV_GMRES_Restart());
   REQUIRE(19 == solverSettings->getV_GMRES_Toler());
+}
+
+TEST_CASE("Read alignment from settings file") {
+  std::string contents;
+  contents += "MeshName= test.msh\n"; // required in every settings file
+
+  // add case for strong anchoring
+  contents += "FIXLC1.Anchoring = Strong\n";
+  contents += "FIXLC1.Strength = 1e-4\n";
+  contents += "FIXLC1.Easy = [80.0000, 45.0000, 0.0000]\n";
+  contents += "FIXLC1.K1 = 1.0000\n";
+  contents += "FIXLC1.K2 = 1.0000\n";
+
+  // add case for homeotropic anchoring
+  contents += "FIXLC2.Anchoring = HomeOtropic\n";
+  contents += "FIXLC2.Strength = 1e-4\n";
+  contents += "FIXLC2.Easy = [80.0000, 45.0000, 0.0000]\n";
+  contents += "FIXLC2.K1 = 1.0000\n";
+  contents += "FIXLC2.K2 = 1.0000\n";
+
+  // add case for weak anchoring
+  contents += "FIXLC3.Anchoring = weak\n";
+  contents += "FIXLC3.Strength = 1e-4\n";
+  contents += "FIXLC3.Easy = [80.0000, 45.0000, 0.0000]\n";
+  contents += "FIXLC3.K1 = 1.0000\n";
+  contents += "FIXLC3.K2 = 2.0000\n";
+
+  // add case for degenerate anchoring
+  contents += "FIXLC4.Anchoring = Degenerate\n";
+  contents += "FIXLC4.strength = 1e-4\n";
+  //contents += "FIXLC4.Easy = [80.0000, 45.0000, 0.0000]\n";
+  //contents += "FIXLC4.K1 = 1.0000\n";
+  //contents += "FIXLC4.K2 = 2.0000\n";
+
+  auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+  SettingsReader reader(settingsFile.name());
+
+  auto alignment = reader.alignment();
+
+  REQUIRE(alignment->getnSurfaces() == 4);
+
+  // Check strong anchoring surface - only check the relevant fields
+  auto surface = alignment->getSurface(0);
+  REQUIRE(surface.getAnchoringType() == AnchoringType::Strong);
+  REQUIRE(surface.isStrong() == true);
+  REQUIRE(surface.getUsesSurfaceNormal() == false);
+  REQUIRE(surface.getEasyTilt() == 80);
+  REQUIRE(surface.getEasyTwist() == 45);
+  qlc3d::Director easyAxis = qlc3d::Director::fromDegreeAngles(surface.getEasyTilt(), surface.getEasyTwist(), 0);
+  REQUIRE(easyAxis.vector().equals(surface.getEasyVector(), 1e-15));
+
+
+  // Check homeotropic anchoring surface - only check the relevant fields
+  auto surface1 = alignment->getSurface(1);
+  REQUIRE(surface1.getAnchoringType() == AnchoringType::Homeotropic);
+  REQUIRE(surface1.isStrong() == true);
+  REQUIRE(surface1.getUsesSurfaceNormal() == true);
+
+  // Check weak anchoring surface - only check the relevant fields
+  auto surface2 = alignment->getSurface(2);
+  REQUIRE(surface2.getAnchoringType() == AnchoringType::Weak);
+  REQUIRE(surface2.isStrong() == false);
+  REQUIRE(surface2.getK1() == 1);
+  REQUIRE(surface2.getK2() == 2);
+  REQUIRE(surface.getStrength() == 1e-4);
+  REQUIRE(surface2.getUsesSurfaceNormal() == false);
+  REQUIRE(surface2.getEasyTilt() == 80);
+  REQUIRE(surface2.getEasyTwist() == 45);
+  easyAxis = qlc3d::Director::fromDegreeAngles(surface2.getEasyTilt(), surface2.getEasyTwist(), 0);
+  REQUIRE(easyAxis.vector().equals(surface2.getEasyVector(), 1e-15));
+
+  // Check degenerate anchoring surface - only check the relevant fields
+  auto surface3 = alignment->getSurface(3);
+  REQUIRE(surface3.getAnchoringType() == AnchoringType::Degenerate);
+  REQUIRE(surface3.isStrong() == false);
+  REQUIRE(surface3.getUsesSurfaceNormal() == true);
+  REQUIRE(surface3.getStrength() == 1e-4);
 }
