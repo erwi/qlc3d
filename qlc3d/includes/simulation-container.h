@@ -41,7 +41,7 @@ class SimulationContainer {
     std::shared_ptr<Electrodes> electrodes;
     std::shared_ptr<LC> lc;
     std::unique_ptr<Boxes> boxes;
-    std::unique_ptr<Alignment> alignment;
+    Alignment &alignment;
     std::unique_ptr<RegularGrid> regGrid;
     EventList &eventList;
 
@@ -72,9 +72,7 @@ class SimulationContainer {
     SimulationState &simulationState;
     SimulationAdaptiveTimeStep &adaptiveTimeStep;
 
-    // private methods
     double updateSolutions();
-    void adjustTimeStepSize();
 
 public:
     SimulationContainer(Configuration &config,

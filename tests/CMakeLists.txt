@@ -26,7 +26,8 @@ add_executable(cpp-test
         cpp/fe/gaussian-integration-tests.cpp
         cpp/lc/lc-solver-tests.cpp
         cpp/lc/lc-solver-tests.cpp
-        cpp/adaptive-time-step-tests.cpp)
+        cpp/adaptive-time-step-tests.cpp
+        cpp/alignment-tests.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 

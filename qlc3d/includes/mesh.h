@@ -66,6 +66,10 @@ public:
     }
 
     idx getMaterialNumber(const idx e) const;   // returns material number of element e
+    /**
+     * gets alignment layer number, i.e. FixLC 1, 2, 3... for the indexed triangle element.
+     * If the element is not an alignment layer, returns 0.
+     */
     idx getFixLCNumber(const idx e) const;  // gets alignment layer number, i.e. FixLC 1, 2, 3...
     idx getDielectricNumber(const idx e) const; // gets dielectric materials number, i.e. Dielectric 1, 2, 3 ....
 

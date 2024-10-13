@@ -262,20 +262,6 @@ public:
            values[3] * N(3);
   }
 
-  /*
-  [[nodiscard]] double sampleX(const double *values) const {
-    return values[0] * Nx(0) + values[1] * Nx(1) + values[2] * Nx(2) + values[3] * Nx(3);
-  }
-
-  //[[nodiscard]] double sampleY(const double *values) const {
-    return values[0] * Ny(0) + values[1] * Ny(1) + values[2] * Ny(2) + values[3] * Ny(3);
-  }
-
-  //[[nodiscard]] double sampleZ(const double *values) const {
-    return values[0] * Nz(0) + values[1] * Nz(1) + values[2] * Nz(2) + values[3] * Nz(3);
-  }
-  */
-
   template<typename Src>
   void sampleAll(const Src* source, double &v1, double &v2, double &v3, double &v4, double &v5) const {
     v1 = v2 = v3 = v4 = v5 = 0;
@@ -285,6 +271,26 @@ public:
       v3 += source[i][2] * N(i);
       v4 += source[i][3] * N(i);
       v5 += source[i][4] * N(i);
+    }
+  }
+
+  /*
+  void sample(const Vec3 &source, Vec3 &destination) const {
+    destination.set(0, 0, 0);
+    for (unsigned int i = 0; i < NPE; i++) {
+      destination.add(source.x() * N(i),
+                      source.y() * N(i),
+                      source.z() * N(i));
+    }
+  }
+   */
+
+  void sample(const Vec3 source[3], Vec3 &destination) const {
+    destination.set(0, 0, 0);
+    for (unsigned int i = 0; i < NPE; i++) {
+      destination.add(source[i].x() * N(i),
+                      source[i].y() * N(i),
+                      source[i].z() * N(i));
     }
   }
 

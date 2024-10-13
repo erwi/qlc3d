@@ -79,8 +79,8 @@ public:
     [[nodiscard]] inline idx getnDimensions() const { return nDimensions; }
     /** returns equivalent node to n (for periodic surfaces etc.) or max value (NOT_AN_INDEX) if node is fixed */
     [[nodiscard]] inline idx getEquNode(const idx n) const {
-#ifdef DEBUG
-assert(n< getnDoF()*getnDimensions());
+#ifndef NDEBUG
+assert(n < getnDoF() * getnDimensions());
 #endif
         if (!elim.empty()) {
           return elim.at(n);

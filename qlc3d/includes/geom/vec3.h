@@ -35,6 +35,20 @@ public:
     return z_;
   }
 
+  /** set x, y, z to new values */
+  void set(double x, double y, double z) {
+    x_ = x;
+    y_ = y;
+    z_ = z;
+  }
+
+  /** Increment x, y, z by given values */
+  void add(double dx, double dy, double dz) {
+    x_ += dx;
+    y_ += dy;
+    z_ += dz;
+  }
+
   /** get dimension dim where dim=0 is x, dim=1 is y, dim=2 = z else throws runtime error */
   [[nodiscard]] double getDimension(unsigned int dim) const {
     switch (dim) {

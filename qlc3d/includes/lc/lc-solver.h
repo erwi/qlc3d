@@ -2,6 +2,8 @@
 #define PROJECT_QLC3D_LC_SOLVER_H
 #include <memory>
 #include <fe/gaussian-quadrature.h>
+#include <alignment.h>
+
 class LC;
 class Simu;
 class SolverSettings;
@@ -38,6 +40,7 @@ struct LCSolverParams {
   double deleps;
   double dt;
   double u1;
+  double S0;
 };
 
 class ILCSolver {
@@ -51,6 +54,7 @@ class ImplicitLCSolver {
 protected:
   const LC &lc;
   const SolverSettings &solverSettings;
+  const Alignment &alignment;
   const bool isSymmetricMatrix;
   const bool isThreeElasticConstants;
 
@@ -66,7 +70,7 @@ protected:
    * Returns true/false depnding on whether converged to required tolerance
    */
   bool solveMatrixSystem(const SpaMtrix::IRCMatrix &Kmatrix, const SpaMtrix::Vector &r, SpaMtrix::Vector &x) const;
-  double maxAbs(const SpaMtrix::Vector &v) const;
+  [[nodiscard]] double maxAbs(const SpaMtrix::Vector &v) const;
 
   /**
    * This is a common local element matrix assembly used by both steady-state and time-stepping solvers. This assembles
@@ -86,11 +90,27 @@ protected:
                                  const Geometry &geom,
                                  const LCSolverParams &params);
 
-  void addToGlobalMatrix(double lK[20][20], double lL[20], const SolutionVector &q, const unsigned int tetNodes[4]);
+  void assembleLocalWeakAnchoringMatrix(unsigned int indTri, double lK[15][15], double lL[15],
+                                        unsigned int triNodes[3], unsigned int triDofs[3],
+                                        GaussianQuadratureTri<7> shapes, const SolutionVector &q,
+                                        const Geometry &geom, const Surface &surface,
+                                        double surfaceOrder);
+
+  /**
+   * Assemble the global matrix system from the local element matrices.
+   * @param lK local element matrix. The size of the matrix is 20x20 and 15x15 for 1st order tets and tris.
+   * @param lL local elemnt RHS vector. The size is 20 and 15 for 1st order tets and tris.
+   * @param q Q-tensor. Required only for its equivalent DoF mappings.
+   * @param elemNodes tet or triangle element nodes. Size is elemNodeCount.
+   * @param elemNodeCount number of nodes in the current element
+   */
+  void addToGlobalMatrix(double* lK, double* lL, const SolutionVector &q,
+                         const unsigned int* elemNodes, int elemNodeCount);
   void assembleMatrixSystemVolumeTerms(const SolutionVector &q, const SolutionVector &v, const Geometry &geom, const LCSolverParams &params);
+  void assembleMatrixSystemWeakAnchoring(const SolutionVector &q, const Geometry &geom, const LCSolverParams &params);
   void assembleMatrixSystem(const SolutionVector &q, const SolutionVector &v, const Geometry &geom, const LCSolverParams &params);
 public:
-  ImplicitLCSolver(const LC &lc, const SolverSettings &solverSettings);
+  ImplicitLCSolver(const LC &lc, const SolverSettings &solverSettings, const Alignment &alignment);
 };
 
 class SteadyStateLCSolver : public ILCSolver, protected ImplicitLCSolver {
@@ -107,7 +127,7 @@ protected:
 
 public:
   virtual ~SteadyStateLCSolver();
-  SteadyStateLCSolver(const LC &lc, const SolverSettings &solverSettings);
+  SteadyStateLCSolver(const LC &lc, const SolverSettings &solverSettings, const Alignment &alignment);
 
   LCSolverResult solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState) override;
 };
@@ -130,7 +150,7 @@ class TimeSteppingLCSolver : public ILCSolver, protected ImplicitLCSolver {
   void initialiseMatrixSystem(const SolutionVector &q, const Geometry &geom);
 
 public:
-  TimeSteppingLCSolver(const LC &lc, const SolverSettings &solverSettings, double maxError);
+  TimeSteppingLCSolver(const LC &lc, const SolverSettings &solverSettings, double maxError, const Alignment &alignment);
   ~TimeSteppingLCSolver() = default;
   LCSolverResult solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState) override;
 };

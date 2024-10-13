@@ -26,7 +26,7 @@ TEST_CASE("Create Directors by tilt, twist angles") {
         REQUIRE(n.nz() == Approx(1).margin(MARGIN));
     }
 
-    SECTION("tilt = 45 degees, twist = -45 degrees") {
+    SECTION("tilt = 45 degrees, twist = -45 degrees") {
         auto n = Director::fromDegreeAngles(45, -45, 1);
         REQUIRE(n.nx() == Approx(0.5).margin(MARGIN));
         REQUIRE(n.ny() == Approx(-0.5).margin(MARGIN));

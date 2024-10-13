@@ -1,8 +1,9 @@
 #ifndef ALIGNMENT_H
 #define ALIGNMENT_H
-#include<stdio.h>
-#include<vector>
-#include<string>
+#include <stdio.h>
+#include <vector>
+#include <string>
+#include <unordered_map>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -12,22 +13,22 @@
 class Vec3;
 enum AnchoringType {Strong = 0, Weak = 1, Homeotropic = 2,
                      Degenerate = 3, Freeze = 5, Polymerise = 6,
-                     ManualNodes = 7, AnchoringTypesCount};
+                     ManualNodes = 7, WeakHomeotropic = 8};
 
 /**The surface class represents a single FIXLC anchoring surface.*/
 class Surface {
 
 private:
-    const AnchoringType Type;
-    const double Strength;
-    const double K1;
-    const double K2;
-    const double easyAnglesDegrees[3];                     // Easy direction angles in degrees
-    const Vec3 v1 = {0, 0, 0};                       // First principal axis of anchoring
-    const Vec3 v2 = {0, 0, 0};                       // Second principal axis of anchoring
-    const Vec3 e = {0, 0, 0};                        // Easy direction vector
-    const bool overrideVolume;               // whether to override volumes at startup. This is set to true by default
-    const unsigned int fixLcNumber = 0;
+    AnchoringType Type;
+    double Strength;
+    double K1;
+    double K2;
+    double easyAnglesDegrees[3]{};                     // Easy direction angles in degrees
+    Vec3 v1 = {0, 0, 0};                       // First principal axis of anchoring
+    Vec3 v2 = {0, 0, 0};                       // Second principal axis of anchoring
+    Vec3 e = {0, 0, 0};                        // Easy direction vector
+    bool overrideVolume;               // whether to override volumes at startup. This is set to true by default
+    unsigned int fixLcNumber = 0;
 
     /**
     * Calculates v1 and v2 vectors given tilt and twist angles Rotation matrices are given in
@@ -49,9 +50,12 @@ public:
             const double easyAnglesDegrees[3],
             bool overrideVolume, unsigned int fixLcNumber);
 
+    //Surface(const Surface &s);
+
     [[nodiscard]] static Surface ofStrongAnchoring(unsigned int fixLcNumber, double tiltDegrees, double twistDegrees);
     [[nodiscard]] static Surface ofPlanarDegenerate(unsigned int fixLcNumber, double strength);
-    [[nodiscard]] static Surface ofHomeotropic(unsigned int fixLcNumber);
+    [[nodiscard]] static Surface ofStrongHomeotropic(unsigned int fixLcNumber);
+    [[nodiscard]] static Surface ofWeakHomeotropic(unsigned int fixLCNumber, double strength);
     [[nodiscard]] static Surface ofWeakAnchoring(unsigned int fixLcNumber,
                                                double tiltDegrees, double twistDegrees, double strength, double k1, double k2);
 
@@ -66,7 +70,7 @@ public:
   [[nodiscard]] const Vec3& getV2() const { return v2; }
   [[nodiscard]] const Vec3& getEasyVector() const { return e; }
 
-  [[nodiscard]] bool getUsesSurfaceNormal() const;
+  [[nodiscard]] bool usesSurfaceNormal() const;
   [[nodiscard]] bool isStrong() const;
   [[nodiscard]] bool getOverrideVolume() const { return overrideVolume; }
 
@@ -95,9 +99,10 @@ public:
     double getK2(int n);        // get K2 of FixLCn
 
     [[nodiscard]] int getnSurfaces() const;
-    [[nodiscard]] bool IsStrong(int n) const;       // is surface n strong?
+    [[nodiscard]] bool isStrong(int n) const;       // is surface n strong?
     [[nodiscard]] bool getUsesSurfaceNormal(int n) const; // if n uses surface normal instead of v1 and v2 ?
     [[nodiscard]] bool weakSurfacesExist() const;
     [[nodiscard]] bool hasSurface(unsigned int fixLcNumber) const;
+    [[nodiscard]] std::unordered_map<unsigned int, Surface> getWeakSurfacesByFixLcNumber() const;
 };
 #endif

@@ -1,6 +1,7 @@
 
 #include <catch.h>
 #include <test-util.h>
+#include <cstring>
 #include <reader.h>
 
 TEST_CASE("Environment variable substitution in settings file") {

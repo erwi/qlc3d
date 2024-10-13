@@ -780,6 +780,7 @@ void wk_localKL(
     double A = (K1 + K2) / (Ss * 6.0);
     double v1[3] = {0, 0, 0};
     double v2[3] = {0, 0, 0};
+    /*
     if (! alignment->getUsesSurfaceNormal(FixLCNumber)) { // if a non-degenerate surface
         v1[0] = * (alignment->getPtrTov1(FixLCNumber) + 0);
         v1[1] = * (alignment->getPtrTov1(FixLCNumber) + 1);
@@ -788,6 +789,7 @@ void wk_localKL(
         v2[1] = * (alignment->getPtrTov2(FixLCNumber) + 1);
         v2[2] = * (alignment->getPtrTov2(FixLCNumber) + 2);
     }
+     */
     memset(lK, 0, 15 * 15 * sizeof(double)); //SET LOCAL MATRICES TO ZERO
     memset(lL, 0, 15 * sizeof(double));
     for (int igp = 0; igp < ngps; igp++) {
@@ -987,7 +989,7 @@ void assemble_surfaces(
 #endif
     for (idx ie = 0 ; ie < e->getnElements() ; ie ++) {
         int FixLCNum = e->getFixLCNumber(ie); // gets FixLC number for surface element ie
-        if ((FixLCNum > 0) && (!alignment->IsStrong(FixLCNum - 1))) { // if alignment surface
+        if ((FixLCNum > 0) && (!alignment->isStrong(FixLCNum - 1))) { // if alignment surface
             double lK[15][15];
             double lL[15];
             wk_localKL(e , ie , q , lL , lK , FixLCNum , alignment, lc , nodeNormals);
@@ -1045,7 +1047,7 @@ void assembleQ(
     assemble_volumes(K, L, q,  v, t, coordinates, mat_par, dt);
     //SHOULD ADD CHECK TO WHETHER NEUMANN SURFACES ACTUALLY EXIST
     assemble_Neumann_surfaces(K, L, q, v, t, e, coordinates);
-    if (alignment->WeakSurfacesExist())   // if weak anchoring surfaces exist
+    if (alignment->weakSurfacesExist())   // if weak anchoring surfaces exist
         assemble_surfaces(K , L , q ,  e , mat_par ,  alignment, nodeNormals);
 }
 // end void assembleQ

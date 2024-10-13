@@ -30,10 +30,10 @@ public:
 
 class Electrode {
   unsigned int electrodeNumber;
-  std::vector<double> times;
-  std::vector<double> potentials;
+  std::vector<double> times_;
+  std::vector<double> potentials_;
 public:
-  Electrode(unsigned int electrodeNumber, std::vector<double> times, std::vector<double> potentials);
+  Electrode(unsigned int electrodeNumber, const std::vector<double> &times, const std::vector<double> &potentials);
   //:
   //  electrodeNumber(electrodeNumber),
   //  times(std::move(times)),

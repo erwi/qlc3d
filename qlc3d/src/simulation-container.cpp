@@ -36,7 +36,7 @@ SimulationContainer::SimulationContainer(Configuration &config,
         lcSolver(lcSolver),
         electrodes(nullptr),
         boxes(new Boxes()),
-        alignment(new Alignment()),
+        alignment(*config.getAlignment()),
         regGrid(new RegularGrid()),
         eventList(eventList),
         simulationState(simulationState),
@@ -82,10 +82,9 @@ void SimulationContainer::initialise() {
     createElectrodeSwitchingEvents(*electrodes, eventList);
 
     // read missing configuration from file. TODO: all parameters to be provided in Configuration, they should not be read in here
-    ReadSettings(configuration.settingsFile(),
-                 *boxes,
-                 *alignment,
-                 eventList);
+  ReadSettings(configuration.settingsFile(),
+               *boxes,
+               eventList);
 
     simulationState.change(0);
     simulationState.setCurrentTime(0);
@@ -116,7 +115,7 @@ void SimulationContainer::initialise() {
     prepareGeometry(geom_orig,
                     meshName,
                     *electrodes,
-                    *alignment,
+                    alignment,
                     simu->getStretchVector(),
                     simu->getRegularGridXCount(),
                     simu->getRegularGridYCount(),
@@ -147,7 +146,7 @@ void SimulationContainer::initialise() {
     q = SolutionVector(geom1.getnpLC(), 5);    //  Q-tensor for current time step
     qn = SolutionVector(geom1.getnpLC(), 5);   //  Q-tensor from previous time step
 
-    initialiseLcSolutionVector(q, *simu, *lc, *boxes.get(), *alignment, geom1);
+    initialiseLcSolutionVector(q, *simu, *lc, *boxes.get(), alignment, geom1);
 
     qn = q;  // q-previous = q-current in first iteration
 
@@ -169,7 +168,7 @@ void SimulationContainer::initialise() {
     handleInitialEvents(simulationState,
                         eventList,
                         *electrodes,
-                        *alignment,
+                        alignment,
                         *simu,
                         geometries,
                         solutionVectors,
@@ -250,7 +249,7 @@ void SimulationContainer::runIteration() {
 
   handleEvents(eventList,
                *electrodes,
-               *alignment,
+               alignment,
                *simu,
                simulationState,
                geometries,
@@ -292,86 +291,4 @@ double SimulationContainer::updateSolutions() {
     }
 
     return maxdq;
-}
-
-void SimulationContainer::adjustTimeStepSize() {
-  /*
-    if (simu->simulationMode() == SteadyState) {
-        return;
-    }
-    if (simulationState.currentIteration() == 1) { // no previous iteration to compare to, so keep initial time step size.
-      return;
-    }
-
-    // if electrode switching etc. has just happened, dont adapt time step this time
-    // but set switch to false to allow adjustment starting next step
-    if (simulationState.restrictedTimeStep()) { // TODO: this isn't happening at the moment. add it!
-        simulationState.restrictedTimeStep(false);
-        return;
-    }
-    double dt = simulationState.dt();
-
-
-    // INCREMENT CURRENT TIME BEFORE CHANGING TIME STEP SIZE
-    // dt SHOULD BE CORRECT HERE TO MAKE SURE THAT A TIME STEP
-    // COINCIDES WITH AN EVENT, IF ANY.
-
-    /// simu.IncrementCurrentTime();
-
-    // ADAPT TIME STEP ACCORDING TO CONVERGENCE
-
-    double R = simu->getTargetdQ() / fabs(maxdq);
-
-    double Rf[4];
-    simu->getdtFunction(&Rf[0]);
-
-    double Rmin = Rf[0]; // S = 0
-    double RLmin = Rf[1]; // S = R (min)
-    double RLmax = Rf[2]; // S = R (max)
-    double Rmax = Rf[3]; // S = 2
-
-    double Smax = 2;
-    double S = 1;
-
-    // LINEAR REGION
-    if ((R < RLmax) && (R > RLmin)) {
-        S = R;
-    } else
-        // BELOW LINEAR
-    if (R <= RLmin) {
-        double k = RLmin / (RLmin - Rmin);
-        double dR = (RLmin - R);
-        S = RLmin - k * dR;
-    } else if (R >= RLmax) {// above LINEAR
-        double k = (Smax - RLmax) / (Rmax - RLmax);
-        double dr = R - RLmax;
-        S = RLmax + k * dr;
-        if (S > Smax) S = Smax;
-    }
-
-    //Log::info("Scaling dt by {}.", S);
-    double newdt = dt * S;
-    if (newdt < simu->getMindt()) {
-      Log::info("limiting time step to min dt = {}", simu->getMindt());
-      newdt = simu->getMindt();
-    }
-    else if (newdt > simu->getMaxdt()) {
-      Log::info("limiting time step to max dt = {}", simu->getMaxdt());
-      newdt = simu->getMaxdt();
-    }
-
-    // make sure this time step size does not cause skipping an event
-    SimulationTime currentTime = simulationState.currentTime();
-    SimulationTime nextTime = SimulationTime(currentTime).increment(newdt);
-    SimulationTime nextEventTime = eventList->nextEventTime();
-
-    if (nextTime.greaterThan(nextEventTime)) { // would skip over next event
-        newdt = nextEventTime.getTime() - currentTime.getTime();
-        if (newdt < simu->getMindt()) {
-          Log::warn("dt={} is less than min dt to accommodate timing of next event.", newdt);
-        }
-    }
-
-    simulationState.dt(newdt);
-    */
 }

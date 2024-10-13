@@ -10,7 +10,7 @@
 // SET MAGIC CONSTANT FOR INDICATING UNIFORM ELECTRIC FIELD
 const size_t SwitchingInstance::UNIFORM_E_FIELD = numeric_limits<size_t>::max();
 
-Electrode::Electrode(unsigned int electrodeNumber, std::vector<double> times, std::vector<double> potentials) {
+Electrode::Electrode(unsigned int electrodeNumber, const std::vector<double> &times, const std::vector<double> &potentials) {
   this->electrodeNumber = electrodeNumber;
 
   if (times.size() != potentials.size()) {
@@ -18,20 +18,20 @@ Electrode::Electrode(unsigned int electrodeNumber, std::vector<double> times, st
   }
 
   if (times.empty()) {
-    this->times = {0};
-    this->potentials = {0};
+    this->times_ = {0};
+    this->potentials_ = {0};
   } else if (times[0] > 0) { // make sure we have a default potential and time for start time 0
     Log::warn("No potential defined for electrode {} at time 0. Adding default potential 0.", electrodeNumber);
-    this->times = {0};
-    this->potentials = {0};
+    this->times_ = {0};
+    this->potentials_ = {0};
   }
 
   if (!std::is_sorted(times.begin(), times.end())) {
     throw std::runtime_error(fmt::format("Times for electrode {} are not sorted.", electrodeNumber));
   }
 
-  for (auto t : times) { this->times.push_back(t); }
-  for (auto p : potentials) { this->potentials.push_back(p); }
+  for (auto t : times) { this->times_.push_back(t); }
+  for (auto p : potentials) { this->potentials_.push_back(p); }
 }
 
 double Electrode::getPotentialAtTime(double queryTime) const {
@@ -40,21 +40,21 @@ double Electrode::getPotentialAtTime(double queryTime) const {
   }
 
   // find index to first switching time equal or larger than provided time
-  auto itr = times.rbegin();
-  int ind = times.size() - 1;
-  while (itr != times.rend()) {
+  auto itr = times_.rbegin();
+  int ind = times_.size() - 1;
+  while (itr != times_.rend()) {
     if (*itr <= queryTime) {
-      return potentials[ind];
+      return potentials_[ind];
     }
     ind--;
     itr++;
   }
-  RUNTIME_ERROR(fmt::format("Trying to access electrode potential at time {} when only potentials for times {} exist.", queryTime, times));
+  RUNTIME_ERROR(fmt::format("Trying to access electrode potential at time {} when only potentials for times {} exist.", queryTime, times_));
 }
 
 std::vector<Event*> Electrode::createSwitchingEvents() const {
   std::vector<Event*> events;
-  for (double time : times) {
+  for (double time : times_) {
     SwitchingInstance* si = new SwitchingInstance(time, getPotentialAtTime(time), electrodeNumber);
 
     events.emplace_back(new Event(EVENT_SWITCHING, time, si));

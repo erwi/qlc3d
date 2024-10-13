@@ -100,6 +100,7 @@ void readAlignment(Alignment& alignment, Reader& reader) {
             string paramsKey = wildcardToNum(SFK_FIXLC_PARAMS, i);
             string overrideVolumeKey = wildcardToNum(SFK_FIXLC_OVERRIDE_VOLUME, i);
             // add surface to collection of surfaces
+            /*
             alignment.addSurface(i,
                                  reader.get<string>(anchoringKey, Surface::DEFAULT_ANCHORING_TYPE),
                                  reader.get<double>(strengthKey, Surface::DEFAULT_ANCHORING_STRENGTH),
@@ -108,6 +109,7 @@ void readAlignment(Alignment& alignment, Reader& reader) {
                                  reader.get<double>(k2Key, Surface::DEFAULT_ANCHORING_K2),
                                  reader.get<vector<double>>(paramsKey, Surface::DEFAULT_ANCHORING_PARAMS),
                                  reader.get<bool>(overrideVolumeKey, Surface::DEFAULT_ANCHORING_OVERRIDE_VOLUME));
+            */
         }
     }
 } //end void readAlignment
@@ -302,10 +304,7 @@ void readSolverSettings(SolverSettings &settings, Reader &reader) {
 } // end readSolverSettings
 
 
-void ReadSettings(const std::filesystem::path &settingsFileName,
-                  Boxes &boxes,
-                  Alignment &alignment,
-                  EventList &eventList) {
+void ReadSettings(const std::filesystem::path &settingsFileName, Boxes &boxes, EventList &eventList) {
     Reader reader;
     reader.setCaseSensitivity(false);
     reader.setEnvironmentVariableSubstitution(true);
@@ -317,7 +316,6 @@ void ReadSettings(const std::filesystem::path &settingsFileName,
         // TODO: work in progress, removing all the reading in this file and pass in the config objects to the app
         // as arguments
         readBoxes(boxes, reader);
-        readAlignment(alignment, reader);
         //readElectrodes( electrodes, eventList, reader);
     } catch (ReaderError e) {
         e.printError();

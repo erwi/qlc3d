@@ -117,8 +117,8 @@ TEST_CASE("Initial LC surface orientations") {
   }
 
   SECTION("Strong homeotropic anchoring") {
-    alignment.addSurface(Surface::ofHomeotropic(1));
-    alignment.addSurface(Surface::ofHomeotropic(2));
+    alignment.addSurface(Surface::ofStrongHomeotropic(1));
+    alignment.addSurface(Surface::ofStrongHomeotropic(2));
     prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
     SolutionVector q(geom.getnpLC(), 5);
     // ACT

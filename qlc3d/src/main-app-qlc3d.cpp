@@ -52,8 +52,8 @@ int runSimulation(Configuration &configuration) {
     std::shared_ptr<PotentialSolver> potentialSolver = std::make_shared<PotentialSolver>(electrodes, lc, solverSettings);
 
     unique_ptr<ILCSolver> lcSolver = simu->simulationMode() == SteadyState ?
-                                     unique_ptr<ILCSolver>(new SteadyStateLCSolver(*lc, *solverSettings)) :
-                                     unique_ptr<ILCSolver>(new TimeSteppingLCSolver(*lc, *solverSettings, simu->getMaxError()));
+                                     unique_ptr<ILCSolver>(new SteadyStateLCSolver(*lc, *solverSettings, *configuration.getAlignment())) :
+                                     unique_ptr<ILCSolver>(new TimeSteppingLCSolver(*lc, *solverSettings, simu->getMaxError(), *configuration.getAlignment()));
     EventList eventList;
     SimulationState simulationState;
 

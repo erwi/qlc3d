@@ -279,7 +279,7 @@ void SettingsReader::readAlignment(Reader &reader) {
             assertTrue(easyAngles.size() == 2 || easyAngles.size() == 3, keyBase + " easy angles should have 2 or 3 components, got " + std::to_string(easyAngles.size()));
             alignment_->addSurface(Surface::ofStrongAnchoring(i, easyAngles[0], easyAngles[1]));
           } else if (type == "homeotropic") {
-            alignment_->addSurface(Surface::ofHomeotropic(i));
+            alignment_->addSurface(Surface::ofStrongHomeotropic(i));
           } else if (type == "weak") {
             auto easyAngles = reader.getValueByKey<std::vector<double>>(keyBase + ".Easy");
             assertTrue(easyAngles.size() == 2 || easyAngles.size() == 3, keyBase + " easy angles should have 2 or 3 components, got " + std::to_string(easyAngles.size()));
@@ -289,8 +289,17 @@ void SettingsReader::readAlignment(Reader &reader) {
             alignment_->addSurface(Surface::ofWeakAnchoring(i, easyAngles[0], easyAngles[1], strength, k1, k2));
           } else if (type == "degenerate") {
             auto strength = reader.getValueByKey<double>(keyBase + ".Strength");
-            alignment_->addSurface(Surface::ofPlanarDegenerate(i, strength));
-          } else {
+            if (strength >= 0) {
+              alignment_->addSurface(Surface::ofPlanarDegenerate(i, strength));
+            } else {
+              alignment()->addSurface(Surface::ofWeakHomeotropic(i, -strength));
+            }
+          } else if (type == "weakhomeotropic") {
+            auto strength = reader.getValueByKey<double>(keyBase + ".Strength");
+            alignment_->addSurface(Surface::ofWeakHomeotropic(i, strength));
+          }
+
+          else {
             throw ReaderError("Invalid anchoring type: " + type, fileName_.string() + ". This may be a typo in the settings file or it has not yet been implemented");
           }
         }

@@ -297,9 +297,7 @@ TEST_CASE("Read alignment from settings file") {
   // add case for degenerate anchoring
   contents += "FIXLC4.Anchoring = Degenerate\n";
   contents += "FIXLC4.strength = 1e-4\n";
-  //contents += "FIXLC4.Easy = [80.0000, 45.0000, 0.0000]\n";
-  //contents += "FIXLC4.K1 = 1.0000\n";
-  //contents += "FIXLC4.K2 = 2.0000\n";
+
 
   auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
 
@@ -309,40 +307,9 @@ TEST_CASE("Read alignment from settings file") {
 
   REQUIRE(alignment->getnSurfaces() == 4);
 
-  // Check strong anchoring surface - only check the relevant fields
-  auto surface = alignment->getSurface(0);
-  REQUIRE(surface.getAnchoringType() == AnchoringType::Strong);
-  REQUIRE(surface.isStrong() == true);
-  REQUIRE(surface.getUsesSurfaceNormal() == false);
-  REQUIRE(surface.getEasyTilt() == 80);
-  REQUIRE(surface.getEasyTwist() == 45);
-  qlc3d::Director easyAxis = qlc3d::Director::fromDegreeAngles(surface.getEasyTilt(), surface.getEasyTwist(), 0);
-  REQUIRE(easyAxis.vector().equals(surface.getEasyVector(), 1e-15));
-
-
-  // Check homeotropic anchoring surface - only check the relevant fields
-  auto surface1 = alignment->getSurface(1);
-  REQUIRE(surface1.getAnchoringType() == AnchoringType::Homeotropic);
-  REQUIRE(surface1.isStrong() == true);
-  REQUIRE(surface1.getUsesSurfaceNormal() == true);
-
-  // Check weak anchoring surface - only check the relevant fields
-  auto surface2 = alignment->getSurface(2);
-  REQUIRE(surface2.getAnchoringType() == AnchoringType::Weak);
-  REQUIRE(surface2.isStrong() == false);
-  REQUIRE(surface2.getK1() == 1);
-  REQUIRE(surface2.getK2() == 2);
-  REQUIRE(surface.getStrength() == 1e-4);
-  REQUIRE(surface2.getUsesSurfaceNormal() == false);
-  REQUIRE(surface2.getEasyTilt() == 80);
-  REQUIRE(surface2.getEasyTwist() == 45);
-  easyAxis = qlc3d::Director::fromDegreeAngles(surface2.getEasyTilt(), surface2.getEasyTwist(), 0);
-  REQUIRE(easyAxis.vector().equals(surface2.getEasyVector(), 1e-15));
-
-  // Check degenerate anchoring surface - only check the relevant fields
-  auto surface3 = alignment->getSurface(3);
-  REQUIRE(surface3.getAnchoringType() == AnchoringType::Degenerate);
-  REQUIRE(surface3.isStrong() == false);
-  REQUIRE(surface3.getUsesSurfaceNormal() == true);
-  REQUIRE(surface3.getStrength() == 1e-4);
+  // Check that the correct types were added. Other properties are tested in the Surface class tests
+  REQUIRE(alignment->getSurface(0).getAnchoringType() == AnchoringType::Strong);
+  REQUIRE(alignment->getSurface(1).getAnchoringType() == AnchoringType::Homeotropic);
+  REQUIRE(alignment->getSurface(2).getAnchoringType() == AnchoringType::Weak);
+  REQUIRE(alignment->getSurface(3).getAnchoringType() == AnchoringType::Degenerate);
 }

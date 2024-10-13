@@ -44,11 +44,11 @@ void setStrongSurfacesQ(SolutionVector &q,
 
         if (!indSurfaceNodes.empty()) { // if nodes found
           // get type of current surface
-            AnchoringType aType = alignment.surface[i]->getAnchoringType();
+            AnchoringType aType = alignment.surface[i].getAnchoringType();
             // depending on type, do different things...
             if (aType == Strong) {
-                double tilt = alignment.surface[i]->getEasyTilt();
-                double twist= alignment.surface[i]->getEasyTwist();
+                double tilt = alignment.surface[i].getEasyTilt();
+                double twist= alignment.surface[i].getEasyTwist();
                 setGlobalAngles(q, S0, tilt, twist, indSurfaceNodes);
             }
             else if (aType == Homeotropic) {
@@ -63,7 +63,7 @@ void setStrongSurfacesQ(SolutionVector &q,
 //end void setStrongSurfaces
 
 
-void setManualNodesAnchoring(SolutionVector &q, double S0, Surface& surf){
+void setManualNodesAnchoring(SolutionVector &q, double S0, const Surface& surf){
     double tilt = surf.getEasyTilt();
     double twist = surf.getEasyTwist();
 
@@ -86,7 +86,7 @@ void setSurfacesQ(SolutionVector &q, const Alignment &alignment, double S0,  con
   // loop over all surfaces loaded from settings file
   for (int i = 0 ; i < alignment.getnSurfaces() ; i++) {
     const Surface &surf = alignment.getSurface(i);
-    Log::info(" Setting surface {}", surf.toString());
+    Log::info("Setting surface {}", surf.toString());
 
     if (!surf.getOverrideVolume()) {
       Log::info("not setting initial orientation for FixLC{} because overrideVolume is false", i + 1);
@@ -103,7 +103,7 @@ void setSurfacesQ(SolutionVector &q, const Alignment &alignment, double S0,  con
                                   "FIXLC number that is present in the mesh. First available surface for this type is FIXLC{}",
                                   i + 1, alignment.getnSurfaces() + 1));
       }
-      setManualNodesAnchoring(q, S0, *(alignment.surface[i]));
+      setManualNodesAnchoring(q, S0, alignment.surface[i]);
       continue;
     }
     //
@@ -116,13 +116,14 @@ void setSurfacesQ(SolutionVector &q, const Alignment &alignment, double S0,  con
       if (aType == Strong ||
           aType == Weak ||
           (aType == Degenerate && strength >= 0)) {
-        double tilt = alignment.surface[i]->getEasyTilt();
-        double twist= alignment.surface[i]->getEasyTwist();
+        double tilt = alignment.surface[i].getEasyTilt();
+        double twist= alignment.surface[i].getEasyTwist();
         setGlobalAngles(q, S0, tilt, twist, indSurfaceNodes);
       }
         // if homeotropic OR degenerate with negative strength
-      else if ((aType == Homeotropic) ||
-               ((aType == Degenerate) && (strength < 0))) {
+      else if (aType == Homeotropic ||
+               (aType == Degenerate && strength < 0) ||
+               aType == WeakHomeotropic) {
         setHomeotropic(q, S0, indSurfaceNodes, geom);
       }
       else if (aType == Freeze) {
