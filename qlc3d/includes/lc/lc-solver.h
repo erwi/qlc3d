@@ -27,6 +27,7 @@ struct LCSolverResult {
   const unsigned int iterations;
   const double dq;
   const bool converged;
+  const bool maxIterationsReached;
 };
 
 struct LCSolverParams {
@@ -138,6 +139,7 @@ public:
  */
 class TimeSteppingLCSolver : public ILCSolver, protected ImplicitLCSolver {
   const double maxError;
+  const int maxNewtonIterations;
   /** Mass matrix, required by implicit time stepping */
   std::unique_ptr<SpaMtrix::IRCMatrix> M;
   /** Q-tensor at previous time step */
@@ -150,7 +152,7 @@ class TimeSteppingLCSolver : public ILCSolver, protected ImplicitLCSolver {
   void initialiseMatrixSystem(const SolutionVector &q, const Geometry &geom);
 
 public:
-  TimeSteppingLCSolver(const LC &lc, const SolverSettings &solverSettings, double maxError, const Alignment &alignment);
+  TimeSteppingLCSolver(const LC &lc, const SolverSettings &solverSettings, double maxError, const Alignment &alignment, int maxNewtonIterations);
   ~TimeSteppingLCSolver() = default;
   LCSolverResult solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState) override;
 };

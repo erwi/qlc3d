@@ -117,7 +117,7 @@ TEST_CASE("Create Solver") {
   SteadyStateLCSolver solver(*lc, *settings, alignment);
 }
 
-TEST_CASE("Relax elastic distortions with strong anchoring") {
+TEST_CASE("[SteadyState] Relax elastic distortions with strong anchoring") {
   // ARRANGE
   // Set up LC with uniform distortion with -45 degrees tilt at bottom and +45 degrees tilt at top
   // Apply no electric field. Anchoring is trong on both top and bottom surfaces.
@@ -207,7 +207,7 @@ TEST_CASE("Relax elastic distortions with strong anchoring") {
   }
 }
 
-TEST_CASE("Relax elastic distortions with weak anchoring") {
+TEST_CASE("[SteadyState] Relax elastic distortions with weak anchoring") {
   // ARRANGE
   // Set up LC with uniform distortion with -45 degrees tilt at bottom and +45 degrees tilt at top
   // Apply no electric field. Anchoring is weak on both top and bottom surfaces.
@@ -264,7 +264,7 @@ TEST_CASE("Relax elastic distortions with weak anchoring") {
   REQUIRE(R == Approx(1).margin(1e-3));
 }
 
-TEST_CASE("Relax elastic distortions with weak homeotropic anchoring") {
+TEST_CASE("[SteadyState] Relax elastic distortions with weak homeotropic anchoring") {
   auto lc = std::unique_ptr<LC>(LCBuilder()
                                         .K11(1e-11)
                                         .K22(1e-11)
@@ -295,7 +295,7 @@ TEST_CASE("Relax elastic distortions with weak homeotropic anchoring") {
   Log::info("topDir={}, tilt={}, twist={}", topDir.vector(), topDir.tiltDegrees(), topDir.twistDegrees());
 }
 
-TEST_CASE("Relax elastic distortions with planar degenerate anchoring") {
+TEST_CASE("[SteadyState] Relax elastic distortions with planar degenerate anchoring") {
   auto lc = std::unique_ptr<LC>(LCBuilder()
                                         .K11(1e-11)
                                         .K22(1e-11)
@@ -315,19 +315,18 @@ TEST_CASE("Relax elastic distortions with planar degenerate anchoring") {
   SolutionVector &v = *data.v;
   Geometry &geom = *data.geom;
 
-  vtkIOFun::UnstructuredGridWriter writer;
-  writer.write("/home/eero/Desktop/before.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
+  //vtkIOFun::UnstructuredGridWriter writer;
+  //writer.write("/home/eero/Desktop/before.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
 
   // ACT
   steadyStateSolve(*lc, alignment, q, v, geom, 100);
-  writer.write("/home/eero/Desktop/after.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
+  //writer.write("/home/eero/Desktop/after.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
 
   auto topDir = findDirectorAtZ(geom, q, 1);
   Log::info("topDir={}, tilt={}, twist={}", topDir.vector(), topDir.tiltDegrees(), topDir.twistDegrees());
 }
 
-
-TEST_CASE("Steady state switching with applied potential and three elastic constants") {
+TEST_CASE("[SteadyState] Electric switching with applied potential and three elastic constants") {
   // ARRANGE
   // Solve for steady state switching with uniform e-field. The expected mid-plane tilt angle is
   // assumed to be correct, determined at a time when the "examples/steady-state-switching-1d" example
@@ -419,7 +418,7 @@ TEST_CASE("Steady state switching with applied potential and three elastic const
   REQUIRE(maxTilt == Approx(expectedMidTilt).margin(1e-6));
 }
 
-TEST_CASE("Switching dynamics with applied potential and three elastic constants") {
+TEST_CASE("[Dynamic] Switching dynamics with applied potential and three elastic constants") {
   // ARRANGE
   // Solve for steady state switching with uniform e-field. The expected mid-plane tilt angle is
   // assumed to be correct, determined at a time when the "examples/steady-state-switching-1d" example
@@ -482,7 +481,7 @@ TEST_CASE("Switching dynamics with applied potential and three elastic constants
   auto solverSettings = std::make_shared<SolverSettings>();
   solverSettings->setV_GMRES_Toler(1e-9);
 
-  TimeSteppingLCSolver solver(*lc, *solverSettings, 1e-6, alignment);
+  TimeSteppingLCSolver solver(*lc, *solverSettings, 1e-6, alignment, 10);
 
   // ACT
   // solve to tolerance of 1e-9
@@ -494,4 +493,85 @@ TEST_CASE("Switching dynamics with applied potential and three elastic constants
   REQUIRE(solverResult.solverType == LCSolverType::TIME_STEPPING);
   REQUIRE(solverResult.converged == true);
   REQUIRE(solverResult.iterations <= 8);
+  REQUIRE(solverResult.maxIterationsReached == false);
 }
+
+TEST_CASE("[Dynamic] Abort Newton iterations if convergence is not reached") {
+  // ARRANGE
+  // Solve for steady state switching with uniform e-field. The expected mid-plane tilt angle is
+  // assumed to be correct, determined at a time when the "examples/steady-state-switching-1d" example
+  // is giving good agreement between qlc3d and lc3k results.
+  auto lc = std::shared_ptr<LC>(LCBuilder()
+                                        .K11(6.2e-12)
+                                        .K22(3.9e-12)
+                                        .K33(8.2e-12)
+                                        .A(-0.0867e5)
+                                        .B(-2.133e6)
+                                        .C(1.733e6)
+                                        .eps_par(18.5)
+                                        .eps_per(7.0)
+                                        .build());
+
+  Geometry geom;
+  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {0, 0});
+  // Set LC director to uniform vertical direction
+  const int maxNewtonIterations = 3;
+  const double expectedMidTilt = 84.470529;
+  const double bottomTilt = 5;
+  const double midTilt = expectedMidTilt - bottomTilt;
+  const double twistDegrees = 0;
+
+  Alignment alignment;
+  alignment.addSurface(Surface::ofStrongAnchoring(1, bottomTilt, twistDegrees));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, bottomTilt, twistDegrees));
+
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, alignment, {1, 1, 1});
+
+  const double topPotential = 2;
+  SolutionVector v(geom.getnp(), 1);
+  v.allocateFixedNodesArrays(geom);
+  v.setPeriodicEquNodes(geom);
+  v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
+
+  SolutionVector q(geom.getnpLC(), 5);
+  SolutionVector qn(geom.getnpLC(), 5);
+
+  // set volume orientation
+  for (idx i = 0; i < geom.getnpLC(); i++) {
+    Vec3 p = geom.getCoordinates().getPoint(i);
+    double tiltDegrees = bottomTilt + midTilt * p.z() * (1 - p.z()) * 4;
+    auto director = qlc3d::Director::fromDegreeAngles(tiltDegrees, twistDegrees, lc->S0());
+    q.setValue(i, director);
+
+    // set potential to a uniform e-field
+    double pot = p.z() * topPotential;
+    v.setValue(i, 0, pot);
+  }
+
+  setSurfacesQ(q, alignment, lc->S0(), geom);
+
+  q.setFixedNodesQ(alignment, geom.getTriangles());
+  q.setPeriodicEquNodes(geom);
+  q.EnforceEquNodes(geom);
+
+  SimulationState simulationState;
+  simulationState.dt(1e-4);
+
+  auto solverSettings = std::make_shared<SolverSettings>();
+  solverSettings->setV_GMRES_Toler(1e-9);
+
+  TimeSteppingLCSolver solver(*lc, *solverSettings, 1e-6, alignment, maxNewtonIterations);
+
+  // ACT
+  // solve to tolerance of 1e-9
+  auto solverResult = solver.solve(q, v, geom, simulationState);
+
+  // ASSERT
+  // Solver should have converged to required tolerance in given number of iterations. Required number of iterations
+  // is observation and may change with changes to the solver.
+  REQUIRE(solverResult.solverType == LCSolverType::TIME_STEPPING);
+  REQUIRE(solverResult.converged == true);
+  REQUIRE(solverResult.iterations == maxNewtonIterations);
+  REQUIRE(solverResult.maxIterationsReached == true);
+}
+

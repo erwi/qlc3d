@@ -53,7 +53,7 @@ int runSimulation(Configuration &configuration) {
 
     unique_ptr<ILCSolver> lcSolver = simu->simulationMode() == SteadyState ?
                                      unique_ptr<ILCSolver>(new SteadyStateLCSolver(*lc, *solverSettings, *configuration.getAlignment())) :
-                                     unique_ptr<ILCSolver>(new TimeSteppingLCSolver(*lc, *solverSettings, simu->getMaxError(), *configuration.getAlignment()));
+                                     unique_ptr<ILCSolver>(new TimeSteppingLCSolver(*lc, *solverSettings, simu->getMaxError(), *configuration.getAlignment(), solverSettings->getQ_Newton_Panic_Iter()));
     EventList eventList;
     SimulationState simulationState;
 

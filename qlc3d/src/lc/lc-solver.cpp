@@ -289,7 +289,13 @@ LCSolverResult SteadyStateLCSolver::solve(SolutionVector &q, const SolutionVecto
   // q(m+1) = q(m) - dq(m)
   q.incrementFreeDofs(*X, -1.0); // decrement the result of the solver from the Q-tensor
 
-  return {LCSolverType::STEADY_STATE, 1, maxAbs(*X), solverConverged};
+  return {
+    LCSolverType::STEADY_STATE,
+    1,
+    maxAbs(*X),
+    solverConverged,
+    false // only a single iteration is always run
+  };
 }
 
 void SteadyStateLCSolver::initialiseMatrixSystem(const SolutionVector &q, const Geometry &geom, double dt) {
@@ -307,9 +313,10 @@ void SteadyStateLCSolver::initialiseMatrixSystem(const SolutionVector &q, const 
 
 // <editor-fold TimeSteppingLCSolver>
 
-TimeSteppingLCSolver::TimeSteppingLCSolver(const LC &lc, const SolverSettings &solverSettings, double maxError, const Alignment &alignment) :
-ImplicitLCSolver(lc, solverSettings, alignment), maxError(maxError) {
-  Log::info("Creating time stepping solver for Q-tensor, isTreeElasticConstants={}, isSymmetricMatrix={}", isThreeElasticConstants, isSymmetricMatrix);
+TimeSteppingLCSolver::TimeSteppingLCSolver(const LC &lc, const SolverSettings &solverSettings, double maxError, const Alignment &alignment, int maxNewtonIterations) :
+ImplicitLCSolver(lc, solverSettings, alignment), maxError(maxError), maxNewtonIterations(maxNewtonIterations) {
+  Log::info("Creating time stepping solver for Q-tensor, isTreeElasticConstants={}, isSymmetricMatrix={}, maxNewtonIterations={}",
+            isThreeElasticConstants, isSymmetricMatrix, maxNewtonIterations);
 }
 
 bool isFixedNode(idx i) {
@@ -461,7 +468,7 @@ LCSolverResult TimeSteppingLCSolver::solve(SolutionVector &q, const SolutionVect
 
   const double timeMultiplier = 2. * params.u1 / params.dt;
   bool solverConverged = true;
-  string message = "Newton iterations: {}";
+
   do {
     q.copyFreeDofsTo(q2); // make sure q2 is updated with the latest q values from previous iteration
     assembleMatrixSystem(q, v, geom, params); // updates K and L using q2
@@ -474,20 +481,27 @@ LCSolverResult TimeSteppingLCSolver::solve(SolutionVector &q, const SolutionVect
 
     // X = K^-1 * r
     solverConverged = solverConverged && solveMatrixSystem(*K, r, *X);
-
-    // q(m+1) = q(m) - dq(m)
-    q.incrementFreeDofs(*X, -1.0); // decrement the result of the solver from the Q-tensor
     maxDq = maxAbs(*X);
+
     if (iter == 0) {
       firstDq = maxDq;
       Log::enableInfoNewline(false);
       Log::info("Newton iterations. dQ={:.4e}", maxDq);
     } else {
-      Log::append_info(", {:.4e}", maxDq);
+      Log::append_info(",{} {:.4e}", iter == maxNewtonIterations ? "|" : "", maxDq);
     }
+
+    // q(m+1) = q(m) - dq(m)
+    q.incrementFreeDofs(*X, -1); // decrement the result of the solver from the Q-tensor
+
     iter++;
-  } while (maxDq > maxError);
+
+  } while (maxDq > maxError && iter < maxNewtonIterations);
   Log::enableInfoNewline(true);
+
+  if (iter >= maxNewtonIterations) {
+    Log::warn("Newton iterations: max iterations {} reached", maxNewtonIterations);
+  }
 
   // save RHS vector for next time step
   *f_prev = *L;
@@ -499,6 +513,11 @@ LCSolverResult TimeSteppingLCSolver::solve(SolutionVector &q, const SolutionVect
   double maxDqdt = maxAbs(*dqdt);
   Log::append_info(". dQ/dt={:.4e}", maxDqdt);
 
-  return {LCSolverType::TIME_STEPPING, iter, firstDq, solverConverged};
+  return {
+    LCSolverType::TIME_STEPPING,
+    iter,
+    firstDq,
+    solverConverged,
+    iter >= maxNewtonIterations};
 }
 // </editor-fold>
