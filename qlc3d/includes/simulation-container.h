@@ -72,7 +72,7 @@ class SimulationContainer {
     SimulationState &simulationState;
     SimulationAdaptiveTimeStep &adaptiveTimeStep;
 
-    double updateSolutions();
+    LCSolverResult updateSolutions();
 
 public:
     SimulationContainer(Configuration &config,

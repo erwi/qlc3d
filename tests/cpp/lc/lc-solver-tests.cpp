@@ -165,15 +165,6 @@ TEST_CASE("[SteadyState] Relax elastic distortions with strong anchoring") {
   solverSettings->setV_GMRES_Toler(1e-9);
   SteadyStateLCSolver solver(*lc, *solverSettings, alignment);
 
-  //vtkIOFun::UnstructuredGridWriter writer;
-  //writer.write("/home/eero/Desktop/before.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
-
-  //LcViewBinaryResultFormatWriter writer("/home/eero/Desktop", "meshout.msh", lc->S0());
-  //writer.setPotential(v);
-  //writer.setQTensor(q);
-  //writer.writeResult(geom, simulationState);
-
-
   // ACT
   // solve to tolerance of 1e-9
   int iter = 0;
@@ -189,6 +180,8 @@ TEST_CASE("[SteadyState] Relax elastic distortions with strong anchoring") {
     REQUIRE(solverResult.converged);
     REQUIRE(solverResult.solverType == LCSolverType::STEADY_STATE);
     REQUIRE(solverResult.iterations == 1);
+    REQUIRE(solverResult.elapsedTimes.solveTimeSeconds > 0);
+    REQUIRE(solverResult.elapsedTimes.assemblyTimeSeconds > 0);
   }
 
   //writer.write("/home/eero/Desktop/after.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
@@ -573,5 +566,7 @@ TEST_CASE("[Dynamic] Abort Newton iterations if convergence is not reached") {
   REQUIRE(solverResult.converged == true);
   REQUIRE(solverResult.iterations == maxNewtonIterations);
   REQUIRE(solverResult.maxIterationsReached == true);
+  REQUIRE(solverResult.elapsedTimes.solveTimeSeconds > 0);
+  REQUIRE(solverResult.elapsedTimes.assemblyTimeSeconds > 0);
 }
 

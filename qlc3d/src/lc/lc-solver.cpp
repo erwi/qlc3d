@@ -16,6 +16,7 @@
 #include <spamtrix_blas.hpp>
 #include <util/logging.h>
 #include <util/exception.h>
+#include "util/stopwatch.h"
 
 // <editor-fold ImplicitLCSolver>
 ImplicitLCSolver::ImplicitLCSolver(const LC &lc, const SolverSettings &solverSettings, const Alignment &alignment) : lc(lc),
@@ -281,10 +282,17 @@ LCSolverResult SteadyStateLCSolver::solve(SolutionVector &q, const SolutionVecto
 
   LCSolverParams params = {A, B, C, L1, L2, L3, L6, deleps, simulationState.dt(), 0, lc.S0()}; // todo: this is replication
 
+  Stopwatch assemblyStopwatch;
+  Stopwatch solverStopwatch;
+
+  assemblyStopwatch.start();
   assembleMatrixSystem(q, v, geom, params);
+  assemblyStopwatch.stop();
 
   // X = K^-1 * r
+  solverStopwatch.start();
   bool solverConverged = solveMatrixSystem(*K, *L, *X);
+  solverStopwatch.stop();
 
   // q(m+1) = q(m) - dq(m)
   q.incrementFreeDofs(*X, -1.0); // decrement the result of the solver from the Q-tensor
@@ -294,7 +302,8 @@ LCSolverResult SteadyStateLCSolver::solve(SolutionVector &q, const SolutionVecto
     1,
     maxAbs(*X),
     solverConverged,
-    false // only a single iteration is always run
+    false, // only a single iteration is always run
+    {assemblyStopwatch.elapsedSeconds(), solverStopwatch.elapsedSeconds()}
   };
 }
 
@@ -469,8 +478,13 @@ LCSolverResult TimeSteppingLCSolver::solve(SolutionVector &q, const SolutionVect
   const double timeMultiplier = 2. * params.u1 / params.dt;
   bool solverConverged = true;
 
+  Stopwatch assemblyStopwatch;
+  Stopwatch solverStopwatch;
+
   do {
     q.copyFreeDofsTo(q2); // make sure q2 is updated with the latest q values from previous iteration
+
+    assemblyStopwatch.start();
     assembleMatrixSystem(q, v, geom, params); // updates K and L using q2
 
     if (isFirstRun) {
@@ -479,8 +493,12 @@ LCSolverResult TimeSteppingLCSolver::solve(SolutionVector &q, const SolutionVect
     }
     modifySystemForTimeStepping(r, *K, *q1, q2, *f_prev, *L, *M, timeMultiplier);
 
+    assemblyStopwatch.stop();
+
     // X = K^-1 * r
+    solverStopwatch.start();
     solverConverged = solverConverged && solveMatrixSystem(*K, r, *X);
+    solverStopwatch.stop();
     maxDq = maxAbs(*X);
 
     if (iter == 0) {
@@ -518,6 +536,8 @@ LCSolverResult TimeSteppingLCSolver::solve(SolutionVector &q, const SolutionVect
     iter,
     firstDq,
     solverConverged,
-    iter >= maxNewtonIterations};
+    iter >= maxNewtonIterations,
+    {assemblyStopwatch.elapsedSeconds(), solverStopwatch.elapsedSeconds()}
+  };
 }
 // </editor-fold>

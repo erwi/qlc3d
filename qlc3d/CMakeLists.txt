@@ -64,6 +64,7 @@ add_library(lib-qlc3d STATIC
         includes/simulation-time.h
         includes/simulation-adaptive-time-step.h
         src/simulation-adaptive-time-step.cpp
+        includes/util/stopwatch.h
 )
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 set_target_properties(lib-qlc3d PROPERTIES CXX_STANDARD 17)

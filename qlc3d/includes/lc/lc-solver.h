@@ -22,13 +22,21 @@ enum class LCSolverType {
   TIME_STEPPING
 };
 
+struct ElapsedTimes {
+  const double assemblyTimeSeconds;
+  const double solveTimeSeconds;
+};
+
+
 struct LCSolverResult {
   const LCSolverType solverType;
   const unsigned int iterations;
   const double dq;
   const bool converged;
   const bool maxIterationsReached;
+  const ElapsedTimes elapsedTimes;
 };
+
 
 struct LCSolverParams {
   double A;

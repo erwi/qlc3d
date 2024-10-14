@@ -20,6 +20,7 @@
 #include <geom/vec3.h>
 #include <simulation-adaptive-time-step.h>
 #include <spamtrix_ircmatrix.hpp>
+#include "util/stopwatch.h"
 
 namespace fs = std::filesystem;
 
@@ -214,6 +215,8 @@ bool SimulationContainer::hasIteration() const {
 }
 
 void SimulationContainer::runIteration() {
+  Stopwatch stopwatch;
+  stopwatch.start();
   simulationState.state(RunningState::RUNNING);
   //adjustTimeStepSize(); // calculate time step size for this iteration.
   adaptiveTimeStep.calculateTimeStep(simulationState);
@@ -241,8 +244,8 @@ void SimulationContainer::runIteration() {
   }
 
   // CALCULATES Q-TENSOR AND POTENTIAL
-  maxdq = updateSolutions();
-  simulationState.change(maxdq);
+  auto solverResult = updateSolutions();
+  simulationState.change(solverResult.dq);
 
   simulationState.currentTime().increment(simulationState.dt());
   simulationState.currentIteration(simulationState.currentIteration() + 1);
@@ -259,6 +262,9 @@ void SimulationContainer::runIteration() {
                resultOutput,
                *potentialSolver,
                adaptiveTimeStep);
+
+  Log::info("Total iteration time={:.3}s, LC assembly time = {:.3}s, LC solver time = {:.3}s",
+  stopwatch.elapsedSeconds(), solverResult.elapsedTimes.assemblyTimeSeconds, solverResult.elapsedTimes.solveTimeSeconds);
 }
 
 void SimulationContainer::postSimulationTasks() {
@@ -270,25 +276,7 @@ const SimulationState &SimulationContainer::currentState() const {
     return simulationState;
 }
 
-double SimulationContainer::updateSolutions() {
-    double maxdq = 0;
+LCSolverResult SimulationContainer::updateSolutions() {
     potentialSolver->solvePotential(v, q, geom1);
-    int QSolver = configuration.getSolverSettings()->getQ_Solver();
-
-    switch (QSolver) {
-        case Q_Solver_PCG: // TODO: cleanup. Exactly same calcQ3d function is called in both cases.
-            //maxdq = calcQ3d(&q, &qn, &v, geom1, lc.get(), simu.get(), simulationState_, Kq, configuration.getSolverSettings().get(), alignment.get());
-            maxdq = lcSolver.solve(q, v, geom1, simulationState).dq;
-            break;
-        case Q_Solver_GMRES:
-            //maxdq = calcQ3d(&q, &qn, &v, geom1, lc.get(), simu.get(), simulationState_, Kq, configuration.getSolverSettings().get(), alignment.get());
-          maxdq = lcSolver.solve(q, v, geom1, simulationState).dq;
-            break;
-        case Q_Solver_Explicit:
-            RUNTIME_ERROR("Q_Solver_Explicit is not implemented yet.");
-        default:
-            RUNTIME_ERROR("Unknown Q_Solver value");
-    }
-
-    return maxdq;
+    return lcSolver.solve(q, v, geom1, simulationState);
 }
