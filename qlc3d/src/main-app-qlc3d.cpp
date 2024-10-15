@@ -54,6 +54,10 @@ int runSimulation(Configuration &configuration) {
     unique_ptr<ILCSolver> lcSolver = simu->simulationMode() == SteadyState ?
                                      unique_ptr<ILCSolver>(new SteadyStateLCSolver(*lc, *solverSettings, *configuration.getAlignment())) :
                                      unique_ptr<ILCSolver>(new TimeSteppingLCSolver(*lc, *solverSettings, simu->getMaxError(), *configuration.getAlignment(), solverSettings->getQ_Newton_Panic_Iter()));
+
+    Log::info("Set number of threads to {}", solverSettings->getnThreads());
+    omp_set_num_threads((int) solverSettings->getnThreads());
+
     EventList eventList;
     SimulationState simulationState;
 
@@ -65,6 +69,7 @@ int runSimulation(Configuration &configuration) {
 
 
     SimulationContainer simulation(configuration, resultOutput, potentialSolver, *lcSolver, eventList, simulationState, adaptiveTimeStep);
+
     Log::clearIndent();
     Log::info("Initialising.");
     Log::incrementIndent();

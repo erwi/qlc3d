@@ -4,7 +4,6 @@
 #include <memory>
 #include <spamtrix_matrixmaker.hpp>
 #include <spamtrix_vector.hpp>
-#include <memory>
 #include <geometry.h>
 #include <lc.h>
 #include <solutionvector.h>
@@ -167,7 +166,12 @@ void PotentialSolver::addToGlobalMatrix(const double lK[4][4], const double lL[4
     for (idx j = 0; j < 4; j++) {
       const idx jDof = tetDofs[j];
       if (isFreeNode(jDof)) { // both i and j are free dofs, add the matrix contribution
-        (*K).sparse_add(iDof, jDof, lK[i][j]);
+        double *val = K->getValuePtr(iDof, jDof);
+        if (val == nullptr) {
+          RUNTIME_ERROR(fmt::format("Value at row {} and column {} is not found in the matrix for potential solution", iDof, jDof));
+        }
+        #pragma omp atomic
+        *val += lK[i][j];
       } else { // j'th node is a fixed value. Add its contribution to the RHS vector L[i]
         fixedContribution += lK[i][j] * values[j];
       }

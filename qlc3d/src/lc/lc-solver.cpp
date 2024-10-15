@@ -171,6 +171,7 @@ void ImplicitLCSolver::addToGlobalMatrix(double* lK, double* lL, const SolutionV
       continue;
     }
 
+    #pragma omp atomic
     (*L)[eqr] += lL[i];
     for (int j = 0 ; j < 5 * elemNodeCount ; j++) { // LOOP OVER COLUMNS
       idx rj = elemNodes[j % elemNodeCount] + npLC * (j / elemNodeCount);
@@ -180,8 +181,16 @@ void ImplicitLCSolver::addToGlobalMatrix(double* lK, double* lL, const SolutionV
       // so that their contribution to other rows in L would be zero anyway. We only set the free rows/columns
       // to the global matrix
       if (eqc != NOT_AN_INDEX) { // it's free
+
+        double* value = K->getValuePtr(eqr, eqc);
+
+        if (value == nullptr) {
+          RUNTIME_ERROR(fmt::format("Value at row {} and column {} is not found in the matrix for LC solution", eqr, eqc));
+        }
+
         // [i][j] = j + 5 * elemNodeCount * i
-        K->sparse_add(eqr, eqc, lK[j + 5 * elemNodeCount*i]);
+        #pragma omp atomic
+        *value += lK[j + 5 * elemNodeCount * i];
       }
     }
   }
@@ -189,7 +198,7 @@ void ImplicitLCSolver::addToGlobalMatrix(double* lK, double* lL, const SolutionV
 
 void ImplicitLCSolver::assembleMatrixSystemVolumeTerms(const SolutionVector &q, const SolutionVector &v, const Geometry &geom, const LCSolverParams &params) {
   const int elementNodeCount = 4;
-  GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
+
   const unsigned int elementCount = geom.getTetrahedra().getnElements();
   const Mesh &tets = geom.getTetrahedra();
   double lK[elementNodeCount * 5][elementNodeCount * 5];
@@ -197,6 +206,7 @@ void ImplicitLCSolver::assembleMatrixSystemVolumeTerms(const SolutionVector &q, 
   idx tetNodes[elementNodeCount];
   idx tetDofs[elementNodeCount];
 
+  #pragma omp parallel for private(lK, lL, tetNodes, tetDofs) //, shapes)
   for (unsigned int indTet = 0; indTet < elementCount; indTet++) {
     if (tets.getMaterialNumber(indTet) != MAT_DOMAIN1) {
       continue;
@@ -204,8 +214,8 @@ void ImplicitLCSolver::assembleMatrixSystemVolumeTerms(const SolutionVector &q, 
     tets.loadNodes(indTet, tetNodes);
     q.loadEquNodes(tetNodes, tetNodes + elementNodeCount, tetDofs);
 
+    GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
     assembleLocalVolumeMatrix(indTet, lK, lL, tetNodes, tetDofs, shapes, q, v, geom, params);
-
     addToGlobalMatrix(&lK[0][0], lL, q, tetNodes, elementNodeCount);
   }
 }
@@ -213,7 +223,7 @@ void ImplicitLCSolver::assembleMatrixSystemVolumeTerms(const SolutionVector &q, 
 void ImplicitLCSolver::assembleMatrixSystemWeakAnchoring(const SolutionVector &q, const Geometry &geom,
                                                          const LCSolverParams &params) {
   const int elementNodeCount = 3;
-  auto shapes = gaussianQuadratureTri4thOrder();
+
   auto &tris = geom.getTriangles();
 
   double lK[elementNodeCount * 5][elementNodeCount * 5];
@@ -223,7 +233,9 @@ void ImplicitLCSolver::assembleMatrixSystemWeakAnchoring(const SolutionVector &q
 
   std::unordered_map<unsigned int, Surface> weakSurfaces = alignment.getWeakSurfacesByFixLcNumber();
 
+  #pragma omp parallel for private(lK, lL, triNodes, triDofs)
   for (unsigned int indTri = 0; indTri < tris.getnElements(); indTri++) {
+    auto shapes = gaussianQuadratureTri4thOrder();
     unsigned int fixLcNumber = tris.getFixLCNumber(indTri);
 
     // check if a weak surface exists by the FixLC number

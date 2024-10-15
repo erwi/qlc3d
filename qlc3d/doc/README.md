@@ -186,8 +186,8 @@ Additionally, the limits set in `dtLimits` are enforced.
 ### **MaxError = 1.0000e-03** ###
 numerical value used as an accuracy parameter for the nonlinear Crank-Nicholson time-stepping. Newton iterations are performed within the time step until dQ is less or equal to `MaxError`,
 
-### **numAssemblyThreads = 0** ###
-An optional numerical value, larger or equal to 0, that specifies the number of threads to use in assembling the matrix problems.  The default value is 0, which results in all the available threads being used.
+### **numAssemblyThreads = 1** ###
+An optional numerical value, larger or equal to 0, that specifies the number of threads to use in assembling the matrix problems.  The default value is 1. Using 0 results in all the available threads on the system being used.
 
 ### **NumMatrixSolverThreads = 0** ###
 An optional numerical value, larger or equal to 0, that specifies the number of threads to use in solving the matrix problems.  The default value is 0, which results in all the available threads being used. Note that, optimum performance is achieved using a value larger than 0 but smaller than the number of cores/hardware threads available on the system.
