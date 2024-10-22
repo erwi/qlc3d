@@ -17,11 +17,13 @@
 #include <util/logging.h>
 #include <util/exception.h>
 #include "util/stopwatch.h"
+#include "spamtrix_luincpreconditioner.hpp"
 
 // <editor-fold ImplicitLCSolver>
 ImplicitLCSolver::ImplicitLCSolver(const LC &lc, const SolverSettings &solverSettings, const Alignment &alignment) : lc(lc),
   solverSettings(solverSettings),
   alignment(alignment),
+  isChiral(lc.L4() != 0.0),
   isSymmetricMatrix(lc.p0() == 0.0),
   isThreeElasticConstants(lc.K11() != lc.K22() || lc.K11() != lc.K33()) {
   Log::info("Creating steady state solver for Q-tensor");
@@ -33,7 +35,6 @@ bool ImplicitLCSolver::solveMatrixSystem(const SpaMtrix::IRCMatrix &Kmatrix, con
     RUNTIME_ERROR("Matrix and vector sizes do not match");
   }
 
-  SpaMtrix::DiagPreconditioner I(Kmatrix);
   idx maxiter 	=  solverSettings.getQ_GMRES_Maxiter();
   idx restart 	=  solverSettings.getQ_GMRES_Restart();
   real toler    =  solverSettings.getQ_GMRES_Toler();
@@ -43,10 +44,12 @@ bool ImplicitLCSolver::solveMatrixSystem(const SpaMtrix::IRCMatrix &Kmatrix, con
   std::string method = "Unknown";
   if (isSymmetricMatrix) {
     method = "PCG";
+    SpaMtrix::DiagPreconditioner I(Kmatrix);
     converged = solver.pcg(Kmatrix, x, r, I);
   } else {
     method = "GMRES";
-    converged = solver.gmres(Kmatrix, x, r, I);
+    SpaMtrix::LUIncPreconditioner LU(Kmatrix);
+    converged = solver.gmres(Kmatrix, x, r, LU);
   }
 
   if (!converged) {
@@ -97,6 +100,17 @@ void ImplicitLCSolver::assembleLocalVolumeMatrix(const unsigned int indTet, doub
       LcEnergyTerms::assembleThreeElasticConstants(lK, lL, shapes, tetDeterminant, q1, q2, q3, q4, q5, q1x, q1y, q1z,
                                                    q2x, q2y, q2z, q3x, q3y, q3z, q4x, q4y, q4z, q5x, q5y, q5z,
                                                    params.L2, params.L3, params.L6);
+    }
+
+    if (isChiral) {
+      LcEnergyTerms::assembleChiralTerms(lK, lL, shapes, tetDeterminant,
+                                         q1, q2, q3, q4, q5,
+                                         q1x, q1y, q1z,
+                                          q2x, q2y, q2z,
+                                          q3x, q3y, q3z,
+                                          q4x, q4y, q4z,
+                                          q5x, q5y, q5z,
+                                         params.L4);
     }
 
     if (Vx != 0.0 || Vy != 0.0 || Vz != 0.0) {
@@ -283,16 +297,16 @@ SteadyStateLCSolver::~SteadyStateLCSolver() = default;
 SteadyStateLCSolver::SteadyStateLCSolver(const LC &lc, const SolverSettings &solverSettings, const Alignment &alignment) :
         ImplicitLCSolver(lc, solverSettings, alignment),
         A{lc.A()}, B{lc.B()}, C{lc.C()},
-        L1{lc.L1()}, L2{lc.L2()}, L3{lc.L3()}, L6{lc.L6()},
+        L1{lc.L1()}, L2{lc.L2()}, L3{lc.L3()}, L4{lc.L4()}, L6{lc.L6()},
         deleps{lc.deleps()}
         {
-  Log::info("Creating steady state solver for Q-tensor with isThreeElasticConstants={}, isSymmetricMatrix={}", isThreeElasticConstants, isSymmetricMatrix);
+  Log::info("Creating steady state solver for Q-tensor with isThreeElasticConstants={}, isChiral={}, isSymmetricMatrix={}", isThreeElasticConstants, isChiral, isSymmetricMatrix);
 }
 
 LCSolverResult SteadyStateLCSolver::solve(SolutionVector &q, const SolutionVector &v, const Geometry &geom, SimulationState &simulationState) {
   initialiseMatrixSystem(q, geom, 0);
 
-  LCSolverParams params = {A, B, C, L1, L2, L3, L6, deleps, simulationState.dt(), 0, lc.S0()}; // todo: this is replication
+  LCSolverParams params = {A, B, C, L1, L2, L3, L4, L6, deleps, simulationState.dt(), 0, lc.S0()}; // todo: this is replication
 
   Stopwatch assemblyStopwatch;
   Stopwatch solverStopwatch;
@@ -475,9 +489,9 @@ LCSolverResult TimeSteppingLCSolver::solve(SolutionVector &q, const SolutionVect
   }
 
   // todo: params is replicated, move to super class
-  LCSolverParams params = {lc.A(), lc.B(), lc.C(), lc.L1(), lc.L2(), lc.L3(), lc.L6(), lc.deleps(), simulationState.dt(), lc.u1(), lc.S0()};
+  LCSolverParams params = {lc.A(), lc.B(), lc.C(), lc.L1(), lc.L2(), lc.L3(), lc.L4(), lc.L6(), lc.deleps(), simulationState.dt(), lc.u1(), lc.S0()};
   double maxDq = 0., firstDq = 0.;
-  unsigned int iter = 0;
+  int iter = 0;
 
   q.copyFreeDofsTo(*q1); // q1 is q from previous time step
   SpaMtrix::Vector r((*q1).getLength());

@@ -30,7 +30,7 @@ struct ElapsedTimes {
 
 struct LCSolverResult {
   const LCSolverType solverType;
-  const unsigned int iterations;
+  const int iterations;
   const double dq;
   const bool converged;
   const bool maxIterationsReached;
@@ -39,17 +39,18 @@ struct LCSolverResult {
 
 
 struct LCSolverParams {
-  double A;
-  double B;
-  double C;
-  double L1;
-  double L2;
-  double L3;
-  double L6;
-  double deleps;
-  double dt;
-  double u1;
-  double S0;
+  const double A;
+  const double B;
+  const double C;
+  const double L1;
+  const double L2;
+  const double L3;
+  const double L4;
+  const double L6;
+  const double deleps;
+  const double dt;
+  const double u1;
+  const double S0;
 };
 
 class ILCSolver {
@@ -64,6 +65,7 @@ protected:
   const LC &lc;
   const SolverSettings &solverSettings;
   const Alignment &alignment;
+  const bool isChiral;
   const bool isSymmetricMatrix;
   const bool isThreeElasticConstants;
 
@@ -128,7 +130,7 @@ protected:
   const double rt3 = std::sqrt(3.0);
   const double rt6 = std::sqrt(6.0);
   const double A, B, C;
-  const double L1, L2, L3, L6;
+  const double L1, L2, L3, L4, L6;
   const double deleps;
 
   void initialiseMatrixSystem(const SolutionVector &q, const Geometry &geom, double dt);

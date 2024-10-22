@@ -137,6 +137,63 @@ namespace LcEnergyTerms {
     }
   }
 
+  inline void assembleChiralTerms(double lK[20][20],
+                                  double lL[20],
+                                  const GaussianQuadratureTet<11> &shapes,
+                                  const double &tetDeterminant,
+                                  const double &q1, const double &q2, const double &q3, const double &q4, const double &q5,
+                                  const double &q1x, const double &q1y, const double &q1z, // todo: check if q1z should really be unused?
+                                  const double &q2x, const double &q2y, const double &q2z,
+                                  const double &q3x, const double &q3y, const double &q3z,
+                                  const double &q4x, const double &q4y, const double &q4z,
+                                  const double &q5x, const double &q5y, const double &q5z,
+                                  const double &L4) {
+    const double mul = shapes.weight() * tetDeterminant;
+    for (int i = 0; i < 4; i++) {
+
+      const double ShRx = shapes.Nx(i);
+      const double ShRy = shapes.Ny(i);
+      const double ShRz = shapes.Nz(i);
+      const double ShR = shapes.N(i);
+
+      lL[i + 0] += mul * 0.25 * rt3 * L4 * (ShR * (q4y - q5x) + ShRx * q5 - ShRy * q4);
+      lL[i + 4] += mul * L4 * (-ShR * (-0.5 * q3z + 0.25 * q4y + 0.25 * q5x) + 0.25 * ShRx * q5 + 0.25 * ShRy * q4 - 0.5 * ShRz * q3);
+      lL[i + 8] += mul * L4 * (ShR * (-0.5 * q2z + 0.25 * q4x - 0.25 * q5y) - 0.25 * ShRx * q4 + 0.25 * ShRy * q5 + 0.5 * ShRz * q2);
+      lL[i + 12] += mul * 0.25 * L4 * (-rt3 * ShR * q1y + ShR * q2y - ShR * q3x + ShR * q5z + ShRx * q3 + rt3 * ShRy * q1 - ShRy * q2 - ShRz * q5);
+      lL[i + 16] += mul * 0.25 * L4 * (rt3 * ShR * q1x + ShR * q2x + ShR * q3y - ShR * q4z - rt3 * ShRx * q1 - ShRx * q2 - ShRy * q3 + ShRz * q4);
+
+      if (lK == nullptr) { continue; }
+      for (int j = 0; j < 4; j++) {
+        const double ShCx = shapes.Nx(j);
+        const double ShCy = shapes.Ny(j);
+        const double ShCz = shapes.Nz(j);
+        const double ShC = shapes.N(j);
+
+        // TODO: looks like lK[a][b] = -lK[b][a]. Check if this is correct and optimise
+        lK[i][j+12] += mul * 0.25*rt3*L4*(-ShC*ShRy + ShCy*ShR);
+        lK[i][j+16] += mul * 0.25*rt3*L4*(ShC*ShRx - ShCx*ShR);
+
+        lK[i+4][j+8] += mul * 0.5*L4*(-ShC*ShRz + ShCz*ShR);
+        lK[i+4][j+12] += mul * 0.25*L4*(ShC*ShRy - ShCy*ShR);
+        lK[i+4][j+16] += mul * 0.25*L4*(ShC*ShRx - ShCx*ShR);
+
+        lK[i+8][j + 4] += mul * 0.5*L4*(ShC*ShRz - ShCz*ShR);
+        lK[i+8][j + 12] += mul * 0.25*L4*(-ShC*ShRx + ShCx*ShR);
+        lK[i+8][j + 16] += mul * 0.25*L4*(ShC*ShRy - ShCy*ShR);
+
+        lK[i+12][j] += mul * 0.25*rt3*L4*(ShC*ShRy - ShCy*ShR);
+        lK[i+12][j + 4] += mul * 0.25*L4*(-ShC*ShRy + ShCy*ShR);
+        lK[i+12][j + 8] += mul * 0.25*L4*(ShC*ShRx - ShCx*ShR);
+        lK[i+12][j + 16] += mul * 0.25*L4*(-ShC*ShRz + ShCz*ShR);
+
+        lK[i+16][j] += mul * 0.25*rt3*L4*(-ShC*ShRx + ShCx*ShR);
+        lK[i+16][j + 4] += mul * 0.25*L4*(-ShC*ShRx + ShCx*ShR);
+        lK[i+16][j + 8] += mul * 0.25*L4*(-ShC*ShRy + ShCy*ShR);
+        lK[i+16][j + 12] += mul * 0.25*L4*(ShC*ShRz - ShCz*ShR);
+      }
+    }
+  }
+
   inline void assembleThreeElasticConstants(double lK[20][20],
                                             double lL[20],
                                             const GaussianQuadratureTet<11> &shapes,
