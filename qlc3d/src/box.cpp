@@ -1,14 +1,12 @@
 #include <box.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <algorithm>
 #include <string>
-#include <reader.h>
 #include <vector>
 #include <stringenum.h>
 #include <settings_file_keys.h>
 #include <cassert>
 #include <geom/vec3.h>
+#include "util/exception.h"
 
 const std::vector<std::string> Box::VALID_TYPES = {"Normal", "Random", "Hedgehog"};
 const std::string Box::DEFAULT_TYPE = Box::VALID_TYPES[0];
@@ -16,49 +14,36 @@ const std::vector<double> Box::DEFAULT_PARAMS = {};
 const std::vector<double> Box::DEFAULT_X_Y_Z = {0,0};
 const std::vector<double> Box::DEFAULT_TILT_TWIST = {0,0};
 
-
-
 using std::vector;
 using std::cerr;
 Box::Box(int boxnum) {
     BoxNumber = boxnum;
     Params = Box::DEFAULT_PARAMS;
-    X = Box::DEFAULT_X_Y_Z;
-    Y = Box::DEFAULT_X_Y_Z;
-    Z = Box::DEFAULT_X_Y_Z;;
     Tilt = Box::DEFAULT_TILT_TWIST;
     Twist = Box::DEFAULT_TILT_TWIST;
     setBoxType(Box::DEFAULT_TYPE);
+    boundingBox = AABox(DEFAULT_X_Y_Z[0], DEFAULT_X_Y_Z[1], DEFAULT_X_Y_Z[0], DEFAULT_X_Y_Z[1], DEFAULT_X_Y_Z[0], DEFAULT_X_Y_Z[1]);
 }
 
 void Box::setX(std:: vector<double> x) {
-    if (x.size() == 2) {
-        X[0] = x[0];
-        X[1] = x[1];
-    } else {
-        std::cerr << "error, Box::setX, invalid X length - bye!" << std::endl;
-        exit(1);
-    }
+  if (x.size() != 2) {
+    throw new std::invalid_argument("Invalid X length " + std::to_string(x.size()) + " expected 2");
+  }
+  boundingBox.setBoundsX(x[0], x[1]);
 }
 
 void Box::setY(std:: vector<double> y) {
-    if (y.size() == 2) {
-        Y[0] = y[0];
-        Y[1] = y[1];
-    } else {
-        std::cerr << "error, Box::setY, invalid Y length - bye!" << std::endl;
-        exit(1);
-    }
+  if (y.size() != 2) {
+    throw new std::invalid_argument("Invalid Y length " + std::to_string(y.size()) + " expected 2");
+  }
+  boundingBox.setBoundsY(y[0], y[1]);
 }
 
 void Box::setZ(std:: vector<double> z) {
-    if (z.size() == 2) {
-        Z[0] = z[0];
-        Z[1] = z[1];
-    } else {
-        std::cerr << "error, Box::setZ, invalid Z length - bye!" << std::endl;
-        exit(1);
-    }
+  if (z.size() != 2) {
+    throw new std::invalid_argument("Invalid Z length " + std::to_string(z.size()) + " expected 2");
+  }
+  boundingBox.setBoundsZ(z[0], z[1]);
 }
 
 void Box::setTilt(std:: vector<double> tlt) {
@@ -80,19 +65,11 @@ void Box::setTwist(std:: vector<double> twt) {
     }
 }
 bool Box::contains(double *coords) const {
-    double x = coords[0];
-    double y = coords[1];
-    double z = coords[2];
-    //  test if coordinate is outside of box and return false
-    if ((x < this->X[0]) || (x > this->X[1])) return false;      // if smaller than minimum or larger than maximum...
-    if ((y < this->Y[0]) || (y > this->Y[1])) return false;
-    if ((z < this->Z[0]) || (z > this->Z[1])) return false;
-    // otherwise return true
-    return true;
+    return boundingBox.contains(coords[0], coords[1], coords[2]);
 }
 
 Vec3 Box::centroid() const {
-  return {(X[0] + X[1]) / 2.0,(Y[0] + Y[1]) / 2.0,(Z[0] + Z[1]) / 2.0};
+  return boundingBox.center();
 }
 
 bool Box::contains(const Vec3 &p) const {
@@ -104,13 +81,12 @@ void Box::setBoxType(const std::string &bt) {
 /*!Sets the current box type from type name string.*/
 
     std::string typeKey = wildcardToNum(SFK_BOX_TYPE, this->BoxNumber);
-    StringEnum<Box::BoxTypes> validator(typeKey, Box::VALID_TYPES);
+    StringEnum<BoxType> validator(typeKey, Box::VALID_TYPES);
     try {
-        this->Type = validator.getEnumValue(bt);
-        this->TypeString = Box::VALID_TYPES[this->Type];
+        type = validator.getEnumValue(bt);
     } catch (...) {
         validator.printErrorMessage(bt);
-        std::exit(1);
+        RUNTIME_ERROR("Error setting box type to " + bt);
     }
 }
 
@@ -128,26 +104,18 @@ double Box::getParam(unsigned int i, double defaultValue) const {
 }
 
 std::string Box::toString() const {
-    return "Type=" + TypeString + ", bounds=["
-    + std::to_string(X[0]) + ", " + std::to_string(X[1]) + ", "
-    + std::to_string(Y[0]) + ", " + std::to_string(Y[1]) + ", "
-    + std::to_string(Z[0]) + ", " + std::to_string(Z[1]) + "]";
+    return "Type=" + getTypeString() + ", bounds=["
+    + std::to_string(boundingBox.getXMin()) + ", " + std::to_string(boundingBox.getXMax()) + ", "
+    + std::to_string(boundingBox.getYMin()) + ", " + std::to_string(boundingBox.getYMax()) + ", "
+    + std::to_string(boundingBox.getZMin()) + ", " + std::to_string(boundingBox.getZMax()) + "]";
 }
 
 //===================================================================
 Boxes::Boxes() {
-    n_Boxes = 0;
-}
-
-Boxes::~Boxes() {
-    std::vector<Box *>::iterator itr;
-    for (itr = box.begin() ; itr != box.end() ; ++itr)
-        delete(*itr);
 }
 
 void Boxes::addBox(Box *b) {
-    box.push_back(b);
-    n_Boxes ++;
+    box.push_back(std::unique_ptr<Box>(b));
 }
 
 void Boxes::addBox(const int &boxNum,

@@ -68,6 +68,7 @@ add_library(lib-qlc3d STATIC
         ../extern/tinyexpr/tinyexpr.c
         includes/expression.h
         src/expression.cpp
+        includes/geom/aabox.h
 )
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 set_target_properties(lib-qlc3d PROPERTIES CXX_STANDARD 17)

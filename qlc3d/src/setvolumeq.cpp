@@ -6,7 +6,7 @@
 #include <geom/vec3.h>
 using namespace std;
 
-void setNormalBox(  Box &box,
+void setNormalBox(  const Box &box,
                     std::vector<qlc3d::Director> &dir,
                     const Coordinates& coordinates,
                     int npLC) {
@@ -16,7 +16,9 @@ void setNormalBox(  Box &box,
     double bottomTiltDegrees = box.Tilt[0];
     double deltaTiltDegrees = box.Tilt[1]; // delta tilt bottom to top of box
     double deltaTwistDegrees = box.Twist[1];
-    double boxHeight = box.Z[1] - box.Z[0];
+
+    const AABox &bbox = box.getBoundingBox();
+    double boxHeight = bbox.getZMax() - bbox.getZMin();
     double power = box.getParam(0, 1.0);
 
     for (int i = 0; i < npLC; i++) { // loop over each node
@@ -24,7 +26,7 @@ void setNormalBox(  Box &box,
         double S = dir[i].S();
 
         if (box.contains(p)) {
-            double pzn = (p.z() - box.Z[0]) / (boxHeight);
+            double pzn = (p.z() - bbox.getZMin()) / (boxHeight);
             double twistDegrees = bottomTwistDegrees + pow(pzn * deltaTwistDegrees, power);
             double tiltDegrees = bottomTiltDegrees + pow(pzn * deltaTiltDegrees, power);
             dir[i] = qlc3d::Director::fromDegreeAngles(tiltDegrees, twistDegrees, S);
@@ -32,8 +34,8 @@ void setNormalBox(  Box &box,
     } // end loop over each node
 } //end void setNormalBox
 
-void setRandomBox(Box &box, std::vector<qlc3d::Director> &dir, const Coordinates &coordinates, int npLC){
-/*! Sets the Q-tensor initial configuration within a box volume. The dircor orientation is randomized */
+void setRandomBox(const Box &box, std::vector<qlc3d::Director> &dir, const Coordinates &coordinates, int npLC){
+/*! Sets the Q-tensor initial configuration within a box volume. The director orientation is randomized */
     srand(0); // seed with constant value so that results are repeatable. TODO: make seed user defined configuration
     for (int i = 0 ; i < npLC ; i ++) {
         double S = dir[i].S();
@@ -75,7 +77,7 @@ void setVolumeQ(
         double S0,
         const Boxes &boxes,
         const Coordinates & coordinates) {
-    Log::info("Setting initial LC configuration for {} boxes.", boxes.n_Boxes);
+    Log::info("Setting initial LC configuration for {} boxes.", boxes.getBoxCount());
 
     assert(q.getnDimensions() == 5);
     assert(q.getnDoF() > 0);
@@ -89,21 +91,21 @@ void setVolumeQ(
     std::vector<qlc3d::Director> dir(npLC, defaultDirector);
 
     // override the director within each box
-    for (int i = 0; i < boxes.n_Boxes; i++) {
-        Box &b = *boxes.box[i];
+    for (size_t i = 0; i < boxes.getBoxCount(); i++) {
+        const Box &b = boxes.getBox(i);
         Log::info("BOX{}:{}.", i + 1, b.toString());
-        switch (b.Type) {
-            case Box::Normal:
+        switch (b.getType()) {
+            case Normal:
                 setNormalBox(b, dir, coordinates, npLC);
                 break;
-            case Box::Random:
+            case Random:
                 setRandomBox(b, dir, coordinates, npLC);
                 break;
-            case Box::Hedgehog:
+            case Hedgehog:
                 setHedgehogBox(b, dir, coordinates, npLC);
                 break;
             default:
-                throw std::invalid_argument("unsupported box type " + b.TypeString);
+                throw std::invalid_argument("unsupported box type " + b.getTypeString());
         }
     }
 
