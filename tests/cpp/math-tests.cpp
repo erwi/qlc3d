@@ -1,6 +1,3 @@
-//
-// Created by eero on 10/04/2021.
-//
 #include <catch.h>
 #include <lc-representation.h>
 const double MARGIN = 1e-12;

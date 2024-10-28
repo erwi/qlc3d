@@ -65,11 +65,16 @@ add_library(lib-qlc3d STATIC
         includes/simulation-adaptive-time-step.h
         src/simulation-adaptive-time-step.cpp
         includes/util/stopwatch.h
+        ../extern/tinyexpr/tinyexpr.c
+        includes/expression.h
+        src/expression.cpp
 )
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 set_target_properties(lib-qlc3d PROPERTIES CXX_STANDARD 17)
 target_include_directories(lib-qlc3d
-        PUBLIC includes)
+        PUBLIC includes
+        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../extern/tinyexpr
+)
 target_link_libraries(lib-qlc3d SpaMtrix gomp pthread fmt)
 
 #========================
