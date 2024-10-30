@@ -17,33 +17,36 @@ simu_(nullptr), lc_(nullptr), electrodes_(nullptr), meshRefinement_(nullptr), so
 }
 
 void SettingsReader::read() {
-    try {
-        // check that settings file exists
-        std::ifstream f(fileName_);
-        assertTrue(f.good(), "Settings file does not exist: " + fileName_.string());
+  try {
+    // check that settings file exists
+    std::ifstream f(fileName_);
+    assertTrue(f.good(), "Settings file does not exist: " + fileName_.string());
 
-        Reader reader;
-        reader.setCaseSensitivity(false);
-        reader.setLowerCaseStringValues(true); // all returned string values are lower case.
+    Reader reader;
+    reader.setCaseSensitivity(false);
+    reader.setLowerCaseStringValues(true); // all returned string values are lower case.
 
-        // substitute environment variables into the settings file when encountering special formatting string ${ENV_VAR}
-        reader.setEnvironmentVariableSubstitution(true);
-        reader.readSettingsFile(fileName_);
+    // substitute environment variables into the settings file when encountering special formatting string ${ENV_VAR}
+    reader.setEnvironmentVariableSubstitution(true);
+    reader.readSettingsFile(fileName_);
 
-        readSimu(reader);
-        readLC(reader);
-        //readSimu(simu, eventList,reader);
-        //readLC(lc, reader);
-        //readBoxes(boxes, reader);
+    readSimu(reader);
+    readLC(reader);
+    //readSimu(simu, eventList,reader);
+    //readLC(lc, reader);
+    //readBoxes(boxes, reader);
 
-        readAlignment(reader);
-        readRefinement(reader);
-        readElectrodes( reader);
-        readSolverSettings(reader);
-    } catch (ReaderError &e) {
-        e.printError();
-        throw e;
-    }
+    readAlignment(reader);
+    readRefinement(reader);
+    readElectrodes( reader);
+    readSolverSettings(reader);
+
+    initialVolumeOrientation_ = std::make_unique<InitialVolumeOrientation>();
+    readInitialVolumeOrientation(reader);
+  } catch (ReaderError &e) {
+    e.printError();
+    throw e;
+  }
 }
 
 std::unique_ptr<Simu> SettingsReader::simu() {
@@ -74,6 +77,11 @@ std::unique_ptr<SolverSettings> SettingsReader::solverSettings() {
 std::unique_ptr<Alignment> SettingsReader::alignment() {
     assert(alignment_ != nullptr);
     return std::move(alignment_);
+}
+
+std::unique_ptr<InitialVolumeOrientation> SettingsReader::initialVolumeOrientation() {
+    assert(initialVolumeOrientation_ != nullptr);
+    return std::move(initialVolumeOrientation_);
 }
 
 // <editor-fold desc="Private Methods">
@@ -304,6 +312,34 @@ void SettingsReader::readAlignment(Reader &reader) {
           }
         }
     }
+}
+
+void SettingsReader::readInitialVolumeOrientation(Reader &reader) {
+  using std::string;
+  const int MAX_NUM_BOXES = 100;
+  // Loop over all possible boxes ad try to read
+  for (int boxNum = 1; boxNum < MAX_NUM_BOXES; boxNum++) {
+    string typeKey = wildcardToNum(SFK_BOX_TYPE, boxNum);
+    if (reader.containsKey(typeKey)) {
+      // found box with current number
+      // Make keys for current box number
+      string paramsKey = wildcardToNum(SFK_BOX_PARAMS, boxNum);
+      string xKey = wildcardToNum(SFK_BOX_X, boxNum);
+      string yKey = wildcardToNum(SFK_BOX_Y, boxNum);
+      string zKey = wildcardToNum(SFK_BOX_Z, boxNum);
+      string tiltKey = wildcardToNum(SFK_BOX_TILT, boxNum);
+      string twistKey = wildcardToNum(SFK_BOX_TWIST, boxNum);
+      // add box
+      initialVolumeOrientation_->addBox(boxNum,
+                   reader.get<string>(typeKey, Box::DEFAULT_TYPE),
+                   reader.get<vector<double>>(paramsKey, Box::DEFAULT_PARAMS),
+                   reader.get<vector<double>>(xKey, Box::DEFAULT_X_Y_Z),
+                   reader.get<vector<double>>(yKey, Box::DEFAULT_X_Y_Z),
+                   reader.get<vector<double>>(zKey, Box::DEFAULT_X_Y_Z),
+                   reader.get<vector<double>>(tiltKey, Box::DEFAULT_TILT_TWIST),
+                   reader.get<vector<double>>(twistKey, Box::DEFAULT_TILT_TWIST));
+    }
+  } // end for boxNum
 }
 
 // </editor-fold>

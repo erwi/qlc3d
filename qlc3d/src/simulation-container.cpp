@@ -17,7 +17,6 @@
 #include <io/result-output.h>
 #include <potential/potential-solver.h>
 #include <lc/lc-solver.h>
-#include <geom/vec3.h>
 #include <simulation-adaptive-time-step.h>
 #include <spamtrix_ircmatrix.hpp>
 #include "util/stopwatch.h"
@@ -36,7 +35,7 @@ SimulationContainer::SimulationContainer(Configuration &config,
         potentialSolver(potentialSolver),
         lcSolver(lcSolver),
         electrodes(nullptr),
-        boxes(new Boxes()),
+        boxes(config.getInitialVolumeOrientation()),
         alignment(*config.getAlignment()),
         regGrid(new RegularGrid()),
         eventList(eventList),
@@ -83,9 +82,7 @@ void SimulationContainer::initialise() {
     createElectrodeSwitchingEvents(*electrodes, eventList);
 
     // read missing configuration from file. TODO: all parameters to be provided in Configuration, they should not be read in here
-  ReadSettings(configuration.settingsFile(),
-               *boxes,
-               eventList);
+    ReadSettings(configuration.settingsFile(), eventList);
 
     simulationState.change(0);
     simulationState.setCurrentTime(0);
@@ -147,7 +144,7 @@ void SimulationContainer::initialise() {
     q = SolutionVector(geom1.getnpLC(), 5);    //  Q-tensor for current time step
     qn = SolutionVector(geom1.getnpLC(), 5);   //  Q-tensor from previous time step
 
-    initialiseLcSolutionVector(q, *simu, *lc, *boxes.get(), alignment, geom1);
+    initialiseLcSolutionVector(q, *simu, *lc, *boxes, alignment, geom1);
 
     qn = q;  // q-previous = q-current in first iteration
 

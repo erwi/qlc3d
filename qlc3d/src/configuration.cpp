@@ -20,6 +20,7 @@ void Configuration::readSettings() {
     electrodes_ = reader.electrodes();
     solverSettings_ = reader.solverSettings();
     alignment_ = reader.alignment();
+    initialVolumeOrientation_ = reader.initialVolumeOrientation();
 }
 
 void Configuration::solverSettings(SolverSettings *solverSettings) {
@@ -54,4 +55,9 @@ std::shared_ptr<SolverSettings> Configuration::getSolverSettings() const {
 std::shared_ptr<Alignment> Configuration::getAlignment() const {
     assert(alignment_ != nullptr);
     return alignment_;
+}
+
+std::shared_ptr<InitialVolumeOrientation> Configuration::getInitialVolumeOrientation() const {
+    assert(initialVolumeOrientation_ != nullptr);
+    return initialVolumeOrientation_;
 }

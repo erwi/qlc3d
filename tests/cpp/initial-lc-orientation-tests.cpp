@@ -12,7 +12,7 @@ const double MARGIN = 1e-12;
 
 TEST_CASE("Set initial LC orientation") {
   double S0 = 0.55;
-  Boxes boxes;
+  InitialVolumeOrientation boxes;
 
   SECTION("Set director to uniform 90 degrees inside Normal box") {
     SolutionVector q(2, 5); // 2 nodes
@@ -25,7 +25,8 @@ TEST_CASE("Set initial LC orientation") {
     // box with 90-degree tilt
     boxes.addBox(1, "Normal", {}, {0, 0.5}, {0, 1}, {0, 1}, {90, 0}, {0, 0});
 
-    setVolumeQ(q, S0, boxes, coordinates);
+    // ACT
+    boxes.setVolumeQ(q, S0, coordinates);
 
     qlc3d::Director d1 = q.getDirector(0);
     qlc3d::Director d2 = q.getDirector(1);
@@ -54,7 +55,9 @@ TEST_CASE("Set initial LC orientation") {
                  {0, 1},
                  {0, 90}, // tilt increasing from 0 to 90
                  {0, 90});  // twist increasing from 0 to 90
-    setVolumeQ(q, S0, boxes, coordinates);
+
+    // ACT
+    boxes.setVolumeQ(q, S0, coordinates);
 
     qlc3d::Director bottom = q.getDirector(0);
     qlc3d::Director mid = q.getDirector(1);
@@ -76,13 +79,48 @@ TEST_CASE("Set initial LC orientation") {
     REQUIRE(top.nz() == Approx(1).margin(MARGIN));
     REQUIRE(top.tiltDegrees() == Approx(90).margin(MARGIN));
   }
+
+  SECTION("Set director in Hedgehog box") {
+    SolutionVector q(6, 5); // 6 nodes on each side of box centre
+
+    Coordinates coordinates({
+      {-1, 0, 0},
+      {1, 0, 0},
+      {0, -1, 0},
+      {0, 1, 0},
+      {0, 0, -1},
+      {0, 0, 1}
+      });
+
+    boxes.addBox(1, "Hedgehog",{}, {-2, 2}, {-2, 2}, {-2, 2}, {0, 0}, {0, 0});
+
+    // ACT
+    boxes.setVolumeQ(q, S0, coordinates);
+
+    // ASSERT: director should be parallel to vector from box centre to node
+    auto dirLeft = q.getDirector(0);
+    auto dirRight = q.getDirector(1);
+    auto dirFront = q.getDirector(2);
+    auto dirBack = q.getDirector(3);
+    auto dirBottom = q.getDirector(4);
+    auto dirTop = q.getDirector(5);
+
+    REQUIRE((dirLeft.vector().equals({-1, 0, 0}, MARGIN) || dirLeft.vector().equals({1, 0, 0}, MARGIN)));
+    REQUIRE((dirRight.vector().equals({-1, 0, 0}, MARGIN) || dirRight.vector().equals({1, 0, 0}, MARGIN)));
+
+    REQUIRE((dirFront.vector().equals({0, -1, 0}, MARGIN) || dirFront.vector().equals({0, 1, 0}, MARGIN)));
+    REQUIRE((dirBack.vector().equals({0, -1, 0}, MARGIN) || dirBack.vector().equals({0, 1, 0}, MARGIN)));
+
+    REQUIRE((dirBottom.vector().equals({0, 0, -1}, MARGIN) || dirBottom.vector().equals({0, 0, 1}, MARGIN)));
+    REQUIRE((dirTop.vector().equals({0, 0, -1}, MARGIN) || dirTop.vector().equals({0, 0, 1}, MARGIN)));
+  }
 }
 
 TEST_CASE("Initial LC surface orientations") {
   Geometry geom;
   auto simu = std::unique_ptr<Simu>(SimuBuilder().build());
   auto lc = std::unique_ptr<LC>(LCBuilder().build());
-  Boxes boxes; // volume orientations - leave empty, don't care in this test
+  InitialVolumeOrientation boxes; // volume orientations - leave empty, don't care in this test
 
   std::vector<std::shared_ptr<Electrode>> el;
   el.push_back(std::make_shared<Electrode>(1, std::vector<double>(), std::vector<double>()));

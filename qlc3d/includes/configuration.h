@@ -6,6 +6,7 @@
 #include <filesystem>
 class Simu;
 class SolverSettings;
+class InitialVolumeOrientation;
 
 class Configuration {
     std::filesystem::path settingsFilePath_;
@@ -18,6 +19,8 @@ class Configuration {
     std::shared_ptr<Electrodes> electrodes_;
     std::shared_ptr<SolverSettings> solverSettings_;
     std::shared_ptr<Alignment> alignment_;
+    std::shared_ptr<InitialVolumeOrientation> initialVolumeOrientation_;
+
 public:
     Configuration();
 
@@ -33,6 +36,7 @@ public:
     [[nodiscard]] std::shared_ptr<MeshRefinement> refinement() const;
     [[nodiscard]] std::shared_ptr<SolverSettings> getSolverSettings() const;
     [[nodiscard]] std::shared_ptr<Alignment> getAlignment() const;
+    [[nodiscard]] std::shared_ptr<InitialVolumeOrientation> getInitialVolumeOrientation() const;
     /// The file name of the current settings file
     [[nodiscard]] const std::filesystem::path &settingsFile() const { return settingsFilePath_; };
     void settingsFileName(const std::filesystem::path &path) { settingsFilePath_ = path; }

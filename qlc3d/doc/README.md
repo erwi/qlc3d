@@ -293,7 +293,7 @@ Rotational viscosity:
 ## Initial LC Orientation ##
 Initial liquid crystal orientation is set using a number of `BOX` structures ranging from `BOX1` to `BOX99`. Each box represents a separate cuboid 3D volume whose position and size need to be specified. If box volumes are overlapping, the box with a higher number overrides the conditions of a lower numbered box within the overlapping region.
 
-Use of Boxes is optional. When no Boxes are defined, or in regions not covered by any Boxes, a uniform LC orientation along the x-axis (no tilt, no twist) is used instead. 
+Use of InitialVolumeOrientation is optional. When no InitialVolumeOrientation are defined, or in regions not covered by any InitialVolumeOrientation, a uniform LC orientation along the x-axis (no tilt, no twist) is used instead. 
 
 **`BOXn.Type`**
 

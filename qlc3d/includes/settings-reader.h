@@ -10,6 +10,7 @@
 #include <electrodes.h>
 #include <solver-settings.h>
 #include <alignment.h>
+#include <box.h>
 
 class SettingsReader {
     std::filesystem::path fileName_;
@@ -19,6 +20,7 @@ class SettingsReader {
     std::unique_ptr<MeshRefinement> meshRefinement_;
     std::unique_ptr<SolverSettings> solverSettings_;
     std::unique_ptr<Alignment> alignment_;
+    std::unique_ptr<InitialVolumeOrientation> initialVolumeOrientation_;
 
     /*!
      * Reads the contents of the settings file. Be sure to call this before accessing any of the read settings
@@ -33,6 +35,7 @@ class SettingsReader {
     void readRefinement(Reader &reader);
     void readSolverSettings(Reader &reader);
     void readAlignment(Reader &reader);
+    void readInitialVolumeOrientation(Reader &reader);
     //! utility assertion for checking some input file format related stuff. Throws ReaderError
     void assertTrue(bool condition, const std::string &msg);
 
@@ -45,5 +48,6 @@ public:
     std::unique_ptr<Electrodes> electrodes();
     std::unique_ptr<SolverSettings> solverSettings();
     std::unique_ptr<Alignment> alignment();
+    std::unique_ptr<InitialVolumeOrientation> initialVolumeOrientation();
 };
 #endif //PROJECT_QLC3D_SETTINGS_READER_H

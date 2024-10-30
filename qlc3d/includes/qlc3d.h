@@ -70,7 +70,7 @@ double calcQ3d(SolutionVector *q,
 
 class Electrodes;
 class EventList;
-void ReadSettings(const std::filesystem::path &settingsFilePath, Boxes &boxes, EventList &eventlist);
+void ReadSettings(const std::filesystem::path &settingsFilePath, EventList &eventlist);
 
 void CreateSaveDir(Simu* simu); //creates new save dir, if needed
 

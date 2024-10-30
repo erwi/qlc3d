@@ -51,7 +51,7 @@ void readSimu(Simu &simu, EventList &eventList, Reader &reader) {
     }
 }//end void readSimu
 */
-void readBoxes(Boxes &boxes, Reader& reader) {
+void readBoxes(InitialVolumeOrientation &boxes, Reader& reader) {
     using std::string;
     const int MAX_NUM_BOXES = 100;
     // Loop over all possible boxes ad try to read
@@ -304,7 +304,7 @@ void readSolverSettings(SolverSettings &settings, Reader &reader) {
 } // end readSolverSettings
 
 
-void ReadSettings(const std::filesystem::path &settingsFileName, Boxes &boxes, EventList &eventList) {
+void ReadSettings(const std::filesystem::path &settingsFileName, EventList &eventList) {
     Reader reader;
     reader.setCaseSensitivity(false);
     reader.setEnvironmentVariableSubstitution(true);
@@ -315,7 +315,7 @@ void ReadSettings(const std::filesystem::path &settingsFileName, Boxes &boxes, E
         //readLC(lc, reader);
         // TODO: work in progress, removing all the reading in this file and pass in the config objects to the app
         // as arguments
-        readBoxes(boxes, reader);
+        //readBoxes(boxes, reader);
         //readElectrodes( electrodes, eventList, reader);
     } catch (ReaderError e) {
         e.printError();

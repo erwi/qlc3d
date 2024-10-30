@@ -13,7 +13,7 @@ class MeshRefinement;
 class EventList;
 class SolutionVector;
 class LC;
-class Boxes;
+class InitialVolumeOrientation;
 class Vec3;
 
 void prepareGeometry(Geometry& geom,
@@ -30,9 +30,9 @@ FILE* createOutputEnergyFile(Simu& simu);
 /**
  * Sets up initial LC solution vector including volume and surface orientations.
  */
-void initialiseLcSolutionVector(SolutionVector &q, const Simu &simu, const LC &lc, const Boxes &boxes, const Alignment &alignment, const Geometry &geom);
+void initialiseLcSolutionVector(SolutionVector &q, const Simu &simu, const LC &lc, const InitialVolumeOrientation &boxes, const Alignment &alignment, const Geometry &geom);
 
-void setVolumeQ(SolutionVector &q, double S0, const Boxes &boxes, const Coordinates &coordinates);
+void setVolumeQ(SolutionVector &q, double S0, const InitialVolumeOrientation &boxes, const Coordinates &coordinates);
 void setSurfacesQ(SolutionVector &q, const Alignment &alignment, double S0, const Geometry &geom);
 void setStrongSurfacesQ(SolutionVector &q, const Alignment &alignment, double S0, const Geometry &geom);
 /**

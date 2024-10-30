@@ -6,7 +6,11 @@
 #include <settings_file_keys.h>
 #include <cassert>
 #include <geom/vec3.h>
-#include "util/exception.h"
+#include <lc-representation.h>
+#include <util/exception.h>
+#include <util/logging.h>
+#include <solutionvector.h>
+#include <geom/coordinates.h>
 
 const std::vector<std::string> Box::VALID_TYPES = {"Normal", "Random", "Hedgehog"};
 const std::string Box::DEFAULT_TYPE = Box::VALID_TYPES[0];
@@ -64,6 +68,11 @@ void Box::setTwist(std:: vector<double> twt) {
         exit(1);
     }
 }
+
+void Box::setRandomGenerator(RandomGenerator &rg) {
+  randomGenerator = rg;
+}
+
 bool Box::contains(double *coords) const {
     return boundingBox.contains(coords[0], coords[1], coords[2]);
 }
@@ -110,22 +119,75 @@ std::string Box::toString() const {
     + std::to_string(boundingBox.getZMin()) + ", " + std::to_string(boundingBox.getZMax()) + "]";
 }
 
+qlc3d::Director Box::getDirectorForNormalBox(const Vec3 &p) const {
+  double bottomTwistDegrees = Twist[0];
+  double bottomTiltDegrees = Tilt[0];
+  double deltaTiltDegrees = Tilt[1]; // delta tilt bottom to top of box
+  double deltaTwistDegrees = Twist[1];
+
+  double boxHeight = boundingBox.getZMax() - boundingBox.getZMin();
+  double power = getParam(0, 1.0);
+
+  double pzn = (p.z() - boundingBox.getZMin()) / (boxHeight);
+  double twistDegrees = bottomTwistDegrees + pow(pzn * deltaTwistDegrees, power);
+  double tiltDegrees = bottomTiltDegrees + pow(pzn * deltaTiltDegrees, power);
+  return qlc3d::Director::fromDegreeAngles(tiltDegrees, twistDegrees, 1.0);
+}
+
+qlc3d::Director Box::getDirectorForRandomBox(const Vec3 &p) const {
+  Vec3 n( (double) ( rand() % 10000 ) - 5000.0,
+          (double) ( rand() % 10000 ) - 5000.0,
+          (double) ( rand() % 10000 ) - 5000.0);
+
+  return {n, 1.0};
+}
+
+qlc3d::Director Box::getDirectorForHedgehogBox(const Vec3 &p) const {
+  Vec3 centre = centroid();
+  Vec3 n = p - centre;
+  n.normalize();
+
+  return {n, 1.0};
+}
+
+qlc3d::Director Box::getDirectorAt(const Vec3 &p) const {
+  if (!contains(p)) {
+    RUNTIME_ERROR("Error, Box::getDirectorAt, point not in box" + p.toString());
+  }
+
+  switch(getType()) {
+    case Normal:
+      return getDirectorForNormalBox(p);
+    case Random:
+      return getDirectorForRandomBox(p);
+    case Hedgehog:
+      return getDirectorForHedgehogBox(p);
+    default:
+      RUNTIME_ERROR("Error, Box::getDirectorAt, unsupported box type " + getTypeString());
+  }
+}
+
 //===================================================================
-Boxes::Boxes() {
+InitialVolumeOrientation::InitialVolumeOrientation() {
+  randomGenerator = RandomGenerator();
 }
 
-void Boxes::addBox(Box *b) {
-    box.push_back(std::unique_ptr<Box>(b));
+InitialVolumeOrientation::InitialVolumeOrientation(RandomGenerator &rg) {
+    randomGenerator = rg;
 }
 
-void Boxes::addBox(const int &boxNum,
-                   const std::string &boxType,
-                   const std::vector<double> &params,
-                   const std::vector<double> &x,
-                   const std::vector<double> &y,
-                   const std::vector<double> &z,
-                   const std::vector<double> &tilt,
-                   const std::vector<double> &twist) {
+void InitialVolumeOrientation::addBox(Box *b) {
+    boxRegions.push_back(std::unique_ptr<Box>(b));
+}
+
+void InitialVolumeOrientation::addBox(const int &boxNum,
+                                      const std::string &boxType,
+                                      const std::vector<double> &params,
+                                      const std::vector<double> &x,
+                                      const std::vector<double> &y,
+                                      const std::vector<double> &z,
+                                      const std::vector<double> &tilt,
+                                      const std::vector<double> &twist) {
     Box *b = new Box(boxNum);
     b->setBoxType(boxType);
     b->setParams(params);
@@ -134,7 +196,42 @@ void Boxes::addBox(const int &boxNum,
     b->setZ(z);
     b->setTilt(tilt);
     b->setTwist(twist);
+    b->setRandomGenerator(randomGenerator);
     this->addBox(b);
+}
+
+void InitialVolumeOrientation::setVolumeQ(SolutionVector &q, double S0, const Coordinates &coordinates) const {
+  Log::info("Setting initial LC configuration for {} boxes.", boxRegions.size());
+
+  if (q.getnDimensions() != 5) {
+    RUNTIME_ERROR("Error, Boxes::setVolumeQ, invalid q dimensions " + std::to_string(q.getnDimensions()));
+  }
+  if (q.getnDoF() == 0) {
+    RUNTIME_ERROR("Error, Boxes::setVolumeQ, invalid q DoF " + std::to_string(q.getnDoF()));
+  }
+
+  const unsigned int npLC = q.getnDoF();
+
+  // By default, when no boxes exist, the director is initialised along (1, 0, 0) at equilibrium order.
+  // TODO: this could be a user defined configuration: a "background director orientation"
+  auto defaultDirector = qlc3d::Director(1, 0, 0, S0);
+  std::vector<qlc3d::Director> dir(npLC, defaultDirector);
+
+  for (unsigned int i = 0; i < npLC; i++) {
+    auto p = coordinates.getPoint(i);
+
+    for (auto &b : boxRegions) {
+      if (b->contains(p)) {
+        auto d = b->getDirectorAt(p);
+        dir[i] = qlc3d::Director(d.nx(), d.ny(), d.nz(), S0);
+      }
+    }
+  }
+
+  // convert the director to tensor
+  for (unsigned int i = 0; i < npLC; i++) {
+    q.setValue(i, qlc3d::TTensor::fromDirector(dir[i]));
+  }
 }
 
 

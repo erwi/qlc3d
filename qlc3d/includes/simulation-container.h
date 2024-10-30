@@ -40,7 +40,7 @@ class SimulationContainer {
     std::shared_ptr<Simu> simu;
     std::shared_ptr<Electrodes> electrodes;
     std::shared_ptr<LC> lc;
-    std::unique_ptr<Boxes> boxes;
+    std::shared_ptr<InitialVolumeOrientation> boxes;
     Alignment &alignment;
     std::unique_ptr<RegularGrid> regGrid;
     EventList &eventList;
