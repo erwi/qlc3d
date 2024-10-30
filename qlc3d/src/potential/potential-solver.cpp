@@ -183,7 +183,6 @@ void PotentialSolver::addToGlobalMatrix(const double lK[4][4], const double lL[4
 }
 
 void PotentialSolver::assembleVolume(const SolutionVector &v, const SolutionVector &q, const Geometry &geom) {
-  GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
   const unsigned int elementCount = geom.getTetrahedra().getnElements();
 
   double lK[4][4];
@@ -191,8 +190,9 @@ void PotentialSolver::assembleVolume(const SolutionVector &v, const SolutionVect
   idx tetNodes[4];
   idx tetDofs[4];
 
-  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, shapes, electrodes, elementCount) private(lK, lL, tetNodes, tetDofs)
+  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, elementCount) private(lK, lL, tetNodes, tetDofs)
   for (idx elementIndex = 0; elementIndex < elementCount; elementIndex++) {
+    GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
     geom.getTetrahedra().loadNodes(elementIndex, tetNodes);
     v.loadEquNodes(&tetNodes[0], &tetNodes[4], tetDofs);
 
@@ -203,7 +203,7 @@ void PotentialSolver::assembleVolume(const SolutionVector &v, const SolutionVect
 }
 
 void PotentialSolver::assembleNeumann(const SolutionVector &v, const SolutionVector &q, const Geometry &geom) {
-  GaussianQuadratureTet<7> shapes = gaussQuadratureTetBoundaryIntegral4thOrder();
+
   auto &triMesh = geom.getTriangles();
   auto &tetMesh = geom.getTetrahedra();
   const unsigned int triCount = geom.getTriangles().getnElements();
@@ -214,7 +214,7 @@ void PotentialSolver::assembleNeumann(const SolutionVector &v, const SolutionVec
   unsigned int tetNodes[4];
   unsigned int tetDofs[4];
 
-  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, shapes, electrodes, triMesh, tetMesh, triCount) private(lK, lL, triNodes, tetNodes, tetDofs)
+  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, triMesh, tetMesh, triCount) private(lK, lL, triNodes, tetNodes, tetDofs)
   for (unsigned int indTri = 0; indTri < triCount; indTri++) {
     if (triMesh.getMaterialNumber(indTri) != MAT_NEUMANN) {
       continue;
@@ -227,7 +227,7 @@ void PotentialSolver::assembleNeumann(const SolutionVector &v, const SolutionVec
     if (!isLCMaterial(tetMaterial)) {
       continue;
     }
-
+    GaussianQuadratureTet<7> shapes = gaussQuadratureTetBoundaryIntegral4thOrder();
     triMesh.loadNodes(indTri, triNodes);
     tetMesh.loadNodes(indTet, tetNodes);
     reorderBoundaryTetNodes(tetNodes, triNodes);

@@ -48,6 +48,7 @@ TEST_CASE("Solve potential 1D mesh - Expect v = z") {
   auto lc = std::shared_ptr<LC>(LCBuilder().build());
   auto solverSettings = std::make_shared<SolverSettings>();
   solverSettings->setV_GMRES_Toler(1e-9);
+  solverSettings->setnThreads(10); // result should not depend on number of threads
   PotentialSolver solver(electrodes, lc, solverSettings);
 
   // ACT
@@ -94,6 +95,7 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
           .build());
 
   auto solverSettings = std::make_shared<SolverSettings>();
+  solverSettings->setnThreads(10); // result should not depend on number of threads
   PotentialSolver solver(electrodes, lc, solverSettings);
 
   // ACT
