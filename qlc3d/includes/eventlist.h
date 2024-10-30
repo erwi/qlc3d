@@ -77,8 +77,8 @@ class EventList {
     /*!The EventList class manages the individual envents*/
 private:
     // SPECIAL CONSTANTS
-    const double NO_TIME_EVENTS;    // INDICATES THAT NO TIME EVENTS EXIST
-    const size_t NO_ITER_EVENTS;    // INDINCATES THAT NO ITER EVENT EXIST
+    static constexpr double NO_TIME_EVENTS = std::numeric_limits<double>::max();    // INDICATES THAT NO TIME EVENTS EXIST
+    static constexpr size_t NO_ITER_EVENTS = std::numeric_limits<size_t>::max();    // INDICATES THAT NO ITER EVENT EXIST
     double nextTimeEvent_;          // TIME OF NEXT TIMED EVENT
     size_t nextIterEvent_;          // ITERATION NUMBER OF NEXT ITER EVENT
     list <Event *> timeEvents_;     // Collection od time/iteration events

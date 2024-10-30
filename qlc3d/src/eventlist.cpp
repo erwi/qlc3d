@@ -68,8 +68,6 @@ std::string Event::toString() const {
 
 // -------------EventList DEFINITIONS --------------
 EventList::EventList():
-    NO_TIME_EVENTS(std::numeric_limits<double>::max()),
-    NO_ITER_EVENTS(std::numeric_limits<size_t>::max()),
     nextTimeEvent_(NO_TIME_EVENTS),
     nextIterEvent_(NO_ITER_EVENTS),
     saveIter_(0),

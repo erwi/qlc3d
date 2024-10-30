@@ -248,8 +248,9 @@ void SimulationContainer::runIteration() {
   simulationState.change(solverResult.dq);
 
   simulationState.currentTime().increment(simulationState.dt());
-  simulationState.currentIteration(simulationState.currentIteration() + 1);
 
+  // Note: currently event must be handled after incrementing time, but before incrementing iteration,
+  // otherwise we can miss save event defined by iteration.
   handleEvents(eventList,
                *electrodes,
                alignment,
@@ -262,6 +263,8 @@ void SimulationContainer::runIteration() {
                resultOutput,
                *potentialSolver,
                adaptiveTimeStep);
+
+  simulationState.currentIteration(simulationState.currentIteration() + 1);
 
   Log::info("Total iteration time={:.3}s, LC assembly time = {:.3}s, LC solver time = {:.3}s",
   stopwatch.elapsedSeconds(), solverResult.elapsedTimes.assemblyTimeSeconds, solverResult.elapsedTimes.solveTimeSeconds);
