@@ -87,6 +87,10 @@ private:
     const double dtLimits_[2];          // min/max time-step values used in adaptive time stepping
     const double dtFunction_[4];        // function coefficients that controll the time step size adjustment
     const EndCriteria endCriterion_;    // how we determine that a simulation has ended
+
+    /**
+     * file name of the Q-tensor to load from a past LcView result file (either binary or text)
+     */
     const std::string loadQ_;
     const std::string saveDir_;         // directory where results are saved
     const std::filesystem::path saveDirAbsolutePath_;

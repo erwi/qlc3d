@@ -38,7 +38,10 @@ public:
   void setQTensor(const SolutionVector &q) {this->qTensor = &q; };
   void setPotential(const SolutionVector &pot) {this->potential = &pot; }
 
-  /** write the result to the output format. TODO: Geometry should be const */
+  /**
+   * write the result to the output format.
+   * TODO: would be nice to return a result that can contain useful data like created result file name etc.
+   */
   virtual void writeResult(const Geometry &geom, const SimulationState &simulationState) = 0;
   virtual const std::string formatName() const = 0;
   virtual ~ResultFormatWriter() = default;

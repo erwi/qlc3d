@@ -17,13 +17,23 @@ namespace ResultIO {
 
 static const char LCVIEW_TEXT_FORMAT_STRING[] = "%i %f %f %f %f %f %f\n";
 
+/**
+ * Reads in the data from an LCView result file (either binary or text) and stores it in the q-tensor.
+ * It is assumed that the q-tensor size is already known from reading a mesh file and that q is correctly sized.
+ */
+void ReadResult(const std::string &fileName, SolutionVector& q);
 
-void ReadResult(const Simu& simu,         // READS AND LOADS Q-TENSOR VALUES FROM AN EXISTING RESULT FILE
-                SolutionVector& q); // TRIES TO FIGURE OUT WHETHER RESULT FILE IS IN TEXT OR BINARY FORMAT
+/**
+ * Reads in the data from a binary LCView result file and stores it in the q-tensor.
+ * It is assumed that the q-tensor size is already known from reading a mesh file and that q is correctly sized.
+ */
+void readBinaryLcViewResultFile(const std::string &fileName, SolutionVector& q);
 
-void ReadLCD_B(const Simu* simu, SolutionVector* q);
-
-void ReadLCD_T(const Simu& simu, SolutionVector& q); // LOADS TEXT FORMAT LCVIEW RESULT FILE
+/**
+ * Loads Q-tensor for an ascii text LCView result file. This assumes that the loaded data size is already known and the
+ * q-tensor is correctly sized
+ */
+void readTextLcViewResultFile(const std::string &fileName, SolutionVector& q); // LOADS TEXT FORMAT LCVIEW RESULT FILE
 
 /**
  * Write a result file containing potential as well as LC director and order parameter on the unstructured mesh points.

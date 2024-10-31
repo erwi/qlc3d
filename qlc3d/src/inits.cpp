@@ -115,7 +115,7 @@ void initialiseLcSolutionVector(SolutionVector &q, const Simu &simu, const LC &l
   const double S0 = lc.S0();
   setVolumeQ(q, S0, boxes, geom.getCoordinates());
   if (!simu.getLoadQ().empty()) {
-    ResultIO::ReadResult(simu, q);
+    ResultIO::ReadResult(simu.getLoadQ(), q);
   }
   setSurfacesQ(q, alignment, S0, geom);
   q.setFixedNodesQ(alignment, geom.getTriangles());  // set fixed surface anchoring

@@ -1,6 +1,7 @@
 #include <catch.h>
 #include <memory>
 #include <io/lcview-result-output.h>
+#include <resultio.h>
 #include <util/stringutil.h>
 #include <test-util.h>
 #include <simulation-state.h>
@@ -159,3 +160,82 @@ TEST_CASE("Write text LCViewTxt result file") {
     REQUIRE(resDir.listFiles().size() == 4); // 2 mesh files, 2 result files
   }
 }
+
+void shouldEqual(const SolutionVector &q1, const SolutionVector &q2) {
+  REQUIRE(q1.getnDoF() == q2.getnDoF());
+  REQUIRE(q1.getnDimensions() == q2.getnDimensions());
+  // check that the read values equal the written values
+  for (int i = 0; i < q1.getnDoF(); i++) {
+    for (int j = 0; j < q1.getnDimensions(); j++) {
+      REQUIRE(q1.getValue(i, j) == Approx(q2.getValue(i, j)).margin(1e-6)); // saved using float precision
+    }
+  }
+}
+
+TEST_CASE("Write and read back Q-tensor as LCView format") {
+  const std::string meshName = "path/to/mesh.msh";
+  const double S0 = 0.5;
+  const auto geom = createSingleTetGeometry();
+
+  const SolutionVector potential(geom->getnpLC(), 1);
+  SolutionVector qTensor(geom->getnpLC(), 5);
+
+  // create q-tensor with arbitrary but valid values
+  for (int i = 0; i < geom->getnpLC(); i++) {
+    auto dir = qlc3d::Director::fromDegreeAngles(i * 10, i * 13, 0.5);
+    qTensor.setValue(i, dir);
+  }
+
+  SimulationState simulationState;
+  simulationState.state(RunningState::RUNNING);
+  simulationState.currentIteration(0);
+  TestUtil::TemporaryDirectory resDir;
+
+  SECTION("Binary LCView file format") {
+    LcViewBinaryResultFormatWriter writer(resDir.path(), meshName, S0);
+
+    writer.setPotential(potential);
+    writer.setQTensor(qTensor);
+    writer.writeResult(*geom, simulationState);
+
+    // WHEN:
+    // Read back the Q-tensor from the binary file
+    SolutionVector qTensorRead(geom->getnpLC(), 5);
+
+    const std::string resultFile = (resDir.path() / "result00000.dat").string();
+    REQUIRE(fs::exists(resultFile));
+    ResultIO::ReadResult(resultFile, qTensorRead);
+
+    // THEN:
+    REQUIRE(qTensorRead.getnDoF() == geom->getnpLC());
+
+    // check that the read values equal the written values
+    shouldEqual(qTensor, qTensorRead);
+  }
+
+  SECTION("Text LCView file format") {
+    LcViewTxtResultFormatWriter writer(resDir.path(), meshName, S0);
+
+    // Text LCView requires director, not q-tensor
+    std::vector<qlc3d::Director> director;
+    for (int i = 0; i < geom->getnpLC(); i++) {
+      director.push_back(qTensor.getDirector(i));
+    }
+
+    writer.setPotential(potential);
+    writer.setDirector(&director);
+    writer.writeResult(*geom, simulationState);
+
+    const std::string resultFile = (resDir.path() / "result-t-00000.dat").string();
+    REQUIRE(fs::exists(resultFile));
+    // WHEN:
+    // Read back the Q-tensor from the text file
+    SolutionVector qTensorRead(geom->getnpLC(), 5);
+    ResultIO::ReadResult(resultFile, qTensorRead);
+
+    // THEN:
+    // Check that the read values equal the written values
+    shouldEqual(qTensor, qTensorRead);
+  }
+}
+
