@@ -71,7 +71,6 @@ class Reader {
     std::filesystem::path _fileName;                          // holds current file name
     std::map<std::string, lineData> _keyValues;     // "database" of all read key/value pairs
     std::vector<std::string> _validKeys;            // optional list of valid keys. read in from a separte file
-    std::string _recentKey;                         // previously accessed/searched key that is valid and found
     // STRING FORMATTING FUNCTIONS
     inline void removeComments(std::string &line) const;   // removes everything in a line after comment character
     inline void cleanLineEnds(std::string &line) const;    // removes white space from both ends of a string
@@ -100,7 +99,7 @@ class Reader {
         for (auto &s : svals) {
             if (!isValidNumber(s)) {
                 std::string errMSG = _R_NUMBER_FORMAT_ERROR_MSG + s;
-                throw errMSG;
+                throw std::runtime_error(errMSG);
             }
             std::stringstream ss(s);
             double tval(0);
@@ -114,7 +113,7 @@ class Reader {
           */
         if (!isValidNumber(strVal)) {
             std::string errMSG = _R_NUMBER_FORMAT_ERROR_MSG + strVal;
-            throw errMSG;
+            throw std::runtime_error(errMSG);
         }
         std::string sval;
         parseValue(strVal, sval);
@@ -129,27 +128,28 @@ public:
     inline Reader(): isCaseSensitive_(true), isLowerCaseStringValues_(false), isEnvironmentVariableSubstitution_(false) {}
     inline void readSettingsFile(const std::filesystem::path &fileName);
     inline void readValidKeysFile(const std::filesystem::path &fileName);
-    inline bool containsKey(const std::string &key);
+    [[nodiscard]] inline bool containsKey(const std::string &key) const ;
 
     /** check whether a key that starts with the given prefix exists */
-    inline bool containsKeyWithPrefix(const std::string &keyPrefix);
+    [[nodiscard]] inline bool containsKeyWithPrefix(const std::string &keyPrefix);
     template<class T> inline T getValueByKey(const std::string &key) const;
-    template<class T> inline T get() const; // access by last used key
     template<class T> inline std::optional<T> getOptional(const std::string &key);
 
     template<class T> inline T get(const std::string &key, const T& defaultValue);
-    inline void printAll()const;
-    inline bool isCaseSensitive() const { return isCaseSensitive_; }
+    [[nodiscard]] inline bool isCaseSensitive() const { return isCaseSensitive_; }
+    [[nodiscard]] inline bool isLowerCaseStringValues() const { return isLowerCaseStringValues_; }
+    [[nodiscard]] inline bool isEnvironmentVariableSubstitution() const { return isEnvironmentVariableSubstitution_; }
     inline void setCaseSensitivity(bool isCS) { isCaseSensitive_ = isCS; }
-    inline bool isLowerCaseStringValues() const { return isLowerCaseStringValues_; }
     inline void setLowerCaseStringValues(bool isLowerCase) { isLowerCaseStringValues_ = isLowerCase; }
-    inline bool isEnvironmentVariableSubstitution() const { return isEnvironmentVariableSubstitution_; }
     inline void setEnvironmentVariableSubstitution(bool isEnvironmentVariableSubstitution) {
         isEnvironmentVariableSubstitution_ = isEnvironmentVariableSubstitution;
     }
-
-    inline bool isValidKey(std::string key);
-    inline std::vector<std::string> getAllKeys() const; // returns vector containing all keys in file
+    /** Checks whether key is in list of valid keys. Keys may contain wildcards, marked with '*' */
+    [[nodiscard]] inline bool isValidKey(std::string key) const;
+    /** Return std::vector<string> that contains all keys in the file */
+    [[nodiscard]] inline std::vector<std::string> getAllKeys() const;
+    /** Check whether the value of key exists and is an array of some types */
+    [[nodiscard]] inline bool isValueArray(const std::string &key) const;
 };
 
 //****************************************************************************************
@@ -382,20 +382,25 @@ void Reader::readValidKeysFile(const std::filesystem::path &fileName) {
     fin.close();
 }
 
-bool Reader::isValidKey(std::string key) {
-    /*! Checks whether key is in list of valid keys.
-        Keys may contain wildcards, marked with '*'
-    */
+bool Reader::isValidKey(std::string key) const {
     // compare each valid key to current key
     for (auto &k : _validKeys) {
         std::regex rx(k);
         if (std::regex_match(key.begin(), key.end(), rx)) {
-            _recentKey = key; // remember key. value can then be accessed with get()
             return true;
         }
     }
-    _recentKey.clear();
     return false; // key not found
+}
+
+bool Reader::isValueArray(const std::string &key) const {
+  if (!containsKey(key)) {
+    return false;
+  }
+
+  std::string val = _keyValues.at(key).val_;
+
+  return !val.empty() && val.front() == '[' && val.back() == ']';
 }
 
 size_t Reader::getLineNumberByKey(const std::string &key) const {
@@ -404,21 +409,19 @@ size_t Reader::getLineNumberByKey(const std::string &key) const {
      */
     auto itr = _keyValues.find(key);
     if (itr == _keyValues.end()) { // if not found
-        throw std::string("could not find key: ") + key;
+        throw std::runtime_error("could not find key: " + key);
     }
     return itr->second.lineNumber_;
 }
 
-bool Reader::containsKey(const std::string &key) {
-    _recentKey.clear();
+bool Reader::containsKey(const std::string &key) const {
     // validate key format
     std::string tkey(key);
     this->cleanLineEnds(tkey);
     if (!isCaseSensitive()) toLower(tkey); // if case insensitive
-    std::map<std::string, lineData>::const_iterator itr = _keyValues.find(tkey);
+    auto itr = _keyValues.find(tkey);
     //
     if (itr!=_keyValues.end()) { // if contains given key
-        _recentKey = key;        // save as most recently used
         return true;
     } else {
         return false;
@@ -432,15 +435,6 @@ bool Reader::containsKeyWithPrefix(const std::string &keyPrefix) {
     }
     return std::any_of(_keyValues.begin(), _keyValues.end(),
                 [&prefix](const auto &keyVal) { return keyVal.first.find(prefix) == 0; });
-}
-
-void Reader::printAll() const {
-    /*!
-      * Prints all key/value pairs to stdout.
-      */
-    for (auto &k : _keyValues) {
-        std::cout << k.first << " = " << k.second.val_ << std::endl;
-    }
 }
 
 bool Reader::isValidNumber(const std::string &strVal) const {
@@ -485,7 +479,7 @@ void Reader::parseValue(const std::string &strVal, std::string &val) const {
     size_t ind = val.find_first_of(_R_WHITE_SPACE);
     if (ind < std::string::npos) {
         std::string errMsg = _R_BAD_VALUE_ERROR_MSG + strVal + ", found unexpected whitespace.";
-        throw errMsg;
+        throw std::runtime_error(errMsg);
     }
 }
 void Reader::parseValue(const std::string &strVal, std::vector<std::string> &val) const {
@@ -498,22 +492,22 @@ void Reader::parseValue(const std::string &strVal, std::vector<std::string> &val
     // CHECK FOR OPEN/CLOSE BRAES
     // TODO: this shoud be done using a stack
     if ((i1 = str.find_first_of(_R_OBRACE)) != str.find_last_of(_R_OBRACE)) {
-        throw _R_VECTOR_FORMAT_ERROR_MSG;   // multiple '['
+        throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   // multiple '['
     }
     if ((i2 = str.find_first_of(_R_CBRACE)) != str.find_last_of(_R_CBRACE)) {
-        throw _R_VECTOR_FORMAT_ERROR_MSG;   // multiple ']'
+        throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   // multiple ']'
     }
     if (i1 > 0) {
-        throw _R_VECTOR_FORMAT_ERROR_MSG;   //  '[' not first
+        throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   //  '[' not first
     }
     if (i2 < str.length() - 1) {
-        throw _R_VECTOR_FORMAT_ERROR_MSG;   //']' not last
+        throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   //']' not last
     }
     if (i2 == std::string::npos) {
-        throw _R_VECTOR_FORMAT_ERROR_MSG;   // no closing ']'
+        throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   // no closing ']'
     }
     if (i1 == i2 - 1) {
-        throw _R_VECTOR_FORMAT_ERROR_MSG;   // empty vector
+        throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   // empty vector
     }
     str = str.substr(i1 + 1, i2 - 1); // remove braces from both ends
     // check that vector didn reduce to all whitespace characters
@@ -524,7 +518,7 @@ void Reader::parseValue(const std::string &strVal, std::vector<std::string> &val
     // REPLACE ALL DELIMETERS BY SINGLE BLANKS
     while ((i1 = str.find_first_of(_R_VDELIM)) < std::string::npos) {
         if (i1 == 0) {      // first character is vector delimiter
-            throw _R_VECTOR_FORMAT_ERROR_MSG;
+            throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);
         }
         std::string item = str.substr(0, i1);
         parseValue(item, item); // check that item is a valid string-value
@@ -536,7 +530,7 @@ void Reader::parseValue(const std::string &strVal, std::vector<std::string> &val
         parseValue(str, str); // check that item is a valid string-value
         val.push_back(str);
     } else {
-        throw _R_VECTOR_FORMAT_ERROR_MSG;
+        throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);
     }
 }
 
@@ -563,9 +557,9 @@ T Reader::getValueByKey(const std::string &key) const {
         T retVal;
         parseValue(strVal, retVal);
         return retVal;
-    } catch (std::string msg) { // error converting to required type
+    } catch (std::exception &exception) { // error converting to required type
         lineData badLine = (_keyValues.find(tkey)->second);
-        throw ReaderError(msg, _fileName.string(), badLine.lineNumber_, badLine.rawText_);
+        throw ReaderError(exception.what(), _fileName.string(), badLine.lineNumber_, badLine.rawText_);
     }
 }
 
@@ -578,20 +572,11 @@ std::optional<T> Reader::getOptional(const std::string &key) {
     }
 }
 
-template<class T>
-T Reader::get() const {
-/*! returns value corresponding to most recently used key*/
-    if (!_recentKey.empty())
-        return getValueByKey<T>(_recentKey);
-    else
-        throw ReaderError("A valid key has not been found before calling Reader::get<class T>()");
-}
-
 /*! Returns value by key. If key does not exit, returns given default value*/
 template<class T>
 T Reader::get(const std::string &key, const T& defaultValue) {
     if (containsKey(key)) {
-        return get<T>();
+        return getValueByKey<T>(key);
     } else {
         return defaultValue;
     }
@@ -611,7 +596,7 @@ inline void Reader::parseValue(const std::string &strVal, size_t &val) const {
      * Parses to size_t type (may be 64 bit). Checks that value is positive.
      */
     if (! isValidNumber(strVal)) {
-        throw _R_NUMBER_FORMAT_ERROR_MSG;
+        throw std::runtime_error(_R_NUMBER_FORMAT_ERROR_MSG);
     }
     double dval(0);
     parseValue(strVal, dval);
@@ -619,7 +604,7 @@ inline void Reader::parseValue(const std::string &strVal, size_t &val) const {
         val = static_cast<size_t>(dval);
     } else {
         std::string errMsg = _R_BAD_VALUE_ERROR_MSG + strVal + " , expected positive number.";
-        throw errMsg;
+        throw std::runtime_error(errMsg);
     }
 }
 inline void Reader::parseValue(const std::string &strVal, unsigned int &val) const {
@@ -639,7 +624,7 @@ inline void Reader::parseValue(const std::string &strVal, bool &val) const {
     val = false;
   } else {
     std::string errMsg = _R_BAD_VALUE_ERROR_MSG + strVal + " , expected true or false.";
-    throw errMsg;
+    throw std::runtime_error(errMsg);
   }
 }
 

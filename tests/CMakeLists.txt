@@ -28,7 +28,8 @@ add_executable(cpp-test
         cpp/lc/lc-solver-tests.cpp
         cpp/adaptive-time-step-tests.cpp
         cpp/alignment-tests.cpp
-        cpp/expression-tests.cpp)
+        cpp/expression-tests.cpp
+        cpp/reader-tests.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 
