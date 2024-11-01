@@ -180,6 +180,10 @@ void InitialVolumeOrientation::addBox(Box *b) {
     boxRegions.push_back(std::unique_ptr<Box>(b));
 }
 
+void InitialVolumeOrientation::addBox(std::unique_ptr<Box> b) {
+    boxRegions.push_back(std::move(b));
+}
+
 void InitialVolumeOrientation::addBox(const int &boxNum,
                                       const std::string &boxType,
                                       const std::vector<double> &params,

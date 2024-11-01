@@ -313,3 +313,89 @@ TEST_CASE("Read alignment from settings file") {
   REQUIRE(alignment->getSurface(2).getAnchoringType() == AnchoringType::Weak);
   REQUIRE(alignment->getSurface(3).getAnchoringType() == AnchoringType::Degenerate);
 }
+
+TEST_CASE("Read boxes from settings file") {
+  // ARRANGE
+  std::string contents;
+  contents += "MeshName= test.msh\n"; // required in every settings file
+
+  contents += "BOX1.Type = Normal\n";
+  contents += "BOX1.X = [0.0, 1.0]\n";
+  contents += "BOX1.Y = [-1.0, 2.0]\n";
+  contents += "BOX1.Z = [0.0, 0.1]\n";
+  contents += "BOX1.Params = [1.0, 2., 3.]\n";
+  contents += "BOX1.Tilt = [-0.1, 0.5]\n";
+  contents += "BOX1.Twist = [-0.2, 0.5]\n";
+
+  contents += "BOX2.Type = Random\n";
+  contents += "BOX2.X = [0.0, 1.0]\n";
+  contents += "BOX2.Y = [0.0, 1.0]\n";
+  contents += "BOX2.Z = [0.0, 1.0]\n";
+
+  contents += "BOX3.Type = Hedgehog\n";
+  contents += "BOX3.X = [0.0, 1.0]\n";
+  contents += "BOX3.Y = [0.0, 1.0]\n";
+  contents += "BOX3.Z = [0.0, 1.0]\n";
+
+  auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+  // ACT
+  SettingsReader reader(settingsFile.name());
+
+  // ASSERT
+  auto boxes = reader.initialVolumeOrientation();
+
+  REQUIRE(3 == boxes->getBoxCount());
+
+  auto box1 = boxes->getBox(0);
+  REQUIRE(box1.getType() == BoxType::Normal);
+  auto bbox = box1.getBoundingBox();
+
+  double defaultParam = -1.;
+  REQUIRE(box1.getParam(0, defaultParam) == 1.0);
+  REQUIRE(box1.getParam(1, defaultParam) == 2.0);
+  REQUIRE(box1.getParam(2, defaultParam) == 3.0);
+
+  auto dirBottom = box1.getDirectorAt(Vec3(0.5, 0, 0.));
+  REQUIRE(dirBottom.tiltDegrees() == -.1);
+  REQUIRE(dirBottom.twistDegrees() == -.2);
+
+  auto dirTop = box1.getDirectorAt(Vec3(0.5, 0, 0.1));
+  REQUIRE(dirTop.tiltDegrees() == 0.4); // bottom + delta
+  REQUIRE(dirTop.twistDegrees() == 0.3); // bottom + delta
+
+  REQUIRE(bbox.getXMin() == 0.0);
+  REQUIRE(bbox.getXMax() == 1.0);
+  REQUIRE(bbox.getYMin() == -1.0);
+  REQUIRE(bbox.getYMax() == 2.0);
+  REQUIRE(bbox.getZMin() == 0.0);
+  REQUIRE(bbox.getZMax() == 0.1);
+
+  // Check the other boxe types.
+  auto box2 = boxes->getBox(1);
+  REQUIRE(box2.getType() == BoxType::Random);
+
+  auto box3 = boxes->getBox(2);
+  REQUIRE(box3.getType() == BoxType::Hedgehog);
+}
+
+TEST_CASE("Read normal box with expression tilt and twist") {
+  /*
+  std::string contents;
+  contents += "MeshName= test.msh\n"; // required in every settings file
+
+  contents += "BOX1.Type = Normal\n";
+  contents += "BOX1.X = [0.0, 1.0]\n";
+  contents += "BOX1.Y = [-1.0, 2.0]\n";
+  contents += "BOX1.Z = [0.0, 0.1]\n";
+  contents += "BOX1.Tilt = x + y + z\n";
+  contents += "BOX1.Twist = x - y - z\n";
+
+  auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+  SettingsReader reader(settingsFile.name());
+
+  auto boxes = reader.initialVolumeOrientation();
+  auto box = boxes->getBox(0);
+  */
+
+}

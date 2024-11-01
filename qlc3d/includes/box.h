@@ -78,6 +78,85 @@ public:
 
 };
 
+class BoxBuilder {
+private:
+  int boxNum;
+  std::string boxType;
+  std::vector<double> params;
+  std::vector<double> x;
+  std::vector<double> y;
+  std::vector<double> z;
+  std::vector<double> tilt;
+  std::vector<double> twist;
+
+public:
+  BoxBuilder(int boxNum) : boxNum(boxNum), boxType(Box::DEFAULT_TYPE), params(Box::DEFAULT_PARAMS),
+                           x(Box::DEFAULT_X_Y_Z), y(Box::DEFAULT_X_Y_Z), z(Box::DEFAULT_X_Y_Z),
+                           tilt(Box::DEFAULT_TILT_TWIST), twist(Box::DEFAULT_TILT_TWIST) {}
+
+  BoxBuilder& setBoxType(const std::string& type) {
+    this->boxType = type;
+    return *this;
+  }
+
+  BoxBuilder& setParams(const std::vector<double>& params) {
+    this->params = params;
+    return *this;
+  }
+
+  BoxBuilder& setX(const std::vector<double>& x) {
+    if (x.size() != 2) {
+      throw std::invalid_argument("Invalid X length " + std::to_string(x.size()) + " expected 2");
+    }
+    this->x = x;
+    return *this;
+  }
+
+  BoxBuilder& setY(const std::vector<double>& y) {
+    if (y.size() != 2) {
+      throw std::invalid_argument("Invalid Y length " + std::to_string(y.size()) + " expected 2");
+    }
+    this->y = y;
+    return *this;
+  }
+
+  BoxBuilder& setZ(const std::vector<double>& z) {
+    if (z.size() != 2) {
+      throw std::invalid_argument("Invalid Z length " + std::to_string(z.size()) + " expected 2");
+    }
+    this->z = z;
+    return *this;
+  }
+
+  BoxBuilder& setTilt(const std::vector<double>& tilt) {
+    if (tilt.size() != 2) {
+      throw std::invalid_argument("Invalid Tilt length " + std::to_string(tilt.size()) + " expected 2");
+    }
+    this->tilt = tilt;
+    return *this;
+  }
+
+  BoxBuilder& setTwist(const std::vector<double>& twist) {
+    if (twist.size() != 2) {
+      throw std::invalid_argument("Invalid Twist length " + std::to_string(twist.size()) + " expected 2");
+    }
+    this->twist = twist;
+    return *this;
+  }
+
+  std::unique_ptr<Box> build() const {
+    auto box = std::make_unique<Box>(boxNum);
+    box->setBoxType(boxType);
+    box->setParams(params);
+    box->setX(x);
+    box->setY(y);
+    box->setZ(z);
+    box->setTilt(tilt);
+    box->setTwist(twist);
+    return box;
+  }
+};
+
 
 /*
  * A class that defines the LC initial orientation in the volume.
@@ -89,6 +168,7 @@ public:
     InitialVolumeOrientation();
     InitialVolumeOrientation(RandomGenerator &rg);
     void addBox(Box *b);
+    void addBox(std::unique_ptr<Box> b);
     void addBox(const int &boxNum,
                 const std::string &boxType,
                 const std::vector<double> &params,

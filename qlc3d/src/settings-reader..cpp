@@ -330,7 +330,8 @@ void SettingsReader::readInitialVolumeOrientation(Reader &reader) {
       string tiltKey = wildcardToNum(SFK_BOX_TILT, boxNum);
       string twistKey = wildcardToNum(SFK_BOX_TWIST, boxNum);
       // add box
-      initialVolumeOrientation_->addBox(boxNum,
+      /*
+      initialVolumeOrientation_->addBox(boxNum, // TODO we need a box builder to better support expressions for tilt and twist
                    reader.get<string>(typeKey, Box::DEFAULT_TYPE),
                    reader.get<vector<double>>(paramsKey, Box::DEFAULT_PARAMS),
                    reader.get<vector<double>>(xKey, Box::DEFAULT_X_Y_Z),
@@ -338,6 +339,18 @@ void SettingsReader::readInitialVolumeOrientation(Reader &reader) {
                    reader.get<vector<double>>(zKey, Box::DEFAULT_X_Y_Z),
                    reader.get<vector<double>>(tiltKey, Box::DEFAULT_TILT_TWIST),
                    reader.get<vector<double>>(twistKey, Box::DEFAULT_TILT_TWIST));
+      */
+      auto bbuilder = BoxBuilder(boxNum);
+      bbuilder.setBoxType(reader.get<string>(typeKey, Box::DEFAULT_TYPE))
+              .setParams(reader.get<vector<double>>(paramsKey, Box::DEFAULT_PARAMS))
+              .setX(reader.get<vector<double>>(xKey, Box::DEFAULT_X_Y_Z))
+              .setY(reader.get<vector<double>>(yKey, Box::DEFAULT_X_Y_Z))
+              .setZ(reader.get<vector<double>>(zKey, Box::DEFAULT_X_Y_Z));
+
+      // TODO: depending on whether Tilt and Twist are arrays or expressions, we need to add them to the builder differently
+      bbuilder.setTilt(reader.get<vector<double>>(tiltKey, Box::DEFAULT_TILT_TWIST))
+        .setTwist(reader.get<vector<double>>(twistKey, Box::DEFAULT_TILT_TWIST));
+      initialVolumeOrientation_->addBox(bbuilder.build());
     }
   } // end for boxNum
 }
