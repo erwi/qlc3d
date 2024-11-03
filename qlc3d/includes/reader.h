@@ -12,7 +12,7 @@
 #include <regex>
 #include <optional>
 
-struct ReaderError {
+struct ReaderError : public std::runtime_error {
     std::string errorMessage;
     std::string fileName;
     size_t lineNumber;
@@ -22,7 +22,7 @@ struct ReaderError {
                 const std::string &fileName = "",
                 const size_t &lineNumber = 0,
                 const std::string &lineText = ""
-               ):
+               ): std::runtime_error(errorMessage + ", file: " + fileName + ", line: " + std::to_string(lineNumber) + ", line text: " + lineText),
         errorMessage(errorMessage),
         fileName(fileName),
         lineNumber(lineNumber),
@@ -52,11 +52,11 @@ class Reader {
     bool isLowerCaseStringValues_;    // whether to convert all returned string values to lowercase
     bool isEnvironmentVariableSubstitution_; // whether to perform string substitution from environment variables
     // ERROR MESSAGES
-    const std::string _R_FILE_OPEN_ERROR_MESSAGE = "Could not open file :";
+    const std::string _R_FILE_OPEN_ERROR_MESSAGE = "Could not open file: ";
     const std::string _R_VECTOR_FORMAT_ERROR_MSG = "Bad vector format";
-    const std::string _R_KEY_NOT_FOUND_ERROR_MSG = "Key not found :";
-    const std::string _R_NUMBER_FORMAT_ERROR_MSG = "Bad number format :";
-    const std::string _R_BAD_VALUE_ERROR_MSG = "Bad value format :";
+    const std::string _R_KEY_NOT_FOUND_ERROR_MSG = "Key not found: ";
+    const std::string _R_NUMBER_FORMAT_ERROR_MSG = "Bad number format: ";
+    const std::string _R_BAD_VALUE_ERROR_MSG = "Bad value format: ";
     const std::string _R_BAD_KEY_VALUE_ERROR_MSG = "Bad key/value assignment";
     // CHARACTERS USED FOR VALIDATING KEYS AND VALUES
     const std::string _R_WHITE_SPACE = " \t\r"; // white space characters
@@ -87,6 +87,8 @@ class Reader {
     inline void parseValue(const std::string &strVal, size_t &val) const; // size_t conversion
     inline void parseValue(const std::string &strVal, unsigned int &val) const; // 32 bit unsigned int conversion
     inline void parseValue(const std::string &strVal, bool &val) const; // bool conversion
+
+    [[nodiscard]] inline static bool validateKey(const std::string &key);
 
     template <class T > inline void parseValue(const std::string &strVal, std::vector<T> &val) const {
         /*!
@@ -256,6 +258,7 @@ inline bool Reader::splitByChar(const std::string &line,
     }
     return true;
 }
+
 void Reader::readSettingsFile(const std::filesystem::path &fileName) {
     /*!
      * Reads text file and stores found key/value pair definitions in a
@@ -295,6 +298,12 @@ void Reader::readSettingsFile(const std::filesystem::path &fileName) {
             fin.close();
             throw ReaderError(_R_BAD_VALUE_ERROR_MSG, _fileName.string(), lineNumber, rawLine);
         }
+
+        if (!validateKey(key)) {
+          fin.close();
+          throw ReaderError("Key contains invalid character(s)", _fileName.string(), lineNumber, rawLine);
+        }
+
         // HANDLE CASE SENSITIVITY
         std::string rawKey = key;
         std::string rawValue = value;
@@ -398,7 +407,10 @@ bool Reader::isValueArray(const std::string &key) const {
     return false;
   }
 
-  std::string val = _keyValues.at(key).val_;
+  std::string tempKey(key);
+  toLower(tempKey);
+  auto val = _keyValues.at(tempKey).val_;
+  cleanLineEnds(val);
 
   return !val.empty() && val.front() == '[' && val.back() == ']';
 }
@@ -469,17 +481,22 @@ bool Reader::isValidNumber(const std::string &strVal) const {
 
 void Reader::parseValue(const std::string &strVal, std::string &val) const {
     /*!
-     * Parses a string to a string-value, checking for whitesapces. This method is called
+     * Parses a string to a string-value, checking for whitespaces. This method is called
      * first in numeric conversions too.
     */
     val = strVal;
     // Remove white space at start and end ov current value
     cleanLineEnds(val);
-    // check that no whitespace is present
-    size_t ind = val.find_first_of(_R_WHITE_SPACE);
-    if (ind < std::string::npos) {
-        std::string errMsg = _R_BAD_VALUE_ERROR_MSG + strVal + ", found unexpected whitespace.";
-        throw std::runtime_error(errMsg);
+
+    // If val starts and ends with double quotes, remove them and return whatever is left as-is without further checks
+    if (val.front() == '"' && val.back() == '"') {
+        val = val.substr(1, val.size() - 2);
+    } else { // check that no whitespace is present in the value
+      size_t ind = val.find_first_of(_R_WHITE_SPACE);
+      if (ind < std::string::npos) {
+        std::string errMsg = _R_BAD_VALUE_ERROR_MSG + strVal + ", found unexpected whitespace";
+        throw ReaderError(errMsg, _fileName.string());
+      }
     }
 }
 void Reader::parseValue(const std::string &strVal, std::vector<std::string> &val) const {
@@ -554,12 +571,15 @@ T Reader::getValueByKey(const std::string &key) const {
     // specified type
     const std::string &strVal = itr->second.val_;
     try {
-        T retVal;
-        parseValue(strVal, retVal);
-        return retVal;
-    } catch (std::exception &exception) { // error converting to required type
+      T retVal;
+      parseValue(strVal, retVal);
+      return retVal;
+    } catch (std::runtime_error &exception) { // error converting to required type
         lineData badLine = (_keyValues.find(tkey)->second);
         throw ReaderError(exception.what(), _fileName.string(), badLine.lineNumber_, badLine.rawText_);
+    } catch (std::exception &exception) { // error converting to required type
+        lineData badLine = (_keyValues.find(tkey)->second);
+        throw ReaderError("Error getting value by key: " + key, _fileName.string(), badLine.lineNumber_, badLine.rawText_);
     }
 }
 
@@ -607,6 +627,7 @@ inline void Reader::parseValue(const std::string &strVal, size_t &val) const {
         throw std::runtime_error(errMsg);
     }
 }
+
 inline void Reader::parseValue(const std::string &strVal, unsigned int &val) const {
     /*!
      * Parses to 32 bit unsigned int. Checks that value is positive.
@@ -626,6 +647,13 @@ inline void Reader::parseValue(const std::string &strVal, bool &val) const {
     std::string errMsg = _R_BAD_VALUE_ERROR_MSG + strVal + " , expected true or false.";
     throw std::runtime_error(errMsg);
   }
+}
+
+bool Reader::validateKey(const std::string &key) {
+  if (key.find_first_of('"') != std::string::npos) {
+    return false;
+  }
+  return true;
 }
 
 #endif // READER2_H

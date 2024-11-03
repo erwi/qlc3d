@@ -28,7 +28,7 @@ TEST_CASE("Throw exception with helpful information when expression is invalid")
   try {
     expr.initialise();
   } catch (const ExpressionException &e) {
-    REQUIRE(std::string(e.what()) == "Failed to compile expression: 1 + a. Error at location 5");
+    REQUIRE(std::string(e.what()) == "Failed to compile expression: 1 + a. Error near location 5");
     REQUIRE(e.getLocation() == 5);
     return;
   }

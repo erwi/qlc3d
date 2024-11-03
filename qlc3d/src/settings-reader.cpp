@@ -17,7 +17,6 @@ simu_(nullptr), lc_(nullptr), electrodes_(nullptr), meshRefinement_(nullptr), so
 }
 
 void SettingsReader::read() {
-  try {
     // check that settings file exists
     std::ifstream f(fileName_);
     assertTrue(f.good(), "Settings file does not exist: " + fileName_.string());
@@ -32,9 +31,6 @@ void SettingsReader::read() {
 
     readSimu(reader);
     readLC(reader);
-    //readSimu(simu, eventList,reader);
-    //readLC(lc, reader);
-    //readBoxes(boxes, reader);
 
     readAlignment(reader);
     readRefinement(reader);
@@ -43,10 +39,6 @@ void SettingsReader::read() {
 
     initialVolumeOrientation_ = std::make_unique<InitialVolumeOrientation>();
     readInitialVolumeOrientation(reader);
-  } catch (ReaderError &e) {
-    e.printError();
-    throw e;
-  }
 }
 
 std::unique_ptr<Simu> SettingsReader::simu() {
@@ -347,10 +339,26 @@ void SettingsReader::readInitialVolumeOrientation(Reader &reader) {
               .setY(reader.get<vector<double>>(yKey, Box::DEFAULT_X_Y_Z))
               .setZ(reader.get<vector<double>>(zKey, Box::DEFAULT_X_Y_Z));
 
-      // TODO: depending on whether Tilt and Twist are arrays or expressions, we need to add them to the builder differently
-      bbuilder.setTilt(reader.get<vector<double>>(tiltKey, Box::DEFAULT_TILT_TWIST))
-        .setTwist(reader.get<vector<double>>(twistKey, Box::DEFAULT_TILT_TWIST));
-      initialVolumeOrientation_->addBox(bbuilder.build());
+      if (reader.isValueArray(tiltKey)) {
+        bbuilder.setTilt(reader.get<vector<double>>(tiltKey, Box::DEFAULT_TILT_TWIST));
+      } else { // assume it is an analytic expression
+        auto tiltExpression = reader.get<string>(tiltKey, Box::DEFAULT_TILT_ANGLE_DEGREES);
+        bbuilder.setTiltExpression(tiltExpression);
+      }
+
+      if (reader.isValueArray(twistKey)) {
+        bbuilder.setTwist(reader.get<vector<double>>(twistKey, Box::DEFAULT_TILT_TWIST));
+      } else { // assume it is an analytic expression
+        auto twistExpression = reader.get<string>(twistKey, Box::DEFAULT_TWIST_ANGLE_DEGREES);
+        bbuilder.setTwistExpression(twistExpression);
+      }
+      try {
+        initialVolumeOrientation_->addBox(bbuilder.build());
+      } catch (ExpressionException &e) {
+        throw ReaderError("Error in expression for BOX" + std::to_string(boxNum) + ", " + e.what(), fileName_.string());
+      } catch (...) {
+        throw std::runtime_error("Error creating BOX" + std::to_string(boxNum));
+      }
     }
   } // end for boxNum
 }

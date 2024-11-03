@@ -8,6 +8,7 @@
 #include <io/result-output.h>
 #include <potential/potential-solver.h>
 #include <lc/lc-solver.h>
+#include "reader.h"
 
 namespace fs = std::filesystem;
 
@@ -82,9 +83,17 @@ int runSimulation(Configuration &configuration) {
       // TODO: auto state = simulation.getCurrentState() and do something with it?
     }
     simulation.postSimulationTasks();
-  } catch(std::exception &e) {
-    Log::error("An exception has occurred: {}", e.what());
+
+  } catch (ReaderError &e) {
+    Log::error("An error has occurred while reading file: {}", e.fileName);
+    Log::error("Error message: {}", e.errorMessage);
+    if (e.lineNumber > 0) {
+      Log::error("Error occurred while processing line {}: {}", (int) e.lineNumber, e.lineText);
+    }
     return 1;
+  }catch(std::exception &e) {
+    Log::error("An exception has occurred: {}", e.what());
+    return 2;
   } catch(...) {
     Log::error("An error has occurred");
     return 3;

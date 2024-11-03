@@ -67,5 +67,15 @@ public:
   [[nodiscard]] double getZMax() const { return z_max; }
 };
 
+template <>
+class fmt::formatter<AABox> {
+public:
+  constexpr auto parse (format_parse_context& ctx) { return ctx.begin(); }
+  template <typename Context>
+  constexpr auto format (AABox const& b, Context& ctx) const {
+    return format_to(ctx.out(), "{{xMin={}, xMax={}, yMin={}, yMax={}, zMin={}, zMax={}}}", b.getXMin(), b.getXMax(), b.getYMin(), b.getYMax(), b.getZMin(), b.getZMax());
+  }
+};
+
 
 #endif //PROJECT_QLC3D_AABOX_H

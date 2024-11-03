@@ -15,7 +15,7 @@ TEST_CASE("MeshName is required in settings file") {
         auto settingsFile = TestUtil::TemporaryFile::empty();
         SettingsReader reader(settingsFile.name());
     } catch (ReaderError &e) { // expect
-        REQUIRE(e.errorMessage.find("Key not found :MeshName") == 0);
+        REQUIRE(e.errorMessage.find("Key not found: MeshName") == 0);
         return;
     }
     REQUIRE_FALSE(true); // should not reach this
@@ -347,7 +347,7 @@ TEST_CASE("Read boxes from settings file") {
 
   REQUIRE(3 == boxes->getBoxCount());
 
-  auto box1 = boxes->getBox(0);
+  auto& box1 = boxes->getBox(0);
   REQUIRE(box1.getType() == BoxType::Normal);
   auto bbox = box1.getBoundingBox();
 
@@ -372,15 +372,14 @@ TEST_CASE("Read boxes from settings file") {
   REQUIRE(bbox.getZMax() == 0.1);
 
   // Check the other boxe types.
-  auto box2 = boxes->getBox(1);
+  auto& box2 = boxes->getBox(1);
   REQUIRE(box2.getType() == BoxType::Random);
 
-  auto box3 = boxes->getBox(2);
+  auto& box3 = boxes->getBox(2);
   REQUIRE(box3.getType() == BoxType::Hedgehog);
 }
 
 TEST_CASE("Read normal box with expression tilt and twist") {
-  /*
   std::string contents;
   contents += "MeshName= test.msh\n"; // required in every settings file
 
@@ -388,14 +387,12 @@ TEST_CASE("Read normal box with expression tilt and twist") {
   contents += "BOX1.X = [0.0, 1.0]\n";
   contents += "BOX1.Y = [-1.0, 2.0]\n";
   contents += "BOX1.Z = [0.0, 0.1]\n";
-  contents += "BOX1.Tilt = x + y + z\n";
-  contents += "BOX1.Twist = x - y - z\n";
+  contents += "BOX1.Tilt = \"x + y + z\"\n";
+  contents += "BOX1.Twist = \"x - y - z\"\n";
 
   auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
   SettingsReader reader(settingsFile.name());
 
   auto boxes = reader.initialVolumeOrientation();
-  auto box = boxes->getBox(0);
-  */
-
+  auto &box = boxes->getBox(0);
 }

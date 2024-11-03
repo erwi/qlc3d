@@ -16,6 +16,8 @@ namespace TestUtil {
   /** 1 x 1 x 2 mesh with dielectric bottom half and LC top half. Neumann side boundaries. Electrodes on top and bottom. */
   const std::string RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_GMSH_MESH = "resources/unit-cube-dielectric-neumann.msh";
 
+  bool isEquivalentAngleDegrees(double a, double b, double epsilon = 1e-6);
+
   /**
    * TemporaryFile is a file created in the OS temp directory. It deletes itself when going out of scope.
    */

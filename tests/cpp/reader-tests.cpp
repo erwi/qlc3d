@@ -31,3 +31,27 @@ TEST_CASE("Check if value type is array") {
 
   REQUIRE(r.isValueArray("key") == true);
 }
+
+TEST_CASE("Read string value with spaces") {
+  std::string contents = "key = \"value with spaces\"";
+  auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+  Reader r;
+  r.readSettingsFile(settingsFile.name());
+
+  REQUIRE(r.get<std::string>("key", "") == "value with spaces");
+}
+
+TEST_CASE("Key should not contain double quote characters") {
+  std::string contents = "\"key\" = woo";
+  auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+  try {
+    Reader r;
+    r.readSettingsFile(settingsFile.name());
+  } catch (ReaderError &re) {
+    REQUIRE(re.errorMessage == "Key contains invalid character(s)");
+    return;
+  }
+  FAIL("Expected ReaderError to be thrown");
+}

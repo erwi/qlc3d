@@ -1,5 +1,6 @@
 #include "test-util.h"
 
+#include <cmath>
 #include <filesystem>
 #include <vector>
 #include <fstream>
@@ -47,6 +48,19 @@ std::vector<std::string> TemporaryFile::readContentsAsText() const {
     }
     fin.close();
     return lines;
+}
+
+bool TestUtil::isEquivalentAngleDegrees(double a, double b, double epsilon) {
+  auto normalize = [](double angle) {
+    angle = std::fmod(angle, 360.0);
+    if (angle < 0) angle += 360.0;
+    return angle;
+  };
+
+  double normAngle1 = normalize(a);
+  double normAngle2 = normalize(b);
+
+  return std::abs(normAngle1 - normAngle2) < epsilon;
 }
 //</editor-fold>
 

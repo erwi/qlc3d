@@ -20,7 +20,7 @@ void CartesianExpression::initialise() {
   }
 
   if (compiled_expression_ == nullptr) {
-    throw ExpressionException("Failed to compile expression: " + expression_+ ". Error at location " + std::to_string(error), error);
+    throw ExpressionException("Failed to compile expression: " + expression_+ ". Error near location " + std::to_string(error), error);
   }
 }
 

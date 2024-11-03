@@ -25,17 +25,19 @@ class Log {
     inline static std::string info_eol = "\n";
 
     static void fallbackError(const std::string &message) {
-        std::cerr << "[ERROR] Could not format log message when formatString=\"" << message << "\"" << std::endl;
-        throw std::runtime_error("");
+      std::cerr << "[ERROR] Could not format log message when formatString=\"" << message << "\"" << std::endl;
+      fflush(stdout);
+      throw std::runtime_error("");
     }
 
 public:
     template <typename... T>
     static void inline info(fmt::format_string<T...> formatString, T&&... args) {
         try {
-            std::string message{"[INFO] " + Log::indent + fmt::vformat(formatString, fmt::make_format_args(args...)) + info_eol};
-            fmt::print(message);
-            fflush(stdout);
+          std::string message{"[INFO] " + Log::indent + fmt::vformat(formatString, fmt::make_format_args(args...)) + info_eol};
+          message.erase(std::remove(message.begin(), message.end(), '\r'), message.end());
+          fmt::print(message);
+          fflush(stdout);
         } catch (...) {
             Log::fallbackError(fmt::to_string(formatString));
         }
@@ -55,9 +57,10 @@ public:
     template <typename... T>
     static void inline error(fmt::format_string<T...> formatString, T&&... args) {
         try {
-            std::string message { "[ERROR] " + fmt::vformat(formatString, fmt::make_format_args(args...)) + "\n"};
-            fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::orange_red), message);
-            fflush(stdout);
+          std::string message { "[ERROR] " + fmt::vformat(formatString, fmt::make_format_args(args...)) + "\n"};
+          message.erase(std::remove(message.begin(), message.end(), '\r'), message.end());
+          fmt::print(fmt::emphasis::bold | fmt::fg(fmt::color::orange_red), message);
+          fflush(stdout);
         } catch (...) {
             Log::fallbackError(fmt::to_string(formatString));
         }
@@ -66,9 +69,10 @@ public:
     template <typename... T>
     static void inline warn(fmt::format_string<T...> formatString, T&&... args) {
         try {
-            std::string message{"[WARNING] " + fmt::vformat(formatString, fmt::make_format_args(args...)) + "\n"};
-            fmt::print(fmt::emphasis::bold, message);
-            fflush(stdout);
+          std::string message{"[WARNING] " + fmt::vformat(formatString, fmt::make_format_args(args...)) + "\n"};
+          message.erase(std::remove(message.begin(), message.end(), '\r'), message.end());
+          fmt::print(fmt::emphasis::bold, message);
+          fflush(stdout);
         } catch (...) {
             Log::fallbackError(fmt::to_string(formatString));
         }

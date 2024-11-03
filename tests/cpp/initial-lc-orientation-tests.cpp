@@ -116,6 +116,34 @@ TEST_CASE("Set initial LC orientation") {
   }
 }
 
+TEST_CASE("Box tilt and twist expressions") {
+  BoxBuilder bb(1);
+  bb.setX({0, 1})
+          .setY({0, 1})
+          .setZ({0, 1})
+          .setTiltExpression("45 * Z")  // Tilt increases linearly with Z
+          .setTwistExpression("90 * X"); // Twist increases linearly with X
+
+  auto box = bb.build();
+
+  // Check director at different points
+  auto d1 = box->getDirectorAt(Vec3(0, 0, 0));
+  REQUIRE(d1.tiltDegrees() == Approx(0).margin(1e-12));
+  REQUIRE(d1.twistDegrees() == Approx(0).margin(1e-12));
+
+  auto d2 = box->getDirectorAt(Vec3(0, 0, 1));
+  REQUIRE(d2.tiltDegrees() == Approx(45).margin(1e-12));
+  REQUIRE(d2.twistDegrees() == Approx(0).margin(1e-12));
+
+  auto d3 = box->getDirectorAt(Vec3(1, 0, 0));
+  REQUIRE(d3.tiltDegrees() == Approx(0).margin(1e-12));
+  REQUIRE(d3.twistDegrees() == Approx(90).margin(1e-12));
+
+  auto d4 = box->getDirectorAt(Vec3(0.5, 0, 0.5));
+  REQUIRE(d4.tiltDegrees() == Approx(22.5).margin(1e-12));
+  REQUIRE(d4.twistDegrees() == Approx(45).margin(1e-12));
+}
+
 TEST_CASE("Initial LC surface orientations") {
   Geometry geom;
   auto simu = std::unique_ptr<Simu>(SimuBuilder().build());
@@ -243,7 +271,6 @@ TEST_CASE("Surface easy direction calculation from angles should match director 
   REQUIRE(easy.equals(n.vector(), 1e-15));
   REQUIRE(easy.equals(s.getV1().cross(s.getV2()), 1e-15));
 }
-
 
 TEST_CASE("Surface easy direction vectors for 0 tilt 0 twist") {
   double tiltDegrees = 0;

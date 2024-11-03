@@ -3,16 +3,20 @@
 #include <string>
 #include <vector>
 #include <stringenum.h>
-#include <settings_file_keys.h>
 #include <cassert>
+#include <memory>
+#include <settings_file_keys.h>
 #include <geom/vec3.h>
 #include <lc-representation.h>
 #include <util/exception.h>
 #include <util/logging.h>
 #include <solutionvector.h>
 #include <geom/coordinates.h>
+#include <expression.h>
 
 const std::vector<std::string> Box::VALID_TYPES = {"Normal", "Random", "Hedgehog"};
+const std::string Box::DEFAULT_TILT_ANGLE_DEGREES = "0";
+const std::string Box::DEFAULT_TWIST_ANGLE_DEGREES = "0";
 const std::string Box::DEFAULT_TYPE = Box::VALID_TYPES[0];
 const std::vector<double> Box::DEFAULT_PARAMS = {};
 const std::vector<double> Box::DEFAULT_X_Y_Z = {0,0};
@@ -73,6 +77,16 @@ void Box::setRandomGenerator(RandomGenerator &rg) {
   randomGenerator = rg;
 }
 
+void Box::setTiltExpression(const std::string &expression) {
+  tiltExpression_.reset(new CartesianExpression(expression));
+  tiltExpression_->initialise();
+}
+
+void Box::setTwistExpression(const std::string &expression) {
+  twistExpression_.reset(new CartesianExpression(expression));
+  twistExpression_->initialise();
+}
+
 bool Box::contains(double *coords) const {
     return boundingBox.contains(coords[0], coords[1], coords[2]);
 }
@@ -119,19 +133,42 @@ std::string Box::toString() const {
     + std::to_string(boundingBox.getZMin()) + ", " + std::to_string(boundingBox.getZMax()) + "]";
 }
 
+double Box::getTiltAt(const Vec3 &p) const {
+  double xNormalised = (p.x() - boundingBox.getXMin()) / (boundingBox.getXMax() - boundingBox.getXMin());
+  double yNormalised = (p.y() - boundingBox.getYMin()) / (boundingBox.getYMax() - boundingBox.getYMin());
+  double zNormalised = (p.z() - boundingBox.getZMin()) / (boundingBox.getZMax() - boundingBox.getZMin());
+
+  if (tiltExpression_ == nullptr) {
+    return Tilt[0] + pow(zNormalised * Tilt[1], getParam(0, 1.0));
+  } else {
+    return tiltExpression_->evaluate(xNormalised, yNormalised, zNormalised);
+  }
+}
+
+double Box::getTwistAt(const Vec3 &p) const {
+  double xNormalised = (p.x() - boundingBox.getXMin()) / (boundingBox.getXMax() - boundingBox.getXMin());
+  double yNormalised = (p.y() - boundingBox.getYMin()) / (boundingBox.getYMax() - boundingBox.getYMin());
+  double zNormalised = (p.z() - boundingBox.getZMin()) / (boundingBox.getZMax() - boundingBox.getZMin());
+
+  if (twistExpression_ == nullptr) {
+    return Twist[0] + pow(zNormalised * Twist[1], getParam(0, 1.0));
+  } else {
+    return twistExpression_->evaluate(xNormalised, yNormalised, zNormalised);
+  }
+}
+
 qlc3d::Director Box::getDirectorForNormalBox(const Vec3 &p) const {
-  double bottomTwistDegrees = Twist[0];
-  double bottomTiltDegrees = Tilt[0];
-  double deltaTiltDegrees = Tilt[1]; // delta tilt bottom to top of box
-  double deltaTwistDegrees = Twist[1];
-
-  double boxHeight = boundingBox.getZMax() - boundingBox.getZMin();
-  double power = getParam(0, 1.0);
-
-  double pzn = (p.z() - boundingBox.getZMin()) / (boxHeight);
-  double twistDegrees = bottomTwistDegrees + pow(pzn * deltaTwistDegrees, power);
-  double tiltDegrees = bottomTiltDegrees + pow(pzn * deltaTiltDegrees, power);
-  return qlc3d::Director::fromDegreeAngles(tiltDegrees, twistDegrees, 1.0);
+    //double bottomTwistDegrees = Twist[0];
+    //double bottomTiltDegrees = Tilt[0];
+    //double deltaTiltDegrees = Tilt[1]; // delta tilt bottom to top of box
+    //double deltaTwistDegrees = Twist[1];
+    //double boxHeight = boundingBox.getZMax() - boundingBox.getZMin();
+    //double power = getParam(0, 1.0);
+    //double pzn = (p.z() - boundingBox.getZMin()) / (boxHeight);
+    //double twistDegrees = bottomTwistDegrees + pow(pzn * deltaTwistDegrees, power);
+    double tiltDegrees = getTiltAt(p); // bottomTiltDegrees + pow(pzn * deltaTiltDegrees, power);
+    double twistDegrees = getTwistAt(p);
+    return qlc3d::Director::fromDegreeAngles(tiltDegrees, twistDegrees, 1.0);
 }
 
 qlc3d::Director Box::getDirectorForRandomBox(const Vec3 &p) const {
@@ -152,7 +189,7 @@ qlc3d::Director Box::getDirectorForHedgehogBox(const Vec3 &p) const {
 
 qlc3d::Director Box::getDirectorAt(const Vec3 &p) const {
   if (!contains(p)) {
-    RUNTIME_ERROR("Error, Box::getDirectorAt, point not in box" + p.toString());
+    RUNTIME_ERROR(fmt::format("Error, Box::getDirectorAt, point {{{}}} not in box {}", p, this->boundingBox));
   }
 
   switch(getType()) {
@@ -165,6 +202,28 @@ qlc3d::Director Box::getDirectorAt(const Vec3 &p) const {
     default:
       RUNTIME_ERROR("Error, Box::getDirectorAt, unsupported box type " + getTypeString());
   }
+}
+
+std::unique_ptr<Box> BoxBuilder::build() const {
+  auto box = std::make_unique<Box>(boxNum_);
+  box->setBoxType(boxType_);
+  box->setParams(params_);
+  box->setX(x_);
+  box->setY(y_);
+  box->setZ(z_);
+
+  if (!tiltExpression_.empty()) {
+    box->setTiltExpression(tiltExpression_);
+  } else {
+    box->setTilt(tilt_);
+  }
+
+  if (!twistExpression_.empty()) {
+    box->setTwistExpression(twistExpression_);
+  } else {
+    box->setTwist(twist_);
+  }
+  return box;
 }
 
 //===================================================================
