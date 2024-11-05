@@ -30,10 +30,13 @@ FILE* createOutputEnergyFile(Simu& simu);
 /**
  * Sets up initial LC solution vector including volume and surface orientations.
  */
-void initialiseLcSolutionVector(SolutionVector &q, const Simu &simu, const LC &lc, const InitialVolumeOrientation &boxes, const Alignment &alignment, const Geometry &geom);
+void initialiseLcSolutionVector(SolutionVector &q, const Simu &simu, const LC &lc, const InitialVolumeOrientation &boxes, Alignment &alignment, const Geometry &geom);
 
 void setVolumeQ(SolutionVector &q, double S0, const InitialVolumeOrientation &boxes, const Coordinates &coordinates);
-void setSurfacesQ(SolutionVector &q, const Alignment &alignment, double S0, const Geometry &geom);
+
+/** Sets the q-tensor values for the alignment surfaces. Does not mark the nodes as fixed. */
+void setSurfacesQ(SolutionVector &q, Alignment &alignment, double S0, const Geometry &geom);
+
 void setStrongSurfacesQ(SolutionVector &q, const Alignment &alignment, double S0, const Geometry &geom);
 /**
  * converts RefinementConfig objects, as defined in settings file, to mesh refinement events that

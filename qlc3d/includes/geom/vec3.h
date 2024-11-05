@@ -15,6 +15,16 @@ public:
 
   Vec3(const Vec3 &) = default;
 
+  static Vec3 fromRadianAngles(double tiltRadians, double twistRadians) {
+    return Vec3(std::cos(tiltRadians) * std::cos(twistRadians),
+                std::cos(tiltRadians) * std::sin(twistRadians),
+                std::sin(tiltRadians));
+  }
+
+  static Vec3 fromDegreeAngles(double tiltDegrees, double twistDegrees) {
+    return fromRadianAngles(M_PI * tiltDegrees / 180., M_PI * twistDegrees / 180.);
+  }
+
   Vec3 &operator=(const Vec3 &) = default;
 
   Vec3(Vec3 &&) = default;

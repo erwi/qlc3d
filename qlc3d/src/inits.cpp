@@ -111,7 +111,7 @@ FILE* createOutputEnergyFile(Simu& simu) {
     return fid;
 }
 
-void initialiseLcSolutionVector(SolutionVector &q, const Simu &simu, const LC &lc, const InitialVolumeOrientation &boxes, const Alignment &alignment, const Geometry &geom) {
+void initialiseLcSolutionVector(SolutionVector &q, const Simu &simu, const LC &lc, const InitialVolumeOrientation &boxes, Alignment &alignment, const Geometry &geom) {
   const double S0 = lc.S0();
   boxes.setVolumeQ(q, S0, geom.getCoordinates());
   if (!simu.getLoadQ().empty()) {

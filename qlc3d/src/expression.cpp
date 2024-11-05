@@ -2,12 +2,18 @@
 #include <geom/vec3.h>
 #include <util/exception.h>
 #include <util/stringutil.h>
+#include <iostream>
 
 CartesianExpression::CartesianExpression(const std::string &expression):
-  expression_(StringUtil::toLowerCase(expression)),
+  expression_(StringUtil::toLowerCase(expression)), x_(0), y_(0), z_(0),
   compiled_expression_(nullptr)
-{
+{ }
 
+CartesianExpression::CartesianExpression(const CartesianExpression &other):
+  expression_(other.expression_),
+  compiled_expression_(nullptr) // don't copy the compiled expression as it points to private variables x,y,z of the source object. It will be recompiled when needed.
+{
+  std::cout << "copy" << std::endl;
 }
 
 void CartesianExpression::initialise() {
@@ -34,7 +40,7 @@ double CartesianExpression::evaluate(double x, double y, double z) {
   z_ = z;
   return te_eval(compiled_expression_);
 }
+
 double CartesianExpression::evaluate(const Vec3& p) {
   return evaluate(p.x(), p.y(), p.z());
 }
-

@@ -4,13 +4,18 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cmath>
 #include <globals.h>
 #include <geom/vec3.h>
+#include <expression.h>
+#include <optional>
 
 class Vec3;
+class Geometry;
+class SolutionVector;
+
 enum AnchoringType {Strong = 0, Weak = 1, Homeotropic = 2,
                      Degenerate = 3, Freeze = 5, Polymerise = 6,
                      ManualNodes = 7, WeakHomeotropic = 8};
@@ -29,6 +34,8 @@ private:
     Vec3 e = {0, 0, 0};                        // Easy direction vector
     bool overrideVolume;               // whether to override volumes at startup. This is set to true by default
     unsigned int fixLcNumber = 0;
+    std::optional<CartesianExpression> tiltExpression_;
+    std::optional<CartesianExpression> twistExpression_;
 
     /**
     * Calculates v1 and v2 vectors given tilt and twist angles Rotation matrices are given in
@@ -36,6 +43,22 @@ private:
     **/
     [[nodiscard]] static Vec3 calculateV1(double tiltDegrees, double twistDegrees, double rotDegrees = 0);
     [[nodiscard]] static Vec3 calculateV2(double tiltDegrees, double twistDegrees, double rotDegrees = 0);
+
+    void setManualNodesAnchoring(SolutionVector &q, double S0) const;
+    void setFromTiltAndTwistAngles(SolutionVector &q, double S0, const Geometry &geom);
+    void setHomeotropicOrientation(SolutionVector &q, double S0, const Geometry &geom) const;
+
+    /**
+     * @param tiltExpression
+     * @throws ExpressionException if the expression is invalid
+     */
+    void setTiltAngleExpression(const std::string &tiltExpression);
+    /**
+     * @param twistExpression
+     * @throws ExpressionException if the expression is invalid
+     */
+    void setTwistAngleExpression(const std::string &twistExpression);
+
 public:
     static const std::vector<std::string> VALID_ANCHORING_TYPES;
     static const std::string DEFAULT_ANCHORING_TYPE;
@@ -53,9 +76,14 @@ public:
     //Surface(const Surface &s);
 
     [[nodiscard]] static Surface ofStrongAnchoring(unsigned int fixLcNumber, double tiltDegrees, double twistDegrees);
+    [[nodiscard]] static Surface ofStrongAnchoring(unsigned int fixLcNumber, const std::string &tiltExpression, const std::string &twistExpression);
     [[nodiscard]] static Surface ofPlanarDegenerate(unsigned int fixLcNumber, double strength);
     [[nodiscard]] static Surface ofStrongHomeotropic(unsigned int fixLcNumber);
     [[nodiscard]] static Surface ofWeakHomeotropic(unsigned int fixLCNumber, double strength);
+    /* "Freezes" whatever the LC orientation happens to be at the surface nodes */
+    [[nodiscard]] static Surface ofFreeze(unsigned int fixLcNumber);
+    //TODO: [[nodiscard]] static Surface ofPolymerise(unsigned int fixLcNumber);
+    //TODO: [[nodiscard]] static Surface ofManualNodes(unsigned int fixLcNumber, const std::string &tiltExpression, const std::string &twistExpression);
     [[nodiscard]] static Surface ofWeakAnchoring(unsigned int fixLcNumber,
                                                double tiltDegrees, double twistDegrees, double strength, double k1, double k2);
 
@@ -66,6 +94,11 @@ public:
   [[nodiscard]] double getK2() const;
   [[nodiscard]] double getEasyTilt() const;
   [[nodiscard]] double getEasyTwist() const;
+  [[nodiscard]] double getEasyTiltAngleAt(const Vec3 &p);
+  [[nodiscard]] double getEasyTwistAngleAt(const Vec3 &p);
+  /** Return unit vector along easy direction at point p */
+  [[nodiscard]] Vec3 getEasyDirectionAt(const Vec3 &p);
+
   [[nodiscard]] const Vec3& getV1() const { return v1; }
   [[nodiscard]] const Vec3& getV2() const { return v2; }
   [[nodiscard]] const Vec3& getEasyVector() const { return e; }
@@ -76,6 +109,9 @@ public:
 
   [[nodiscard]] std::string toString() const;
   [[nodiscard]] unsigned int getFixLCNumber() const { return fixLcNumber; }
+
+  void setAlignmentOrientation(SolutionVector &q, double S0, const Geometry &geom);
+
   friend class Alignment;
 };
 
@@ -92,7 +128,8 @@ public:
 
     void addSurface(Surface s);
 
-    [[nodiscard]] const Surface & getSurface(const idx& i) const;
+    [[nodiscard]] const Surface& getSurface(const idx& i) const;
+    [[nodiscard]] Surface& getSurface(const idx& i);
 
     double getStrength(int n);  // get strength of FixLCn
     double getK1(int n);        // get K1 of FixLCn

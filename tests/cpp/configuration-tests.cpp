@@ -314,6 +314,30 @@ TEST_CASE("Read alignment from settings file") {
   REQUIRE(alignment->getSurface(3).getAnchoringType() == AnchoringType::Degenerate);
 }
 
+TEST_CASE("Read alignment with analytic expressions for tilt and twist") {
+  std::string contents;
+  contents += "MeshName= test.msh\n"; // required in every settings file
+
+  contents += "FIXLC1.Anchoring = Strong\n";
+  contents += "FIXLC1.Strength = 1e-4\n";
+  contents += "FIXLC1.Easy = [\"X * 90\", \"X * 45 \", \" Z + Y + Z\"]\n";
+
+  auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+  SettingsReader reader(settingsFile.name());
+
+  auto alignment = reader.alignment();
+
+  auto &surface = alignment->getSurface(0);
+
+  REQUIRE(surface.getAnchoringType() == AnchoringType::Strong);
+
+  REQUIRE(surface.getEasyTiltAngleAt(Vec3(0, 0, 0)) == Approx(0.0).margin(1e-15));
+  REQUIRE(surface.getEasyTwistAngleAt(Vec3(0, 0, 0)) == Approx(0.0).margin(1e-15));
+
+  REQUIRE(surface.getEasyTiltAngleAt(Vec3(1, 0, 0)) == Approx(90.0).margin(1e-15));
+  REQUIRE(surface.getEasyTwistAngleAt(Vec3(1, 0, 0)) == Approx(45.0).margin(1e-15));
+}
+
 TEST_CASE("Read boxes from settings file") {
   // ARRANGE
   std::string contents;

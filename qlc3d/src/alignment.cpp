@@ -1,10 +1,12 @@
 #include <alignment.h>
-#include <algorithm>
-#include <iostream>
-#include <stringenum.h>
-#include <settings_file_keys.h>
 #include <util/exception.h>
+#include <geometry.h>
 #include <geom/vec3.h>
+#include <geom/coordinates.h>
+#include <lc-representation.h>
+#include <solutionvector.h>
+#include <util/logging.h>
+#include <expression.h>
 
 const std::vector<std::string> Surface::VALID_ANCHORING_TYPES = {"Strong", "Weak", "Homeotropic",
                                                        "Degenerate", "Freeze", "Polymerise",
@@ -17,6 +19,7 @@ const bool Surface::DEFAULT_ANCHORING_OVERRIDE_VOLUME = true;
 const std::vector<double> Surface::DEFAULT_ANCHORING_EASY = {0,0,0};
 const std::vector<double> Surface::DEFAULT_ANCHORING_PARAMS = {};
 
+// <editor-fold desc="Surface">
 Surface::Surface(AnchoringType anchoringType,
                  double strength, double k1, double k2,
                  const double easyAnglesDegrees[3],
@@ -29,13 +32,6 @@ Surface::Surface(AnchoringType anchoringType,
     v2(calculateV2(easyAnglesDegrees[0], easyAnglesDegrees[1], easyAnglesDegrees[2])),
     e(v1.cross(v2)), overrideVolume(overrideVolume), fixLcNumber(fixLcNumber) {
 }
-
-/*
-Surface::Surface(const Surface &s): Type {s.Type}, Strength {s.Strength}, K1 {s.K1}, K2 {s.K2},
-                                    easyAnglesDegrees {s.easyAnglesDegrees[0], s.easyAnglesDegrees[1], s.easyAnglesDegrees[2]},
-                                    v1 {s.v1}, v2 {s.v2}, e {s.e}, overrideVolume {s.overrideVolume}, fixLcNumber {s.fixLcNumber} {
-}
-*/
 
 Vec3 Surface::calculateV1(double tiltDegrees, double twistDegrees, double rotDegrees) {
   double a = -twistDegrees * PI / 180.0; // twist
@@ -88,10 +84,21 @@ std::string Surface::getAnchoringTypeName() const {
 }
 
 std::string Surface::toString() const {
+
+  std::string easyTilt = fmt::format("{}", easyAnglesDegrees[0]);
+  if (tiltExpression_.has_value()) {
+    easyTilt = tiltExpression_.value().getExpression();
+  }
+
+  std::string easyTwist = fmt::format("{}", easyAnglesDegrees[1]);
+  if (twistExpression_.has_value()) {
+    easyTwist = twistExpression_.value().getExpression();
+  }
+
   return fmt::format("FIXLC{}, Anchoring:{}, Strength:{}, K1:{}, K2:{},"
-                     " EasyAngles:[{},{},{}], v1:[{}], v2:[{}], e:[{}]",
+                     " EasyAngles:[{}, {}, {}], v1:[{}], v2:[{}], e:[{}]",
                      getFixLCNumber(), getAnchoringTypeName(), getStrength(), getK1(), getK2(),
-                     easyAnglesDegrees[0], easyAnglesDegrees[1], easyAnglesDegrees[2],
+                     easyTilt, easyTwist, easyAnglesDegrees[2],
                      v1, v2, e);
 }
 
@@ -114,16 +121,136 @@ bool    Surface::isStrong() const {
   return type != AnchoringType::Weak && type != AnchoringType::Degenerate && type != AnchoringType::WeakHomeotropic;
 }
 
+
+void Surface::setManualNodesAnchoring(SolutionVector &q, double S0) const {
+  double tilt = getEasyTilt();
+  double twist = getEasyTwist();
+
+  // node indices are stored in Params as doubles, convert to idx
+  std::set<idx> nodes_idx;
+  for (double i : Params) {
+    if ((i < 0 )){
+      RUNTIME_ERROR("Negative node index when setting ManualNodesAnchoring.");
+    }
+    idx nodeIdx = static_cast<idx>(i);
+    nodes_idx.insert(nodeIdx);
+  }
+  auto director = qlc3d::Director::fromDegreeAngles(tilt, twist, S0);
+
+  for (auto &i : nodes_idx) {
+    q.setValue(i, director);
+  }
+}
+
+double Surface::getEasyTiltAngleAt(const Vec3 &p) {
+  if (tiltExpression_.has_value()) {
+    return tiltExpression_.value().evaluate(p);
+  } else {
+    return getEasyTilt();
+  }
+}
+
+double Surface::getEasyTwistAngleAt(const Vec3 &p) {
+  if (twistExpression_.has_value()) {
+    return twistExpression_->evaluate(p);
+  } else {
+    return getEasyTwist();
+  }
+}
+
+Vec3 Surface::getEasyDirectionAt(const Vec3 &p) {
+  double tilt = getEasyTiltAngleAt(p);
+  double twist = getEasyTwistAngleAt(p);
+  return Vec3::fromDegreeAngles(tilt, twist);
+}
+
+void Surface::setFromTiltAndTwistAngles(SolutionVector &q, double S0, const Geometry &geom) {
+  std::set<idx> indSurfaceNodes = geom.getTriangles().listFixLCSurfaceNodes(getFixLCNumber());
+  const Coordinates &coordinates = geom.getCoordinates();
+
+  for (auto &i : indSurfaceNodes) {
+    auto &p = coordinates.getPoint(i);
+    double tilt = getEasyTiltAngleAt(p);
+    double twist = getEasyTwistAngleAt(p);
+    auto director = qlc3d::Director::fromDegreeAngles(tilt, twist, S0);
+    q.setValue(i, director);
+  }
+}
+
+void Surface::setHomeotropicOrientation(SolutionVector &q, double S0, const Geometry &geom) const {
+  auto indSurface = geom.getTriangles().listFixLCSurfaceNodes(getFixLCNumber());
+  for (auto &i : indSurface) {
+    Vec3 normal = geom.getNodeNormal(i);
+    qlc3d::Director n(normal, S0);
+    q.setValue(i, n);
+  }
+}
+
+void Surface::setTiltAngleExpression(const std::string &tiltExpression) {
+  tiltExpression_.emplace(tiltExpression);
+  tiltExpression_.value().initialise();
+}
+
+void Surface::setTwistAngleExpression(const std::string &twistExpression) {
+  twistExpression_.emplace(twistExpression);
+  twistExpression_.value().initialise();
+}
+
+void Surface::setAlignmentOrientation(SolutionVector &q, double S0, const Geometry &geom) {
+  Log::info("Setting initial LC configuration for FIXLC{} = {}.", getFixLCNumber(), toString());
+  if (!getOverrideVolume()) {
+    Log::info("not setting initial orientation for FixLC{} because overrideVolume is false", getFixLCNumber());
+    return;
+  }
+
+  if (getAnchoringType() == ManualNodes) {
+    setManualNodesAnchoring(q, S0);
+  } else if (getAnchoringType() == Strong || getAnchoringType() == Weak ||
+             (getAnchoringType() == Degenerate && getStrength() >= 0)) {
+    setFromTiltAndTwistAngles(q, S0, geom);
+  } else if (getAnchoringType() == Homeotropic ||
+             (getAnchoringType() == Degenerate && getStrength() < 0) ||
+             (getAnchoringType() == WeakHomeotropic)) {
+    setHomeotropicOrientation(q, S0, geom);
+    return;
+  } else if (getAnchoringType() == Freeze || getAnchoringType() == Polymerise) {
+    Log::info("Using current bulk q-tensor values for FIXLC{}.", getFixLCNumber());
+  } else {
+    RUNTIME_ERROR("Unhandled anchoring type " + getAnchoringTypeName() + ".");
+  }
+}
+
 Surface Surface::ofStrongAnchoring(unsigned int fixLcNumber_, double tiltDegrees, double twistDegrees) {
   if (fixLcNumber_ == 0 || fixLcNumber_ > 9) {
     RUNTIME_ERROR(fmt::format("FixLC number must be in range 1 - 9, got {}", fixLcNumber_));
   }
   double easyAnglesDegrees[3] = {tiltDegrees, twistDegrees, 0};
   return {AnchoringType::Strong,
-          std::numeric_limits<double>::infinity(), 1, 1,
+          std::numeric_limits<double>::infinity(),
+          std::numeric_limits<double>::signaling_NaN(), std::numeric_limits<double>::signaling_NaN(),
           easyAnglesDegrees,
           true,
           fixLcNumber_};
+}
+
+Surface Surface::ofStrongAnchoring(unsigned int fixLcNumber, const std::string &tiltExpression,
+                                   const std::string &twistExpression) {
+  if (fixLcNumber == 0 || fixLcNumber > 9) {
+    RUNTIME_ERROR(fmt::format("FixLC number must be in range 1 - 9, got {}", fixLcNumber));
+  }
+  double easyAnglesDegrees[3] = {0, 0, 0};
+  Surface surf = {AnchoringType::Strong,
+          std::numeric_limits<double>::infinity(), 1, 1,
+          easyAnglesDegrees,
+          true,
+          fixLcNumber};
+  surf.setTiltAngleExpression(tiltExpression);
+  surf.setTwistAngleExpression(twistExpression);
+  // set v1, v2, e to all NaN, since they may vary with position so are invalid anyway
+  surf.v1.set(std::numeric_limits<double>::signaling_NaN(), std::numeric_limits<double>::signaling_NaN(), std::numeric_limits<double>::signaling_NaN());
+  surf.v2.set(std::numeric_limits<double>::signaling_NaN(), std::numeric_limits<double>::signaling_NaN(), std::numeric_limits<double>::signaling_NaN());
+  surf.e.set(std::numeric_limits<double>::signaling_NaN(), std::numeric_limits<double>::signaling_NaN(), std::numeric_limits<double>::signaling_NaN());
+  return surf;
 }
 
 Surface Surface::ofPlanarDegenerate(unsigned int fixLcNumber, double strength) {
@@ -185,12 +312,29 @@ Surface Surface::ofWeakAnchoring(unsigned int fixLcNumber, double tiltDegrees, d
   };
 }
 
-//====================================================
-//
-//		Alignment
-//
-//=====================================================
+Surface Surface::ofFreeze(unsigned int fixLcNumber) {
+  // essentially this is a strong anchoring surface, but it does not override any previous LC orientation
+  if (fixLcNumber == 0 || fixLcNumber > 9) {
+    RUNTIME_ERROR(fmt::format("FixLC number must be in range 1 - 9, got {}", fixLcNumber));
+  }
+  const auto nan = std::numeric_limits<double>::signaling_NaN();
+  double easyAnglesDegrees[3] = {nan, nan, nan};
+  Surface surf = {AnchoringType::Freeze,
+                  std::numeric_limits<double>::infinity(),
+                  nan, nan,
+                  easyAnglesDegrees,
+                  false,
+                  fixLcNumber};
+  // set v1, v2, e to all NaN, since they may vary with position so are invalid anyway
+  surf.v1.set(nan, nan, nan);
+  surf.v2.set(nan, nan, nan);
+  surf.e.set(nan, nan, nan);
+  return surf;
+}
 
+// </editor-fold>
+
+// <editor-fold desc="Alignment">
 Alignment::Alignment(){	setnSurfaces(0);}//end constructor
 
 void Alignment::setnSurfaces(int n){	n_surfaces = n;}
@@ -206,14 +350,15 @@ void Alignment::addSurface(Surface s){
 }
 
 const Surface& Alignment::getSurface(const idx &i) const {
-    if (i >= (idx) surface.size()) {
-        throw std::invalid_argument("no such surface " + std::to_string(i) +
-        " in " + __PRETTY_FUNCTION__ );
-    }
-
-    return surface[i];
+  if (i >= (idx) surface.size()) {
+    RUNTIME_ERROR(fmt::format("No such surface {}. Surfaces size={}", i, surface.size()));
+  }
+  return surface[i];
 }
 
+Surface& Alignment::getSurface(const idx &i) {
+  return const_cast<Surface&>(static_cast<const Alignment&>(*this).getSurface(i));
+}
 
 int Alignment::getnSurfaces() const {	return n_surfaces;}
 
@@ -260,3 +405,5 @@ std::unordered_map<unsigned int, Surface> Alignment::getWeakSurfacesByFixLcNumbe
   }
   return weakSurfaces;
 }
+
+// </editor-fold>

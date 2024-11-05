@@ -158,14 +158,6 @@ double Box::getTwistAt(const Vec3 &p) const {
 }
 
 qlc3d::Director Box::getDirectorForNormalBox(const Vec3 &p) const {
-    //double bottomTwistDegrees = Twist[0];
-    //double bottomTiltDegrees = Tilt[0];
-    //double deltaTiltDegrees = Tilt[1]; // delta tilt bottom to top of box
-    //double deltaTwistDegrees = Twist[1];
-    //double boxHeight = boundingBox.getZMax() - boundingBox.getZMin();
-    //double power = getParam(0, 1.0);
-    //double pzn = (p.z() - boundingBox.getZMin()) / (boxHeight);
-    //double twistDegrees = bottomTwistDegrees + pow(pzn * deltaTwistDegrees, power);
     double tiltDegrees = getTiltAt(p); // bottomTiltDegrees + pow(pzn * deltaTiltDegrees, power);
     double twistDegrees = getTwistAt(p);
     return qlc3d::Director::fromDegreeAngles(tiltDegrees, twistDegrees, 1.0);

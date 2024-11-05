@@ -275,9 +275,22 @@ void SettingsReader::readAlignment(Reader &reader) {
           auto type = reader.getValueByKey<string>(keyBase + ".Anchoring");
 
           if (type == "strong") {
-            auto easyAngles = reader.getValueByKey<std::vector<double>>(keyBase + ".Easy");
-            assertTrue(easyAngles.size() == 2 || easyAngles.size() == 3, keyBase + " easy angles should have 2 or 3 components, got " + std::to_string(easyAngles.size()));
-            alignment_->addSurface(Surface::ofStrongAnchoring(i, easyAngles[0], easyAngles[1]));
+            std::string key = keyBase + ".Easy";
+            if (reader.isValueArrayOfNumbers(key)) {
+              // if all easy angles values are valid numbers, then it is an angle
+              auto easyAngles = reader.getValueByKey<std::vector<double>>(key);
+              double tiltAngleDegrees = easyAngles[0];
+              double twistAngleDegrees = easyAngles[1];
+              alignment_->addSurface(Surface::ofStrongAnchoring(i, tiltAngleDegrees, twistAngleDegrees));
+            } else if (reader.isValueArrayOfStrings(key)) {
+              // if all easy angles values are strings, then it is an expression
+              auto easyAngles = reader.getValueByKey<std::vector<std::string>>(key);
+              auto tiltExpression = easyAngles[0];
+              auto twistExpression = easyAngles[1];
+              alignment_->addSurface(Surface::ofStrongAnchoring(i, tiltExpression, twistExpression));
+            } else {
+              throw ReaderError("Failed to read easy angles for FIXLC" + std::to_string(i), fileName_.string());
+            }
           } else if (type == "homeotropic") {
             alignment_->addSurface(Surface::ofStrongHomeotropic(i));
           } else if (type == "weak") {
@@ -297,6 +310,8 @@ void SettingsReader::readAlignment(Reader &reader) {
           } else if (type == "weakhomeotropic") {
             auto strength = reader.getValueByKey<double>(keyBase + ".Strength");
             alignment_->addSurface(Surface::ofWeakHomeotropic(i, strength));
+          } else if (type == "freeze") {
+
           }
 
           else {

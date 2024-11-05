@@ -76,6 +76,8 @@ class Reader {
     inline void cleanLineEnds(std::string &line) const;    // removes white space from both ends of a string
     inline bool splitByChar(const std::string &line, std::string &key, std::string &value, const char &split = '=') const;
     inline bool isValidNumber(const std::string &strVal) const;   // returns false if not a valid number
+    inline bool isValidString(const std::string &strVal) const;   // returns false if not a valid string
+    inline bool isValidBoolean(const std::string &strVal) const;   // returns true if the string is a boolean
     inline size_t getLineNumberByKey(const std::string &key) const; // find line number in file where a given key is defined
     inline void toLower(std::string &s) const; // converts string to all lower case
 
@@ -152,6 +154,13 @@ public:
     [[nodiscard]] inline std::vector<std::string> getAllKeys() const;
     /** Check whether the value of key exists and is an array of some types */
     [[nodiscard]] inline bool isValueArray(const std::string &key) const;
+    /**
+     * Return whether all values in the array are valid strings,
+     * NOTE: currently all numbers are strings too, but all strings are not numbers
+     */
+    [[nodiscard]] inline bool isValueArrayOfStrings(const std::string &key) const;
+    /** Return whether all values in the array are valid numbers */
+    [[nodiscard]] inline bool isValueArrayOfNumbers(const std::string &key) const;
 };
 
 //****************************************************************************************
@@ -415,6 +424,38 @@ bool Reader::isValueArray(const std::string &key) const {
   return !val.empty() && val.front() == '[' && val.back() == ']';
 }
 
+bool Reader::isValueArrayOfStrings(const std::string &key) const {
+  if (!isValueArray(key)) {
+    return false;
+  }
+  // it's an array of something, but is it an array of strings?
+  try {
+    std::vector<std::string> valArray;
+    std::string keyLower(key);
+    toLower(keyLower);
+    auto val = _keyValues.at(keyLower).val_;
+
+    parseValue(val, valArray); // throws if not a valid array of strings
+  } catch (...) {
+    return false;
+  }
+  return true;
+}
+
+bool Reader::isValueArrayOfNumbers(const std::string &key) const {
+  if (!isValidNumber(key)) {
+    return false;
+  }
+
+  try {
+    // brute force method to check if all values are readable as numbers without errors
+    auto array = getValueByKey<std::vector<double>>(key);
+  } catch (...) {
+    return false;
+  }
+  return true;
+}
+
 size_t Reader::getLineNumberByKey(const std::string &key) const {
     /*!
      * Returns line number in file where a given key/value definition occurs.
@@ -478,79 +519,89 @@ bool Reader::isValidNumber(const std::string &strVal) const {
     }
 }
 
+bool Reader::isValidBoolean(const std::string &strVal) const {
+  return strVal == "true" || strVal == "false";
+}
+
+bool Reader::isValidString(const std::string &strVal) const {
+  // It's a string if it starts and ends with double quotes
+  // count number of occurrences of " in the string
+  size_t quotesCount = std::count(strVal.begin(), strVal.end(), '"');
+  // check whether first and last characters are "
+  if (quotesCount == 2 && strVal.front() == '"' & strVal.back() == '"') {
+    return true ;
+  }
+
+  // if there are odd number of quotes, it's not a valid string
+  if (quotesCount % 2 != 0) {
+    return false;
+  }
+
+  // If there is no whitespace then it must be a string (or boolean or number, but they count as strings)
+  return strVal.find_first_of(_R_WHITE_SPACE) == std::string::npos;
+}
 
 void Reader::parseValue(const std::string &strVal, std::string &val) const {
     /*!
      * Parses a string to a string-value, checking for whitespaces. This method is called
      * first in numeric conversions too.
     */
-    val = strVal;
-    // Remove white space at start and end ov current value
-    cleanLineEnds(val);
+  if (!isValidString(strVal)) {
+    throw ReaderError(_R_BAD_VALUE_ERROR_MSG + strVal, _fileName.string());
+  }
+  val = strVal;
+  // Remove white space at start and end ov current value
+  cleanLineEnds(val);
 
-    // If val starts and ends with double quotes, remove them and return whatever is left as-is without further checks
-    if (val.front() == '"' && val.back() == '"') {
-        val = val.substr(1, val.size() - 2);
-    } else { // check that no whitespace is present in the value
-      size_t ind = val.find_first_of(_R_WHITE_SPACE);
-      if (ind < std::string::npos) {
-        std::string errMsg = _R_BAD_VALUE_ERROR_MSG + strVal + ", found unexpected whitespace";
-        throw ReaderError(errMsg, _fileName.string());
-      }
+  // If val starts and ends with double quotes, remove them and return whatever is left as-is without further checks
+  if (val.front() == '"' && val.back() == '"') {
+    val = val.substr(1, val.size() - 2);
+  } else { // check that no whitespace is present in the value
+    size_t ind = val.find_first_of(_R_WHITE_SPACE);
+    if (ind < std::string::npos) {
+      std::string errMsg = _R_BAD_VALUE_ERROR_MSG + strVal + ", found unexpected whitespace";
+      throw ReaderError(errMsg, _fileName.string());
     }
+  }
 }
+
 void Reader::parseValue(const std::string &strVal, std::vector<std::string> &val) const {
-    /*!
-     * Parses string to a vector of strings. Checks for validity of vector formatting.
-     * Is called first with numeric vectors too.
-     */
-    std::string str(strVal); // make working copy
-    size_t i1, i2;
-    // CHECK FOR OPEN/CLOSE BRAES
-    // TODO: this shoud be done using a stack
-    if ((i1 = str.find_first_of(_R_OBRACE)) != str.find_last_of(_R_OBRACE)) {
-        throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   // multiple '['
-    }
-    if ((i2 = str.find_first_of(_R_CBRACE)) != str.find_last_of(_R_CBRACE)) {
-        throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   // multiple ']'
-    }
-    if (i1 > 0) {
-        throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   //  '[' not first
-    }
-    if (i2 < str.length() - 1) {
-        throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   //']' not last
-    }
-    if (i2 == std::string::npos) {
-        throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   // no closing ']'
-    }
-    if (i1 == i2 - 1) {
-        throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   // empty vector
-    }
-    str = str.substr(i1 + 1, i2 - 1); // remove braces from both ends
-    // check that vector didn reduce to all whitespace characters
-    cleanLineEnds(str);
-    if (str.size() == 0) // if all whitespace, return with 0 elements added
-        return;
+  std::string str(strVal); // make working copy
+  size_t i1, i2;
+  // CHECK FOR OPEN/CLOSE BRACES
+  // TODO: this should be done using a stack
+  if ((i1 = str.find_first_of(_R_OBRACE)) != str.find_last_of(_R_OBRACE)) {
+    throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   // multiple '['
+  }
+  if ((i2 = str.find_first_of(_R_CBRACE)) != str.find_last_of(_R_CBRACE)) {
+    throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   // multiple ']'
+  }
+  if (i1 > 0) {
+    throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   //  '[' not first
+  }
+  if (i2 < str.length() - 1) {
+    throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   //']' not last
+  }
+  if (i2 == std::string::npos) {
+    throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   // no closing ']'
+  }
+  if (i1 == i2 - 1) {
+    throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);   // empty vector
+  }
+  str = str.substr(i1 + 1, i2 - i1 - 1); // remove braces from both ends
+  // check that vector didn't reduce to all whitespace characters
+  if (str.size() == 0) // if all whitespace, return with 0 elements added
+    return;
 
-    // REPLACE ALL DELIMETERS BY SINGLE BLANKS
-    while ((i1 = str.find_first_of(_R_VDELIM)) < std::string::npos) {
-        if (i1 == 0) {      // first character is vector delimiter
-            throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);
-        }
-        std::string item = str.substr(0, i1);
-        parseValue(item, item); // check that item is a valid string-value
-        val.push_back(item);
-        str = str.substr(i1 + 1, str.length() - i1); // remove delimeter cahracter
-    }
-    // reached end of delimited vector (no more commas left), read last item
-    if ((i1 == std::string::npos) && (str.length() > 0)) {
-        parseValue(str, str); // check that item is a valid string-value
-        val.push_back(str);
-    } else {
-        throw std::runtime_error(_R_VECTOR_FORMAT_ERROR_MSG);
-    }
+  // REPLACE ALL DELIMITERS BY SINGLE BLANKS
+  std::stringstream ss(str);
+  std::string item;
+  while (std::getline(ss, item, _R_VDELIM)) {
+    cleanLineEnds(item);
+    parseValue(item, item); // check that item is a valid string-value
+    val.push_back(item);
+  }
 }
-
 
 /*!
  * Returns value corresponding to specified key.

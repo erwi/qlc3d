@@ -79,66 +79,15 @@ void setManualNodesAnchoring(SolutionVector &q, double S0, const Surface& surf){
     setGlobalAngles(q, S0, tilt, twist, nodes_idx);
 }
 
-/*! sets q-tensor values for all surfaces. */
-void setSurfacesQ(SolutionVector &q, const Alignment &alignment, double S0,  const Geometry &geom) {
+void setSurfacesQ(SolutionVector &q, Alignment &alignment, double S0,  const Geometry &geom) {
   Log::info("Setting initial LC configuration for {} surfaces.", alignment.getnSurfaces());
 
   // loop over all surfaces loaded from settings file
   for (int i = 0 ; i < alignment.getnSurfaces() ; i++) {
-    const Surface &surf = alignment.getSurface(i);
+    Surface &surf = alignment.getSurface(i);
     Log::info("Setting surface {}", surf.toString());
 
-    if (!surf.getOverrideVolume()) {
-      Log::info("not setting initial orientation for FixLC{} because overrideVolume is false", i + 1);
-      continue;
-    }
-
-    std::set<idx> indSurfaceNodes = geom.getTriangles().listFixLCSurfaceNodes(i + 1);
-
-    if (surf.getAnchoringType() == ManualNodes) {
-      Log::info("FIXLC{} is manual nodes anchoring.", i + 1);
-      // MANUAL NODES SHOULD NOT DE DEFINED FOR A FIXLC# THAT IS PRESENT IN THE MESH
-      if (!indSurfaceNodes.empty()) {
-        RUNTIME_ERROR(fmt::format("Can not set ManualNodes for FIXLC{}. Manual nodes should not be defined for a "
-                                  "FIXLC number that is present in the mesh. First available surface for this type is FIXLC{}",
-                                  i + 1, alignment.getnSurfaces() + 1));
-      }
-      setManualNodesAnchoring(q, S0, alignment.surface[i]);
-      continue;
-    }
-    //
-    // creates index of all nodes of this alignment surface type
-
-    if (!indSurfaceNodes.empty() ) { // if nodes found
-      AnchoringType aType = surf.getAnchoringType();
-      double strength = surf.getStrength();
-
-      if (aType == Strong ||
-          aType == Weak ||
-          (aType == Degenerate && strength >= 0)) {
-        double tilt = alignment.surface[i].getEasyTilt();
-        double twist= alignment.surface[i].getEasyTwist();
-        setGlobalAngles(q, S0, tilt, twist, indSurfaceNodes);
-      }
-        // if homeotropic OR degenerate with negative strength
-      else if (aType == Homeotropic ||
-               (aType == Degenerate && strength < 0) ||
-               aType == WeakHomeotropic) {
-        setHomeotropic(q, S0, indSurfaceNodes, geom);
-      }
-      else if (aType == Freeze) {
-        // nothing needs to be done, just use the current q-tensor values
-      }
-      else if ( aType == Polymerise) { // FREEZES ALL NODES WHOSE ORDER IS BELOW VALUE DEFINED IN STRENGTH
-        // nothing needs to be done, just use the current q-tensor values
-      }
-      else {
-        RUNTIME_ERROR("Unhandled anchoring type " + surf.getAnchoringTypeName() + ".")
-      }
-    } else {
-      RUNTIME_ERROR(fmt::format("FIXLC{} has ben defined in settings file, but no such surface found in "
-                                "the mesh.", i + 1));
-    }
+    surf.setAlignmentOrientation(q, S0, geom);
   }
 }
 

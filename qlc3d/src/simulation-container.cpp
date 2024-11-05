@@ -81,9 +81,6 @@ void SimulationContainer::initialise() {
     createMeshRefinementEvents(*configuration.refinement(), eventList);
     createElectrodeSwitchingEvents(*electrodes, eventList);
 
-    // read missing configuration from file. TODO: all parameters to be provided in Configuration, they should not be read in here
-    //ReadSettings(configuration.settingsFile(), eventList);
-
     simulationState.change(0);
     simulationState.setCurrentTime(0);
     simulationState.dt(simu->initialTimeStep());

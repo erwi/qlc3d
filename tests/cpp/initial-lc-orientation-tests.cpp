@@ -258,6 +258,21 @@ TEST_CASE("Initial LC surface orientations") {
   }
 }
 
+TEST_CASE("Surface strong anchoring with analytic expressions for tilt and twist") {
+  // Create a Surface with strong anchoring and analytic expressions for tilt and twist
+  Surface s = Surface::ofStrongAnchoring(1, "45 * Z", "90 * X");
+
+  // Check director at different points
+  auto d1 = s.getEasyDirectionAt(Vec3(0, 0, 0));
+  REQUIRE(d1.equals({1, 0, 0}, 1e-15));
+
+  auto d2 = s.getEasyDirectionAt(Vec3(0, 0, 2));
+  REQUIRE(d2.equals({0, 0, 1}, 1e-15));
+
+  auto d3 = s.getEasyDirectionAt(Vec3(1, 0, 0));
+  REQUIRE(d3.equals({0, 1, 0}, 1e-15));
+}
+
 TEST_CASE("Surface easy direction calculation from angles should match director definition from angles") {
   double tiltDegrees = 45;
   double twistDegrees = 45;

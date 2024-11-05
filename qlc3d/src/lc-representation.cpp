@@ -141,11 +141,7 @@ Director::Director(const Vec3 &n, double S): Director(n.x(), n.y(), n.z(), S) {}
 Director Director::fromRadianAngles(const double &tiltRadians, const double &twistRadians, const double &S) {
     // see also definition of vectors v1 and v2 for anchoring in alignment.cpp
     // we should require n = v1 x v2
-    return Director{
-            cos(tiltRadians) * cos(twistRadians),
-            cos(tiltRadians) * sin(twistRadians),
-            sin(tiltRadians),
-            S};
+    return Director{Vec3::fromRadianAngles(tiltRadians, twistRadians), S};
 }
 
 Director Director::fromDegreeAngles(const double &tiltDegrees, const double &twistDegrees, const double &S) {
