@@ -528,7 +528,7 @@ bool Reader::isValidString(const std::string &strVal) const {
   // count number of occurrences of " in the string
   size_t quotesCount = std::count(strVal.begin(), strVal.end(), '"');
   // check whether first and last characters are "
-  if (quotesCount == 2 && strVal.front() == '"' & strVal.back() == '"') {
+  if (quotesCount == 2 && strVal.front() == '"' && strVal.back() == '"') {
     return true ;
   }
 

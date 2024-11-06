@@ -45,7 +45,7 @@ private:
     [[nodiscard]] static Vec3 calculateV2(double tiltDegrees, double twistDegrees, double rotDegrees = 0);
 
     void setManualNodesAnchoring(SolutionVector &q, double S0) const;
-    void setFromTiltAndTwistAngles(SolutionVector &q, double S0, const Geometry &geom);
+    void setFromTiltAndTwistAngles(SolutionVector &q, double S0, const Geometry &geom) const;
     void setHomeotropicOrientation(SolutionVector &q, double S0, const Geometry &geom) const;
 
     /**
@@ -94,10 +94,10 @@ public:
   [[nodiscard]] double getK2() const;
   [[nodiscard]] double getEasyTilt() const;
   [[nodiscard]] double getEasyTwist() const;
-  [[nodiscard]] double getEasyTiltAngleAt(const Vec3 &p);
-  [[nodiscard]] double getEasyTwistAngleAt(const Vec3 &p);
+  [[nodiscard]] double getEasyTiltAngleAt(const Vec3 &p) const;
+  [[nodiscard]] double getEasyTwistAngleAt(const Vec3 &p) const;
   /** Return unit vector along easy direction at point p */
-  [[nodiscard]] Vec3 getEasyDirectionAt(const Vec3 &p);
+  [[nodiscard]] Vec3 getEasyDirectionAt(const Vec3 &p) const;
 
   [[nodiscard]] const Vec3& getV1() const { return v1; }
   [[nodiscard]] const Vec3& getV2() const { return v2; }
@@ -110,7 +110,7 @@ public:
   [[nodiscard]] std::string toString() const;
   [[nodiscard]] unsigned int getFixLCNumber() const { return fixLcNumber; }
 
-  void setAlignmentOrientation(SolutionVector &q, double S0, const Geometry &geom);
+  void setAlignmentOrientation(SolutionVector &q, double S0, const Geometry &geom) const;
 
   friend class Alignment;
 };
@@ -129,7 +129,7 @@ public:
     void addSurface(Surface s);
 
     [[nodiscard]] const Surface& getSurface(const idx& i) const;
-    [[nodiscard]] Surface& getSurface(const idx& i);
+    //[[nodiscard]] Surface& getSurface(const idx& i);
 
     double getStrength(int n);  // get strength of FixLCn
     double getK1(int n);        // get K1 of FixLCn

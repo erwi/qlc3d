@@ -142,7 +142,7 @@ void Surface::setManualNodesAnchoring(SolutionVector &q, double S0) const {
   }
 }
 
-double Surface::getEasyTiltAngleAt(const Vec3 &p) {
+double Surface::getEasyTiltAngleAt(const Vec3 &p) const {
   if (tiltExpression_.has_value()) {
     return tiltExpression_.value().evaluate(p);
   } else {
@@ -150,7 +150,7 @@ double Surface::getEasyTiltAngleAt(const Vec3 &p) {
   }
 }
 
-double Surface::getEasyTwistAngleAt(const Vec3 &p) {
+double Surface::getEasyTwistAngleAt(const Vec3 &p) const {
   if (twistExpression_.has_value()) {
     return twistExpression_->evaluate(p);
   } else {
@@ -158,13 +158,13 @@ double Surface::getEasyTwistAngleAt(const Vec3 &p) {
   }
 }
 
-Vec3 Surface::getEasyDirectionAt(const Vec3 &p) {
+Vec3 Surface::getEasyDirectionAt(const Vec3 &p) const {
   double tilt = getEasyTiltAngleAt(p);
   double twist = getEasyTwistAngleAt(p);
   return Vec3::fromDegreeAngles(tilt, twist);
 }
 
-void Surface::setFromTiltAndTwistAngles(SolutionVector &q, double S0, const Geometry &geom) {
+void Surface::setFromTiltAndTwistAngles(SolutionVector &q, double S0, const Geometry &geom) const {
   std::set<idx> indSurfaceNodes = geom.getTriangles().listFixLCSurfaceNodes(getFixLCNumber());
   const Coordinates &coordinates = geom.getCoordinates();
 
@@ -188,15 +188,13 @@ void Surface::setHomeotropicOrientation(SolutionVector &q, double S0, const Geom
 
 void Surface::setTiltAngleExpression(const std::string &tiltExpression) {
   tiltExpression_.emplace(tiltExpression);
-  tiltExpression_.value().initialise();
 }
 
 void Surface::setTwistAngleExpression(const std::string &twistExpression) {
   twistExpression_.emplace(twistExpression);
-  twistExpression_.value().initialise();
 }
 
-void Surface::setAlignmentOrientation(SolutionVector &q, double S0, const Geometry &geom) {
+void Surface::setAlignmentOrientation(SolutionVector &q, double S0, const Geometry &geom) const {
   Log::info("Setting initial LC configuration for FIXLC{} = {}.", getFixLCNumber(), toString());
   if (!getOverrideVolume()) {
     Log::info("not setting initial orientation for FixLC{} because overrideVolume is false", getFixLCNumber());
@@ -356,9 +354,9 @@ const Surface& Alignment::getSurface(const idx &i) const {
   return surface[i];
 }
 
-Surface& Alignment::getSurface(const idx &i) {
-  return const_cast<Surface&>(static_cast<const Alignment&>(*this).getSurface(i));
-}
+//Surface& Alignment::getSurface(const idx &i) {
+//  return const_cast<Surface&>(static_cast<const Alignment&>(*this).getSurface(i));
+//}
 
 int Alignment::getnSurfaces() const {	return n_surfaces;}
 

@@ -5,15 +5,19 @@
 #include <iostream>
 
 CartesianExpression::CartesianExpression(const std::string &expression):
-  expression_(StringUtil::toLowerCase(expression)), x_(0), y_(0), z_(0),
-  compiled_expression_(nullptr)
-{ }
+  expression_(StringUtil::toLowerCase(expression)),
+  compiled_expression_(nullptr),
+  x_(0), y_(0), z_(0)
+{
+  initialise();
+}
 
 CartesianExpression::CartesianExpression(const CartesianExpression &other):
   expression_(other.expression_),
-  compiled_expression_(nullptr) // don't copy the compiled expression as it points to private variables x,y,z of the source object. It will be recompiled when needed.
+  compiled_expression_(nullptr), // don't copy the compiled expression as it points to private variables x,y,z of the source object. It will be recompiled when needed.
+  x_(other.x_), y_(other.y_), z_(other.z_)
 {
-  std::cout << "copy" << std::endl;
+  initialise();
 }
 
 void CartesianExpression::initialise() {
@@ -30,17 +34,13 @@ void CartesianExpression::initialise() {
   }
 }
 
-double CartesianExpression::evaluate(double x, double y, double z) {
-  if (compiled_expression_ == nullptr) {
-    initialise();
-  }
-
+double CartesianExpression::evaluate(double x, double y, double z) const {
   x_ = x;
   y_ = y;
   z_ = z;
   return te_eval(compiled_expression_);
 }
 
-double CartesianExpression::evaluate(const Vec3& p) {
+double CartesianExpression::evaluate(const Vec3& p) const {
   return evaluate(p.x(), p.y(), p.z());
 }

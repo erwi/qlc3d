@@ -79,12 +79,10 @@ void Box::setRandomGenerator(RandomGenerator &rg) {
 
 void Box::setTiltExpression(const std::string &expression) {
   tiltExpression_.reset(new CartesianExpression(expression));
-  tiltExpression_->initialise();
 }
 
 void Box::setTwistExpression(const std::string &expression) {
   twistExpression_.reset(new CartesianExpression(expression));
-  twistExpression_->initialise();
 }
 
 bool Box::contains(double *coords) const {

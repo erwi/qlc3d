@@ -23,10 +23,8 @@ TEST_CASE("Expression with upper and lowercase x and Y work") {
 }
 
 TEST_CASE("Throw exception with helpful information when expression is invalid") {
-  CartesianExpression expr("1 + a"); // can't have a variable 'a' in the expression
-
   try {
-    expr.initialise();
+    CartesianExpression expr("1 + a"); // can't have a variable 'a' in the expression
   } catch (const ExpressionException &e) {
     REQUIRE(std::string(e.what()) == "Failed to compile expression: 1 + a. Error near location 5");
     REQUIRE(e.getLocation() == 5);

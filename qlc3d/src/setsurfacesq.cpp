@@ -84,7 +84,7 @@ void setSurfacesQ(SolutionVector &q, Alignment &alignment, double S0,  const Geo
 
   // loop over all surfaces loaded from settings file
   for (int i = 0 ; i < alignment.getnSurfaces() ; i++) {
-    Surface &surf = alignment.getSurface(i);
+    const Surface &surf = alignment.getSurface(i);
     Log::info("Setting surface {}", surf.toString());
 
     surf.setAlignmentOrientation(q, S0, geom);
