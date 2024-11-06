@@ -125,11 +125,41 @@ double Box::getParam(unsigned int i, double defaultValue) const {
 }
 
 std::string Box::toString() const {
-    return "Type=" + getTypeString() + ", bounds=["
-    + std::to_string(boundingBox.getXMin()) + ", " + std::to_string(boundingBox.getXMax()) + ", "
-    + std::to_string(boundingBox.getYMin()) + ", " + std::to_string(boundingBox.getYMax()) + ", "
-    + std::to_string(boundingBox.getZMin()) + ", " + std::to_string(boundingBox.getZMax()) + "]";
+  std::string msg;
+  msg = fmt::format("Type={}, bounds={}", getTypeString(), boundingBox);
+  if (tiltExpression_ != nullptr) {
+    msg += fmt::format(", tiltExpression={}", tiltExpression_->getExpression());
+  } else {
+    msg += fmt::format(", tilt=[{}, {}]", Tilt[0], Tilt[1]);
+  }
+
+  if (twistExpression_ != nullptr) {
+    msg += fmt::format(", twistExpression={}", twistExpression_->getExpression());
+  } else {
+    msg += fmt::format(", twist=[{}, {}]", Twist[0], Twist[1]);
+  }
+
+  return msg;
 }
+
+void Box::setVolumeQ(SolutionVector &q, double S0, const Coordinates &coordinates) const {
+  if (q.getnDimensions() != 5) {
+    RUNTIME_ERROR("Error, Box::setVolumeQ, invalid q dimensions " + std::to_string(q.getnDimensions()));
+  }
+  if (q.getnDoF() == 0) {
+    RUNTIME_ERROR("Error, Box::setVolumeQ, invalid q DoF " + std::to_string(q.getnDoF()));
+  }
+
+  const unsigned int npLC = q.getnDoF();
+
+  for (unsigned int i = 0; i < npLC; i++) {
+    auto p = coordinates.getPoint(i);
+    if (contains(p)) {
+      auto d = qlc3d::Director(getDirectorAt(p).vector(), S0);
+      q.setValue(i, qlc3d::TTensor::fromDirector(d));
+    }
+  }
+};
 
 double Box::getTiltAt(const Vec3 &p) const {
   double xNormalised = (p.x() - boundingBox.getXMin()) / (boundingBox.getXMax() - boundingBox.getXMin());
@@ -268,22 +298,14 @@ void InitialVolumeOrientation::setVolumeQ(SolutionVector &q, double S0, const Co
   // By default, when no boxes exist, the director is initialised along (1, 0, 0) at equilibrium order.
   // TODO: this could be a user defined configuration: a "background director orientation"
   auto defaultDirector = qlc3d::Director(1, 0, 0, S0);
-  std::vector<qlc3d::Director> dir(npLC, defaultDirector);
-
-  for (unsigned int i = 0; i < npLC; i++) {
-    auto p = coordinates.getPoint(i);
-
-    for (auto &b : boxRegions) {
-      if (b->contains(p)) {
-        auto d = b->getDirectorAt(p);
-        dir[i] = qlc3d::Director(d.nx(), d.ny(), d.nz(), S0);
-      }
-    }
+  for (int i = 0; i < q.getnDoF(); i++) {
+    q.setValue(i, qlc3d::TTensor::fromDirector(defaultDirector));
   }
 
-  // convert the director to tensor
-  for (unsigned int i = 0; i < npLC; i++) {
-    q.setValue(i, qlc3d::TTensor::fromDirector(dir[i]));
+  for (auto &box : boxRegions) {
+    auto mg = box->toString();
+    Log::info("Setting initial LC configuration for box {}", mg);
+    box->setVolumeQ(q, S0, coordinates);
   }
 }
 

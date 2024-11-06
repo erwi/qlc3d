@@ -77,7 +77,7 @@ public:
     /** return the i'th parameted or default if out of range */
     [[nodiscard]] double getParam(unsigned int i, double defaultValue) const;
     [[nodiscard]] std::string toString() const;
-
+    void setVolumeQ(SolutionVector &q, double S0, const Coordinates &coordinates) const;
 };
 
 class BoxBuilder {
