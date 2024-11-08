@@ -36,17 +36,18 @@ TestData setUp1DGeometry(Alignment &alignmentIn, const LC &lc, double easyTopTil
   v->setFixedNodesPot(electrodes->getCurrentPotentials(0));
 
   auto* q = new SolutionVector(geom->getnpLC(), 5);
-  // set volume orientation
-  //auto topSurface = alignmentIn.getSurface(0);
-  //auto bottomSurface = alignmentIn.getSurface(1);
 
+  BoxBuilder bb(1);
+  auto box = BoxBuilder(1)
+          .setBoxType("Normal")
+          .setX({0, 1})
+          .setY({0, 1})
+          .setZ({0, 1})
+          .setTwistExpression("1")
+          .setTiltExpression(fmt::format("{} + {} * z", easyBottomTilt, easyTopTilt - easyBottomTilt))
+          .build();
 
-  for (idx i = 0; i < geom->getnpLC(); i++) {
-    Vec3 p = geom->getCoordinates().getPoint(i);
-    double tiltDegrees = easyBottomTilt + (easyTopTilt - easyBottomTilt) * p.z();
-    auto director = qlc3d::Director::fromDegreeAngles(tiltDegrees, 1, lc.S0());
-    q->setValue(i, director);
-  }
+  box->setVolumeQ(*q, lc.S0(), geom->getCoordinates()); // TODO why does this give different result than below?
 
   setSurfacesQ(*q, alignmentIn, lc.S0(), *geom);
   q->setFixedNodesQ(alignmentIn, geom->getTriangles());
@@ -277,12 +278,8 @@ TEST_CASE("TODO: not completed [SteadyState] Relax elastic distortions with weak
   SolutionVector &v = *data.v;
   Geometry &geom = *data.geom;
 
-  //vtkIOFun::UnstructuredGridWriter writer;
-  //writer.write("/home/eero/Desktop/before.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
-
   // ACT
   steadyStateSolve(*lc, alignment, q, v, geom, 100);
-  //writer.write("/home/eero/Desktop/after.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
 
   auto topDir = findDirectorAtZ(geom, q, 1);
   Log::info("topDir={}, tilt={}, twist={}", topDir.vector(), topDir.tiltDegrees(), topDir.twistDegrees());
@@ -308,12 +305,8 @@ TEST_CASE("TODO: not completed [SteadyState] Relax elastic distortions with plan
   SolutionVector &v = *data.v;
   Geometry &geom = *data.geom;
 
-  //vtkIOFun::UnstructuredGridWriter writer;
-  //writer.write("/home/eero/Desktop/before.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
-
   // ACT
   steadyStateSolve(*lc, alignment, q, v, geom, 100);
-  //writer.write("/home/eero/Desktop/after.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
 
   auto topDir = findDirectorAtZ(geom, q, 1);
   Log::info("topDir={}, tilt={}, twist={}", topDir.vector(), topDir.tiltDegrees(), topDir.twistDegrees());
@@ -353,12 +346,15 @@ TEST_CASE("[SteadyState] Relax elastic distortions with chirality") {
 
   // Set up initial q-tensor configuration with 2 * PI twist over 1 micron pitch
   auto q = SolutionVector(geom.getnpLC(), 5);
-  for (idx i = 0; i < geom.getnpLC(); i++) {
-    Vec3 p = geom.getCoordinates().getPoint(i);
-    double twistRadians = -p.z() * 2 * M_PI;
-    auto director = qlc3d::Director::fromRadianAngles(0, twistRadians, lc->S0());
-    q.setValue(i, director);
-  }
+
+  auto b = BoxBuilder(1)
+          .setX({0, 1})
+          .setY({0, 1})
+          .setZ({0, 1})
+          .setTiltExpression("0")
+          .setTwistExpression("-360 * z")
+          .build();
+  b->setVolumeQ(q, lc->S0(), geom.getCoordinates());
 
   setSurfacesQ(q, alignment, lc->S0(), geom);
   q.setFixedNodesQ(alignment, geom.getTriangles());
@@ -437,16 +433,19 @@ TEST_CASE("[SteadyState] Electric switching with applied potential and three ela
   v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
 
   SolutionVector q(geom.getnpLC(), 5);
-  SolutionVector qn(geom.getnpLC(), 5);
 
-  // set volume orientation
-  for (idx i = 0; i < geom.getnpLC(); i++) {
+  auto b = BoxBuilder(1)
+          .setX({0, 1})
+          .setY({0, 1})
+          .setZ({0, 1})
+          .setTiltExpression(fmt::format("{} + {} * z * (1 - z) * 4", bottomTilt, midTilt))
+          .setTwistExpression("0")
+          .build();
+  b->setVolumeQ(q, lc->S0(), geom.getCoordinates());
+
+  // set potential to a uniform e-field
+  for (idx i =0; i < geom.getnpLC(); i++) {
     Vec3 p = geom.getCoordinates().getPoint(i);
-    double tiltDegrees = bottomTilt + midTilt * p.z() * (1 - p.z()) * 4;
-    auto director = qlc3d::Director::fromDegreeAngles(tiltDegrees, twistDegrees, lc->S0());
-    q.setValue(i, director);
-
-    // set potential to a uniform e-field
     double pot = p.z() * topPotential;
     v.setValue(i, 0, pot);
   }
@@ -529,7 +528,6 @@ TEST_CASE("[Dynamic] Switching dynamics with applied potential and three elastic
   v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
 
   SolutionVector q(geom.getnpLC(), 5);
-  SolutionVector qn(geom.getnpLC(), 5);
 
   // set volume orientation
   for (idx i = 0; i < geom.getnpLC(); i++) {
@@ -572,9 +570,7 @@ TEST_CASE("[Dynamic] Switching dynamics with applied potential and three elastic
 
 TEST_CASE("[Dynamic] Abort Newton iterations if convergence is not reached") {
   // ARRANGE
-  // Solve for steady state switching with uniform e-field. The expected mid-plane tilt angle is
-  // assumed to be correct, determined at a time when the "examples/steady-state-switching-1d" example
-  // is giving good agreement between qlc3d and lc3k results.
+  // Set up time stepping solver with low max number of Newton iterations. The solver should abort when not achieving required tolerance.
   auto lc = std::shared_ptr<LC>(LCBuilder()
                                         .K11(6.2e-12)
                                         .K22(3.9e-12)
@@ -588,8 +584,7 @@ TEST_CASE("[Dynamic] Abort Newton iterations if convergence is not reached") {
 
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {0, 0});
-  // Set LC director to uniform vertical direction
-  const int maxNewtonIterations = 3;
+  const int maxNewtonIterations = 3; // low max number of iterations. Solver will abort early.
   const double expectedMidTilt = 84.470529;
   const double bottomTilt = 5;
   const double midTilt = expectedMidTilt - bottomTilt;
@@ -608,7 +603,6 @@ TEST_CASE("[Dynamic] Abort Newton iterations if convergence is not reached") {
   v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
 
   SolutionVector q(geom.getnpLC(), 5);
-  SolutionVector qn(geom.getnpLC(), 5);
 
   // set volume orientation
   for (idx i = 0; i < geom.getnpLC(); i++) {
