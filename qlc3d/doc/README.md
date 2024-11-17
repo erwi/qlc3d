@@ -56,17 +56,19 @@ Examples of valid vector, scalar and text key/value pairs with comments:
 	SomeListOfText = [text1, text2, text3]
 ```    
 
-The settings file is not interpreted, so writing expressions including arithmetic operations results in an error and referring to other previously defined key name as a variable is treated as a key/value pair with a text value, so it is not possible to do  scripting with variables in the settings file.
+### Arithmetic expressions
+The settings file is not interpreted, so writing expressions that refer to other previously defined keys names as variables result in error. However, some values can contain single-line arithmetic expressions. At the moment this is mainly used for defining initial LC orientation configurations, which may be defined as functions of the cartesian x, y, z coordinates. When this is supported, it is mentioned on a case-by-case basis in this document. 
 
-```	
-	key1 	= 2	# This is a valid assignment
-	key2 = 1+2	# error, arithmetic not supported
-	key3 = key1 # not error, but assigns text to key3
+When arithmetic expressions are used as values, the values should be enclosed between double quotes \" and \". The actual implementation makes use of the [TinyExpr](https://github.com/codeplea/tinyexpr) library which supports many common operators and trigonometric functions. See the TinyExpr documentation page for more details about what is supported.
+
+For example, the below expression is evaluated at each x, y, z location in the mesh.
+```
+someCartesianField = "x + 2*y + 3 * z"
 ```
 
 ### String Substitution
 
-As explained above, qlc3d does not support scripting or arithmetic expressions in the settings file. However, as a "poor man's substitute", string-substitution from environment variables is supported. This makes it relatively easy to set up more complicated simulations that may, for example, perform sweeps of ranges of values for some settings. 
+As explained above, qlc3d does not support proper scripting and only allows for limited arithmetic expressions in the settings file. However, as a "poor man's substitute", string-substitution from environment variables is supported. This makes it relatively easy to set up more complicated simulations that may, for example, perform sweeps of ranges of values for some settings. 
 
 When qlc3d reads in a settings file, it first checks the file contents for specially formatted sub-strings, starting with the `$` character followed by an environment variable name enclosed in curly braces `{` and `}`, (e.g. `${SOME_ENVIRONMENT_VARIABLE_NAME}`), it then substitutes it with the value corresponding to the named environment variable.
 
@@ -291,11 +293,14 @@ Rotational viscosity:
 
 ---
 ## Initial LC Orientation ##
-Initial liquid crystal orientation is set using a number of `BOX` structures ranging from `BOX1` to `BOX99`. Each box represents a separate cuboid 3D volume whose position and size need to be specified. If box volumes are overlapping, the box with a higher number overrides the conditions of a lower numbered box within the overlapping region.
+Initial LC orientation can be defined wither by specifying `Box`es or by loading the q-tensor from and existing result file (see see the `LoadQ` setting). 
+
+### Boxes
+Initial liquid crystal orientation is set using a number of `BOX` structures ranging from `BOX1` to `BOX99`. Each box represents a separate axis-aligned cuboid 3D volume whose position and size need to be specified. If box volumes are overlapping, the box with a higher number overrides the conditions of a lower numbered box within the overlapping region.
 
 Use of InitialVolumeOrientation is optional. When no InitialVolumeOrientation are defined, or in regions not covered by any InitialVolumeOrientation, a uniform LC orientation along the x-axis (no tilt, no twist) is used instead. 
 
-**`BOXn.Type`**
+#### `BOXn.Type`
 
 Type is a string variable that defines the variation of LC within the box. Currently Type can be `Normal`, `Random`, `Hedgehog`.
 
@@ -311,7 +316,17 @@ The size and location of each box is defined by the vectors `X`, `Y` and `Z` (of
 
 **`BOXn.Tilt, BOXn.Twist`** (only used when Type is Normal)
 
-`Tilt` and `Twist` are vector variables of length 2. `Tilt[1]` and `Twist[1]` contain the tilt and twist angles at `Z[1]`, whereas `Tilt[2]` and `Twist[2]` contain the total variations of tilt and twist within the box in the z-direction . The default values of both `Tilt` and `Twist` are `[0, 0]`, i.e. uniform LC director along the x-axis.
+`Tilt` and `Twist` can either be arithmetic expressions of the cartesian x, y, z coordinates or vector variables of length 2. 
+
+#### Arithmetic Tilt and Twist Expressions
+
+When arithmetic expressions are used, the tilt and twist angles (measured in degrees) are specified as spatially varying functions of x, y, z, where the values of x, y, z are normalised to the range 0 to 1 within the bounds of the box. For example, an initial configuration with constant 45 degree twist and tilt that varies linearly from 0 to 90 degrees between the bottom and top of the box can be defined as below:
+```
+Tilt = "90 * z"
+Twist = "45"
+```
+#### Vector Valued Tilt and Twist Expressions
+When vectors are used for specifying tilt and twist angles (degrees), `Tilt` and `Twist` must the vector variables of length 2. `Tilt[1]` and `Twist[1]` contain the tilt and twist angles at `Z[1]` (= bottom of the box), whereas `Tilt[2]` and `Twist[2]` contain the total variations of tilt and twist within the box in the z-direction . The default values of both `Tilt` and `Twist` are `[0, 0]`, i.e. uniform LC director along the x-axis.
 
 For example:
 ```
@@ -333,13 +348,13 @@ Liquid crystal alignment or anchoring is set using a number of `FIXLC` structure
 
 Anchoring is a string that describes the type of anchoring. Possible values are Homeotropic, Strong, Weak, Degenerate, Freeze or Polymerise.
 
-|`FIXLCn.Anchoring`| Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-|---:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|Strong		| Fixes the LC orientation to the easy direction.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-|Weak		| Weak anchoring (strength determined by the `FIXLCn.Strength` parameter) in the easy direction.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-|Homeotropic| Fixes the LC along the local surface normal.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-|Degenerate | The LC is free to rotate in the local surface plane. If `FIXLCn.Strength` is less than 0, this becomes weak Homeotropic anchoring.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-|Freeze		| Fixes the LC to its initial orientation. Can be used e.g. to create non-uniform alignment.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+|`FIXLCn.Anchoring`| Description   |
+|---:|:---|
+|Strong		| Fixes the LC orientation to the easy direction.                              |
+|Weak		| Weak anchoring (strength determined by the `FIXLCn.Strength` parameter) in the easy direction.                                                                   |
+|Homeotropic| Fixes the LC along the local surface normal.                                                                                                                         |
+|Degenerate | The LC is free to rotate in the local surface plane. If `FIXLCn.Strength` is less than 0, this becomes weak Homeotropic anchoring.                                   |
+|Freeze		| Fixes the LC to its initial orientation. Can be used e.g. to create non-uniform alignment.                                                                           |
 |Polymerise	| Special undocumented secret feature that does not require an alignment surface in the mesh! Fixes the value of the Q-tensor at any nodes where the order parameter value is equal or below the value specified in `FIXLCn.Strength.`                                                                                                                                                                                                                                                                                                                                                                                         |
 |ManualNodes| Use the `FIXLCn.Params` vector to manually specify mesh node numbers where to strongly fix the LC orientation to a given easy direction. You may have to look up the node numbering in the mesh file. **Note**: mesh node numbering in `qlc3d` starts at 0 whereas in mesh file it may start at 1, so subtract one, and in meshes with dielectric volume regions, node numbering is reordered in qlc3d so that all LC nodes come before dielectric nodes. This means that it is safer to look up node numbering from a previously written result mesh file than from one written by GiD or Gmsh when dielectrics are present.|
 
@@ -349,7 +364,10 @@ Anchoring is a string that describes the type of anchoring. Possible values are 
 
 **`FIXLCn.Easy`**
 
-`Easy` is a numeric vector of length 3. It sets the easy tilt, twist and rotation (around the director) angles of the anchoring. The rotation angle is ignored for all cases except when `Anchoring` is `Weak` and `FIXLCn.K1` is not equal to `FIXLCn.K2`.
+`Easy` is a vector of length 3. It sets the easy tilt, twist and rotation (around the director) angles in degrees of the anchoring. The rotation angle is ignored for all cases except when `Anchoring` is `Weak` and `FIXLCn.K1` is not equal to `FIXLCn.K2`.
+
+The values within the vector can be either numbers or (currently) when `Type` equals Strong, arithmetic expressions in the global cartesian coordinates x, y, z.
+
 
 **`FIXLCn.K1, FIXLCn.K2`**
 
@@ -370,7 +388,7 @@ existing result file using `LoadQ` parameter.
 
 By default, this is set to `true`, so that it should only be necessary to use this if you want to change it to `false`. 
 
-### Example
+### Example 1
 ```
 FIXLC1.Anchoring = Homeotropic
 FIXLC1.Strength = 1e-4
@@ -379,6 +397,14 @@ FIXLC1.K1 = 1.0000
 FIXLC1.K2 = 1.0000
 ```
 *Example of specifying anchoring conditions. The anchoring on FixLC1 surface is set to strong homeotropic (perpendicular to the surface plane). In this case, the parameters Strength, Easy , K1 and K2 are ignored, since homeotropic anchoring type overrides these settings.*
+
+### Example 2 - Non-uniform Strong Planar Anchoring
+
+```
+FIXLC2.Anchoring = strong
+FIXLC2.Easy = ["0", "360 * x", "0"]
+```
+*Specify a strong anchoring with zero pre-tilt but a twist angle that is a function of the global x coordinate.*
 
 ---
 ## Electric Potentials ##
