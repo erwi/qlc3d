@@ -150,8 +150,6 @@ void SimulationContainer::initialise() {
     solutionVectors.qn = &qn;
     solutionVectors.v = &v;
 
-    Log::info("Creating matrix for Q-tensor");
-    Kq = createQMatrix(geom1, q, MAT_DOMAIN1);
     //********************************************************************
     //*
     //*		Save Initial configuration and potential
@@ -260,8 +258,8 @@ void SimulationContainer::runIteration() {
 
   simulationState.currentIteration(simulationState.currentIteration() + 1);
 
-  Log::info("Total iteration time={:.3}s, LC assembly time = {:.3}s, LC solver time = {:.3}s",
-  stopwatch.elapsedSeconds(), solverResult.elapsedTimes.assemblyTimeSeconds, solverResult.elapsedTimes.solveTimeSeconds);
+  Log::info("Total iteration time={:.3}s, LC assembly time = {:.3}s, LC solver time = {:.3}s, |dQ| = {:.3}",
+  stopwatch.elapsedSeconds(), solverResult.elapsedTimes.assemblyTimeSeconds, solverResult.elapsedTimes.solveTimeSeconds, solverResult.dq);
 }
 
 void SimulationContainer::postSimulationTasks() {

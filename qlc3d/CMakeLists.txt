@@ -9,9 +9,8 @@ add_compile_definitions(QLC3D_SHA=\"${QLC3D_COMMIT}\")
 #    add_definitions(-DLOG_DEBUG_HASH=1)
 #endif(LOG_DEBUG_HASH)
 
-set (CMAKE_CXX_FLAGS "-Wall -std=c++0x")
-set (CMAKE_CXX_FLAGS_DEBUG "-g")
-set (CMAKE_CXX_FLAGS_RELEASE "-Ofast -DNDEBUG")
+set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Wall")
+
 file(GLOB SOURCE_FILES ./includes/*.h ./src/*.cpp)
 find_package(OpenMP)
 if (OPENMP_FOUND)

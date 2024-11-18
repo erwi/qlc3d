@@ -220,7 +220,7 @@ void ImplicitLCSolver::assembleMatrixSystemVolumeTerms(const SolutionVector &q, 
   idx tetNodes[elementNodeCount];
   idx tetDofs[elementNodeCount];
 
-  #pragma omp parallel for private(lK, lL, tetNodes, tetDofs) //, shapes)
+  #pragma omp parallel for private(lK, lL, tetNodes, tetDofs) schedule(guided)
   for (unsigned int indTet = 0; indTet < elementCount; indTet++) {
     if (tets.getMaterialNumber(indTet) != MAT_DOMAIN1) {
       continue;
@@ -247,7 +247,7 @@ void ImplicitLCSolver::assembleMatrixSystemWeakAnchoring(const SolutionVector &q
 
   std::unordered_map<unsigned int, Surface> weakSurfaces = alignment.getWeakSurfacesByFixLcNumber();
 
-  #pragma omp parallel for private(lK, lL, triNodes, triDofs)
+  #pragma omp parallel for private(lK, lL, triNodes, triDofs) schedule(guided)
   for (unsigned int indTri = 0; indTri < tris.getnElements(); indTri++) {
     auto shapes = gaussianQuadratureTri4thOrder();
     unsigned int fixLcNumber = tris.getFixLCNumber(indTri);

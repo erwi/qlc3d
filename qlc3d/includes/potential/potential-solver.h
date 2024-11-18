@@ -35,8 +35,6 @@ class PotentialSolver {
   double efe, efe2;
   double S0;
 
-  int numAssemblyThreads = 1;
-
   std::shared_ptr<Electrodes> electrodes;
   std::shared_ptr<LC> lc;
   std::shared_ptr<SolverSettings> solverSettings;
@@ -87,7 +85,7 @@ class PotentialSolver {
   [[nodiscard]] bool isFreeNode(unsigned int i);
 
 public:
-  PotentialSolver(std::shared_ptr<Electrodes> electrodes, std::shared_ptr<LC> lc, std::shared_ptr<SolverSettings> solverSettings);// {}// :
+  PotentialSolver(std::shared_ptr<Electrodes> electrodes, std::shared_ptr<LC> lc, std::shared_ptr<SolverSettings> solverSettings);
     //electrodes(std::move(electrodes)), lc(std::move(lc)), solverSettings(std::move(solverSettings)), K(nullptr) {};
   ~PotentialSolver(); // default implementation required to avoid complains from unique_ptr about incomplete type
 

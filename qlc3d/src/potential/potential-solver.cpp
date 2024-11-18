@@ -32,8 +32,6 @@ PotentialSolver::PotentialSolver(std::shared_ptr<Electrodes> electrodes, std::sh
   deleps = lc->eps_par() - lc->eps_per();
   efe = 2.0 / (9 * S0) * (lc->e1() + 2 * lc->e3());
   efe2 = 4.0 / (9 * S0 * S0) * (lc->e1() - lc->e3());
-
-  numAssemblyThreads = solverSettings->getnThreads() > 0 ? (int) solverSettings->getnThreads() : (int) std::thread::hardware_concurrency();
 }
 
 PotentialSolver::~PotentialSolver() = default;
@@ -135,8 +133,6 @@ void PotentialSolver::initialiseMatrixSystem(const SolutionVector &vOut, const G
 }
 
 void PotentialSolver::assembleMatrixSystem(const SolutionVector &v, const SolutionVector &q, const Geometry &geom) {
-  omp_set_num_threads(numAssemblyThreads);
-
   assembleVolume(v, q, geom);
   assembleNeumann(v, q, geom); // dielectric material test pass if this is commented out
 }
@@ -190,7 +186,7 @@ void PotentialSolver::assembleVolume(const SolutionVector &v, const SolutionVect
   idx tetNodes[4];
   idx tetDofs[4];
 
-  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, elementCount) private(lK, lL, tetNodes, tetDofs)
+  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, elementCount) private(lK, lL, tetNodes, tetDofs) schedule(guided)
   for (idx elementIndex = 0; elementIndex < elementCount; elementIndex++) {
     GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
     geom.getTetrahedra().loadNodes(elementIndex, tetNodes);
@@ -214,7 +210,7 @@ void PotentialSolver::assembleNeumann(const SolutionVector &v, const SolutionVec
   unsigned int tetNodes[4];
   unsigned int tetDofs[4];
 
-  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, triMesh, tetMesh, triCount) private(lK, lL, triNodes, tetNodes, tetDofs)
+  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, triMesh, tetMesh, triCount) private(lK, lL, triNodes, tetNodes, tetDofs) schedule(guided)
   for (unsigned int indTri = 0; indTri < triCount; indTri++) {
     if (triMesh.getMaterialNumber(indTri) != MAT_NEUMANN) {
       continue;
