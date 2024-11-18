@@ -127,8 +127,8 @@ std::unique_ptr<SectionMeshFormat> GmshFileReader::readMeshFormat() {
     split(line, " ", splits);
 
     double fileVersion = stod(splits[0]);
-    int fileType = stoi(splits[1]);
-    int dataSize = stoi(splits[2]);
+    int fileType = stoi(splits[1]); // 0 = ASCII, 1 = binary
+    int dataSize = stoi(splits[2]); // sizeof <floating point number>
 
     readLine(line);
     if (line.find("$EndMeshFormat")) {
@@ -338,16 +338,21 @@ std::unique_ptr<SectionElements> GmshFileReader::readElements() {
     vector<unsigned int> tetrahedra;  // node indices to tetrahedra
     vector<unsigned int> triangleTags;   // surface tag used in geometry creation
     vector<unsigned int> tetrahedraTags; // volume tag used geometry creation
-
+    unsigned int meshOrder = 0;
     while (readLine(line)) {
         if (line.find("$EndElements") == 0) {
-          unsigned int numTriangles = triangles.size() / 3;
-          unsigned int numTetrahedra = tetrahedra.size() / 4;
+          if (meshOrder != 1 && meshOrder != 2) {
+            RUNTIME_ERROR("Expected meshOrder to be 1 or 2, got " + to_string(meshOrder))
+          }
+
+          unsigned int numTriangles = meshOrder == 1 ? triangles.size() / 3 : triangles.size() / 6;
+          unsigned int numTetrahedra = meshOrder == 1 ? tetrahedra.size() / 4 : tetrahedra.size() / 10;
           Log::info("Triangles count = {}, tetrahedra count = {}.", numTriangles, numTetrahedra);
 
           return make_unique<SectionElements>(
-                  triangles.size() / 3,
-                  tetrahedra.size() / 4,
+                  meshOrder,
+                  numTriangles,
+                  numTetrahedra,
                   std::move(triangles),
                   std::move(triangleTags),
                   std::move(tetrahedra),
@@ -361,7 +366,7 @@ std::unique_ptr<SectionElements> GmshFileReader::readElements() {
 
         // int entityDim = stoi(splits[0]); // 1, 2, or 3
         int entityTag = stoi(splits[1]); // surface or volume number of the geometry, not mesh.
-        int elementType = stoi(splits[2]); // 2 = triangle, 4 = tetrahedron
+        int elementType = stoi(splits[2]); // 2 = linear triangle, 4 = linear tetrahedron, 9 = quadratic triangle, 11 = quadratic tetrahedron
         size_t numElementsInBlock = stoul(splits[3]);
 
         // read one block of elements. All elements in the block should be of same type and "material"
@@ -370,22 +375,52 @@ std::unique_ptr<SectionElements> GmshFileReader::readElements() {
             if (elementType == SectionElements::ELEMENT_TYPE_TRIANGLE_3_NODES) {
                 split(line, " ", splits);
                 if (splits.size() != 4) {
-                    RUNTIME_ERROR("Expected 4 values when reading triangle element, got " + to_string(splits.size()) + ".")
+                    RUNTIME_ERROR("Expected 4 values when reading linear triangle element, got " + to_string(splits.size()) + ".")
                 }
                 triangles.push_back(stoul(splits[1]) - 1);
                 triangles.push_back(stoul(splits[2]) - 1);
                 triangles.push_back(stoul(splits[3]) - 1);
                 triangleTags.push_back(entityTag);
+                if (meshOrder == 0) { meshOrder = 1; }
             } else if (elementType == SectionElements::ELEMENT_TYPE_TETRAHEDRON_4_NODES) {
                 split(line, " ", splits);
                 if (splits.size() != 5) {
-                    RUNTIME_ERROR("Expected 5 values when reading tetrahedron element, got " + to_string(splits.size()) + ".")
+                    RUNTIME_ERROR("Expected 5 values when reading linear tetrahedron element, got " + to_string(splits.size()) + ".")
                 }
                 tetrahedra.push_back(stoul(splits[1]) - 1);
                 tetrahedra.push_back(stoul(splits[2]) - 1);
                 tetrahedra.push_back(stoul(splits[3]) - 1);
                 tetrahedra.push_back(stoul(splits[4]) - 1);
                 tetrahedraTags.push_back(entityTag);
+            } else if (elementType == SectionElements::ELEMENT_TYPE_TRIANGLE_6_NODES) {
+              split(line, " ", splits);
+              if (splits.size() != 7) {
+                RUNTIME_ERROR("Expected 6 values when reading quadratic triangle element, got " + to_string(splits.size()) + ".")
+              }
+              triangles.push_back(stoul(splits[1]) - 1);
+              triangles.push_back(stoul(splits[2]) - 1);
+              triangles.push_back(stoul(splits[3]) - 1);
+              triangles.push_back(stoul(splits[4]) - 1);
+              triangles.push_back(stoul(splits[5]) - 1);
+              triangles.push_back(stoul(splits[6]) - 1);
+              triangleTags.push_back(entityTag);
+              if (meshOrder == 0) { meshOrder = 2; }
+            } else if (elementType == SectionElements::ELEMENT_TYPE_TETRAHEDRON_10_NODES) {
+              split(line, " ", splits);
+              if (splits.size() != 11) {
+                RUNTIME_ERROR("Expected 11 values when reading quadratic tetrahedron element, got " + to_string(splits.size()) + ".")
+              }
+              tetrahedra.push_back(stoul(splits[1]) - 1);
+              tetrahedra.push_back(stoul(splits[2]) - 1);
+              tetrahedra.push_back(stoul(splits[3]) - 1);
+              tetrahedra.push_back(stoul(splits[4]) - 1);
+              tetrahedra.push_back(stoul(splits[5]) - 1);
+              tetrahedra.push_back(stoul(splits[6]) - 1);
+              tetrahedra.push_back(stoul(splits[7]) - 1);
+              tetrahedra.push_back(stoul(splits[8]) - 1);
+              tetrahedra.push_back(stoul(splits[9]) - 1);
+              tetrahedra.push_back(stoul(splits[10]) - 1);
+              tetrahedraTags.push_back(entityTag);
             } else {
                 // do nothing, we don't care about this element type
             }

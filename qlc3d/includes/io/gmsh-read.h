@@ -98,6 +98,8 @@ struct SectionNodes {
 struct SectionElements {
     static const int ELEMENT_TYPE_TRIANGLE_3_NODES = 2;
     static const int ELEMENT_TYPE_TETRAHEDRON_4_NODES = 4;
+    static const int ELEMENT_TYPE_TRIANGLE_6_NODES = 9;
+    static const int ELEMENT_TYPE_TETRAHEDRON_10_NODES = 11;
 
     const unsigned int _numTriangles;
     const unsigned int _numTetrahedra;
@@ -110,12 +112,17 @@ struct SectionElements {
     /** id tag to geometry volume */
     const std::vector<unsigned int> _tetrahedraEntityTags;
 
-    SectionElements(unsigned int numTriangles,
+    /* 1 for linear, 2 for quadratic */
+    const unsigned int _meshOrder;
+
+    SectionElements(unsigned int meshOrder,
+                    unsigned int numTriangles,
                     unsigned int numTetrahedra,
                     std::vector<unsigned int> &&triangleIndices,
                     std::vector<unsigned int> &&triangleEntityTags,
                     std::vector<unsigned int> &&tetrahedraIndices,
                     std::vector<unsigned int> &&tetrahedraEntityTags) :
+        _meshOrder(meshOrder),
         _numTriangles{numTriangles}, _numTetrahedra{numTetrahedra},
         _triangleIndices { triangleIndices },
         _triangleEntityTags { triangleEntityTags },
