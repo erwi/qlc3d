@@ -25,7 +25,6 @@ public:
 class RawMeshData {
   unsigned int elementOrder_; // 1 for linear elements, 2 for quadratic elements
 public:
-
   std::vector<Vec3> points;
   std::vector<idx> tetNodes;
   std::vector<idx> tetMaterials;
