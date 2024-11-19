@@ -1291,7 +1291,7 @@ void assemble_prev_rhs(SpaMtrix::Vector &Ln,
                       ) {
     init_globals(mat_par, qn);
     Shape4thOrder shapes;
-    unsigned int elementCount = geom.t->getnElements();//unsigned int) t.getnElements();
+    unsigned int elementCount = geom.getTetrahedra().getnElements();//unsigned int) t.getnElements();
     // OPENMP LOOP COMPILED WITH -march=native an -O3 RESULTS IN SEGFAULT ON
     // WINXP32, COMPILED WITHMinGW. THIS IS NOT A PROBLEM WITH UBUNTU,
     // NO PROBLEMS FOUND WITH gdb / valgrind. SGFAULTING LINE MARKED IN FUNTION
@@ -1301,7 +1301,7 @@ void assemble_prev_rhs(SpaMtrix::Vector &Ln,
     //#pragma omp parallel for // PARALLEL LOOP IN LINUX
     //#endif
     //int th = 0; // debug thread number
-    Mesh &t = *geom.t;
+    Mesh &t = geom.getTetrahedra();
 #ifdef NDEBUG
     #pragma omp parallel for
 #endif

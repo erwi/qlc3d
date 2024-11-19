@@ -166,7 +166,7 @@ double calcQ3d(SolutionVector *q,   // current Q-tensor
       int numThreads = simu->getAssemblyThreadCount() == 0 ? (int) std::thread::hardware_concurrency() : (int) simu->getAssemblyThreadCount();
         omp_set_num_threads(numThreads);
 #endif
-        assembleQ(K, L, q, v, geom.t.get(), geom.e.get(), geom.getCoordinates(), mat_par, timeStep, alignment, geom.getNodeNormals());
+        assembleQ(K, L, q, v, &geom.getTetrahedra(), geom.e.get(), geom.getCoordinates(), mat_par, timeStep, alignment, geom.getNodeNormals());
 
 #ifdef LOG_DEBUG_HASH
         int64_t lHash = hashCode64(&L[0], &L[0] + L.getLength());

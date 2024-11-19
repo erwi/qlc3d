@@ -13,11 +13,11 @@ double get_elem_maxdQ(const idx elem,        // index to element
 
     double qe[4] = {0,0,0,0};
     double maxdq = 0;
-    for (idx dim = 0 ; dim < 5 ; dim ++) // for q1 -> q5
-    {
-        for ( idx j = 0 ; j < geom.t->getnNodes() ; j++) // for each node in this tet
-        {
-            idx nn = geom.t->getNode(elem, j); // node number
+    auto &t = geom.getTetrahedra();
+    const idx numNodes = t.getnNodes();
+    for (idx dim = 0 ; dim < 5 ; dim ++) {// for q1 -> q5
+        for (idx j = 0; j < numNodes; j++){ // for each node in this tet
+            idx nn = t.getNode(elem, j); // node number
             qe[j] = q.getValue( nn , dim ); // get g
         } // end for each node
 
@@ -45,16 +45,15 @@ void findTets_Change( const RefInfo& refinfo,
     // AS SPECIFIED IN REFINFO OBJECT
 
     double thq = refinfo.getValue( refiter ); // GET THRESHOLD
-
-    for ( idx i = 0 ; i <  geom.t->getnElements() ; i++)// for each tetrahedron
-    {
+    auto &t = geom.getTetrahedra();
+    const idx numTets = t.getnElements();
+    for (idx i = 0; i <  numTets; i++) {
         // IF NON-LC TETRAHEDRON: DON'T DO ANYTHING
-        if (geom.t->getMaterialNumber(i) >= MAT_DIELECTRIC1 )
+        if (t.getMaterialNumber(i) >= MAT_DIELECTRIC1 )
             continue;
 
         double maxdq = get_elem_maxdQ( i , geom, q);
-        if ( maxdq >= thq ) // MARK AS RED IF....
-        {
+        if ( maxdq >= thq ) { // MARK AS RED IF....
             i_tet[i] = RED_TET;
         }
     }// end for
@@ -68,17 +67,15 @@ void selectTetsByCoordIndex(const std::vector<idx>& indp,
 {
 // SETS INDEX TO RED TETS TO "RED_TET" FOR THOSE TETRAHEDRAL
 // ELEMENTS THAT CONTAIN NODES THAT ARE INDEXED IN IN indp
-
+  auto &tets = geom.getTetrahedra();
     // MAKE P TO TET INDEX
     std::vector< std::set<idx> > p_to_t;
-    geom.t->gen_p_to_elem(p_to_t);
+    tets.gen_p_to_elem(p_to_t);
     std::set<idx> :: iterator itr;
-    for (idx i = 0 ; i < (idx) indp.size() ; i++)
-    {
+    for (idx i = 0; i < (idx) indp.size(); i++) {
         idx node = indp[i];
-        for (itr = p_to_t[node].begin() ; itr != p_to_t[node].end() ; ++itr)
-        {
-            idx mat = geom.t->getMaterialNumber( *itr );
+        for (itr = p_to_t[node].begin(); itr != p_to_t[node].end(); ++itr) {
+            idx mat = tets.getMaterialNumber( *itr );
             if (mat <= MAT_DOMAIN7 )
                 i_tet[(*itr)] = RED_TET;
         }

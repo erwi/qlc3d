@@ -69,6 +69,14 @@ void Geometry::setCoordinates(const std::shared_ptr<Coordinates>& coordinates) {
   nodeNormals.resize(getnp());
 }
 
+void Geometry::setTetrahedra(const std::shared_ptr<Mesh> &tetrahedra) {
+  t = tetrahedra;
+}
+
+void Geometry::setTriangles(const std::shared_ptr<Mesh> &triangles) {
+  e = triangles;
+}
+
 unsigned int Geometry::getnp() const {
   return coordinates_ == nullptr ? 0 : coordinates_->size();
 }

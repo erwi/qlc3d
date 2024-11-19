@@ -39,11 +39,11 @@ PotentialSolver::~PotentialSolver() = default;
 void setupSingleBlock(const Geometry &geom,
                       const SolutionVector &sol,
                       SpaMtrix::MatrixMaker &mm){
-
-  const idx nodesPerElement = geom.t->getnNodes();
+  auto &tets = geom.getTetrahedra();
+  const idx nodesPerElement = tets.getnNodes();
   vector<idx> eqn(nodesPerElement, 0);
 
-  for (idx it = 0; it < geom.t->getnElements(); it++) {
+  for (idx it = 0; it < tets.getnElements(); it++) {
     unsigned int nn[4];
     geom.getTetrahedra().loadNodes(it, nn);
 

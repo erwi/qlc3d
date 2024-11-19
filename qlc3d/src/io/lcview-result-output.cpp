@@ -37,12 +37,12 @@ void LcViewResultFormatWriter::writeMeshIfRequired(const Geometry &geom, const S
   if (isFirstTime || isNewMesh) {
     writtenMeshPath_ = outputDirectory / numberedMeshName;
     Log::info("Writing mesh file {}", writtenMeshPath_.string());
-    writeMeshFile(geom.getCoordinates(), geom.t.get(), geom.e.get(), geom.getnp(), writtenMeshPath_);
+    writeMeshFile(geom.getCoordinates(), geom.getTetrahedra(), *geom.e.get(), geom.getnp(), writtenMeshPath_);
     lastMeshNumber_ = simulationState.meshNumber();
   }
 }
 
-void LcViewResultFormatWriter::writeMeshFile(const Coordinates &coordinates, Mesh *t, Mesh *e, idx np,
+void LcViewResultFormatWriter::writeMeshFile(const Coordinates &coordinates, const Mesh &t, const Mesh &e, idx np,
                                              const std::filesystem::path &fileName) {
   idx i;
   FILE *fid = fopen(fileName.string().c_str(), "w");
@@ -53,11 +53,11 @@ void LcViewResultFormatWriter::writeMeshFile(const Coordinates &coordinates, Mes
       fprintf(fid, "%i\t%f\t%f\t%f\n", i + 1, p.x(), p.y(), p.z());
     }
     fprintf(fid, "end coordinates\n\nElements\n");
-    for (i = 0 ; i < t->getnElements() ; i++)
-      fprintf(fid, "%i\t%i\t%i\t%i\t%i\t%i\n", i + 1, t->getNode(i, 0) + 1, t->getNode(i, 1) + 1, t->getNode(i, 2) + 1, t->getNode(i, 3) + 1, t->getMaterialNumber(i));
+    for (i = 0 ; i < t.getnElements() ; i++)
+      fprintf(fid, "%i\t%i\t%i\t%i\t%i\t%i\n", i + 1, t.getNode(i, 0) + 1, t.getNode(i, 1) + 1, t.getNode(i, 2) + 1, t.getNode(i, 3) + 1, t.getMaterialNumber(i));
     fprintf(fid, "end elements\nMESH    dimension 3 ElemType Triangle  Nnode 3\nCoordinates\nend coordinates\n\nElements\n");
-    for (i = 0 ; i < e->getnElements() ; i++)
-      fprintf(fid, "%i\t%i\t%i\t%i\t%i\n", i + 1, e->getNode(i, 0) + 1, e->getNode(i, 1) + 1, e->getNode(i, 2) + 1, e->getMaterialNumber(i));
+    for (i = 0 ; i < e.getnElements() ; i++)
+      fprintf(fid, "%i\t%i\t%i\t%i\t%i\n", i + 1, e.getNode(i, 0) + 1, e.getNode(i, 1) + 1, e.getNode(i, 2) + 1, e.getMaterialNumber(i));
     fprintf(fid, "end elements\n");
     fclose(fid);
   } else {
@@ -152,7 +152,7 @@ void LcViewTxtResultFormatWriter::writeResult(const Geometry &geom, const Simula
   }
 
   writeTextResultFile(geom.getCoordinates(),
-                      geom.t.get(),
+                      &geom.getTetrahedra(),
                       geom.e.get(),
                       *potential,
                       *directors,

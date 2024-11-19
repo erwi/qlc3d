@@ -22,8 +22,10 @@ using namespace std;
 class Geometry {
 private:
     std::shared_ptr<Coordinates> coordinates_;
+    std::shared_ptr<Mesh> t;
+    //std::shared_ptr<Mesh> e;
 
-    unsigned int npLC;          // number of LC nodes
+  unsigned int npLC;          // number of LC nodes
     std::vector<Vec3> nodeNormals;
     AABox boundingBox;
 
@@ -43,16 +45,22 @@ private:
   double getAbsXDist(int i , double x);   // gets absolute distance between x-coord of node i and x
   double getAbsYDist(int i , double y);   //
   double getAbsZDist(int i , double z);   //
-
+                     // volume mesh
 public:
     // UNFORTUNATE HACKERY... SPECIAL ERROR INDEX VALUE FOR AN UNSIGNED INDEX THAT WAS NOT FOUND
     static const unsigned int NOT_AN_INDEX;// = std::numeric_limits<unsigned int>::max();
-    std::shared_ptr<Mesh> t;                        // volume mesh
     std::shared_ptr<Mesh> e;                        // surface mesh
     RegularGrid *regularGrid;
     Geometry();
     ~Geometry();
+    /** for testing purposes */
     void setCoordinates(const std::shared_ptr<Coordinates>& coordinates);
+
+    /** for testing purposes */
+    void setTetrahedra(const std::shared_ptr<Mesh>& tetrahedra);
+
+    /** for testing purposes */
+    void setTriangles(const std::shared_ptr<Mesh>& triangles);
 
     void setMeshData(const std::shared_ptr<Coordinates> &coordinates,
                      std::vector<unsigned int> &&tetNodes, std::vector<unsigned int> &&tetMaterials,
@@ -111,6 +119,7 @@ public:
     [[nodiscard]] const Mesh& getTetrahedra() const { return *t; }
     [[nodiscard]] Mesh& getTetrahedra() { return const_cast<Mesh&>(*t); }
     [[nodiscard]] const Mesh& getTriangles() const { return *e; }
+    [[nodiscard]] Mesh& getTriangles() { return const_cast<Mesh&>(*e); }
 };
 #endif
 

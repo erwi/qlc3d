@@ -255,5 +255,5 @@ TEST_CASE("Convenience debugging set-up, not a test!") {
 
   // Write result to file for visualisation
   vtkIOFun::UnstructuredGridWriter writer;
-  writer.write("/home/eero/Desktop/pseudo2d.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
+  writer.write("/home/eero/Desktop/pseudo2d.vtk", geom.getnpLC(), geom.getCoordinates(), geom.getTetrahedra(), v, q);
 }

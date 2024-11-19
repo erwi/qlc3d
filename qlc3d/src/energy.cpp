@@ -126,9 +126,8 @@ void CalculateFreeEnergy(FILE *fid,
     idx tt[4] = {0, 0, 0, 0};
     const Mesh &tets = geom->getTetrahedra();
     const Coordinates& coordinates = geom->getCoordinates();
-
     for (idx x = 0 ; x < tets.getnElements() ; x++) {
-        if (geom->t->getMaterialNumber(x) <= MAT_DOMAIN7) { //IF LC ELEMENT
+        if (tets.getMaterialNumber(x) <= MAT_DOMAIN7) { //IF LC ELEMENT
           tets.loadNodes(x, tt);
 
             for (int igp = 0; igp < ngp; igp++) { //loop over each gauss point

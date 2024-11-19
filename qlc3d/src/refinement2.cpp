@@ -56,7 +56,7 @@ void make_new_green1_tet( vector <idx>& new_t,
     vector <idx> nn; // new nodes
     no.push_back( (idx) lines[ln].L[0] );
     no.push_back( (idx) lines[ln].L[1] );
-    geom.t->CompleteNodesSet( elem , no );
+    geom.getTetrahedra().CompleteNodesSet( elem , no );
 
     nn.push_back( (unsigned int) nnodes.sparse_get(nA, nB));//nnodes->sparse_get(nA , nB) ); <-
 
@@ -67,7 +67,8 @@ void make_new_green1_tet( vector <idx>& new_t,
 				nAB,	nC,	nD,	nB};
 
     new_t.insert( new_t.end() , tet , tet + 8 );
-    idx mat[2] = {geom.t->getMaterialNumber(elem), geom.t->getMaterialNumber(elem)};
+    auto &tets = geom.getTetrahedra();
+    idx mat[2] = {tets.getMaterialNumber(elem), tets.getMaterialNumber(elem)};
     new_mat_t.insert ( new_mat_t.end() , mat , mat + 2 );
 
 }// end make_new_green1_tet
@@ -136,7 +137,7 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
         tet[14] = nD;
         tet[15] = nCD;
 
-        int m = geom.t->getMaterialNumber(elem);
+        int m = geom.getTetrahedra().getMaterialNumber(elem);
         mat[0] = m;
         mat[1] = m;
         mat[2] = m;
@@ -173,7 +174,7 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
             nB = nodes[0] < nodes[1]? nodes[0]:nodes[1]; // return smaller
             nC = nodes[0] > nodes[1]? nodes[0]:nodes[1]; // return larger
 
-            geom.t->CompleteNodesSet( elem, no);
+            geom.getTetrahedra().CompleteNodesSet( elem, no);
 
             nn.push_back((unsigned int) nnodes.sparse_get(nA, nB) ); // <-
             nn.push_back((unsigned int) nnodes.sparse_get(nA, nC) ); // <-
@@ -193,7 +194,7 @@ void make_new_green2_tet( vector <unsigned int>& new_t,
             tet[ 10] = nD;
             tet[ 11] = nC;
 
-            int m = geom.t->getMaterialNumber(elem);
+            int m = geom.getTetrahedra().getMaterialNumber(elem);
             mat[0] = m;
             mat[1] = m;
             mat[2] = m;
@@ -226,7 +227,7 @@ void make_new_red_tet( vector <idx>& new_t,
     vector <unsigned int> no;// old
     vector <unsigned int> nn;// new
     // make old nodes list
-    for (int i = 0 ; i < 4 ; i++) no.push_back( geom.t->getNode( elem , i ) );
+    for (int i = 0 ; i < 4 ; i++) no.push_back( geom.getTetrahedra().getNode( elem , i ) );
 
     // make new nodes list
     nn.push_back((unsigned int) nnodes.sparse_get(nA,nB)); // AB <-
@@ -249,7 +250,7 @@ void make_new_red_tet( vector <idx>& new_t,
                                   nAC, nBC, nCD, nBD};
 
     new_t.insert( new_t.end() , tet , tet + (4*8) );
-    int m = geom.t->getMaterialNumber( elem );
+    int m = geom.getTetrahedra().getMaterialNumber( elem );
     int mat[8] = {m,m,m,m,m,m,m,m};
     new_mat_t.insert ( new_mat_t.end() , mat, mat+ 8);
 }// end void make_new_red_tet
@@ -278,7 +279,7 @@ void make_new_green3_tet( vector <idx>& new_t,
     }
     no.insert( no.end() , un.begin() , un.end() );
 
-    geom.t->CompleteNodesSet( elem , no ); // get remaining node
+    geom.getTetrahedra().CompleteNodesSet( elem , no ); // get remaining node
 
     // POPULATE NEW NODES LIST
     nn.push_back( (unsigned int) nnodes.sparse_get(nA, nB) ); // AB <-
@@ -294,7 +295,7 @@ void make_new_green3_tet( vector <idx>& new_t,
     new_t.insert( new_t.end() , tet, tet+ 4*4);
     // MATERIAL NUMBERS FOR 4 NEW ELEMENTS
 
-    int m = geom.t->getMaterialNumber(elem);
+    int m = geom.getTetrahedra().getMaterialNumber(elem);
     int mat[4] = {m,m,m,m};
 
 

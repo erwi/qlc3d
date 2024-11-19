@@ -10,8 +10,8 @@ class LcViewResultFormatWriter : public ResultFormatWriter {
   [[nodiscard]] static std::string numberedMeshName(const SimulationState &simulationState, const std::string &meshName) ;
 
   static void writeMeshFile(const Coordinates &coordinates,
-                            Mesh *t,
-                            Mesh *e,
+                            const Mesh &t,
+                            const Mesh &e,
                             idx np,
                             const std::filesystem::path &fileName);
 protected:

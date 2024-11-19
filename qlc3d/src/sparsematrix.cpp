@@ -13,14 +13,15 @@ void setupSingleBlock(const Geometry &geom,
                       const idx &MatNum,
                       SpaMtrix::MatrixMaker &mm){
     // BOOK-KEEPING OF EQU-NODES
-    const idx npt = geom.t->getnNodes(); // 4 FOR LINEAR TETS
+    auto &tets = geom.getTetrahedra();
+    const idx npt = tets.getnNodes(); // 4 FOR LINEAR TETS
     vector<idx> eqn(npt,0);              // KEEPS EQU NODES FOR ELEMENT
 
-    for (idx it = 0 ; it < geom.t->getnElements() ; it++){
+    for (idx it = 0 ; it < tets.getnElements() ; it++){
         // MAKE SURE ONLY ELEMENTS WITH MATERIAL NUMBER MatNum ARE USED
         // IF MatNum HAS BEEN DEFINED
         if (MatNum){
-            if ( MatNum != geom.t->getMaterialNumber(it)  ){
+            if ( MatNum != tets.getMaterialNumber(it)  ){
                 continue;
             }
         }

@@ -515,7 +515,7 @@ void expand_refinement_region(vector <unsigned int>& i_tet,	// index to tet bise
     unsigned int d_n_tred   = nrt.red;	// CHANGE IN NUMBER OF RED TETS PER EXPANSION LOOP
 
     vector < set <unsigned int> > p_to_t;   // POINTS TO TETS INDEX
-    geom_prev.t->gen_p_to_elem( p_to_t );
+    geom_prev.getTetrahedra().gen_p_to_elem( p_to_t );
     
     peri_lines plines;
     // Construct list of periodic line elements iff structure has periodic boundaries
@@ -529,10 +529,10 @@ void expand_refinement_region(vector <unsigned int>& i_tet,	// index to tet bise
     while( d_n_tred > 0) // loop while refinement region grows
     {
 
-        find_all_core_lines(lines, i_tet, geom_prev.t.get()); // creates all bisectable lines
+        find_all_core_lines(lines, i_tet, &geom_prev.getTetrahedra()); // creates all bisectable lines
         expand_periodic_boundaries( lines , plines, geom_prev );
 
-        count_lines(geom_prev.t.get(), p_to_t, lines, i_tet , t_to_l);
+        count_lines(&geom_prev.getTetrahedra(), p_to_t, lines, i_tet , t_to_l);
 
         fix_green3_red_confusions(i_tet, lines, t_to_l);
         n_tred_old = nrt.red;
@@ -596,18 +596,20 @@ void modify_geometry(Geometry& geom,
         }
     }
 
-    geom.t->removeElements( ind_remove_tets );
-  geom.t->appendElements(new_t, new_mat_t);
-    geom.e->removeElements( ind_remove_tris );
-  geom.e->appendElements(new_e, new_mat_e);
+    auto &tets = geom.getTetrahedra();
+    auto &tris = geom.getTriangles();
+    tets.removeElements( ind_remove_tets );
+    tets.appendElements(new_t, new_mat_t);
+    tris.removeElements( ind_remove_tris );
+    tris.appendElements(new_e, new_mat_e);
 
     geom.ReorderDielectricNodes(); // Dielectric nodes are moved last
     //geom.t->setMaxNodeNumber( (unsigned int) geom.getnp() );
-    geom.e->setConnectedVolume( geom.t.get() );
-    geom.t->calculateDeterminants3D(geom.getCoordinates());
-    geom.t->ScaleDeterminants( 1e-18);// scale to microns cubed
-    geom.e->calculateSurfaceNormals(geom.getCoordinates(), geom.t.get());
-    geom.e->ScaleDeterminants( 1e-12); // scale to microns squared
+    tris.setConnectedVolume(&tets);
+    tets.calculateDeterminants3D(geom.getCoordinates());
+    tets.ScaleDeterminants( 1e-18);// scale to microns cubed
+    tris.calculateSurfaceNormals(geom.getCoordinates(), &tets);
+    tris.ScaleDeterminants( 1e-12); // scale to microns squared
     geom.initialisePeriodicity();
     geom.makePeriEquNodes();
 }

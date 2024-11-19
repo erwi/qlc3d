@@ -36,6 +36,7 @@ void interpolate(SolutionVector &qnew,
     //double *dir = tensortovector(qold.Values , npLC_old);   // director on old mesh
     // Loop over all new nodes and set Q-tensor
     qnew.Resize(geom_new.getnpLC(), 5);
+    auto &oldTets = geom_old.getTetrahedra();
     for (size_t ind = 0 ; ind < (size_t) geom_new.getnpLC() ; ind++) { // for all new nodes
         // only LC volumes are interpolated
         assert(geom_old.getTetrahedra().getMaterialNumber(pInTet[ind]) == MAT_DOMAIN1);
@@ -44,12 +45,12 @@ void interpolate(SolutionVector &qnew,
 
         Vec3 targetPoint = geom_new.getCoordinates().getPoint(ind);
         // calculate local element coordinates loc of global coordinate coord.
-        geom_old.t->calcLocCoords(pInTet[ind], geom_old.getCoordinates(), targetPoint, loc);
+        oldTets.calcLocCoords(pInTet[ind], geom_old.getCoordinates(), targetPoint, loc);
         size_t n[4];
-        n[0] = geom_old.t->getNode(pInTet[ind], 0);
-        n[1] = geom_old.t->getNode(pInTet[ind], 1);
-        n[2] = geom_old.t->getNode(pInTet[ind], 2);
-        n[3] = geom_old.t->getNode(pInTet[ind], 3);
+        n[0] = oldTets.getNode(pInTet[ind], 0);
+        n[1] = oldTets.getNode(pInTet[ind], 1);
+        n[2] = oldTets.getNode(pInTet[ind], 2);
+        n[3] = oldTets.getNode(pInTet[ind], 3);
 
         // IF MAXIMUM LOCAL COORDINATE VALUE is more or less 1 -> the node is an exsiting one
         size_t ind_max = max_element(loc, loc + 4) - loc ;
@@ -105,7 +106,7 @@ void get_index_to_tred(Geometry &geom_curr, // CURRENT CALCULATION GEOMETRY
     // DETERMINES WHICH ELEMENTS NEED TO BE REFINED. VALUES IN i_tet
     // ARE SET TO RED_TET FOR THOSE TETRAHEDRA THAT NEED TO BE SPLIT.
     i_tet.clear();
-    i_tet.assign(geom_work.t->getnElements() , 0);
+    i_tet.assign(geom_work.getTetrahedra().getnElements() , 0);
     SolutionVector q_temp;
     // IF INTERPOLATION NEEDED. DO IT
     if (needsInterpolatedQ(refInfos, refiter)) {
@@ -182,7 +183,7 @@ bool autoref(Geometry &geom_orig,
     for (refiter = 0 ; refiter < maxrefiter ; refiter ++) { // for max refiter
         Log::info("Refinement iteration {} of {}.", refiter + 1, maxrefiter);
         // GET INDEX TO RED TETS IN geom
-        vector <idx> i_tet(geom_temp.t->getnElements(), 0);  // REFINEMENT TYPE INDICATOR
+        vector <idx> i_tet(geom_temp.getTetrahedra().getnElements(), 0);  // REFINEMENT TYPE INDICATOR
         // SELECT RED TETS
         get_index_to_tred(geom ,
                           geom_temp,
