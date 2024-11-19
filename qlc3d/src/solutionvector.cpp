@@ -206,7 +206,7 @@ void SolutionVector::allocateFixedNodesArrays(Geometry &geom) {
     }
     // SEPARATE INDEX TO ALL FIXED NODES
     // (SOME WILL BE REPEATED)
-    Mesh &e = *geom.e;   // PTR TO SURFACE MESH
+    Mesh &e = geom.getTriangles();   // PTR TO SURFACE MESH
     std::vector<SolutionVectorNameSpace::node> fixed_nodes;
     for (idx i = 0 ; i < e.getnElements() ; i++) {
         int mat = e.getMaterialNumber(i);

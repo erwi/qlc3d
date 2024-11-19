@@ -322,7 +322,7 @@ void make_new_tri1(vector <idx>& new_e,
     li_ind = e_to_l[elem];
     no.push_back( lines[*(li_ind.begin() ) ].L[0] );
     no.push_back( lines[*(li_ind.begin() ) ].L[1] );
-    geom.e->CompleteNodesSet( elem , no );
+    geom.getTriangles().CompleteNodesSet( elem , no );
 
     // MAKE NEW NODES LIST
     nn.push_back( (unsigned int) nnodes.sparse_get( nA, nB ) ); // <-
@@ -337,7 +337,7 @@ void make_new_tri1(vector <idx>& new_e,
     new_e.insert( new_e.end() , tri , tri + (3*2) );
 
     // ADD 2 NEW MATERIAL NUMBERS
-    int m = geom.e->getMaterialNumber( elem );
+    int m = geom.getTriangles().getMaterialNumber( elem );
     int mat[2] = {m,m};
     new_mat_e.insert( new_mat_e.end() , mat , mat + 2 );
 } // end make new tri1
@@ -402,7 +402,7 @@ void make_new_tri2(vector <idx>& new_e,
                                 nAC, nAB, nC ,
                                 nAB, nB, nC};
 
-    int m = geom.e->getMaterialNumber( elem );
+    int m = geom.getTriangles().getMaterialNumber( elem );
     int mat[3] = {m,m,m};
 
     new_e.insert( new_e.end() , tri , tri + (3*3) );
@@ -420,15 +420,16 @@ void make_new_tri3(vector <idx>& new_e,
                    const SpaMtrix::IRCMatrix &nnodes
                    //SparseMatrix* nnodes
                    ){
-    lines.begin(); e_to_l.begin(); // NO COMPILER WARNINGS
+    //lines.begin(); e_to_l.begin(); // NO COMPILER WARNINGS
     // GENERATE LIST OF OLD AND NEW NODES
     vector <unsigned int> no; // old
     vector <unsigned int> nn; // new
 
     // MAKE OLD NODES LIST
-    no.push_back( geom.e->getNode( elem, 0) );
-    no.push_back( geom.e->getNode( elem, 1) );
-    no.push_back( geom.e->getNode( elem, 2) );
+    auto &tris = geom.getTriangles();
+    no.push_back(tris.getNode( elem, 0) );
+    no.push_back(tris.getNode( elem, 1) );
+    no.push_back(tris.getNode( elem, 2) );
     // MAKE NEW NODES LIST
     nn.push_back( nnodes.sparse_get(nA, nB) ); // AB <-
     nn.push_back( nnodes.sparse_get(nA, nC) ); // AC <-
@@ -444,7 +445,7 @@ void make_new_tri3(vector <idx>& new_e,
     new_e.insert( new_e.end() , tri , tri + (3*4) );
 
     // CREATE 4 NEW MATERIAL NUMBERS
-    int m = geom.e->getMaterialNumber( elem );
+    int m = geom.getTriangles().getMaterialNumber( elem );
     int mat[4] = {m,m,m,m};
     new_mat_e.insert( new_mat_e.end() , mat , mat + 4 );
 

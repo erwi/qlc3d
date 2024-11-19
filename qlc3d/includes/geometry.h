@@ -21,35 +21,36 @@ class Vec3;
 using namespace std;
 class Geometry {
 private:
-    std::shared_ptr<Coordinates> coordinates_;
-    std::shared_ptr<Mesh> t;
-    //std::shared_ptr<Mesh> e;
+  std::shared_ptr<Coordinates> coordinates_;
+  /** Tetrahedra mesh */
+  std::shared_ptr<Mesh> t;
+  /** Triangles mesh */
+  std::shared_ptr<Mesh> e;
 
   unsigned int npLC;          // number of LC nodes
-    std::vector<Vec3> nodeNormals;
-    AABox boundingBox;
+  std::vector<Vec3> nodeNormals;
+  AABox boundingBox;
 
-    bool left_right_is_periodic;
-    bool front_back_is_periodic;
-    bool top_bottom_is_periodic;
-    vector < list <int> > peri_equ_nodes;
-    vector<size_t> periNodes_;
-    void setEdgePeriNodes(list <size_t> &edge0,
-                          list <size_t> &edge1,
-                          const int &dim);   // edge direction 0,1,2 -> x,y,z
-    void setFacePeriNodes(list <size_t> &face0,
-                          list <size_t> &face1,
-                          const int &norm);    // face normal 0,1,2 -> x,y,z
-    void updateMaxNodeNumbers(); // Updates MaxNodeNumbers for surface and tet meshes after a node renumbering
+  bool left_right_is_periodic;
+  bool front_back_is_periodic;
+  bool top_bottom_is_periodic;
+  vector < list <int> > peri_equ_nodes;
+  vector<size_t> periNodes_;
+  void setEdgePeriNodes(list <size_t> &edge0,
+                        list <size_t> &edge1,
+                        const int &dim);   // edge direction 0,1,2 -> x,y,z
+  void setFacePeriNodes(list <size_t> &face0,
+                        list <size_t> &face1,
+                        const int &norm);    // face normal 0,1,2 -> x,y,z
+  void updateMaxNodeNumbers(); // Updates MaxNodeNumbers for surface and tet meshes after a node renumbering
 
   double getAbsXDist(int i , double x);   // gets absolute distance between x-coord of node i and x
   double getAbsYDist(int i , double y);   //
   double getAbsZDist(int i , double z);   //
-                     // volume mesh
+
 public:
     // UNFORTUNATE HACKERY... SPECIAL ERROR INDEX VALUE FOR AN UNSIGNED INDEX THAT WAS NOT FOUND
     static const unsigned int NOT_AN_INDEX;// = std::numeric_limits<unsigned int>::max();
-    std::shared_ptr<Mesh> e;                        // surface mesh
     RegularGrid *regularGrid;
     Geometry();
     ~Geometry();

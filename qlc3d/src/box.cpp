@@ -293,12 +293,10 @@ void InitialVolumeOrientation::setVolumeQ(SolutionVector &q, double S0, const Co
     RUNTIME_ERROR("Error, Boxes::setVolumeQ, invalid q DoF " + std::to_string(q.getnDoF()));
   }
 
-  const unsigned int npLC = q.getnDoF();
-
   // By default, when no boxes exist, the director is initialised along (1, 0, 0) at equilibrium order.
   // TODO: this could be a user defined configuration: a "background director orientation"
   auto defaultDirector = qlc3d::Director(1, 0, 0, S0);
-  for (int i = 0; i < q.getnDoF(); i++) {
+  for (unsigned int i = 0; i < q.getnDoF(); i++) {
     q.setValue(i, qlc3d::TTensor::fromDirector(defaultDirector));
   }
 

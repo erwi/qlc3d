@@ -37,7 +37,7 @@ void LcViewResultFormatWriter::writeMeshIfRequired(const Geometry &geom, const S
   if (isFirstTime || isNewMesh) {
     writtenMeshPath_ = outputDirectory / numberedMeshName;
     Log::info("Writing mesh file {}", writtenMeshPath_.string());
-    writeMeshFile(geom.getCoordinates(), geom.getTetrahedra(), *geom.e.get(), geom.getnp(), writtenMeshPath_);
+    writeMeshFile(geom.getCoordinates(), geom.getTetrahedra(), geom.getTriangles(), geom.getnp(), writtenMeshPath_);
     lastMeshNumber_ = simulationState.meshNumber();
   }
 }
@@ -153,7 +153,7 @@ void LcViewTxtResultFormatWriter::writeResult(const Geometry &geom, const Simula
 
   writeTextResultFile(geom.getCoordinates(),
                       &geom.getTetrahedra(),
-                      geom.e.get(),
+                      &geom.getTriangles(),
                       *potential,
                       *directors,
                       simulationState.currentTime().getTime(),

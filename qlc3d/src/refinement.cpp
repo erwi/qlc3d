@@ -186,11 +186,9 @@ void gen_peri_lines_vec(peri_lines& plines,
 
 
     // loop over each surface triangle
-    for (idx i = 0 ; i < geom.e->getnElements() ; i++ )
-    {
+    for (idx i = 0 ; i < geom.getTriangles().getnElements() ; i++ ) {
         // if triangle is periodic
-        if ( geom.e->getMaterialNumber(i) == MAT_PERIODIC )
-        {
+        if ( geom.getTriangles().getMaterialNumber(i) == MAT_PERIODIC ) {
           idx n[3];
           geom.getTriangles().loadNodes(i, n);
           //idx* n = geom.e->getPtrToElement( i ); // pointer to element node numbers
@@ -559,10 +557,10 @@ void find_triangle_reftypes(Geometry& geom,
     // MAKE LINKS FROM NODES TO TRIS
     vector < set <unsigned int> > p_to_e;
 
-    geom.e->gen_p_to_elem( p_to_e );
+    geom.getTriangles().gen_p_to_elem( p_to_e );
     // MAKE INDEXES FROM TRIS TO LINES
 
-    count_lines( geom.e.get() , p_to_e, lines, i_tri, e_to_l);
+    count_lines(&geom.getTriangles(), p_to_e, lines, i_tri, e_to_l);
 
 }
 
