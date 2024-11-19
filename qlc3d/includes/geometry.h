@@ -2,7 +2,7 @@
 #define GEOMETRY_H
 #include <mesh.h>
 #include <material_numbers.h>
-#include <float.h> // MAXIMUM DOUBLE VALUES NEEDED IN COORDINATE COMPARISON
+#include <cfloat> // MAXIMUM DOUBLE VALUES NEEDED IN COORDINATE COMPARISON
 #include <vector>
 #include <list>
 #include <memory>
@@ -12,7 +12,8 @@
 #include <alignment.h>
 #include <regulargrid.h>
 #include <globals.h>
-#define EPS 1e-7
+#include <geom/aabox.h>
+
 class RegularGrid; // forward declaration
 class Coordinates; // forward declaration
 class Vec3;
@@ -24,13 +25,8 @@ private:
 
     unsigned int npLC;          // number of LC nodes
     std::vector<Vec3> nodeNormals;
+    AABox boundingBox;
 
-    double Xmin;
-    double Xmax;
-    double Ymin;
-    double Ymax;
-    double Zmin;
-    double Zmax;
     bool left_right_is_periodic;
     bool front_back_is_periodic;
     bool top_bottom_is_periodic;
@@ -43,6 +39,8 @@ private:
                           list <size_t> &face1,
                           const int &norm);    // face normal 0,1,2 -> x,y,z
     void updateMaxNodeNumbers(); // Updates MaxNodeNumbers for surface and tet meshes after a node renumbering
+
+
 public:
     // UNFORTUNATE HACKERY... SPECIAL ERROR INDEX VALUE FOR AN UNSIGNED INDEX THAT WAS NOT FOUND
     static const unsigned int NOT_AN_INDEX;// = std::numeric_limits<unsigned int>::max();
@@ -59,14 +57,13 @@ public:
 
     void addCoordinates(const vector<double> &coords);   // adds new coordinates to end of existing ones
     void calculateNodeNormals();      // calculates surface node normals
-    void setnp(int n);
     void setnpLC(int n);        // set number of LC nodes
     void ReorderDielectricNodes();  // reorder nodes so that dielectric material nodes are last
     void makePeriEquNodes();    // generates periodic equivalent nodes index
     void ClearGeometry();       // clears all data for geometry
-    bool getleft_right_is_periodic() const;
-    bool getfront_back_is_periodic() const;
-    bool gettop_bottom_is_periodic() const;
+    [[nodiscard]] bool getleft_right_is_periodic() const;
+    [[nodiscard]] bool getfront_back_is_periodic() const;
+    [[nodiscard]] bool gettop_bottom_is_periodic() const;
 
     void genIndToTetsByCoords(vector <unsigned int> &returnIndex,   // Return index
                               const Coordinates &targetCoordinates,    // coordinates to search
@@ -91,20 +88,19 @@ public:
                          const size_t &nz);
 
     void setTo(Geometry *geom);                     // makes this = geom
-    void checkForPeriodicGeometry();    // detects type of periodicity of the strucuture
 
-    size_t getPeriodicEquNode(const size_t &i) const { // RETURNS INDEX TO NODE PERIODIC TO i
+    /** Detects periodicity of the structure and finds equivalent node mappings */
+    void initialisePeriodicity();
+
+    [[nodiscard]] size_t getPeriodicEquNode(const size_t &i) const { // RETURNS INDEX TO NODE PERIODIC TO i
         if (i < periNodes_.size())
             return periNodes_[i];
         else
             return i;
     }
 
-    unsigned int getnp() const;
-
-    unsigned int getnpLC() const  {
-        return npLC;
-    }
+    [[nodiscard]] unsigned int getnp() const;
+    [[nodiscard]] unsigned int getnpLC() const { return npLC; }
 
     [[nodiscard]] const Coordinates& getCoordinates() const {
       if (!coordinates_) {
@@ -113,22 +109,17 @@ public:
       return *coordinates_;
     }
 
-    double getpX(int i)const;   // return node coordinates at node i
-    double getpY(int i)const;
-    double getpZ(int i)const;
-    double getXmin();
-    double getXmax();
-    double getYmin();
-    double getYmax();
-    double getZmin();
-    double getZmax();
+    [[nodiscard]] double getpX(int i) const;   // return node coordinates at node i
+    [[nodiscard]] double getpY(int i) const;
+    [[nodiscard]] double getpZ(int i) const;
+
+    [[nodiscard]] const AABox& getBoundingBox() const { return boundingBox; }
+
     double getAbsXDist(int i , double x);   // gets absolute distance between x-coord of node i and x
     double getAbsYDist(int i , double y);   //
     double getAbsZDist(int i , double z);   //
     double getAbsDistSqr(const unsigned int i , const double *const coord) const;
-    //void genIndWeakSurfaces(Alignment &alignment);  // generates index to weak surface elements
-    //
-    // NodeNormal methods
+
     [[nodiscard]] const std::vector<Vec3>& getNodeNormals() const;
     Vec3 getNodeNormal(unsigned int i) const;
     void countNodeReferences(vector <int> &refc, Mesh &mesh); // counts the number of times each node is used in mesh. DEBUG

@@ -1,5 +1,6 @@
 #include <geom/coordinates.h>
 #include <geom/vec3.h>
+#include <geom/aabox.h>
 #include <util/exception.h>
 #include <util/logging.h>
 
@@ -37,7 +38,7 @@ std::shared_ptr<Coordinates> Coordinates::clone() const {
   return coords;
 }
 
-std::vector<Vec3> Coordinates::findBoundingBox() const {
+AABox Coordinates::findBoundingBox() const {
   double xMin = points[0].x();
   double xMax = points[0].x();
   double yMin = points[0].y();
@@ -53,7 +54,7 @@ std::vector<Vec3> Coordinates::findBoundingBox() const {
     zMin = std::min(zMin, point.z());
     zMax = std::max(zMax, point.z());
   }
-  return {{xMin, yMin, zMin}, {xMax, yMax, zMax}};
+  return {xMin, xMax, yMin, yMax, zMin, zMax};
 }
 
 void Coordinates::append(const std::vector<double> &p) {

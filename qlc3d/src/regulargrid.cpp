@@ -112,10 +112,10 @@ bool RegularGrid::createFromTetMesh(const unsigned int &nx,
 {
     // CREATES INTEPOLATION TABLE FROM A TETRAHEDRAL MESH DESCRIBED BY geom
     // SO THAT FAST INTEPOLATION CAN BE PERFORMED LATER ON
-
-    xLimits_[0] = geom->getXmin();   xLimits_[1] = geom->getXmax();
-    yLimits_[0] = geom->getYmin();   yLimits_[1] = geom->getYmax();
-    zLimits_[0] = geom->getZmin();   zLimits_[1] = geom->getZmax();
+    auto &bounds = geom->getBoundingBox();
+    xLimits_[0] = bounds.getXMin(); xLimits_[1] = bounds.getXMax();
+    yLimits_[0] = bounds.getYMin(); yLimits_[1] = bounds.getYMax();
+    zLimits_[0] = bounds.getZMin(); zLimits_[1] = bounds.getZMax();
 
     // LIMIT MIN NUMBER OF NODES TO 1 PER DIMENSION
     nx_ = nx == 0 ? 1 : nx;

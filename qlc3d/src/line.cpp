@@ -35,106 +35,46 @@ Line::Line(const int& a,const int& b){
     }
 }
 
-
-void Line::PrintLine(){
-    printf("[%i,%i]\n", L[0], L[1]);
-}
-void Line::PrintLine(Geometry* geom)
-{
-	printf("%i,%i=[%f,%f,%f], [%f,%f,%f]\n", L[0], L[1], 
-		geom->getpX( L[0] ),	geom->getpY( L[0] ),	geom->getpZ( L[0] ),
-		geom->getpX( L[1] ),	geom->getpY( L[1] ),	geom->getpZ( L[1] ) );
-}
-
-bool Line::isBoundingBoxLine(Geometry* geom){// returns true if this line is on a surface of the external boundix box of the modelling window
-    double x1 = geom->getpX(L[0]);
-    double y1 = geom->getpY(L[0]);
-    double z1 = geom->getpZ(L[0]);
-			
-    double x2 = geom->getpX(L[1]);
-    double y2 = geom->getpY(L[1]);
-    double z2 = geom->getpZ(L[1]);
-			
-    // if left side
-    if ( (x1 == geom->getXmin() ) && (x2 == geom->getXmin() ) )
-	return true;
-    // if right side
-    else
-    if ( (x1 == geom->getXmax() ) && (x2 == geom->getXmax() ) )
-	return true;
-    // if front
-    else
-    if ( (y1 == geom->getYmin() ) && (y2 == geom->getYmin() ) )
-	return true;
-    // if back
-    else
-    if ( (y1 == geom->getYmax() ) && (y2 == geom->getYmax() ) )
-	return true;
-    //if bottom
-    else
-    if ( (z1 == geom->getZmin() ) && (z2 == geom->getZmin() ) )
-	return true;
-    //if top
-    else
-    if ( (z1 == geom->getZmax() ) && (z2 == geom->getZmax() ) )
-	return true;
-    // otherwise NO
-    else
-	return false;
-    }// end isBoundingBoxLine()
-
-bool Line::isOnFrontSurface(Geometry* geom){
-				
-    double y1 = geom->getpY(L[0]);
-    double y2 = geom->getpY(L[1]);
-
-    if ( ( y1==geom->getYmin() ) && (y2 == geom->getYmin() ) )
-	return true;
-    else
-	return false;
+bool Line::isOnFrontSurface(Geometry* geom) {
+  auto &bounds = geom->getBoundingBox();
+  double y1 = geom->getCoordinates().getPoint(L[0]).y();
+  double y2 = geom->getCoordinates().getPoint(L[1]).y();
+  return (y1 == bounds.getYMin() && y2 == bounds.getYMin());
 }
 		
-bool Line::isOnBackSurface(Geometry* geom){
-    double y1 = geom->getpY(L[0]);
-    double y2 = geom->getpY(L[1]);
-    if ( ( y1==geom->getYmax() ) && (y2 == geom->getYmax() ) )
-	return true;
-    else
-	return false;
+bool Line::isOnBackSurface(Geometry* geom) {
+  auto &bounds = geom->getBoundingBox();
+  double y1 = geom->getCoordinates().getPoint(L[0]).y();
+  double y2 = geom->getCoordinates().getPoint(L[1]).y();
+  return (y1 == bounds.getYMax() && y2 == bounds.getYMax());
 }
 
-bool Line::isOnRightSurface(Geometry* geom){
-    double x1 = geom->getpX(L[0]);
-    double x2 = geom->getpX(L[1]);
-    if ( (x1 == geom->getXmax() ) && (x2 == geom->getXmax() ))
-	return true;
-    else
-    	return false;
-		
+bool Line::isOnRightSurface(Geometry* geom) {
+  auto &bounds = geom->getBoundingBox();
+  double x1 = geom->getCoordinates().getPoint(L[0]).x();
+  double x2 = geom->getCoordinates().getPoint(L[1]).x();
+  return (x1 == bounds.getXMax() && x2 == bounds.getXMax());
 }
-bool Line::isOnLeftSurface(Geometry* geom){
-    double x1 = geom->getpX(L[0]);
-    double x2 = geom->getpX(L[1]);
-    if ( (x1 == geom->getXmin() ) && (x2 == geom->getXmin() ))
-	return true;
-    else
-	return false;
+
+bool Line::isOnLeftSurface(Geometry* geom) {
+  auto &bounds = geom->getBoundingBox();
+  double x1 = geom->getCoordinates().getPoint(L[0]).x();
+  double x2 = geom->getCoordinates().getPoint(L[1]).x();
+  return (x1 == bounds.getXMin() && x2 == bounds.getXMin());
 }
-bool Line::isOnTopSurface(Geometry* geom){
-    double z1 = geom->getpZ(L[0]);
-    double z2 = geom->getpZ(L[1]);
-    if ( (z1 == geom->getZmax() ) && (z2 == geom->getZmax() ) )
-	return true;
-    else
-	return false;
+
+bool Line::isOnTopSurface(Geometry* geom) {
+  auto &bounds = geom->getBoundingBox();
+  double z1 = geom->getCoordinates().getPoint(L[0]).z();
+  double z2 = geom->getCoordinates().getPoint(L[1]).z();
+  return (z1 == bounds.getZMax() && z2 == bounds.getZMax());
 }
-bool Line::isOnBottomSurface(Geometry* geom){
-    double z1 = geom->getpZ(L[0]);
-    double z2 = geom->getpZ(L[1]);
-    if ( (z1 == geom->getZmin() ) && (z2 == geom->getZmin() ) )
-	return true;
-    else
-	return false;
+
+bool Line::isOnBottomSurface(Geometry* geom) {
+  auto &bounds = geom->getBoundingBox();
+  double z1 = geom->getCoordinates().getPoint(L[0]).z();
+  double z2 = geom->getCoordinates().getPoint(L[1]).z();
+  return (z1 == bounds.getZMin() && z2 == bounds.getZMin());
 }
 	
 bool Line::isTopBottomCornerLine(Geometry* geom){

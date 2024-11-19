@@ -5,6 +5,7 @@
 #include "globals.h"
 
 class Vec3;
+class AABox;
 
 class Coordinates {
   std::vector<Vec3> points;
@@ -21,7 +22,7 @@ public:
   /** return number of points */
   [[nodiscard]] unsigned int size() const;
 
-  [[nodiscard]] std::vector<Vec3> findBoundingBox() const;
+  [[nodiscard]] AABox findBoundingBox() const;
 
   void clear();
   void append(const std::vector<double> &p);

@@ -7,16 +7,11 @@
 const idx Geometry::NOT_AN_INDEX = std::numeric_limits<idx>::max();
 
 Geometry::Geometry():
-    regularGrid(NULL) {
-    npLC            = 0;
+    regularGrid(nullptr) {
+    npLC        = 0;
     t           = Mesh::tetMesh();
     e           = Mesh::triangleMesh();
-    Xmin            = 0;
-    Xmax            = 0;
-    Ymin            = 0;
-    Ymax            = 0;
-    Zmin            = 0;
-    Zmax            = 0;
+    boundingBox = AABox();
     left_right_is_periodic = false;
     front_back_is_periodic = false;
     top_bottom_is_periodic = false;
@@ -29,12 +24,7 @@ Geometry::~Geometry() {
 void Geometry::setTo(Geometry *geom) {
     this->ClearGeometry();
     npLC    = geom->getnpLC();                  // number of LC nodes
-    Xmin    = geom->getXmin();
-    Xmax    = geom->getXmax();
-    Ymin    = geom->getYmin();
-    Ymax    = geom->getYmax();
-    Zmin    = geom->getZmin();
-    Zmax    = geom->getZmax();
+    boundingBox = geom->boundingBox;
     t->CopyMesh(geom->t.get());
     e->CopyMesh(geom->e.get());
 
@@ -54,12 +44,9 @@ void Geometry::setTo(Geometry *geom) {
 void Geometry::ClearGeometry() {
     npLC = 0;
     nodeNormals.clear();
-    Xmin = 0;
-    Xmax = 0;
-    Ymin = 0;
-    Ymax = 0;
-    Zmin = 0;
-    Zmax = 0;
+    boundingBox.setBoundsX(0, 0);
+    boundingBox.setBoundsY(0, 0);
+    boundingBox.setBoundsZ(0, 0);
     left_right_is_periodic = false;
     front_back_is_periodic = false;
     top_bottom_is_periodic = false;
@@ -75,14 +62,7 @@ void Geometry::setCoordinates(const std::shared_ptr<Coordinates>& coordinates) {
   coordinates_ = coordinates;
   setnpLC(coordinates->size());
 
-  vector<Vec3> bounds = coordinates->findBoundingBox();
-  Xmin = bounds[0].x();
-  Ymin = bounds[0].y();
-  Zmin = bounds[0].z();
-
-  Xmax = bounds[1].x();
-  Ymax = bounds[1].y();
-  Zmax = bounds[1].z();
+  boundingBox = coordinates->findBoundingBox();
 
   // reset node normals
   nodeNormals.clear();
@@ -113,7 +93,7 @@ void Geometry::setMeshData(const std::shared_ptr<Coordinates> &coordinates,
   e->ScaleDeterminants(1e-12); // scale to microns
 
   calculateNodeNormals();
-  checkForPeriodicGeometry(); // also makes periodic node indexes
+  initialisePeriodicity(); // also makes periodic node indexes
 }
 
 
@@ -358,13 +338,13 @@ void Geometry::makePeriEquNodes() {
     for (size_t i = 0 ; i < getnp() ; i++)
         periNodes_.push_back(i);
     // NEED TO CONSIDER 3 DIFFERENT CASES, DEPENDING ON TYPE OF PERIODICITY OF MODELLING WINDOW
-    double eps = 1e-5; // accuracy for coordinate comparisons
-    double xmin = getXmin(); // convenience shortcuts to geometry min and max dimensions
-    double xmax = getXmax();
-    double ymin = getYmin();
-    double ymax = getYmax();
-    double zmin = getZmin();
-    double zmax = getZmax();
+    const double eps = 1e-5; // accuracy for coordinate comparisons
+    const double xmin = boundingBox.getXMin();
+    const double xmax = boundingBox.getXMax();
+    const double ymin = boundingBox.getYMin();
+    const double ymax = boundingBox.getYMax();
+    const double zmin = boundingBox.getZMin();
+    const double zmax = boundingBox.getZMin();
     /// PROBABLY EVIL, BUT SO CONVENIENT...
 #define LEFT    ( getAbsXDist(n, xmin) <= eps )
 #define RIGHT   ( getAbsXDist(n, xmax) <= eps )
@@ -614,45 +594,45 @@ void Geometry::makePeriEquNodes() {
     }// end if 3 different periodicity cases
 }// end void MakePEriEquNodes()
 
-void Geometry::checkForPeriodicGeometry() {
+void Geometry::initialisePeriodicity() {
     Log::info("Initialising peridioc surfaces");
     // CHECKS FOR TYPES OF PERIODICITY PRESENT IN CURRENT STRUCTURE.
     // POSSIBLE PERIODIC SURFACES ARE:
     //      LEFT/RIGHT
     //      FRONT/BACK
     //      TOP/BOTTOM
+  const double EPS = 1e-7;
+  for (idx i = 0 ; i < e->getnElements() ; i++) {
+    if (e->getMaterialNumber(i) == MAT_PERIODIC) { // if surface is periodic
+      // check to see which side surface is on by looking at the surface normal
+      Vec3 snorm = e->getSurfaceNormal(i);
 
-    for (idx i = 0 ; i < e->getnElements() ; i++) {
-      if (e->getMaterialNumber(i) == MAT_PERIODIC) { // if surface is periodic
-        // check to see which side surface is on by looking at the surface normal
-        Vec3 snorm = e->getSurfaceNormal(i);
-        // IF SURFACE NORMAL X-COMPONENT = 1
-        if (fabs(fabs(snorm.x()) - 1.0) < EPS) {
-          left_right_is_periodic = true;
-        }
-        else if (fabs(fabs(snorm.y()) - 1.0) < EPS) {
-          front_back_is_periodic = true;
-        }
-        else if (fabs(fabs(snorm.z()) - 1.0) < EPS) {
-          top_bottom_is_periodic = true;
-        }
-        else {
-          RUNTIME_ERROR(fmt::format("Periodic surface element {} has invalid normal ({})", i, snorm));
-        }
-        // IF ALL SURFACES HAVE ALREADY BEEN IDENTIFIED AS PERIODIC
-        // NO NEED TO CHECK FURTHER TRIANGLES
-        if ((getleft_right_is_periodic()) &&
-            (getfront_back_is_periodic()) &&
-            (gettop_bottom_is_periodic()))
-          break;
-      }// end if periodic surface
-    }// end for i
-    // IF ANY PERIODIC TRIANGLES WERE DETECTED
-    if (getleft_right_is_periodic()
-            ||  getfront_back_is_periodic()
-            ||  gettop_bottom_is_periodic()) {
-        makePeriEquNodes();
+      if (fabs(fabs(snorm.x()) - 1.0) < EPS) {
+        left_right_is_periodic = true;
+      }
+      else if (fabs(fabs(snorm.y()) - 1.0) < EPS) {
+        front_back_is_periodic = true;
+      }
+      else if (fabs(fabs(snorm.z()) - 1.0) < EPS) {
+        top_bottom_is_periodic = true;
+      }
+      else {
+        RUNTIME_ERROR(fmt::format("Periodic surface element {} has invalid normal ({})", i, snorm));
+      }
+      // IF ALL SURFACES HAVE ALREADY BEEN IDENTIFIED AS PERIODIC
+      // NO NEED TO CHECK FURTHER TRIANGLES
+      if ((getleft_right_is_periodic()) &&
+          (getfront_back_is_periodic()) &&
+          (gettop_bottom_is_periodic()))
+        break;
     }
+  }
+  // IF ANY PERIODIC TRIANGLES WERE DETECTED
+  if (getleft_right_is_periodic()
+      ||  getfront_back_is_periodic()
+      ||  gettop_bottom_is_periodic()) {
+    makePeriEquNodes();
+  }
 }
 
 void Geometry::makeRegularGrid(const size_t &nx,
@@ -793,9 +773,7 @@ void Geometry::genIndToTetsByCoords(vector<unsigned int> &returnIndex,   // retu
   t->gen_p_to_elem(p_to_t);
 
   // find most central tet, this is used as starting tet in other searches
-  Vec3 structureCentroid = {(getXmax() - getXmin()) / 2.0 , // CENTRE COORDINATE OF STRUCTURE
-                 (getYmax() - getYmin()) / 2.0 ,
-                 (getZmax() - getZmin()) / 2.0};
+  Vec3 structureCentroid = boundingBox.centre();
 
   std::set<size_t> tetHistory;
   unsigned int midTet = recursive_neighbour_search(structureCentroid, p_to_t,0,tetHistory);
@@ -875,26 +853,3 @@ Vec3 Geometry::getNodeNormal(unsigned int i) const {
   return nodeNormals[i];
 }
 
-double Geometry::getXmin()  {
-    return Xmin;
-}
-
-double Geometry::getXmax()  {
-    return Xmax;
-}
-
-double Geometry::getYmin()  {
-    return Ymin;
-}
-
-double Geometry::getYmax()  {
-    return Ymax;
-}
-
-double Geometry::getZmin()  {
-    return Zmin;
-}
-
-double Geometry::getZmax()  {
-    return Zmax;
-}

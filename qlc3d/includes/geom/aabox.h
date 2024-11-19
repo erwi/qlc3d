@@ -30,7 +30,7 @@ public:
     return (x_max - x_min) * (y_max - y_min) * (z_max - z_min);
   }
 
-  [[nodiscard]] Vec3 center() const {
+  [[nodiscard]] Vec3 centre() const {
     return {(x_min + x_max) / 2.0, (y_min + y_max) / 2.0, (z_min + z_max) / 2.0};
   }
 

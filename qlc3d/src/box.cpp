@@ -90,7 +90,7 @@ bool Box::contains(double *coords) const {
 }
 
 Vec3 Box::centroid() const {
-  return boundingBox.center();
+  return boundingBox.centre();
 }
 
 bool Box::contains(const Vec3 &p) const {

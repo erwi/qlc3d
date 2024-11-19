@@ -17,8 +17,6 @@ public:
     idx L[2];
     Line(); // dont use this, declared here only to keep STL happy
     Line(const int &a, const int &b);
-    void PrintLine(); // prints node numbers only
-    void PrintLine(Geometry *geom);  // prints node numbers and coordinates
 
     bool isOnFrontSurface(Geometry *geom);
     bool isOnBackSurface(Geometry *geom);
@@ -50,7 +48,7 @@ public:
     bool isCornB(Geometry *geom); // xmax, zmin
     bool isCornC(Geometry *geom); // xmax, zmax
     bool isCornD(Geometry *geom); // xmin, zmax
-    bool isBoundingBoxLine(Geometry *geom);
+
     bool operator<(const Line &other) const;
     bool operator==(const Line &other) const;
     double mymin(double x, double y) {

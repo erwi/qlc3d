@@ -80,10 +80,7 @@ void PotentialSolver::setUniformEField(SolutionVector &vOut, const Coordinates &
 
   //1. Calculate centre of structure
   auto bounds = coordinates.findBoundingBox();
-
-  Vec3 centre = {(bounds[1].x() - bounds[0].x()) / 2.0 ,
-                  (bounds[1].y() - bounds[0].y()) / 2.0 ,
-                  (bounds[1].z() - bounds[0].z()) / 2.0};
+  Vec3 centre = bounds.centre();
 
   //2. Loop over each node and calculate distance to centre along the E-filed direction
   for (unsigned int i = 0 ; i < coordinates.size() ; i++) {
