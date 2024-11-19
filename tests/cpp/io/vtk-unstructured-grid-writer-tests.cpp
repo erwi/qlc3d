@@ -42,9 +42,9 @@ TEST_CASE("write VTK unstructured ascii grid") {
     potentials[2] = 0.2;
     potentials[3] = 0.3;
 
-    // create mesh consisting of a single tetrahedron
-    Mesh tetrahedra(3, 4);
-    tetrahedra.setElementData({0, 1, 2, 3}, {4});
+    // create mesh consisting of a single linear tetrahedron
+    Mesh tetrahedra(3);
+    tetrahedra.setElementData(1, {0, 1, 2, 3}, {4});
 
     // ACT: write the result to a temporary file
     auto tempFile = TestUtil::TemporaryFile::empty();

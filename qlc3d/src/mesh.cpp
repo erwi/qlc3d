@@ -12,8 +12,8 @@
 
 using fmt::format;
 
-Mesh::Mesh(unsigned int dimension, unsigned int nodesPerElement) :
-        Dimension{dimension}, nNodes{nodesPerElement}, nElements{0}, TotalSize{0} {}
+Mesh::Mesh(unsigned int dimension) :
+        Dimension{dimension}, elementOrder{0}, nNodes{0}, nElements{0}, TotalSize{0} {}
 
 Mesh::~Mesh() { }
 
@@ -62,8 +62,18 @@ Vec3 Mesh::getSurfaceNormal(unsigned int i) const {
 }
 
 
-void Mesh::setElementData(std::vector<unsigned int> &&nodes, std::vector<unsigned int> &&materials) {
+void Mesh::setElementData(unsigned int elementOrder, std::vector<unsigned int> &&nodes, std::vector<unsigned int> &&materials) {
+  this->elementOrder = elementOrder;
+  this->nNodes = this->getDimension() == 2 ?
+                 (elementOrder == 1 ? 3 : 6) : // if triangle mesh
+                 (elementOrder == 1 ? 4 : 10); // if tet mesh
+
+  unsigned int numMaterials = materials.size();
   unsigned int numElements = nodes.size() / getnNodes();
+
+  if (numMaterials != numElements) {
+    RUNTIME_ERROR(format("Number of elements ({}) does not match number of materials ({}).", numElements, materials.size()));
+  }
 
   if (nodes.size() % getnNodes() != 0) {
     RUNTIME_ERROR(format("Number of nodes ({}) is not a multiple of number of nodes per element ({}).", nodes.size(), getnNodes()));
@@ -454,6 +464,7 @@ void Mesh::listNodesOfMaterial(std::vector<idx> &nodes, const idx mat) const {
     nodes.erase( u , nodes.end() );
 }
 
+/*
 void Mesh::listFixLCSurfaces(std::vector<idx> &nodes, const idx FixLCNumber) const {
 
 #ifdef DEBUG
@@ -473,8 +484,14 @@ void Mesh::listFixLCSurfaces(std::vector<idx> &nodes, const idx FixLCNumber) con
         }
     }
 }
+ */
 
 std::unordered_set<idx> Mesh::listFixLCSurfaceNodes(const idx FixLCNum) const {
+std::set<idx> Mesh::listFixLCSurfaceNodes(const idx FixLCNum) const {
+  if (elementOrder == 0) {
+    RUNTIME_ERROR("Mesh is not initialised with data.");
+  }
+
   if (FixLCNum < 1 || FixLCNum > 9) {
     RUNTIME_ERROR(format("FixLC number {} is not in range 1-9.", FixLCNum));
   }
@@ -626,11 +643,8 @@ void Mesh::appendElements(const vector<idx> &nodeValues, const vector<idx> &mate
 }
 
 void Mesh::CopyMesh(Mesh* rhs) {
-    // require that number of dimensions and nodes per element match between this and rhs mesh
-    if ( (getDimension() != rhs->getDimension() ) || (getnNodes() != rhs->getnNodes() ) ) {
-      RUNTIME_ERROR(format("Dimension or nodes per element do not match in {}, {}."));
-    }
-
+    this->elementOrder = rhs->getElementOrder();
+    this->nNodes = rhs->getnNodes();
     setnElements(rhs->getnElements() );		// set number of elements
     TotalSize = rhs->TotalSize;
 

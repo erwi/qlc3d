@@ -79,12 +79,12 @@ void Geometry::addCoordinates(const vector<double> &coords) {
   setnpLC(coordinates_->size());
 }
 
-void Geometry::setMeshData(const std::shared_ptr<Coordinates> &coordinates,
+void Geometry::setMeshData(unsigned int elementOrder, const std::shared_ptr<Coordinates> &coordinates,
                  std::vector<unsigned int> &&tetNodes, std::vector<unsigned int> &&tetMaterials,
                  std::vector<unsigned int> &&triNodes, std::vector<unsigned int> &&triMaterials) {
   setCoordinates(coordinates);
-  t->setElementData(std::move(tetNodes), std::move(tetMaterials));
-  e->setElementData(std::move(triNodes), std::move(triMaterials));
+  t->setElementData(elementOrder, std::move(tetNodes), std::move(tetMaterials));
+  e->setElementData(elementOrder, std::move(triNodes), std::move(triMaterials));
   ReorderDielectricNodes();
   e->setConnectedVolume(t.get()); // neighbour index tri -> tet
   t->calculateDeterminants3D(getCoordinates()); // calculate tetrahedral determinants

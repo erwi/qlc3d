@@ -23,7 +23,11 @@ class Vec3;
 class Mesh {
 private:
   const idx Dimension;  // number of dimensions of mesh - 2 for tris and 3 for tets
-  const idx nNodes;     // number of nodes per element
+
+  /* 0 for unset , 1 for linear elements, 2 for quadratic elements */
+  idx elementOrder;
+  /* number of nodes per element, 0 for unknown */
+  idx nNodes;
 
   idx nElements;  //total number of elements
   std::vector<idx> nodes;
@@ -34,28 +38,27 @@ private:
   double TotalSize;   // Total volume/area of the mesh
 
 public:
-  Mesh(unsigned int dimension, unsigned int nodesPerElement);
+  Mesh(unsigned int dimension);
 
   ~Mesh();
 
   static std::shared_ptr<Mesh> triangleMesh() {
-    return std::make_shared<Mesh>(2, 3);
+    return std::make_shared<Mesh>(2);
   }
 
   static std::shared_ptr<Mesh> tetMesh() {
-    return std::make_shared<Mesh>(3, 4);
+    return std::make_shared<Mesh>(3);
   }
 
     inline idx getnElements() const {
       return nodes.size() / getnNodes();
     }
+    /** Element order - 1 for linear elements, 2 for quadratic elements */
+    [[nodiscard]] inline idx getElementOrder() const { return elementOrder; }
     /** number of nodes per element */
-    inline idx getnNodes() const {
-        return nNodes;
-    }
-    inline idx getDimension() const {
-        return Dimension;   // number of dimesnions of mesh ( 3 / 2 for tets / tris)
-    }
+    [[nodiscard]] inline idx getnNodes() const { return nNodes; }
+    /** number of dimensions of mesh - 2 for tris and 3 for tets */
+    [[nodiscard]] inline idx getDimension() const { return Dimension; }
     idx getConnectedVolume(const idx e) const;  // returns index to connected volume element, or -1 if not connected to LC1
     inline idx getNode(const idx e, const idx n) const { // returns node n of element e
 #ifdef DEBUG
@@ -68,17 +71,16 @@ public:
     return nodes[e * nNodes + n];
     }
 
-    idx getMaterialNumber(const idx e) const;   // returns material number of element e
+    [[nodiscard]] idx getMaterialNumber(idx e) const;   // returns material number of element e
     /**
      * gets alignment layer number, i.e. FixLC 1, 2, 3... for the indexed triangle element.
      * If the element is not an alignment layer, returns 0.
      */
-    idx getFixLCNumber(const idx e) const;  // gets alignment layer number, i.e. FixLC 1, 2, 3...
-    idx getDielectricNumber(const idx e) const; // gets dielectric materials number, i.e. Dielectric 1, 2, 3 ....
+    [[nodiscard]] idx getFixLCNumber(idx e) const;  // gets alignment layer number, i.e. FixLC 1, 2, 3...
+    [[nodiscard]] idx getDielectricNumber(idx e) const; // gets dielectric materials number, i.e. Dielectric 1, 2, 3 ....
+    [[nodiscard]] double getDeterminant(idx i) const; // returns value of determinant of element i
 
-    double getDeterminant(const idx i) const; // returns value of determinant of element i
-
-    void setElementData(std::vector<unsigned int> &&nodes, std::vector<unsigned int> &&materials);
+    void setElementData(unsigned int elementOrder, std::vector<unsigned int> &&nodes, std::vector<unsigned int> &&materials);
 
     void setConnectedVolume(Mesh *vol);     // sets indexes to connected LC volume elements
 
@@ -94,9 +96,9 @@ public:
     void appendElements(const vector <idx> &nodeValues, const vector <idx> &materialValues);    //adds new elements and materials, assuming element types match existing elements (nodes/per element)
 
     // Creates list of all nodes belonging to elements of material mat
-    void listNodesOfMaterial(std::vector <idx> &nodes, const idx mat) const;
+    void listNodesOfMaterial(std::vector <idx> &nodes, idx mat) const;
     /** Deprecated use the other listFixLCSurfaceNodes(FixLC num) instead */
-    void listFixLCSurfaces(std::vector <idx> &nodes, const idx FixLCNum) const; // list all nodes of given FixLC surface number (FixLCNum = 1,2,3...)
+    //void listFixLCSurfaces(std::vector <idx> &nodes, idx FixLCNum) const; // list all nodes of given FixLC surface number (FixLCNum = 1,2,3...)
     /**
      * Return a vector of all surface nodes by given FIXLC number.
      */

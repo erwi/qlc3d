@@ -156,12 +156,12 @@ TEST_CASE("Initial LC surface orientations") {
   Electrodes electrodes = Electrodes::withElectrodePotentials(el);
 
   Alignment alignment;
-  std::vector<idx> surfaceNodesIndex;
-  geom.getTriangles().listFixLCSurfaces(surfaceNodesIndex, 1);
 
   SECTION("Weak homeotropic anchoring") {
     alignment.addSurface(Surface::ofPlanarDegenerate(1, -1e-3));
     alignment.addSurface(Surface::ofPlanarDegenerate(2, -1e-3));
+    alignment.surface[0].setOverrideVolume(true);
+    alignment.surface[1].setOverrideVolume(true);
     prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
     SolutionVector q(geom.getnpLC(), 5);
 
@@ -170,6 +170,7 @@ TEST_CASE("Initial LC surface orientations") {
 
     // ASSERT
     // director should be parallel to surface normal
+    auto surfaceNodesIndex = geom.getTriangles().listFixLCSurfaceNodes(1);
     for (idx i: surfaceNodesIndex) {
       auto director = q.getDirector(i);
       Vec3 d = director.vector();
@@ -191,6 +192,7 @@ TEST_CASE("Initial LC surface orientations") {
 
     // ASSERT
     // director should be parallel to surface normal
+    auto surfaceNodesIndex = geom.getTriangles().listFixLCSurfaceNodes(1);
     for (idx i: surfaceNodesIndex) {
       auto director = q.getDirector(i);
       Vec3 d = director.vector();
@@ -236,6 +238,7 @@ TEST_CASE("Initial LC surface orientations") {
 
     // ASSERT
     // director should be parallel to expected value
+    auto surfaceNodesIndex = geom.getTriangles().listFixLCSurfaceNodes(1);
     auto expectedDirector = qlc3d::Director::fromDegreeAngles(tiltDegrees, twistDegrees, lc->S0()).vector();
     for (idx i: surfaceNodesIndex) {
       auto director = q.getDirector(i);
@@ -256,8 +259,14 @@ TEST_CASE("Initial LC surface orientations") {
     // equal to (1, 0, 0) everywhere
     double tiltDegrees = 90;
     double twistDegrees = 0;
-    alignment.addSurface(Surface::ofWeakAnchoring(1, tiltDegrees, twistDegrees, 1e-3, 1, 1));
-    alignment.addSurface(Surface::ofWeakAnchoring(2, tiltDegrees, twistDegrees, 1e-3, 1, 1));
+
+    auto s1 = Surface::ofWeakAnchoring(1, tiltDegrees, twistDegrees, 1e-3, 1, 1);
+    auto s2 = Surface::ofWeakAnchoring(2, tiltDegrees, twistDegrees, 1e-3, 1, 1);
+    s1.setOverrideVolume(false);
+    s2.setOverrideVolume(false);
+
+    alignment.addSurface(s1);
+    alignment.addSurface(s2);
     prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
     SolutionVector q(geom.getnpLC(), 5);
     // ACT
@@ -265,6 +274,7 @@ TEST_CASE("Initial LC surface orientations") {
 
     // ASSERT
     // director should be parallel to surface normal
+    auto surfaceNodesIndex = geom.getTriangles().listFixLCSurfaceNodes(1);
     Vec3 expectedDirector = {1, 0, 0};
     for (idx i: surfaceNodesIndex) {
       auto director = q.getDirector(i);
