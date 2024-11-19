@@ -347,7 +347,6 @@ std::unique_ptr<SectionElements> GmshFileReader::readElements() {
 
           unsigned int numTriangles = meshOrder == 1 ? triangles.size() / 3 : triangles.size() / 6;
           unsigned int numTetrahedra = meshOrder == 1 ? tetrahedra.size() / 4 : tetrahedra.size() / 10;
-          Log::info("Triangles count = {}, tetrahedra count = {}.", numTriangles, numTetrahedra);
 
           return make_unique<SectionElements>(
                   meshOrder,

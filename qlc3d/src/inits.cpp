@@ -87,7 +87,8 @@ void prepareGeometry(Geometry& geom,
     // read mesh data from file. Allocates the data arrays.
     RawMeshData rawMeshData = MeshReader::readMesh(meshFileName);
 
-    Log::info("num points = {}", rawMeshData.points.size());
+    Log::info("mesh element order = {}, triangles count = {}, tetrahedra count = {}, nodes count = {}",
+              rawMeshData.elementOrder, rawMeshData.triMaterials.size(), rawMeshData.tetMaterials.size(), rawMeshData.points.size());
 
     // Throw exception if invalid element material numbers are detected.
     validateTriangleMaterials(rawMeshData.triMaterials, electrodes, alignment);
@@ -96,7 +97,7 @@ void prepareGeometry(Geometry& geom,
     auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
     coordinates->scale(stretchVector);
 
-    geom.setMeshData(coordinates,
+    geom.setMeshData(rawMeshData.elementOrder, coordinates,
                    std::move(rawMeshData.tetNodes), std::move(rawMeshData.tetMaterials),
                    std::move(rawMeshData.triNodes), std::move(rawMeshData.triMaterials));
 

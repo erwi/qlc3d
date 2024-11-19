@@ -129,6 +129,7 @@ public:
   [[nodiscard]] bool usesSurfaceNormal() const;
   [[nodiscard]] bool isStrong() const;
   [[nodiscard]] bool getOverrideVolume() const { return overrideVolume; }
+  void setOverrideVolume(bool overrideVolume) { this->overrideVolume = overrideVolume; }
 
   [[nodiscard]] std::string toString() const;
   [[nodiscard]] unsigned int getFixLCNumber() const { return fixLcNumber; }

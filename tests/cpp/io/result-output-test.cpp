@@ -24,11 +24,11 @@ std::shared_ptr<Geometry> createSingleTetGeometry() {
   geom->setCoordinates(coordinates);
 
   std::shared_ptr<Mesh> tetrahedra = Mesh::tetMesh();
-  tetrahedra->setElementData({0, 1, 2, 3}, {LC_MATERIAL});
+  tetrahedra->setElementData(1, {0, 1, 2, 3}, {LC_MATERIAL});
   geom->setTetrahedra(tetrahedra);
 
   std::shared_ptr<Mesh> triangles = Mesh::triangleMesh();
-  triangles->setElementData({0, 1, 2}, {PERIODIC_BC});
+  triangles->setElementData(1, {0, 1, 2}, {PERIODIC_BC});
   geom->setTriangles(triangles);
 
   return geom;
