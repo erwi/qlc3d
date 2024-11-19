@@ -1,6 +1,7 @@
 #include <refinement.h>
 #include <algorithm>
 #include <globals.h>
+#include "geom/coordinates.h"
 
 double get_elem_maxdQ(const idx elem,        // index to element
                       const Geometry& geom,     // currrent geometry
@@ -93,20 +94,23 @@ void findTets_Sphere(const RefInfo& refinfo,
 
     double rad = refinfo.getValue( refiter ); // SPHERE RADIUS
     rad*=rad;                                 // ARDIUS SQUARED
-    double centre[3] = { refinfo.getX()[0], refinfo.getY()[0],refinfo.getZ()[0] };
+    const Vec3 centre(refinfo.getX()[0], refinfo.getY()[0], refinfo.getZ()[0]);
 
     // MAKE INDEX OF ALL POINTS THAT ARE SUFFICIENTLY CLOSE
     std::vector<idx> p_close;
-    for (idx i = 0 ; i < geom.getnpLC() ; i++)
-    {
-        double distsqr = geom.getAbsDistSqr( i , centre );
+    auto &coords = geom.getCoordinates();
+    for (idx i = 0 ; i < geom.getnpLC() ; i++) {
+      auto p = coords.getPoint(i);
+      double distsqr = p.distanceSquared(centre);
 
-        if ( distsqr <= rad )
-            p_close.push_back( i );
+      if (distsqr <= rad) {
+        p_close.push_back(i);
+      }
     }
 
-    if(p_close.empty() ) // NO NODES SELECTED. CAN RETURN
-        return;
+    if(p_close.empty()) { // NO NODES SELECTED. CAN RETURN
+      return;
+    }
 
     selectTetsByCoordIndex(p_close, geom, i_tet);
 }
@@ -116,37 +120,34 @@ void findTets_Box(const RefInfo& refinfo,
                   const int refiter,
                   const Geometry& geom)
 {
-    // FINDS INDEX TO ALL TETS THAT ARE WITHIN A BOX DEFINED FOR THIS REFITER
+  // FINDS INDEX TO ALL TETS THAT ARE WITHIN A BOX DEFINED FOR THIS REFITER
 
-    // GET CORRECT COORDINATE VALUES FOR THIS REFITER
-    auto x = refinfo.getX();
-    auto y = refinfo.getY();
-    auto z = refinfo.getZ();
+  // GET CORRECT COORDINATE VALUES FOR THIS REFITER
+  auto x = refinfo.getX();
+  auto y = refinfo.getY();
+  auto z = refinfo.getZ();
 
-    // BOX LIMITS [min,max]
-    double xLim[2] = {x[refiter*2], x[refiter*2 +1]};
-    double yLim[2] = {y[refiter*2], y[refiter*2 +1]};
-    double zLim[2] = {z[refiter*2], z[refiter*2 +1]};
+  // BOX LIMITS [min,max]
+  double xLim[2] = {x[refiter*2], x[refiter*2 +1]};
+  double yLim[2] = {y[refiter*2], y[refiter*2 +1]};
+  double zLim[2] = {z[refiter*2], z[refiter*2 +1]};
 
-    // FIND INDEX TO ALL NODES THAT ARE WITHIN BOX
-    std::vector<idx> indp;
-    for (idx i = 0; i < geom.getnpLC() ; i++)
-    {
-        double px = geom.getpX(i);
-        double py = geom.getpY(i);
-        double pz = geom.getpZ(i);
+  // FIND INDEX TO ALL NODES THAT ARE WITHIN BOX
+  std::vector<idx> indp;
+  auto &coords = geom.getCoordinates();
+  for (idx i = 0; i < geom.getnpLC(); i++) {
+    auto &p = coords.getPoint(i);
 
-        if ( ((xLim[0]<=px) && (xLim[1]>=px)) &&
-             ((yLim[0]<=py) && (yLim[1]>=py)) &&
-             ((zLim[0]<=pz) && (zLim[1]>=pz)) )
-        {
-            indp.push_back(i);
-        }
+    if (((xLim[0] <= p.x()) && (xLim[1] >= p.x())) &&
+        ((yLim[0] <= p.y()) && (yLim[1] >= p.y())) &&
+        ((zLim[0] <= p.z()) && (zLim[1] >= p.z()))) {
+      indp.push_back(i);
     }
+  }
 
-    if ( indp.empty() )
-        return;
+  if ( indp.empty() )
+    return;
 
-    selectTetsByCoordIndex(indp, geom, i_tet); // MARK TETS THAT CONTAIN FOUND NODES
+  selectTetsByCoordIndex(indp, geom, i_tet); // MARK TETS THAT CONTAIN FOUND NODES
 
 }

@@ -40,6 +40,9 @@ private:
                           const int &norm);    // face normal 0,1,2 -> x,y,z
     void updateMaxNodeNumbers(); // Updates MaxNodeNumbers for surface and tet meshes after a node renumbering
 
+  double getAbsXDist(int i , double x);   // gets absolute distance between x-coord of node i and x
+  double getAbsYDist(int i , double y);   //
+  double getAbsZDist(int i , double z);   //
 
 public:
     // UNFORTUNATE HACKERY... SPECIAL ERROR INDEX VALUE FOR AN UNSIGNED INDEX THAT WAS NOT FOUND
@@ -101,29 +104,10 @@ public:
 
     [[nodiscard]] unsigned int getnp() const;
     [[nodiscard]] unsigned int getnpLC() const { return npLC; }
-
-    [[nodiscard]] const Coordinates& getCoordinates() const {
-      if (!coordinates_) {
-        throw std::runtime_error("Coordinates not set");
-      }
-      return *coordinates_;
-    }
-
-    [[nodiscard]] double getpX(int i) const;   // return node coordinates at node i
-    [[nodiscard]] double getpY(int i) const;
-    [[nodiscard]] double getpZ(int i) const;
-
+    [[nodiscard]] const Coordinates& getCoordinates() const;
     [[nodiscard]] const AABox& getBoundingBox() const { return boundingBox; }
-
-    double getAbsXDist(int i , double x);   // gets absolute distance between x-coord of node i and x
-    double getAbsYDist(int i , double y);   //
-    double getAbsZDist(int i , double z);   //
-    double getAbsDistSqr(const unsigned int i , const double *const coord) const;
-
     [[nodiscard]] const std::vector<Vec3>& getNodeNormals() const;
-    Vec3 getNodeNormal(unsigned int i) const;
-    void countNodeReferences(vector <int> &refc, Mesh &mesh); // counts the number of times each node is used in mesh. DEBUG
-
+    [[nodiscard]] Vec3 getNodeNormal(unsigned int i) const;
     [[nodiscard]] const Mesh& getTetrahedra() const { return *t; }
     [[nodiscard]] Mesh& getTetrahedra() { return const_cast<Mesh&>(*t); }
     [[nodiscard]] const Mesh& getTriangles() const { return *e; }

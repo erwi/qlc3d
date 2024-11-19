@@ -27,7 +27,6 @@ public:
     bool isTopBottomCornerLine(Geometry *geom);
     bool isFrontBackCornerLine(Geometry *geom);
     bool isLeftRightCornerLine(Geometry *geom);
-    bool isPeriodicTo(Geometry *geom, Line *L2);
 
     bool isTranslationOf(Line &L2, Geometry *geom, double *dir); // checks whether this line is a
     //translation of L2 along direction

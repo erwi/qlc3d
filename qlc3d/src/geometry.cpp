@@ -803,34 +803,26 @@ void Geometry::genIndToTetsByCoords(vector<unsigned int> &returnIndex,   // retu
   }// end for each target coordinate
 }
 
-double Geometry::getpX(int i) const {
-  return coordinates_->getPoint(i).x();
-}
-
-double Geometry::getpY(int i) const {
-  return coordinates_->getPoint(i).y();
-}
-
-double Geometry::getpZ(int i)   const {
-  return coordinates_->getPoint(i).z();
-}
-
 double Geometry::getAbsXDist(int i , double x) {
-  return fabs(getpX(i) - x);
+  double cx = getCoordinates().getPoint(i).x();
+  return fabs(cx - x);
 }
 
 double Geometry::getAbsYDist(int i , double y) {
-  return fabs(getpY(i) - y);
+  double cy = getCoordinates().getPoint(i).y();
+  return fabs(cy - y);
 }
 
 double Geometry::getAbsZDist(int i, double z) {
-  return fabs(getpZ(i) - z);
+  double cz = getCoordinates().getPoint(i).z();
+  return fabs(cz - z);
 }
 
-double Geometry::getAbsDistSqr(const unsigned int i, const double *const coord) const {
-  Vec3 o = {coord[0], coord[1], coord[2]};
-  const Vec3 &t = coordinates_->getPoint(i);
-  return t.distanceSquared(o);
+const Coordinates& Geometry::getCoordinates() const {
+  if (!coordinates_) {
+    RUNTIME_ERROR("Coordinates not set");
+  }
+  return *coordinates_;
 }
 
 bool Geometry::getleft_right_is_periodic() const {

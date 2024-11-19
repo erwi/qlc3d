@@ -5,27 +5,10 @@
 #include <vector>
 #include <qlc3d.h>
 #include <util/logging.h>
-
+#include <geom/coordinates.h>
 #include <spamtrix_ircmatrix.hpp>
 #include <spamtrix_matrixmaker.hpp>
-/*
-void create_node_number_matrix(SparseMatrix*& nnumbers,
-			       Geometry& geom,
-			       vector <Line>& lines){
-// COMMENTED DURING SPAMTRIX MIGRATION
-    nnumbers = createSparseMatrix( lines ); // this creates a matrix for the mesh. should make one for the lines, but this will do for now
 
-    // LOOP OVER ALL LINES AND ADD INDEXES TO NEW NODES
-    unsigned int nold = geom.getnp(); // number of old nodes
-
-    for (unsigned int i = 0 ; i < lines.size() ; i++){
-	int n1 = lines[i].L[0];
-	int n2 = lines[i].L[1];
-	nnumbers->sparse_set( n1 , n2 , nold + i ); // adding same node on both diagonals is wasteful
-	nnumbers->sparse_set( n2 , n1 , nold + i ); // but may make it easier to access matrix as M(i,j) or M(j,i)
-    }
-}
-*/
 SpaMtrix::IRCMatrix createNodeNumbersMatrix(Geometry &geom, vector<Line> &lines){
 /*!Creates sparse matrix with node numbers for new nodes*/
 
@@ -41,32 +24,21 @@ SpaMtrix::IRCMatrix createNodeNumbersMatrix(Geometry &geom, vector<Line> &lines)
     return mm.getIRCMatrix();
 }
 
-void create_new_coordinates( Geometry& geom,
-                             vector <Line>& lines,
-                             vector <double>& new_p
+void create_new_coordinates(Geometry& geom, vector <Line>& lines, vector <double>& new_p
                              ){
-    new_p.clear();
-    new_p.reserve( lines.size()*3 ); // reserve space for 3 coordinates per new node
-    // LOOP OVER LINES, CALCULATE MID-POINT LOCATION AND ADD TO NEW COORDINATES
-    for (unsigned int i = 0 ; i < lines.size() ; i++){
-
-        double x1 = geom.getpX( lines[i].L[0] );
-        double y1 = geom.getpY( lines[i].L[0] );
-        double z1 = geom.getpZ( lines[i].L[0] );
-
-        double x2 = geom.getpX( lines[i].L[1] );
-        double y2 = geom.getpY( lines[i].L[1] );
-        double z2 = geom.getpZ( lines[i].L[1] );
-
-        double xn = ( x1 + x2 ) / 2.0;
-        double yn = ( y1 + y2 ) / 2.0;
-        double zn = ( z1 + z2 ) / 2.0;
-
-        new_p.push_back( xn );
-        new_p.push_back( yn );
-        new_p.push_back( zn );
-    }
-}// end create_new_coordinates
+  new_p.clear();
+  new_p.reserve( lines.size()*3 ); // reserve space for 3 coordinates per new node
+  auto &coords = geom.getCoordinates();
+  // LOOP OVER LINES, CALCULATE MID-POINT LOCATION AND ADD TO NEW COORDINATES
+  for (unsigned int i = 0 ; i < lines.size() ; i++){
+    auto p1 = coords.getPoint( lines[i].L[0] );
+    auto p2 = coords.getPoint( lines[i].L[1] );
+    auto pMid = (p1 + p2) / 2.0;
+    new_p.push_back(pMid.x());
+    new_p.push_back(pMid.y());
+    new_p.push_back(pMid.z());
+  }
+}
 
 void make_new_green1_tet( vector <idx>& new_t,
                           vector <idx>& new_mat_t,
