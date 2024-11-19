@@ -52,7 +52,7 @@ public:
     /** for testing purposes */
     void setTriangles(const std::shared_ptr<Mesh>& triangles);
 
-    void setMeshData(const std::shared_ptr<Coordinates> &coordinates,
+    void setMeshData(unsigned int elementOrder, const std::shared_ptr<Coordinates> &coordinates,
                      std::vector<unsigned int> &&tetNodes, std::vector<unsigned int> &&tetMaterials,
                      std::vector<unsigned int> &&triNodes, std::vector<unsigned int> &&triMaterials);
 

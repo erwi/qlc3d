@@ -27,7 +27,7 @@ TEST_CASE("read Gmsh mesh raw data - linear elements") {
     auto entities = meshData->getEntities();
     REQUIRE(entities != nullptr);
 
-    REQUIRE(meshData->getElements()->_meshOrder == 1); // Linear elements
+    REQUIRE(meshData->getElements()->_elementOrder == 1); // Linear elements
 
     auto elements = meshData->getElements();
     REQUIRE(elements != nullptr);
@@ -85,7 +85,7 @@ TEST_CASE("read Gmsh mesh raw data - quadratic elements") {
   REQUIRE(names[5] == "periodic");
   REQUIRE(names[7] == "domain1");
 
-  REQUIRE(meshData->getElements()->_meshOrder == 2); // Quadratic elements
+  REQUIRE(meshData->getElements()->_elementOrder == 2); // Quadratic elements
 
   auto entities = meshData->getEntities();
   REQUIRE(entities != nullptr);

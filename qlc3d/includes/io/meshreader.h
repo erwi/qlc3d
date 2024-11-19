@@ -25,12 +25,15 @@ public:
 class RawMeshData {
 
 public:
+  const unsigned int elementOrder; // 1 for linear elements, 2 for quadratic elements
   std::vector<Vec3> points;
   std::vector<idx> tetNodes;
   std::vector<idx> tetMaterials;
   std::vector<idx> triNodes;
   std::vector<idx> triMaterials;
-  RawMeshData(std::vector<Vec3> points,
+
+  RawMeshData(unsigned int elementOrder,
+              std::vector<Vec3> points,
               std::vector<idx> tetNodes, std::vector<idx> tetMaterials,
               std::vector<idx> triNodes, std::vector<idx> triMaterials);
 };
@@ -40,6 +43,7 @@ public:
  */
 class MeshReader {
     static void readGmsMesh(const std::filesystem::path &fileName,
+                            unsigned int &elementOrder,
                             std::vector<Vec3> &pointsOut,
                             std::vector<idx> &tetNodes,
                             std::vector<idx> &tetMaterials,

@@ -18,7 +18,7 @@ TEST_CASE("Create regular grid") {
     {0.5, 0.5, 1}}));
 
   Geometry geom;
-  geom.setMeshData(coord,
+  geom.setMeshData(1, coord,
                    {0, 1, 2, 3}, {MAT_DOMAIN1},
                    {0, 1, 2}, {MAT_ELECTRODE1});
 

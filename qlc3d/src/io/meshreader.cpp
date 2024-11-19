@@ -7,10 +7,12 @@
 
 using namespace std;
 
-RawMeshData::RawMeshData(std::vector<Vec3> points,
+RawMeshData::RawMeshData(unsigned int elementOrder,
+                         std::vector<Vec3> points,
                          std::vector<idx> tetNodes, std::vector<idx> tetMaterials,
                          std::vector<idx> triNodes, std::vector<idx> triMaterials)
-  : points(std::move(points)),
+  : elementOrder(elementOrder),
+  points(std::move(points)),
   tetNodes(std::move(tetNodes)), tetMaterials(std::move(tetMaterials)),
   triNodes(std::move(triNodes)), triMaterials(std::move(triMaterials)) { }
 
@@ -96,6 +98,7 @@ void MeshReader::copyGmshTriangleData(const GmshFileData &data, idx **trisOut, i
 }
 
 void MeshReader::readGmsMesh(const std::filesystem::path &fileName,
+                             unsigned int &elementOrder,
                              std::vector<Vec3> &pointsOut,
                              std::vector<idx> &tetNodes,
                              std::vector<idx> &tetMaterials,
@@ -113,6 +116,7 @@ void MeshReader::readGmsMesh(const std::filesystem::path &fileName,
     GmshPhysicalNamesMapper mapper(meshData->getPhysicalNames(), meshData->getEntities(), meshData->getElements());
     tetMaterials = mapper.maptTetrahedraNamesToMaterialNumbers();
     triMaterials = mapper.mapTriangleNamesToMaterialNumbers();
+    elementOrder = meshData->getElements()->_elementOrder;
 }
 
 RawMeshData MeshReader::readMesh(const std::filesystem::path &fileName) {
@@ -123,7 +127,7 @@ RawMeshData MeshReader::readMesh(const std::filesystem::path &fileName) {
     std::vector<idx> tetMaterials;
     std::vector<idx> triNodes;
     std::vector<idx> triMaterials;
-
+    unsigned int elementOrder = 1;
     switch (format) {
         case MeshFormat::GID_MESH:
             Log::info("Reading GiD mesh from {}.", fileName.string());
@@ -131,7 +135,7 @@ RawMeshData MeshReader::readMesh(const std::filesystem::path &fileName) {
             break;
         case MeshFormat::GMSH_ASCII:
             Log::info("Reading Gmsh mesh from {}", fileName.string());
-            MeshReader::readGmsMesh(fileName, points, tetNodes, tetMaterials, triNodes, triMaterials);
+            MeshReader::readGmsMesh(fileName, elementOrder, points, tetNodes, tetMaterials, triNodes, triMaterials);
             break;
         case MeshFormat::UNKNOWN_FORMAT:
             RUNTIME_ERROR(fmt::format("Could not determine mesh format of file {}.", fileName))
@@ -139,5 +143,5 @@ RawMeshData MeshReader::readMesh(const std::filesystem::path &fileName) {
             RUNTIME_ERROR(fmt::format("Unhandled mesh format - did not read mesh from {}.", fileName));
     }
 
-    return {points, tetNodes, tetMaterials, triNodes, triMaterials};
+    return {elementOrder, points, tetNodes, tetMaterials, triNodes, triMaterials};
 }

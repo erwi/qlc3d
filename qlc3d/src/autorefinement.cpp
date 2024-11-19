@@ -9,7 +9,8 @@
 #include <geom/vec3.h>
 #include <geom/coordinates.h>
 #include <inits.h>
-#include "geom/periodicity.h"
+#include <geom/periodicity.h>
+#include <util/exception.h>
 
 double intepolate_scalar(double *loc , double *S) {
     /*! Interpolates scalar value S[4] to a single value using four local coordinates in loc[4]*/
@@ -163,6 +164,11 @@ bool autoref(Geometry &geom_orig,
              Alignment &alignment,
              const Electrodes &electrodes,
              double S0) {
+
+  if (geom_orig.getTetrahedra().getElementOrder() != 1) {
+    RUNTIME_ERROR("Currently only linear tetrahedral elements are supported for mesh refinement.");
+  }
+
     bool bRefined{false};   // indicates whether mesh is changed or not
     unsigned int refiter{0};         // refinement iteration counter
     unsigned int maxrefiter = getMaxRefiterCount(refInfos);
