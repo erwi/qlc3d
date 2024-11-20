@@ -52,6 +52,12 @@ void ResultOutput::writeResults(const Geometry &geom,
                                 const SolutionVector &potential,
                                 const SolutionVector &qtensor,
                                 const SimulationState &simulationState) {
+
+  auto elementOrder = geom.getTetrahedra().getElementOrder();
+  if (elementOrder != 1) {
+    throw NotYetImplementedException("Result output only supports linear tetrahedral elements, got elements of order " + std::to_string(elementOrder));
+  }
+
   // if any of current output format writers requires director, calculate director
   std::vector<qlc3d::Director> directors;
   if (isDirectorRequired()) {

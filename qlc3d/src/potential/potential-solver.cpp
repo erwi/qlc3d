@@ -467,6 +467,11 @@ void PotentialSolver::solvePotential(SolutionVector &vOut,
     return;
   }
 
+  auto elementOrder = geom.getTetrahedra().getElementOrder();
+  if (elementOrder != 1) {
+    throw NotYetImplementedException("Potential solver only supports linear tetrahedral elements, got elements of order " + std::to_string(elementOrder));
+  }
+
   initialiseMatrixSystem(vOut, geom);
 
   assembleMatrixSystem(vOut, q, geom);
