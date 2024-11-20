@@ -84,19 +84,22 @@ int runSimulation(Configuration &configuration) {
     }
     simulation.postSimulationTasks();
 
+  } catch (NotYetImplementedException &e) {
+    Log::error("An error has occurred due to not yet implemented feature: {}", e.what());
+    return 4;
   } catch (ReaderError &e) {
     Log::error("An error has occurred while reading file: {}", e.fileName);
     Log::error("Error message: {}", e.errorMessage);
     if (e.lineNumber > 0) {
       Log::error("Error occurred while processing line {}: {}", (int) e.lineNumber, e.lineText);
     }
-    return 1;
-  }catch(std::exception &e) {
+    return 3;
+  } catch(std::exception &e) {
     Log::error("An exception has occurred: {}", e.what());
     return 2;
   } catch(...) {
     Log::error("An error has occurred");
-    return 3;
+    return 1;
   }
   Log::info("simulation has ended without errors");
   return 0;
