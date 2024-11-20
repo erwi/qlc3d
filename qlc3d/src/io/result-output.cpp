@@ -103,7 +103,7 @@ void RegularVTKFormatWriter::writeResult(const Geometry &geom, const SimulationS
   std::string filename = "regularvtk" + iterationAsString(simulationState) + ".vtk";
   std::filesystem::path filePath = outputDirectory / filename;
 
-  RegularGrid* rGrid = geom.regularGrid;
+  RegularGrid* rGrid = geom.getRegularGrid();
   if (rGrid == nullptr) {
     RUNTIME_ERROR("RegularVTKFormatWriter requires regular grid");
   }
@@ -118,7 +118,7 @@ void RegularVTKFormatWriter::writeResult(const Geometry &geom, const SimulationS
 void RegularVecMatFormatWriter::writeResult(const Geometry &geom, const SimulationState &simulationState)  {
   fs::path filePath = outputDirectory / ("regularvec" + iterationAsString(simulationState) + ".m");
 
-  RegularGrid *rGrid = geom.regularGrid;
+  RegularGrid *rGrid = geom.getRegularGrid();
   if (rGrid == nullptr) {
     RUNTIME_ERROR("RegularVecMatFormatWriter requires regular grid");
   }
@@ -133,7 +133,7 @@ void RegularVecMatFormatWriter::writeResult(const Geometry &geom, const Simulati
 void DirStackZFormatWriter::writeResult(const Geometry &geom, const SimulationState &simulationState) {
   std::string filename = "dirstacksz" + iterationAsString(simulationState) + ".csv";
 
-  RegularGrid *rGrid = geom.regularGrid;
+  RegularGrid *rGrid = geom.getRegularGrid();
   if (rGrid == nullptr) {
     RUNTIME_ERROR("DirStackZFormatWriter requires regular grid");
   }

@@ -31,7 +31,7 @@ TEST_CASE("Create regular grid") {
   // Check that the regular grid weight are correct by interpolating the x,y,z coordinate values
   // at each mesh node. The interpolated x, y, z values should be at (0.5, 0.5, 0.5).
 
-  auto grid = *geom.regularGrid;
+  auto grid = *geom.getRegularGrid();
   SolutionVector xValues(coord->size(), 1);
   SolutionVector yValues(coord->size(), 1);
   SolutionVector zValues(coord->size(), 1);

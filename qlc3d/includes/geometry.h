@@ -30,6 +30,7 @@ private:
   unsigned int npLC;          // number of LC nodes
   std::vector<Vec3> nodeNormals;
   AABox boundingBox;
+  RegularGrid *regularGrid;
 
   bool left_right_is_periodic;
   bool front_back_is_periodic;
@@ -51,7 +52,7 @@ private:
 public:
     // UNFORTUNATE HACKERY... SPECIAL ERROR INDEX VALUE FOR AN UNSIGNED INDEX THAT WAS NOT FOUND
     static const unsigned int NOT_AN_INDEX;// = std::numeric_limits<unsigned int>::max();
-    RegularGrid *regularGrid;
+
     Geometry();
     ~Geometry();
     /** for testing purposes */
@@ -121,6 +122,7 @@ public:
     [[nodiscard]] Mesh& getTetrahedra() { return const_cast<Mesh&>(*t); }
     [[nodiscard]] const Mesh& getTriangles() const { return *e; }
     [[nodiscard]] Mesh& getTriangles() { return const_cast<Mesh&>(*e); }
+    [[nodiscard]] RegularGrid* getRegularGrid() const { return regularGrid; }
 };
 #endif
 
