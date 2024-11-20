@@ -166,7 +166,8 @@ bool autoref(Geometry &geom_orig,
              double S0) {
 
   if (geom_orig.getTetrahedra().getElementOrder() != 1) {
-    RUNTIME_ERROR("Currently only linear tetrahedral elements are supported for mesh refinement.");
+    throw NotYetImplementedException("Only linear tetrahedra are supported in mesh refinement. Found tetrahedra with element order "
+                                     + std::to_string(geom_orig.getTetrahedra().getElementOrder()));
   }
 
     bool bRefined{false};   // indicates whether mesh is changed or not

@@ -234,6 +234,11 @@ void Geometry::makeRegularGrid(const size_t &nx,
     }
     Log::info("Generating regular grid lookup with grid size nx={}, ny={}, nz={}", nx, ny, nz);
 
+    unsigned int elementOrder = getTetrahedra().getElementOrder();
+    if (elementOrder != 1) {
+      throw NotYetImplementedException("Regular grid generation is only implemented for first order elements, got elementOrder=" + std::to_string(elementOrder));
+    }
+
     if (regularGrid) {
         delete regularGrid;
     }
