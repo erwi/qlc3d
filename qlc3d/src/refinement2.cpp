@@ -217,11 +217,7 @@ void make_new_red_tet( vector <idx>& new_t,
                        const unsigned int& elem ,
                        vector< Line>& lines,
                        vector< set <idx> >& t_to_l,
-                       const SpaMtrix::IRCMatrix &nnodes){
-                       //SparseMatrix* nnodes){
-
-    lines.begin(); // silence compiler warnings
-    t_to_l.begin(); // NO WARNINGS
+                       const SpaMtrix::IRCMatrix &nnodes) {
 
     // GENERATE LIST OF OLD AND NEW NODES
     vector <unsigned int> no;// old

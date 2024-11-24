@@ -128,8 +128,7 @@ void SimulationContainer::initialise() {
     //================================================
     Log::info("creating initial electric potential");
     v = SolutionVector((idx) geom1.getnp(), 1);
-    v.setFixedPotentials(geom1.getTriangles(), electrodes->getCurrentPotentials(simulationState.currentTime().getTime()));
-    v.setPeriodicEquNodes(geom1); // periodic nodes
+  v.initialisePotentialBoundaries(geom1, electrodes->getCurrentPotentials(simulationState.currentTime().getTime()));
 
     // =============================================================
     //

@@ -77,16 +77,16 @@ void SolutionVector::ClearAll() {
     dofMap.reset();
 }
 
-void SolutionVector::setFixedLcNodes(const Alignment &alignment, const Mesh &e) {
+void SolutionVector::initialiseLcBoundaries(const Geometry &geom, const Alignment &alignment) {
   std::unordered_map<unsigned int, double> fixedQByNodeNumber;
+  auto &triangles = geom.getTriangles();
   for (auto &a : alignment.surface) {
     if (!a.isStrong()) {
       continue;
     }
 
     auto fixLCNumber = a.getFixLCNumber();
-    auto surfaceNodes = e.listFixLCSurfaceNodes(fixLCNumber);
-
+    auto surfaceNodes = triangles.listFixLCSurfaceNodes(fixLCNumber);
 
     for (auto &i : surfaceNodes) {
       fixedQByNodeNumber[i] = getValue(i, 0); // q1
@@ -98,104 +98,23 @@ void SolutionVector::setFixedLcNodes(const Alignment &alignment, const Mesh &e) 
   }
 
   fixedNodes.setFixedNodesAndValues(fixedQByNodeNumber);
+
+  dofMap = std::make_unique<DofMap>(nDoF, nDimensions);
+  dofMap->calculateMapping(geom, fixedNodes);
 }
 
-void SolutionVector::setFixedPotentials(const Mesh &triangles,
-                        const std::unordered_map<unsigned int, double> &potentialByElectrode) {
-  fixedNodes.setFixedNodesPot(triangles, potentialByElectrode);
+void SolutionVector::initialisePotentialBoundaries(const Geometry &geom,
+                                                   const std::unordered_map<unsigned int, double> &potentialByElectrode) {
+  fixedNodes.setFixedNodesPot(geom.getTriangles(), potentialByElectrode);
 
   auto &fn = fixedNodes.getFixedValueByNodeIndex();
 
   for (auto & [nodeIndex, potential] : fn) {
     values[nodeIndex] = potential;
   }
-}
 
-void SolutionVector::setPeriodicEquNodes(const Geometry &geom) {
-    /*!
-    SET VALUES IN THE ELIM ARRAY. THE ELIM ARRAY CONTAINS
-    MAPPINGS FORM A NODE NUMBER TO ITS ACTUAL
-    DEGREE OF FREEDOM (ITS ROW/COL POSITION IN THE GLOBAL MATRIX)
-    */
-    dofMap = std::make_unique<DofMap>(nDoF, nDimensions);
-    dofMap->calculateMapping(geom, fixedNodes);
-    /*
-    // IF NO PERIODIC NODES PRESENT, DON'T GENERATE EQUIVALENT NODES INDEXES
-    if (!geom.getleft_right_is_periodic() &&
-            !geom.gettop_bottom_is_periodic() &&
-            !geom.getfront_back_is_periodic() &&
-            (this->nFixed == 0) &&
-            fixedNodules.getnFixedNodes() == 0
-       ) {
-        return; // no periodic boundaries, can return
-    }
-    //elim.clear();
-    std::vector<unsigned int> elim;
-    elim.resize(nDoF * nDimensions, 0);
-    // NODAL EQUIVALENCIES HAVE BEEN SET.
-    // REPLACE DEPENDENT NODES WITH THEIR
-    // INDEPENDENT EQUIVALENT NODES
-    std::vector <idx> elimt(nDoF, 0);    // convenience working copy of Elim
-    for (idx i = 0 ; i < (idx) this->getnDoF() ; i++) {
-        elimt.at(i) =  geom.getPeriodicEquNode(i) ;
-    }
-    // MARK FIXED NODES. THSE WILL BE LATER ON REMOVED FROM
-    // FREE DEGREES OF FREEDOM
-    for (idx i = 0 ; i < nDoF ; i++) {
-      if (fixedNodules.isFixedNode(i)) {
-          elimt.at(i) = NOT_AN_INDEX;
-      }
-    }
-    nFreeNodes = 0;
-    std::vector <idx> elima(nDoF, 0);   // Elim altered
-    for (idx i = 0 ; i < nDoF ; i++) {   // SET TO 1,2,3...
-      elima.at(i) = i;
-    }
-    elima.resize(nDoF);
-    // LOOP OVER EACH NODE. DECREASE INDEX TO ALL INDEPENDENT DOFs
-    // THAT COME AFTER A DEPENDENT NODE (EQUIVALENT TO SHIFTING LEFT
-    // ROWS/COLUMNS OF A MATRIX AFTER A COLUMN IS REMOVED)
-    for (idx i = 0 ; i < nDoF ; i++) {
-        if (elimt.at(i) != i) {  // IF i'th NODE IS DEPENDENT
-            for (idx j = i ; j < nDoF ; j++) { // SHIFT DOWN ALL DOF INDEXES AFTER IT
-                elima.at(j) --;
-            }
-        }
-    }
-    // SET DEPENDENT VARAIBLE INDEXES TO POINT TO CORRECT
-    // INDEPENDENT DOF
-    for (idx i = 0 ; i < nDoF ; i++) { // SET CORRECT VALUES
-        if ((elimt.at(i) != i) && (elimt.at(i) != NOT_AN_INDEX)) { // IF i'th NODE IS DEPENDENT ( AND NOT FIXED)
-            elima.at(i) = elima.at( elimt.at(i)); // IT WILL DEPEND ON THE CORRECTED DOF INDEX
-        } else if (elimt.at(i) == NOT_AN_INDEX) { // KEEP FIXED NODE FLAGS
-            elima.at(i) = NOT_AN_INDEX;
-        }
-    }
-    // TOTAL NUMBER OF FREE DOFs THAT NEED TO BE SOLVED (PER DIMENSION)
-    // nFreeNodes = *max_element(elima.begin(), elima.end() ) + 1;
-    for (idx i = 0 ; i < (idx) elima.size() ; i++) {
-        if (elima.at(i) < NOT_AN_INDEX)
-            nFreeNodes = std::max(nFreeNodes , elima.at(i) + 1);
-    }
-    // COPY BACK VALUES TO elim ARRAY
-    for (idx i = 0 ; i < nDoF ; i++) {
-      elim.at(i) = elima.at(i);
-    }
-    // EXPAND Elim IF MORE THAN ONE DIMENSIONS PER NODE
-    if (nDimensions > 1) {
-        for (idx j = 1; j < nDimensions ; j ++) {
-            for (idx i = 0 ; i < nDoF ; i ++) {
-                if (elim.at(i) == NOT_AN_INDEX) {
-                  elim.at(j * nDoF + i) = NOT_AN_INDEX;
-                } else {
-                  elim.at(j * nDoF + i) = elim.at(i) + j * nFreeNodes;
-                }
-            }
-        }
-    }
-
-    dofMap = std::make_unique<DofMap>(elim);
-     */
+  dofMap = std::make_unique<DofMap>(nDoF, nDimensions);
+  dofMap->calculateMapping(geom, fixedNodes);
 }
 
 void SolutionVector::setValue(const idx n,

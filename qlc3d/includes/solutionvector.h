@@ -90,15 +90,13 @@ public:
     void setValuesTo(const SolutionVector& other); // copies values from other SolutionVector
     void setValue(const idx n,const idx dim, const double val);// sets nth value of dimension dim to val
 
-    void setFixedLcNodes(const Alignment &alignment, const Mesh &e);
-
-    void setFixedPotentials(const Mesh &triangles,
-                            const std::unordered_map<unsigned int, double> &potentialByElectrode);
+    void initialiseLcBoundaries(const Geometry &geom, const Alignment &alignment);
+    void initialisePotentialBoundaries(const Geometry &geom,
+                                       const std::unordered_map<unsigned int, double> &potentialByElectrode);
 
     /** DEPRECATED, this can probably be removed */
     void Resize(const unsigned int& n, const unsigned int& dim = 1); // resizes Values data, clears all data
     void ClearAll();
-    void setPeriodicEquNodes(const Geometry &geom); // use this for generating nodal periodic equivalency lists
     void EnforceEquNodes(const Geometry& geom); // enforces periodicity
 
     // Q-tensor related only
