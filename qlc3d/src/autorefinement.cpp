@@ -4,7 +4,6 @@
 #include <solutionvector.h>
 #include <algorithm>
 #include <alignment.h>
-#include <box.h>
 #include <simulation-state.h>
 #include <util/logging.h>
 #include <geom/vec3.h>
@@ -215,9 +214,8 @@ bool autoref(Geometry &geom_orig,
                               simu.getRegularGridZCount());
     // RECREATE POTENTIAL SOLUTIONVECTOR FROM SCRATCH FOR THE NEW GEOMETRY.
     v.Resize(geom_temp.getnp() , 1);
-    v.allocateFixedNodesArrays(geom_temp);
+    v.setFixedPotentials(geom_temp.getTriangles(), electrodes.getCurrentPotentials(simulationState.currentTime().getTime()));
     v.setPeriodicEquNodes(geom_temp);
-    v.setFixedNodesPot(electrodes.getCurrentPotentials(simulationState.currentTime().getTime()));
 
     // REALLOCATE Q-TENSOR
     qn = q; // temp swap
@@ -225,8 +223,9 @@ bool autoref(Geometry &geom_orig,
     interpolate(q, geom_temp, qn, geom);    // INTERPOLATE FROM PREVIOUS MESH
     // SET BOUNDARY CONDITIONS
     setStrongSurfacesQ(q, alignment, S0, geom_temp);
-    q.setFixedNodesQ(alignment, geom_temp.getTriangles());
+    q.setFixedLcNodes(alignment, geom_temp.getTriangles());
     q.setPeriodicEquNodes(geom_temp);
+
     q.EnforceEquNodes(geom_temp);
     qn = q;                                     // USE CURRENT Q FOR PREVIOUS TIME STEP Q-TENSOR
     geom.setTo(&geom_temp);

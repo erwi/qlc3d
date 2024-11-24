@@ -14,7 +14,8 @@ void handleElectrodeSwitching(Event *currentEvent,
                               Electrodes &electr,
                               SolutionVector &v,
                               Simu &simu,
-                              SimulationState &simulationState) {
+                              SimulationState &simulationState,
+                              const Mesh &triangles) {
     // SWITCHES ELECTRODE
     // GET SWITCHING EVENT DATA
     SwitchingInstance *si = static_cast<SwitchingInstance *> ( currentEvent->getEventDataPtr());
@@ -32,7 +33,8 @@ void handleElectrodeSwitching(Event *currentEvent,
 
     // SET POTENTIAL BOUNDARY CONDITIONS FOR ALL ELECTRODES
     auto potentialsByElectrode = electr.getCurrentPotentials(simulationState.currentTime().getTime());
-    v.setFixedNodesPot(potentialsByElectrode);
+    v.setFixedPotentials(triangles, potentialsByElectrode);
+    //v.setFixedNodesPot(potentialsByElectrode);
 }
 
 /**
@@ -75,7 +77,8 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
                                          electrodes,
                                          *solutionvectors.v,
                                          simu,
-                                         simulationState);
+                                         simulationState,
+                                         geometries.geom->getTriangles());
                 delete currentEvent;
                 break;
             case (EVENT_REFINEMENT):
@@ -154,7 +157,7 @@ void handleEvents(EventList &evel,
          delete currentEvent;
          break;
        case (EVENT_SWITCHING):
-         handleElectrodeSwitching(currentEvent, electrodes, *solutionvectors.v, simu, simulationState);
+         handleElectrodeSwitching(currentEvent, electrodes, *solutionvectors.v, simu, simulationState, geometries.geom->getTriangles());
          delete currentEvent;
          recalculatePotential = true;
 

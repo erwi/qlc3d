@@ -69,6 +69,12 @@ add_library(lib-qlc3d STATIC
         src/expression.cpp
         includes/geom/aabox.h
         includes/util/randomgenerator.h
+        includes/fixednodes.h
+        src/fixednodes.cpp
+        includes/geom/periodicity.h
+        src/geom/periodicity.cpp
+        includes/dofmap.h
+        src/dofmap.cpp
 )
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 set_target_properties(lib-qlc3d PROPERTIES CXX_STANDARD 17)

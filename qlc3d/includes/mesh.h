@@ -98,6 +98,7 @@ public:
      * Return a vector of all surface nodes by given FIXLC number.
      */
     std::set<idx> listFixLCSurfaceNodes(const idx FixLCNum) const;
+    std::set<idx> findElectrodeSurfaceNodes(idx electrodeNumber) const;
 
     bool containsCoordinate(idx elem, const Coordinates& coordinates, const Vec3 p) const; // checks whether point p is within element elem
     void CompleteNodesSet(const idx elem, std::vector<idx> &nodes) const; // completes nodes vector with those from element, if nodes is empty returns all elements

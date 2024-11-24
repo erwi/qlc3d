@@ -31,9 +31,10 @@ TestData setUp1DGeometry(Alignment &alignmentIn, const LC &lc, double easyTopTil
   prepareGeometry(*geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, alignmentIn, {1, 1, 1});
 
   auto *v = new SolutionVector(geom->getnp(), 1);
-  v->allocateFixedNodesArrays(*geom);
+  //v->allocateFixedNodesArrays(*geom);
+  v->setFixedPotentials(geom->getTriangles(), electrodes->getCurrentPotentials(0));
   v->setPeriodicEquNodes(*geom);
-  v->setFixedNodesPot(electrodes->getCurrentPotentials(0));
+  //v->setFixedNodesPot(electrodes->getCurrentPotentials(0));
 
   auto* q = new SolutionVector(geom->getnpLC(), 5);
 
@@ -50,7 +51,8 @@ TestData setUp1DGeometry(Alignment &alignmentIn, const LC &lc, double easyTopTil
   box->setVolumeQ(*q, lc.S0(), geom->getCoordinates()); // TODO why does this give different result than below?
 
   setSurfacesQ(*q, alignmentIn, lc.S0(), *geom);
-  q->setFixedNodesQ(alignmentIn, geom->getTriangles());
+  //q->setFixedNodesQ(alignmentIn, geom->getTriangles());
+  q->setFixedLcNodes(alignmentIn, geom->getTriangles());
   q->setPeriodicEquNodes(*geom);
   q->EnforceEquNodes(*geom);
 
@@ -138,12 +140,13 @@ TEST_CASE("[SteadyState] Relax elastic distortions with strong anchoring") {
   prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, alignment, {1, 1, 1});
 
   SolutionVector v(geom.getnp(), 1);
-  v.allocateFixedNodesArrays(geom);
+  //v.allocateFixedNodesArrays(geom);
+  v.setFixedPotentials(geom.getTriangles(), electrodes->getCurrentPotentials(0));
   v.setPeriodicEquNodes(geom);
-  v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
+  //v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
 
   SolutionVector q(geom.getnpLC(), 5);
-  SolutionVector qn(geom.getnpLC(), 5);
+  //SolutionVector qn(geom.getnpLC(), 5);
 
   // set volume orientation
   for (idx i = 0; i < geom.getnpLC(); i++) {
@@ -155,7 +158,8 @@ TEST_CASE("[SteadyState] Relax elastic distortions with strong anchoring") {
 
   setSurfacesQ(q, alignment, lc->S0(), geom);
 
-  q.setFixedNodesQ(alignment, geom.getTriangles());
+  //q.setFixedNodesQ(alignment, geom.getTriangles());
+  q.setFixedLcNodes(alignment, geom.getTriangles());
   q.setPeriodicEquNodes(geom);
   q.EnforceEquNodes(geom);
 
@@ -344,9 +348,10 @@ TEST_CASE("[SteadyState] Relax elastic distortions with chirality") {
 
   // No potential applied
   auto v = SolutionVector(geom.getnp(), 1);
-  v.allocateFixedNodesArrays(geom);
+  //v.allocateFixedNodesArrays(geom);
+  v.setFixedPotentials(geom.getTriangles(), electrodes->getCurrentPotentials(0));
   v.setPeriodicEquNodes(geom);
-  v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
+  //v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
 
   // Set up initial q-tensor configuration with 2 * PI twist over 1 micron pitch
   auto q = SolutionVector(geom.getnpLC(), 5);
@@ -361,7 +366,8 @@ TEST_CASE("[SteadyState] Relax elastic distortions with chirality") {
   b->setVolumeQ(q, lc->S0(), geom.getCoordinates());
 
   setSurfacesQ(q, alignment, lc->S0(), geom);
-  q.setFixedNodesQ(alignment, geom.getTriangles());
+  //q.setFixedNodesQ(alignment, geom.getTriangles());
+  q.setFixedLcNodes(alignment, geom.getTriangles());
   q.setPeriodicEquNodes(geom);
   q.EnforceEquNodes(geom);
 
@@ -432,9 +438,10 @@ TEST_CASE("[SteadyState] Electric switching with applied potential and three ela
 
   const double topPotential = 2.0;
   SolutionVector v(geom.getnp(), 1);
-  v.allocateFixedNodesArrays(geom);
+  //v.allocateFixedNodesArrays(geom);
+  v.setFixedPotentials(geom.getTriangles(), electrodes->getCurrentPotentials(0));
   v.setPeriodicEquNodes(geom);
-  v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
+  //v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
 
   SolutionVector q(geom.getnpLC(), 5);
 
@@ -456,7 +463,8 @@ TEST_CASE("[SteadyState] Electric switching with applied potential and three ela
 
   setSurfacesQ(q, alignment, lc->S0(), geom);
 
-  q.setFixedNodesQ(alignment, geom.getTriangles());
+  //q.setFixedNodesQ(alignment, geom.getTriangles());
+  q.setFixedLcNodes(alignment, geom.getTriangles());
   q.setPeriodicEquNodes(geom);
   q.EnforceEquNodes(geom);
 
@@ -527,9 +535,10 @@ TEST_CASE("[Dynamic] Switching dynamics with applied potential and three elastic
 
   const double topPotential = 2;
   SolutionVector v(geom.getnp(), 1);
-  v.allocateFixedNodesArrays(geom);
+  //v.allocateFixedNodesArrays(geom);
+  v.setFixedPotentials(geom.getTriangles(), electrodes->getCurrentPotentials(0));
   v.setPeriodicEquNodes(geom);
-  v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
+  //v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
 
   SolutionVector q(geom.getnpLC(), 5);
 
@@ -547,7 +556,8 @@ TEST_CASE("[Dynamic] Switching dynamics with applied potential and three elastic
 
   setSurfacesQ(q, alignment, lc->S0(), geom);
 
-  q.setFixedNodesQ(alignment, geom.getTriangles());
+  //q.setFixedNodesQ(alignment, geom.getTriangles());
+  q.setFixedLcNodes(alignment, geom.getTriangles());
   q.setPeriodicEquNodes(geom);
   q.EnforceEquNodes(geom);
 
@@ -602,9 +612,10 @@ TEST_CASE("[Dynamic] Abort Newton iterations if convergence is not reached") {
 
   const double topPotential = 2;
   SolutionVector v(geom.getnp(), 1);
-  v.allocateFixedNodesArrays(geom);
+  //v.allocateFixedNodesArrays(geom);
+  v.setFixedPotentials(geom.getTriangles(), electrodes->getCurrentPotentials(0));
   v.setPeriodicEquNodes(geom);
-  v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
+  //v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
 
   SolutionVector q(geom.getnpLC(), 5);
 
@@ -622,7 +633,8 @@ TEST_CASE("[Dynamic] Abort Newton iterations if convergence is not reached") {
 
   setSurfacesQ(q, alignment, lc->S0(), geom);
 
-  q.setFixedNodesQ(alignment, geom.getTriangles());
+  //q.setFixedNodesQ(alignment, geom.getTriangles());
+  q.setFixedLcNodes(alignment, geom.getTriangles());
   q.setPeriodicEquNodes(geom);
   q.EnforceEquNodes(geom);
 

@@ -118,7 +118,8 @@ void initialiseLcSolutionVector(SolutionVector &q, const Simu &simu, const LC &l
     ResultIO::ReadResult(simu.getLoadQ(), q);
   }
   setSurfacesQ(q, alignment, S0, geom);
-  q.setFixedNodesQ(alignment, geom.getTriangles());  // set fixed surface anchoring
+  //q.setFixedNodesQ(alignment, geom.getTriangles());  // set fixed surface anchoring
+  q.setFixedLcNodes(alignment, geom.getTriangles());
   q.setPeriodicEquNodes(geom);          // periodic nodes
   q.EnforceEquNodes(geom);                // makes sure values at periodic boundaries match
 }

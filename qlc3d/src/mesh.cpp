@@ -489,6 +489,26 @@ std::set<idx> Mesh::listFixLCSurfaceNodes(const idx FixLCNum) const {
   return nodes;
 }
 
+std::set<idx> Mesh::findElectrodeSurfaceNodes(idx electrodeNumber) const {
+  if (electrodeNumber < 1 || electrodeNumber > 9) {
+    RUNTIME_ERROR(format("Electrode number {} is not in range 1-9.", electrodeNumber));
+  }
+
+  std::set<idx> nodes;
+  for (idx i = 0; i < getnElements(); i++) {
+    idx elementMaterial = getMaterialNumber(i);
+    idx elementElectrodeNumber = MATNUM_TO_ELECTRODE_NUMBER(elementMaterial);
+    if (elementElectrodeNumber == electrodeNumber) {
+      for (idx n = 0; n < getnNodes(); n++) { // for each node in current element
+        nodes.insert(getNode(i, n));
+      }
+    }
+  }
+  return nodes;
+}
+
+
+
 //
 //void Mesh::CopySurfaceNormal(idx i, double* norm) const {
 //#ifdef DEBUG

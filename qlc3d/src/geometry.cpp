@@ -3,6 +3,7 @@
 #include <util/exception.h>
 #include <geom/coordinates.h>
 #include <geom/vec3.h>
+#include <geom/periodicity.h>
 
 const idx Geometry::NOT_AN_INDEX = std::numeric_limits<idx>::max();
 
@@ -603,12 +604,22 @@ void Geometry::makePeriEquNodes() {
 }// end void MakePEriEquNodes()
 
 void Geometry::initialisePeriodicity() {
-    Log::info("Initialising peridioc surfaces");
+    Log::info("Initialising periodic surfaces");
+/*
+    PeriodicityType periodicity(getTriangles());
+    if (periodicity.isAnyPeriodic()) {
+        Log::info("Periodic surfaces detected");
+        makePeriEquNodes();
+    } else {
+        Log::info("No periodic surfaces detected");
+    }
+    */
     // CHECKS FOR TYPES OF PERIODICITY PRESENT IN CURRENT STRUCTURE.
     // POSSIBLE PERIODIC SURFACES ARE:
     //      LEFT/RIGHT
     //      FRONT/BACK
     //      TOP/BOTTOM
+    //*
   const double EPS = 1e-7;
   for (idx i = 0 ; i < e->getnElements() ; i++) {
     if (e->getMaterialNumber(i) == MAT_PERIODIC) { // if surface is periodic
@@ -641,6 +652,8 @@ void Geometry::initialisePeriodicity() {
       ||  gettop_bottom_is_periodic()) {
     makePeriEquNodes();
   }
+     //*/
+
 }
 
 void Geometry::makeRegularGrid(const size_t &nx,

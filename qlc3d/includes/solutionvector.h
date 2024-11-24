@@ -2,13 +2,17 @@
 #define SOLUTIONVECTOR_H
 #include <omp.h>
 #include <algorithm>
+#include <memory>
 #include <alignment.h>
 #include <electrodes.h>
 #include <simu.h>
 #include <mesh.h>
 #include <geometry.h>
 #include <globals.h>
-#include <assert.h>
+#include <cassert>
+#include <fixednodes.h>
+#include <dofmap.h>
+
 using std::vector;
 using std::list;
 using std::cout;
@@ -38,25 +42,19 @@ namespace qlc3d {
 }
 
 class SolutionVector {
-    static const double BIGNUM;
 
 private:
   /** Number of degrees of freedom per dimension, including fixed and periodic nodes. */
-    idx nDoF;		// number of degrees of freedom per dimension
-    /** number of fixed nodes per dimension. */
-    idx nFixed;
-    idx nDimensions; // number of dofs per node. e.g potential = 1, Q = 5
-    std::vector<idx> fixedNodeMaterial;
-    std::vector<idx> elim; // effective node ordering after taking into account periodic nodes that need not solving NOT SAME AS PERIODIC EQUIVALENT NODE
-    std::vector<bool> isFixed;
-    std::vector<idx> equNodes; // nodal equivalencies - i.e. periodic nodes TODO: looks like this might never be used!?
-    /** Number of independent degrees of freedom per dimension. Fixed nodes an periodic nodes are not counted. */
-    idx nFreeNodes; // number of independent degrees of freedom = nDoF - # number of nodes eliminated as periodic
+  idx nDoF;		// number of degrees of freedom per dimension
+  idx nDimensions; // number of dofs per node. e.g potential = 1, Q = 5
+
+  /** Number of independent degrees of freedom per dimension. Fixed nodes an periodic nodes are not counted. */
+    //idx nFreeNodes; // number of independent degrees of freedom = nDoF - # number of nodes eliminated as periodic
     std::vector<double> values;
 
-    std::vector<idx> fixedNodes; // index to each fixed node
-    std::vector<double> fixedValues; // value of each fixed node
-    void setBooleanFixedNodeList(); // creates list of booleans (bool* IsFixed) for each node true=fixed node, false = free node
+    FixedNodes fixedNodes;
+    std::unique_ptr<DofMap> dofMap;
+
 public:
     ~SolutionVector();
     SolutionVector();
@@ -73,23 +71,14 @@ public:
     /** Number of degrees of freedom per dimension, including fixed and periodic nodes. a.k.a npLC */
     [[nodiscard]] inline idx getnDoF()const {return nDoF;} // npLC
     /** Number of independent degrees of freedom per dimension. Fixed nodes an periodic nodes are not counted. */
-    [[nodiscard]] inline idx getnFreeNodes()const {return nFreeNodes;} // nDof - periodic nodes
+    [[nodiscard]] inline idx getnFreeNodes()const {return dofMap->getnFreeNodes(); }//nFreeNodes;} // nDof - periodic nodes
     /** Number of fixed nodes per dimension. */
-    [[nodiscard]] inline idx getnFixed() const { return nFixed; }
+    [[nodiscard]] inline idx getnFixed() const { return fixedNodes.getnFixedNodes(); } //nFixed; }
     [[nodiscard]] inline idx getnDimensions() const { return nDimensions; }
     /** returns equivalent node to n (for periodic surfaces etc.) or max value (NOT_AN_INDEX) if node is fixed */
-    [[nodiscard]] inline idx getEquNode(const idx n) const {
-#ifndef NDEBUG
-assert(n < getnDoF() * getnDimensions());
-#endif
-        if (!elim.empty()) {
-          return elim.at(n);
-        } else {
-          return n;
-        }
-    }
+    [[nodiscard]] inline idx getEquNode(const idx n) const { return dofMap->getDof(n); }
 
-  void loadEquNodes(const idx *start, const idx *end, idx *equNodesOut) const;
+    void loadEquNodes(const idx *start, const idx *end, idx *equNodesOut) const;
 
     /** raw array access to values, ignores dimensions */
     [[nodiscard]] inline double getValue(const idx n) const { return values[n]; }
@@ -100,23 +89,17 @@ assert(n < getnDoF() * getnDimensions());
     void setValuesTo(const double& value); // sets all values to value
     void setValuesTo(const SolutionVector& other); // copies values from other SolutionVector
     void setValue(const idx n,const idx dim, const double val);// sets nth value of dimension dim to val
-    void setToFixedValues();
 
-    void setFixedNodesQ(const Alignment &alignment, const Mesh &e);
-    /** Set the potential at the given electrode nodes to the given potential value. */
-    void setFixedNodesPot(const std::unordered_map<unsigned int, double> &potentialsByElectrode);
-    void allocateFixedNodesArrays(Geometry& geom); // ALLOCATES FIXED NODE ARRAYS FOR POTENTIAL.
+    void setFixedLcNodes(const Alignment &alignment, const Mesh &e);
+
+    void setFixedPotentials(const Mesh &triangles,
+                            const std::unordered_map<unsigned int, double> &potentialByElectrode);
+
+    /** DEPRECATED, this can probably be removed */
     void Resize(const unsigned int& n, const unsigned int& dim = 1); // resizes Values data, clears all data
     void ClearAll();
     void setPeriodicEquNodes(const Geometry &geom); // use this for generating nodal periodic equivalency lists
-    void ClearFixed(); // clears all fixed nodes and values
     void EnforceEquNodes(const Geometry& geom); // enforces periodicity
-    [[nodiscard]] inline bool getIsFixed(const size_t i) const {
-#ifdef DEBUG
-assert(i < getnDoF()*getnDimensions() );
-#endif
-        return isFixed.at(i);
-    }
 
     // Q-tensor related only
     //! set all of the 5 tensor values for te n'th DoF.

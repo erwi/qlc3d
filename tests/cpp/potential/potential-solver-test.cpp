@@ -34,9 +34,11 @@ TEST_CASE("Solve potential 1D mesh - Expect v = z") {
   prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, alignment, {1, 1, 1});
 
   SolutionVector v(geom.getnp(), 1);
-  v.allocateFixedNodesArrays(geom);
+  v.setFixedPotentials(geom.getTriangles(), electrodes->getCurrentPotentials(0));
+
+  //v.allocateFixedNodesArrays(geom);
   v.setPeriodicEquNodes(geom);
-  v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
+  //v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
 
   // Set LC director to uniform vertical direction
   SolutionVector q(geom.getnpLC(), 5);
@@ -78,9 +80,10 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
   prepareGeometry(geom, TestUtil::RESOURCE_PSEUDO_2D_NEUMANN_GMSH_MESH, *electrodes, alignment, {1, 1, 1});
 
   SolutionVector v(geom.getnp(), 1);
-  v.allocateFixedNodesArrays(geom);
+  //v.allocateFixedNodesArrays(geom);
+  v.setFixedPotentials(geom.getTriangles(), electrodes->getCurrentPotentials(0));
   v.setPeriodicEquNodes(geom);
-  v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
+  //v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
 
   // Set LC director to uniform 45 degree tilt angle
   SolutionVector q(geom.getnpLC(), 5);
@@ -155,9 +158,10 @@ TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries")
   prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_GMSH_MESH, *electrodes, alignment, {1, 1, 1});
 
   SolutionVector v(geom.getnp(), 1);
-  v.allocateFixedNodesArrays(geom);
+  //v.allocateFixedNodesArrays(geom);
+  v.setFixedPotentials(geom.getTriangles(), electrodes->getCurrentPotentials(0));
   v.setPeriodicEquNodes(geom);
-  v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
+  //v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
 
   // Set LC director to uniform 45 degree tilt angle
   SolutionVector q(geom.getnpLC(), 5);
@@ -218,21 +222,22 @@ TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries")
 }
 
 TEST_CASE("Convenience debugging set-up, not a test!") {
-  return;
+  //return;
 
   // set the path to an existing mesh file to calculate potential on it
-  auto path = std::filesystem::path("/path/to/mesh/file.msh");
+  auto path = std::filesystem::path("/home/eero/projects/lcprojects/meshes/lcos0.msh");
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2, 3, 4, 5, 6}, {5, 0, 0, 0, 0, 0});
   electrodes->setDielectricPermittivities({1});
 
   Alignment alignment;
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   prepareGeometry(geom, path, *electrodes, alignment, {1, 1, 1});
 
   SolutionVector v(geom.getnp(), 1);
-  v.allocateFixedNodesArrays(geom);
+  v.setFixedPotentials(geom.getTriangles(), electrodes->getCurrentPotentials(0));
   v.setPeriodicEquNodes(geom);
-  v.setFixedNodesPot(electrodes->getCurrentPotentials(0));
+
 
   // Set LC director to uniform 45 degree tilt angle
   SolutionVector q(geom.getnpLC(), 5);
@@ -255,5 +260,5 @@ TEST_CASE("Convenience debugging set-up, not a test!") {
 
   // Write result to file for visualisation
   vtkIOFun::UnstructuredGridWriter writer;
-  writer.write("/home/eero/Desktop/pseudo2d.vtk", geom.getnpLC(), geom.getCoordinates(), geom.getTetrahedra(), v, q);
+  writer.write("/home/eero/Desktop/result.vtk", geom.getnpLC(), geom.getCoordinates(), geom.getTetrahedra(), v, q);
 }
