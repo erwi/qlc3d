@@ -16,6 +16,8 @@ namespace SpaMtrix {
   class Vector;
 }
 
+class DofMap;
+
 // todo: make private...
 void calcpot3d(SpaMtrix::IRCMatrix &Kpot,
                SolutionVector &v,
@@ -46,7 +48,7 @@ class PotentialSolver {
   /** Solution vector for linear equations system */
   std::unique_ptr<SpaMtrix::Vector> V;
 
-  void createPotentialMatrix(const Geometry &geom, const SolutionVector &sol);
+  void createPotentialMatrix(const Geometry &geom, const DofMap &dofMap);
 
   bool isPotentialSolutionRequired(const SolutionVector &v) const;
   void setUniformEField(SolutionVector &vOut, const Coordinates &coordinates) const;

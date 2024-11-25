@@ -10,12 +10,13 @@
 #include <solver-settings.h>
 #include <geom/vec3.h>
 #include <geom/coordinates.h>
+#include <dofmap.h>
 #include <thread>
 #include <fe/gaussian-quadrature.h>
-#include "spamtrix_luincpreconditioner.hpp"
-#include "spamtrix_iterativesolvers.hpp"
-#include "fe/fe-util.h"
-#include "util/exception.h"
+#include <spamtrix_luincpreconditioner.hpp>
+#include <spamtrix_iterativesolvers.hpp>
+#include <fe/fe-util.h>
+#include <util/exception.h>
 
 //<editor-fold desc="private">
 PotentialSolver::PotentialSolver(std::shared_ptr<Electrodes> electrodes, std::shared_ptr<LC> lc,
@@ -36,33 +37,29 @@ PotentialSolver::PotentialSolver(std::shared_ptr<Electrodes> electrodes, std::sh
 
 PotentialSolver::~PotentialSolver() = default;
 
-void setupSingleBlock(const Geometry &geom,
-                      const SolutionVector &sol,
+void setupSingleBlock(const Mesh &tetMesh,
+                      const DofMap &dofMap,
                       SpaMtrix::MatrixMaker &mm){
-  auto &tets = geom.getTetrahedra();
-  const idx nodesPerElement = tets.getnNodes();
-  vector<idx> eqn(nodesPerElement, 0);
+  const idx nodesPerElement = tetMesh.getnNodes();
 
-  for (idx it = 0; it < tets.getnElements(); it++) {
+  for (idx it = 0; it < tetMesh.getnElements(); it++) {
     unsigned int nn[4];
-    geom.getTetrahedra().loadNodes(it, nn);
+    tetMesh.loadNodes(it, nn);
 
     for (idx i = 0; i < nodesPerElement; ++i) {
-      eqn[i] = sol.getEquNode(nn[i]);
-    }
-
-    for (idx i = 0; i < nodesPerElement; ++i) {
-      if (eqn[i] == NOT_AN_INDEX) {
+      if (dofMap.isFixedNode(nn[i])) {
         continue;
       }
-
-      mm.addNonZero(eqn[i],eqn[i]); // Diagonal
+      unsigned int iDof = dofMap.getDof(nn[i]);
+      mm.addNonZero(iDof, iDof);
       for (idx j = i + 1; j < nodesPerElement; ++j) {
-        if (eqn[j] == NOT_AN_INDEX) { // IGNORE FIXED NODES
+        if (dofMap.isFixedNode(nn[j])) {
           continue;
         }
-        mm.addNonZero(eqn[i], eqn[j]);
-        mm.addNonZero(eqn[j], eqn[i]);
+        unsigned int jDof = dofMap.getDof(nn[j]);
+
+        mm.addNonZero(iDof, jDof);
+        mm.addNonZero(jDof, iDof);
       }
     }
   }
@@ -95,15 +92,15 @@ void PotentialSolver::setUniformEField(SolutionVector &vOut, const Coordinates &
   }
 }
 
-void PotentialSolver::createPotentialMatrix(const Geometry &geom, const SolutionVector &sol) {
+void PotentialSolver::createPotentialMatrix(const Geometry &geom, const DofMap &dofMap) {
   if (!electrodes->isPotentialCalculationRequired()) {
     Log::info("Potential calculation not required. Creating empty matrix for Potential solver.");
     K = std::make_unique<SpaMtrix::IRCMatrix>();
   }
 
-  const idx N = sol.getnFreeNodes();
-  SpaMtrix::MatrixMaker mm(N,N);
-  setupSingleBlock(geom, sol, mm);
+  const idx N = dofMap.getnFreeNodes();
+  SpaMtrix::MatrixMaker mm(N, N);
+  setupSingleBlock(geom.getTetrahedra(), dofMap, mm);
   idx nnz = mm.calcNumNonZeros();
   Log::info("Created sparse matrix of size {}x{}, with {} non-zeros for potential solver.", N, N, nnz);
 
@@ -114,17 +111,18 @@ void PotentialSolver::createPotentialMatrix(const Geometry &geom, const Solution
 
 void PotentialSolver::initialiseMatrixSystem(const SolutionVector &vOut, const Geometry &geom) {
   if (K == nullptr) {
-    createPotentialMatrix(geom, vOut);
+    createPotentialMatrix(geom, vOut.getDofMap());
   }
 
   *K = 0.0; // reset matrix to zero
   *L = 0.0; // reset RHS vector to zero
 
   // set initial potential values guess from output vector
-  for (idx i = 0; i < vOut.getnDoF(); i++) {
-    const unsigned int ind = vOut.getEquNode(i);
-    if (ind != NOT_AN_INDEX) {
-      (*V)[ind] = vOut.getValue(i);
+  auto &dofMap = vOut.getDofMap();
+  for (idx i = 0; i < dofMap.getnDof(); i++) {
+    if (dofMap.isFreeNode(i)) {
+      auto iDof = dofMap.getDof(i);
+      (*V)[iDof] = vOut.getValue(i);
     }
   }
 }
@@ -434,11 +432,13 @@ void PotentialSolver::solveMatrixSystem(SolutionVector &v) {
   }
 
   // Copy free values of solution to correct location in output vector
+  auto &dofMap = v.getDofMap();
   for (idx i = 0 ; i < v.getnDoF() ; i++) {
-    idx ind = v.getEquNode(i);
-    if (ind != NOT_AN_INDEX) {
-      v.setValue(i, 0, (*V)[ind]);
+    if (dofMap.isFixedNode(i)) {
+      continue;
     }
+
+    v.setValue(i, 0, (*V)[dofMap.getDof(i)]);
   }
 }
 

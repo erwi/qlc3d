@@ -23,9 +23,11 @@ public:
   void calculateMapping(const Geometry &geom, const FixedNodes &fixedNodules);
 
   [[nodiscard]] unsigned int getDof(unsigned int index) const { return dofs[index]; }
-  [[nodiscard]] unsigned int getnFreeNodes() const { return nFreeNodes; }
+  [[nodiscard]] bool isFixedNode(unsigned int index) const { return dofs[index] == NOT_DOF; }
+  [[nodiscard]] bool isFreeNode(unsigned int index) const { return dofs[index] < NOT_DOF; }
   [[nodiscard]] unsigned int getnDof() const { return nDof; }
   [[nodiscard]] unsigned int getnDimensions() const { return nDimensions; }
+  [[nodiscard]] unsigned int getnFreeNodes() const { return nFreeNodes; }
 };
 
 #endif //PROJECT_QLC3D_DOFMAP_H

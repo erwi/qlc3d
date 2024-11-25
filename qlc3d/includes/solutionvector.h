@@ -77,7 +77,8 @@ public:
     [[nodiscard]] inline idx getnDimensions() const { return nDimensions; }
     /** returns equivalent node to n (for periodic surfaces etc.) or max value (NOT_AN_INDEX) if node is fixed */
     [[nodiscard]] inline idx getEquNode(const idx n) const { return dofMap->getDof(n); }
-
+    [[nodiscard]] const DofMap &getDofMap() const { return *dofMap; }
+    [[nodiscard]] const FixedNodes &getFixedNodes() const { return fixedNodes; }
     void loadEquNodes(const idx *start, const idx *end, idx *equNodesOut) const;
 
     /** raw array access to values, ignores dimensions */
@@ -85,7 +86,6 @@ public:
     /** Get the n'th value of the i'th dimension. Both n and i are 0 based, so 0 is first value */
     [[nodiscard]] inline double getValue(const idx n , const idx dim) const { return values[n + dim * nDoF]; }
 
-    void setnFixed(idx n);
     void setValuesTo(const double& value); // sets all values to value
     void setValuesTo(const SolutionVector& other); // copies values from other SolutionVector
     void setValue(const idx n,const idx dim, const double val);// sets nth value of dimension dim to val
