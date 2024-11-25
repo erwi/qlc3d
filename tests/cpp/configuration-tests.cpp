@@ -293,6 +293,7 @@ TEST_CASE("Read alignment from settings file") {
   contents += "FIXLC3.Easy = [80.0000, 45.0000, 0.0000]\n";
   contents += "FIXLC3.K1 = 1.0000\n";
   contents += "FIXLC3.K2 = 2.0000\n";
+  contents += "FIXLC3.overrideVolume = false\n";
 
   // add case for degenerate anchoring
   contents += "FIXLC4.Anchoring = Degenerate\n";
@@ -307,11 +308,24 @@ TEST_CASE("Read alignment from settings file") {
 
   REQUIRE(alignment->getnSurfaces() == 4);
 
-  // Check that the correct types were added. Other properties are tested in the Surface class tests
-  REQUIRE(alignment->getSurface(0).getAnchoringType() == AnchoringType::Strong);
-  REQUIRE(alignment->getSurface(1).getAnchoringType() == AnchoringType::Homeotropic);
-  REQUIRE(alignment->getSurface(2).getAnchoringType() == AnchoringType::Weak);
-  REQUIRE(alignment->getSurface(3).getAnchoringType() == AnchoringType::Degenerate);
+  // Check that the correct types were added.
+  auto &surf1 = alignment->getSurface(0);
+  auto &surf2 = alignment->getSurface(1);
+  auto &surf3 = alignment->getSurface(2);
+  auto &surf4 = alignment->getSurface(3);
+
+  REQUIRE(surf1.getAnchoringType() == AnchoringType::Strong);
+
+  REQUIRE(surf2.getAnchoringType() == AnchoringType::Homeotropic);
+
+  REQUIRE(surf3.getAnchoringType() == AnchoringType::Weak);
+  REQUIRE(surf3.getOverrideVolume() == false);
+
+  REQUIRE(surf4.getAnchoringType() == AnchoringType::Degenerate);
+
+
+
+
 }
 
 TEST_CASE("Read alignment with analytic expressions for tilt and twist") {

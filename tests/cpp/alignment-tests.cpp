@@ -17,6 +17,23 @@ TEST_CASE("Strong anchoring properties") {
   REQUIRE(s.toString().find("Anchoring:Strong") != std::string::npos);
 }
 
+TEST_CASE("Strong anchoring properties with overrideVolume set to false") {
+  auto s = Surface::ofStrongAnchoring(1, 45, 23, false);
+
+  REQUIRE(s.getAnchoringType() == AnchoringType::Strong);
+  REQUIRE(s.getStrength() == std::numeric_limits<double>::infinity());
+  REQUIRE(std::isnan(s.getK1()) == true);
+  REQUIRE(std::isnan(s.getK2()) == true);
+  REQUIRE(s.getEasyTilt() == 45);
+  REQUIRE(s.getEasyTwist() == 23);
+  REQUIRE(s.usesSurfaceNormal() == false);
+  REQUIRE(s.isStrong() == true);
+  REQUIRE(s.getOverrideVolume() == false);
+  REQUIRE(s.getFixLCNumber() == 1);
+  REQUIRE(s.toString().find("Anchoring:Strong") != std::string::npos);
+}
+
+
 TEST_CASE("Weak anchoring properties") {
   auto s = Surface::ofWeakAnchoring(1, 45, 23, 0.5, 0.1, 0.2);
 
@@ -76,7 +93,7 @@ TEST_CASE("Degenerate anchoring properties") {
   REQUIRE(std::isnan(s.getEasyTwist()));
   REQUIRE(s.usesSurfaceNormal() == true);
   REQUIRE(s.isStrong() == false);
-  REQUIRE(s.getOverrideVolume() == false);
+  REQUIRE(s.getOverrideVolume() == true);
   REQUIRE(s.getFixLCNumber() == 1);
   REQUIRE(s.toString().find("Anchoring:Degenerate") != std::string::npos);
 }

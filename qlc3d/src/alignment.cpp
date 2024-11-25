@@ -195,9 +195,9 @@ void Surface::setTwistAngleExpression(const std::string &twistExpression) {
 }
 
 void Surface::setAlignmentOrientation(SolutionVector &q, double S0, const Geometry &geom) const {
-  Log::info("Setting initial LC configuration for FIXLC{} = {}.", getFixLCNumber(), toString());
+  Log::info("Setting initial LC configuration for FIXLC{} of type {}.", getFixLCNumber(), toString());
   if (!getOverrideVolume()) {
-    Log::info("not setting initial orientation for FixLC{} because overrideVolume is false", getFixLCNumber());
+    Log::info("Not setting initial orientation for FixLC{} because overrideVolume is false", getFixLCNumber());
     return;
   }
 
@@ -210,7 +210,6 @@ void Surface::setAlignmentOrientation(SolutionVector &q, double S0, const Geomet
              (getAnchoringType() == Degenerate && getStrength() < 0) ||
              (getAnchoringType() == WeakHomeotropic)) {
     setHomeotropicOrientation(q, S0, geom);
-    return;
   } else if (getAnchoringType() == Freeze || getAnchoringType() == Polymerise) {
     Log::info("Using current bulk q-tensor values for FIXLC{}.", getFixLCNumber());
   } else {
@@ -218,7 +217,8 @@ void Surface::setAlignmentOrientation(SolutionVector &q, double S0, const Geomet
   }
 }
 
-Surface Surface::ofStrongAnchoring(unsigned int fixLcNumber_, double tiltDegrees, double twistDegrees) {
+Surface Surface::ofStrongAnchoring(unsigned int fixLcNumber_, double tiltDegrees, double twistDegrees,
+                                   bool overrideVolume) {
   if (fixLcNumber_ == 0 || fixLcNumber_ > 9) {
     RUNTIME_ERROR(fmt::format("FixLC number must be in range 1 - 9, got {}", fixLcNumber_));
   }
@@ -227,12 +227,12 @@ Surface Surface::ofStrongAnchoring(unsigned int fixLcNumber_, double tiltDegrees
           std::numeric_limits<double>::infinity(),
           std::numeric_limits<double>::signaling_NaN(), std::numeric_limits<double>::signaling_NaN(),
           easyAnglesDegrees,
-          true,
+          overrideVolume,
           fixLcNumber_};
 }
 
 Surface Surface::ofStrongAnchoring(unsigned int fixLcNumber, const std::string &tiltExpression,
-                                   const std::string &twistExpression) {
+                                   const std::string &twistExpression, bool overrideVolume) {
   if (fixLcNumber == 0 || fixLcNumber > 9) {
     RUNTIME_ERROR(fmt::format("FixLC number must be in range 1 - 9, got {}", fixLcNumber));
   }
@@ -240,7 +240,7 @@ Surface Surface::ofStrongAnchoring(unsigned int fixLcNumber, const std::string &
   Surface surf = {AnchoringType::Strong,
           std::numeric_limits<double>::infinity(), 1, 1,
           easyAnglesDegrees,
-          true,
+          overrideVolume,
           fixLcNumber};
   surf.setTiltAngleExpression(tiltExpression);
   surf.setTwistAngleExpression(twistExpression);
@@ -251,7 +251,7 @@ Surface Surface::ofStrongAnchoring(unsigned int fixLcNumber, const std::string &
   return surf;
 }
 
-Surface Surface::ofPlanarDegenerate(unsigned int fixLcNumber, double strength) {
+Surface Surface::ofPlanarDegenerate(unsigned int fixLcNumber, double strength, bool overrideVolume) {
   if (fixLcNumber == 0 || fixLcNumber > 9) {
     RUNTIME_ERROR(fmt::format("FixLC number must be in range 1 - 9, got {}", fixLcNumber));
   }
@@ -262,7 +262,7 @@ Surface Surface::ofPlanarDegenerate(unsigned int fixLcNumber, double strength) {
   return {AnchoringType::Degenerate,
           strength, 0, 1,
           easyAnglesDegrees, // actually calculated for each node from surface normal
-          false,
+          overrideVolume,
           fixLcNumber};
 }
 
@@ -277,11 +277,11 @@ Surface Surface::ofStrongHomeotropic(unsigned int fixLcNumber) {
   return {AnchoringType::Homeotropic,
           std::numeric_limits<double>::infinity(), 0, 1,
           easyAnglesDegrees, // actually calculated for each node from surface normal
-          true,
+          true, // always override since this is strong with named orientation
           fixLcNumber};
 }
 
-Surface Surface::ofWeakHomeotropic(unsigned int fixLCNumber, double strength) {
+Surface Surface::ofWeakHomeotropic(unsigned int fixLCNumber, double strength, bool overrideVolume) {
   if (fixLCNumber == 0 || fixLCNumber > 9) {
     RUNTIME_ERROR(fmt::format("FixLC number must be in range 1 - 9, got {}", fixLCNumber));
   }
@@ -292,12 +292,12 @@ Surface Surface::ofWeakHomeotropic(unsigned int fixLCNumber, double strength) {
   return {AnchoringType::WeakHomeotropic,
           strength, 0, 1,
           easyAnglesDegrees,
-          true,
+          overrideVolume,
           fixLCNumber};
 }
 
 Surface Surface::ofWeakAnchoring(unsigned int fixLcNumber, double tiltDegrees, double twistDegrees, double strength,
-                                 double k1, double k2) {
+                                 double k1, double k2, bool overrideVolume) {
   if (fixLcNumber == 0 || fixLcNumber > 9) {
     RUNTIME_ERROR(fmt::format("FixLC number must be in range 1 - 9, got {}", fixLcNumber));
   }
@@ -305,7 +305,7 @@ Surface Surface::ofWeakAnchoring(unsigned int fixLcNumber, double tiltDegrees, d
   return {AnchoringType::Weak,
           strength, k1, k2,
           easyAnglesDegrees,
-          true,
+          overrideVolume,
           fixLcNumber
   };
 }
@@ -321,7 +321,7 @@ Surface Surface::ofFreeze(unsigned int fixLcNumber) {
                   std::numeric_limits<double>::infinity(),
                   nan, nan,
                   easyAnglesDegrees,
-                  false,
+                  false, // never override, just freeze the current LC orientation
                   fixLcNumber};
   // set v1, v2, e to all NaN, since they may vary with position so are invalid anyway
   surf.v1.set(nan, nan, nan);

@@ -274,6 +274,9 @@ void SettingsReader::readAlignment(Reader &reader) {
 
           auto type = reader.getValueByKey<string>(keyBase + ".Anchoring");
 
+          auto overrideVolume = reader.getOptional<bool>(keyBase + ".overrideVolume");
+
+
           if (type == "strong") {
             std::string key = keyBase + ".Easy";
             if (reader.isValueArrayOfNumbers(key)) {
@@ -281,17 +284,25 @@ void SettingsReader::readAlignment(Reader &reader) {
               auto easyAngles = reader.getValueByKey<std::vector<double>>(key);
               double tiltAngleDegrees = easyAngles[0];
               double twistAngleDegrees = easyAngles[1];
-              alignment_->addSurface(Surface::ofStrongAnchoring(i, tiltAngleDegrees, twistAngleDegrees));
+
+              alignment_->addSurface( overrideVolume.has_value() ?
+                                      Surface::ofStrongAnchoring(i, tiltAngleDegrees, twistAngleDegrees, overrideVolume.value()) :
+                                      Surface::ofStrongAnchoring(i, tiltAngleDegrees, twistAngleDegrees));
+
             } else if (reader.isValueArrayOfStrings(key)) {
               // if all easy angles values are strings, then it is an expression
               auto easyAngles = reader.getValueByKey<std::vector<std::string>>(key);
               auto tiltExpression = easyAngles[0];
               auto twistExpression = easyAngles[1];
-              alignment_->addSurface(Surface::ofStrongAnchoring(i, tiltExpression, twistExpression));
+
+              alignment_->addSurface( overrideVolume.has_value() ?
+                                      Surface::ofStrongAnchoring(i, tiltExpression, twistExpression, overrideVolume.value()) :
+                                      Surface::ofStrongAnchoring(i, tiltExpression, twistExpression));
             } else {
               throw ReaderError("Failed to read easy angles for FIXLC" + std::to_string(i), fileName_.string());
             }
           } else if (type == "homeotropic") {
+            // Ignore overrideVolume, as it doesnt' make sense in the strong homeotropic case
             alignment_->addSurface(Surface::ofStrongHomeotropic(i));
           } else if (type == "weak") {
             auto easyAngles = reader.getValueByKey<std::vector<double>>(keyBase + ".Easy");
@@ -299,21 +310,30 @@ void SettingsReader::readAlignment(Reader &reader) {
             auto strength = reader.getValueByKey<double>(keyBase + ".Strength");
             auto k1 = reader.getValueByKey<double>(keyBase + ".K1");
             auto k2 = reader.getValueByKey<double>(keyBase + ".K2");
-            alignment_->addSurface(Surface::ofWeakAnchoring(i, easyAngles[0], easyAngles[1], strength, k1, k2));
+
+            alignment_->addSurface(overrideVolume.has_value() ?
+                                  Surface::ofWeakAnchoring(i, easyAngles[0], easyAngles[1], strength, k1, k2, overrideVolume.value()) :
+                                  Surface::ofWeakAnchoring(i, easyAngles[0], easyAngles[1], strength, k1, k2));
+
           } else if (type == "degenerate") {
             auto strength = reader.getValueByKey<double>(keyBase + ".Strength");
             if (strength >= 0) {
-              alignment_->addSurface(Surface::ofPlanarDegenerate(i, strength));
+              alignment_->addSurface(overrideVolume.has_value() ?
+                                    Surface::ofPlanarDegenerate(i, strength, overrideVolume.value()) :
+                                    Surface::ofPlanarDegenerate(i, strength));
             } else {
-              alignment()->addSurface(Surface::ofWeakHomeotropic(i, -strength));
+              alignment()->addSurface(overrideVolume.has_value() ?
+                                    Surface::ofWeakHomeotropic(i, -strength, overrideVolume.value()) :
+                                    Surface::ofWeakHomeotropic(i, -strength));
             }
           } else if (type == "weakhomeotropic") {
             auto strength = reader.getValueByKey<double>(keyBase + ".Strength");
-            alignment_->addSurface(Surface::ofWeakHomeotropic(i, strength));
+            alignment_->addSurface(overrideVolume.has_value() ?
+                                  Surface::ofWeakHomeotropic(i, strength, overrideVolume.value()) :
+                                  Surface::ofWeakHomeotropic(i, strength));
           } else if (type == "freeze") {
-
+            alignment_->addSurface(Surface::ofFreeze(i));
           }
-
           else {
             throw ReaderError("Invalid anchoring type: " + type, fileName_.string() + ". This may be a typo in the settings file or it has not yet been implemented");
           }

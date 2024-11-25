@@ -258,7 +258,7 @@ TEST_CASE("[SteadyState] Relax elastic distortions with weak anchoring") {
   REQUIRE(R == Approx(1).margin(1e-3));
 }
 
-TEST_CASE("TODO: not completed [SteadyState] Relax elastic distortions with weak homeotropic anchoring", "[.]") {
+TEST_CASE("TODO: not completed [SteadyState] Relax elastic distortions with weak homeotropic anchoring") {
   auto lc = std::unique_ptr<LC>(LCBuilder()
                                         .K11(1e-11)
                                         .K22(1e-11)
@@ -270,7 +270,7 @@ TEST_CASE("TODO: not completed [SteadyState] Relax elastic distortions with weak
   const double easyTwistDegrees = 1;
   const double Wexpected = 1e-4;
   Alignment alignment;
-  alignment.addSurface(Surface::ofWeakHomeotropic(1, Wexpected));
+  alignment.addSurface(Surface::ofWeakHomeotropic(1, Wexpected, false));
   alignment.addSurface(Surface::ofStrongAnchoring(2, easyBottomTilt, easyTwistDegrees));
 
   auto data = setUp1DGeometry(alignment, *lc, easyTopTilt, easyBottomTilt);
@@ -279,13 +279,15 @@ TEST_CASE("TODO: not completed [SteadyState] Relax elastic distortions with weak
   Geometry &geom = *data.geom;
 
   // ACT
-  steadyStateSolve(*lc, alignment, q, v, geom, 100);
+  steadyStateSolve(*lc, alignment, q, v, geom, 21);
 
   auto topDir = findDirectorAtZ(geom, q, 1);
   Log::info("topDir={}, tilt={}, twist={}", topDir.vector(), topDir.tiltDegrees(), topDir.twistDegrees());
+
+  // TODO: add assertions
 }
 
-TEST_CASE("TODO: not completed [SteadyState] Relax elastic distortions with planar degenerate anchoring", "[.]") {
+TEST_CASE("TODO: not completed [SteadyState] Relax elastic distortions with planar degenerate anchoring") {
   auto lc = std::unique_ptr<LC>(LCBuilder()
                                         .K11(1e-11)
                                         .K22(1e-11)
@@ -297,7 +299,7 @@ TEST_CASE("TODO: not completed [SteadyState] Relax elastic distortions with plan
   const double easyTwistDegrees = 1;
   const double Wexpected = 1e-4;
   Alignment alignment;
-  alignment.addSurface(Surface::ofPlanarDegenerate(1, Wexpected));
+  alignment.addSurface(Surface::ofPlanarDegenerate(1, Wexpected, false));
   alignment.addSurface(Surface::ofStrongAnchoring(2, easyBottomTilt, easyTwistDegrees));
 
   auto data = setUp1DGeometry(alignment, *lc, easyTopTilt, easyBottomTilt);
@@ -306,10 +308,12 @@ TEST_CASE("TODO: not completed [SteadyState] Relax elastic distortions with plan
   Geometry &geom = *data.geom;
 
   // ACT
-  steadyStateSolve(*lc, alignment, q, v, geom, 100);
+  steadyStateSolve(*lc, alignment, q, v, geom, 8);
 
   auto topDir = findDirectorAtZ(geom, q, 1);
   Log::info("topDir={}, tilt={}, twist={}", topDir.vector(), topDir.tiltDegrees(), topDir.twistDegrees());
+
+  // TODO: add assertions
 }
 
 TEST_CASE("[SteadyState] Relax elastic distortions with chirality") {
@@ -329,7 +333,7 @@ TEST_CASE("[SteadyState] Relax elastic distortions with chirality") {
   const double easyTwistDegrees = 0;
   Alignment alignment;
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
-  alignment.addSurface(Surface::ofPlanarDegenerate(2, 0));
+  alignment.addSurface(Surface::ofPlanarDegenerate(2, 0, false));
 
   auto data = setUp1DGeometry(alignment, *lc, easyTopTilt, easyBottomTilt);
 

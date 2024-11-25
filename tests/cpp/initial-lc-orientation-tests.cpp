@@ -159,8 +159,7 @@ TEST_CASE("Initial LC surface orientations") {
   std::vector<idx> surfaceNodesIndex;
   geom.getTriangles().listFixLCSurfaces(surfaceNodesIndex, 1);
 
-    SECTION("Weak homeotropic anchoring") {
-      // expected to fail until weak anchoring is re-enabled
+  SECTION("Weak homeotropic anchoring") {
     alignment.addSurface(Surface::ofPlanarDegenerate(1, -1e-3));
     alignment.addSurface(Surface::ofPlanarDegenerate(2, -1e-3));
     prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
@@ -198,6 +197,26 @@ TEST_CASE("Initial LC surface orientations") {
       Vec3 surfaceNormal = geom.getNodeNormal(i);
 
       double dot = surfaceNormal.dot(d);
+
+      REQUIRE(std::abs(dot) == Approx(1).margin(MARGIN));
+      REQUIRE(director.S() == Approx(lc->S0()).margin(MARGIN));
+    }
+  }
+
+  SECTION("Strong anchoring but overrideVolumes is false") {
+    alignment.addSurface(Surface::ofStrongAnchoring(1, 90, 0, false));
+    alignment.addSurface(Surface::ofStrongAnchoring(2, 90, 0, false));
+    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    SolutionVector q(geom.getnpLC(), 5);
+    // ACT
+    initialiseLcSolutionVector(q, *simu, *lc, boxes, alignment, geom);
+
+    // ASSERT
+    // director should be [1, 0, 0] even though anchoring easy direction is defined as [0, 0, 1]
+    for (idx i: surfaceNodesIndex) {
+      auto director = q.getDirector(i);
+      Vec3 d = director.vector();
+      double dot = Vec3(1, 0, 0).dot(d);
 
       REQUIRE(std::abs(dot) == Approx(1).margin(MARGIN));
       REQUIRE(director.S() == Approx(lc->S0()).margin(MARGIN));

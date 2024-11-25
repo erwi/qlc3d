@@ -73,19 +73,40 @@ public:
             const double easyAnglesDegrees[3],
             bool overrideVolume, unsigned int fixLcNumber);
 
-    //Surface(const Surface &s);
+    /**
+     * Create a surface with strong anchoring and fixed tilt and twist angles
+     * @param fixLcNumber FIXLC number
+     * @param tiltDegrees tilt angle in degrees
+     * @param twistDegrees twist angle in degrees
+     * @param overrideVolume whether to override volumes at startup. This is set to true by default, but if set to false, this
+     * essentially "freezes" the LC orientation at the surface nodes to whatever is defined before this surface is initialised.
+     * @return Surface object
+     */
+    [[nodiscard]] static Surface ofStrongAnchoring(unsigned int fixLcNumber, double tiltDegrees, double twistDegrees,
+                                                   bool overrideVolume = true);
 
-    [[nodiscard]] static Surface ofStrongAnchoring(unsigned int fixLcNumber, double tiltDegrees, double twistDegrees);
-    [[nodiscard]] static Surface ofStrongAnchoring(unsigned int fixLcNumber, const std::string &tiltExpression, const std::string &twistExpression);
-    [[nodiscard]] static Surface ofPlanarDegenerate(unsigned int fixLcNumber, double strength);
+      /**
+    * Create a surface with strong anchoring and fixed tilt and twist angles
+    * @param fixLcNumber FIXLC number
+    * @param tiltExpression tilt angle (degrees) expression as a function of x, y, z position
+    * @param twistDegrees twist angle (degrees) expression as a function of x, y, z position
+    * @param overrideVolume whether to override volumes at startup. This is set to true by default, but if set to false, this
+    * essentially "freezes" the LC orientation at the surface nodes to whatever is defined before this surface is initialised.
+    * @return Surface object
+    */
+    [[nodiscard]] static Surface ofStrongAnchoring(unsigned int fixLcNumber, const std::string &tiltExpression, const std::string &twistExpression,
+                                                   bool overrideVolume = true);
+    [[nodiscard]] static Surface ofPlanarDegenerate(unsigned int fixLcNumber, double strength, bool overrideVolume = true);
+
     [[nodiscard]] static Surface ofStrongHomeotropic(unsigned int fixLcNumber);
-    [[nodiscard]] static Surface ofWeakHomeotropic(unsigned int fixLCNumber, double strength);
+
+    [[nodiscard]] static Surface ofWeakHomeotropic(unsigned int fixLCNumber, double strength, bool overrideVolume = true);
     /* "Freezes" whatever the LC orientation happens to be at the surface nodes */
     [[nodiscard]] static Surface ofFreeze(unsigned int fixLcNumber);
     //TODO: [[nodiscard]] static Surface ofPolymerise(unsigned int fixLcNumber);
     //TODO: [[nodiscard]] static Surface ofManualNodes(unsigned int fixLcNumber, const std::string &tiltExpression, const std::string &twistExpression);
-    [[nodiscard]] static Surface ofWeakAnchoring(unsigned int fixLcNumber,
-                                               double tiltDegrees, double twistDegrees, double strength, double k1, double k2);
+    [[nodiscard]] static Surface ofWeakAnchoring(unsigned int fixLcNumber, double tiltDegrees, double twistDegrees, double strength,
+                                                 double k1, double k2, bool overrideVolume = true);
 
   [[nodiscard]] std::string getAnchoringTypeName() const;
   [[nodiscard]] AnchoringType getAnchoringType() const;
@@ -114,8 +135,6 @@ public:
 
   friend class Alignment;
 };
-
-class Reader; // forward declaration of reader class
 
 class Alignment {
     /*! A collection of Surface objects, each representing a FIXLC surface*/
