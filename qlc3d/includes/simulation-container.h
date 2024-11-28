@@ -58,16 +58,12 @@ class SimulationContainer {
     // solution vectors
     SolutionVectors solutionVectors;
     SolutionVector q;
-    SolutionVector qn;
     SolutionVector v;
 
     // potential consistency arrays // TODO: probably never used
     std::unique_ptr<double[]> v_cons;
     std::unique_ptr<double[]> q_cons;
     std::unique_ptr<double[]> qn_cons;
-
-    // sparse matrices
-    SpaMtrix::IRCMatrix Kq;
 
     SimulationState &simulationState;
     SimulationAdaptiveTimeStep &adaptiveTimeStep;

@@ -52,7 +52,6 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
                          Geometries &geometries,
                          SolutionVectors &solutionvectors,
                          const LC &lc,
-                         SpaMtrix::IRCMatrix &Kq,
                          ResultOutput &resultOutput,
                          PotentialSolver &potentialSolver,
                          SimulationAdaptiveTimeStep &adaptiveTimeStep) {
@@ -96,8 +95,7 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
                             simulationState,
                             alignment,
                             electrodes,
-                            lc.S0(),
-                            Kq); // defined in refinementhandler.cpp
+                            lc.S0()); // defined in refinementhandler.cpp
     }
 
     // ALWAYS CALCULATE INITIAL POTENTIAL
@@ -120,7 +118,6 @@ void handleEvents(EventList &evel,
                   Geometries &geometries,
                   SolutionVectors &solutionvectors,
                   const LC &lc,
-                  SpaMtrix::IRCMatrix &Kq,
                   ResultOutput &resultOutput,
                   PotentialSolver &potentialSolver,
                   SimulationAdaptiveTimeStep &adaptiveTimeStep) {
@@ -189,8 +186,7 @@ void handleEvents(EventList &evel,
                              simulationState,
                              alignment,
                              electrodes,
-                             lc.S0(),
-                             Kq); // defined in refinementhandler.cpp
+                             lc.S0()); // defined in refinementhandler.cpp
       if (didRefineMesh) {
         potentialSolver.onGeometryChanged();
         simulationState.restrictedTimeStep(true);

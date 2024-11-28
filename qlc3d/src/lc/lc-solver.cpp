@@ -14,10 +14,11 @@
 #include <spamtrix_diagpreconditioner.hpp>
 #include <spamtrix_iterativesolvers.hpp>
 #include <spamtrix_blas.hpp>
+#include <dofmap.h>
 #include <util/logging.h>
 #include <util/exception.h>
-#include "util/stopwatch.h"
-#include "spamtrix_luincpreconditioner.hpp"
+#include <util/stopwatch.h>
+#include <spamtrix_luincpreconditioner.hpp>
 
 // <editor-fold ImplicitLCSolver>
 ImplicitLCSolver::ImplicitLCSolver(const LC &lc, const SolverSettings &solverSettings, const Alignment &alignment) : lc(lc),
@@ -173,39 +174,40 @@ void ImplicitLCSolver::assembleLocalWeakAnchoringMatrix(unsigned int indTri, dou
   }
 }
 
-void ImplicitLCSolver::addToGlobalMatrix(double* lK, double* lL, const SolutionVector &q,
+void ImplicitLCSolver::addToGlobalMatrix(double* lK, double* lL, const DofMap &dofMap,
                                          const unsigned int* elemNodes, int elemNodeCount) {
-  //const int elemNodeCount = 4;
-  idx npLC = q.getnDoF();
+  const idx npLC = dofMap.getnDof();
   for (int i = 0; i < 5 * elemNodeCount; i++) {
     idx ri = elemNodes[i % elemNodeCount] + npLC * (i / elemNodeCount);
-    idx eqr = q.getEquNode(ri);
 
-    if (eqr == NOT_AN_INDEX) { // this row is fixed, so doesn't even exist in the system
+    if (dofMap.isFixedNode(ri)) {
       continue;
     }
+    idx eqr = dofMap.getDof(ri);
 
     #pragma omp atomic
     (*L)[eqr] += lL[i];
     for (int j = 0 ; j < 5 * elemNodeCount ; j++) { // LOOP OVER COLUMNS
       idx rj = elemNodes[j % elemNodeCount] + npLC * (j / elemNodeCount);
-      idx eqc = q.getEquNode(rj);
 
       // Note: we can simply ignore fixed columns as they correspond to fixed zeroes in the RHS vector L,
       // so that their contribution to other rows in L would be zero anyway. We only set the free rows/columns
       // to the global matrix
-      if (eqc != NOT_AN_INDEX) { // it's free
-
-        double* value = K->getValuePtr(eqr, eqc);
-
-        if (value == nullptr) {
-          RUNTIME_ERROR(fmt::format("Value at row {} and column {} is not found in the matrix for LC solution", eqr, eqc));
-        }
-
-        // [i][j] = j + 5 * elemNodeCount * i
-        #pragma omp atomic
-        *value += lK[j + 5 * elemNodeCount * i];
+      if (dofMap.isFixedNode(rj)) {
+        continue;
       }
+      idx eqc = dofMap.getDof(rj);
+
+
+      double* value = K->getValuePtr(eqr, eqc);
+
+      if (value == nullptr) {
+        RUNTIME_ERROR(fmt::format("Value at row {} and column {} is not found in the matrix for LC solution", eqr, eqc));
+      }
+
+      // [i][j] = j + 5 * elemNodeCount * i
+      #pragma omp atomic
+      *value += lK[j + 5 * elemNodeCount * i];
     }
   }
 }
@@ -230,7 +232,7 @@ void ImplicitLCSolver::assembleMatrixSystemVolumeTerms(const SolutionVector &q, 
 
     GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
     assembleLocalVolumeMatrix(indTet, lK, lL, tetNodes, tetDofs, shapes, q, v, geom, params);
-    addToGlobalMatrix(&lK[0][0], lL, q, tetNodes, elementNodeCount);
+    addToGlobalMatrix(&lK[0][0], lL, q.getDofMap(), tetNodes, elementNodeCount);
   }
 }
 
@@ -264,7 +266,7 @@ void ImplicitLCSolver::assembleMatrixSystemWeakAnchoring(const SolutionVector &q
     assembleLocalWeakAnchoringMatrix(indTri, lK, lL, triNodes, triDofs, shapes, q, geom, weakSurface->second, params.S0);
     // add to global matrix
 
-    addToGlobalMatrix(&lK[0][0], lL, q, triNodes, elementNodeCount);
+    addToGlobalMatrix(&lK[0][0], lL, q.getDofMap(), triNodes, elementNodeCount);
   }
 }
 

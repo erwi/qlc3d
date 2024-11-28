@@ -138,15 +138,11 @@ void SimulationContainer::initialise() {
     // create vector for 5 * npLC Q-tensor components
     Log::info("Creating initial Q tensor");
     q = SolutionVector(geom1.getnpLC(), 5);    //  Q-tensor for current time step
-    qn = SolutionVector(geom1.getnpLC(), 5);   //  Q-tensor from previous time step
 
     initialiseLcSolutionVector(q, *simu, *lc, *boxes, alignment, geom1);
 
-    qn = q;  // q-previous = q-current in first iteration
-
     // SET CONVENIENCE POINTERS STRUCTURE
     solutionVectors.q = &q;
-    solutionVectors.qn = &qn;
     solutionVectors.v = &v;
 
     //********************************************************************
@@ -165,7 +161,6 @@ void SimulationContainer::initialise() {
                         geometries,
                         solutionVectors,
                         *lc,
-                        Kq,
                         resultOutput,
                         *potentialSolver,
                         adaptiveTimeStep);
@@ -250,7 +245,6 @@ void SimulationContainer::runIteration() {
                geometries,
                solutionVectors,
                *lc,
-               Kq,
                resultOutput,
                *potentialSolver,
                adaptiveTimeStep);

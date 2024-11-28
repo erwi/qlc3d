@@ -6,10 +6,12 @@
 #include <spamtrix_ircmatrix.hpp>
 #include <spamtrix_matrixmaker.hpp>
 #include <util/logging.h>
+#include <dofmap.h>
+
 using namespace std;
 
 void setupSingleBlock(const Geometry &geom,
-                      const SolutionVector &sol,
+                      const DofMap &dofMap,
                       const idx &MatNum,
                       SpaMtrix::MatrixMaker &mm){
     // BOOK-KEEPING OF EQU-NODES
@@ -32,19 +34,19 @@ void setupSingleBlock(const Geometry &geom,
 
         // CONVERT TO EQU NODES FOR THIS ELEMENT
         for (idx i = 0 ; i < npt ;++i){
-            eqn[i] = sol.getEquNode( nn[i] );
+            eqn[i] = dofMap.getDof(nn[i]);
         }
 
         // ADD EQU NODES TO MATRIX
         for (idx i = 0 ; i < npt ; ++i){
             // IGNORE FIXED NODES
-            if ( eqn[i] == NOT_AN_INDEX ){
+            if ( eqn[i] == DofMap::NOT_DOF) {
                 continue;
             }
 
             mm.addNonZero(eqn[i],eqn[i]); // DIAGONAL i,i
-            for (idx j = i+1 ; j < npt ; ++j ){
-                if (eqn[j] == NOT_AN_INDEX){ // IGNORE FIXED NODES
+            for (idx j = i+1 ; j < npt ; ++j ) {
+                if (eqn[j] == DofMap::NOT_DOF) { // IGNORE FIXED NODES
                     continue;
                 }
                 mm.addNonZero(eqn[i], eqn[j]);
@@ -65,7 +67,7 @@ SpaMtrix::IRCMatrix createPotentialMatrix(Geometry &geom,
 
     const idx N = sol.getnFreeNodes();
     SpaMtrix::MatrixMaker mm(N,N);
-    setupSingleBlock(geom, sol, MatNum, mm);
+    setupSingleBlock(geom, sol.getDofMap(), MatNum, mm);
     idx nnz = mm.calcNumNonZeros();
     Log::info("Created sparse matrix of size {}x{}, with {} non-zeros for potential solver.", N, N, nnz);
 
@@ -77,7 +79,7 @@ std::unique_ptr<SpaMtrix::IRCMatrix> createQMatrix(const Geometry &geom,
                                                    const int& materialNumber) {
   SpaMtrix::MatrixMaker mm(q.getnFreeNodes(),q.getnFreeNodes());
   const idx N = q.getnFreeNodes() * 5;
-  setupSingleBlock(geom, q, materialNumber, mm);  // CREATE SPARSITY PATTERN FOR COMPONENT q1
+  setupSingleBlock(geom, q.getDofMap(), materialNumber, mm);  // CREATE SPARSITY PATTERN FOR COMPONENT q1
   mm.expandBlocks(4);                     // EXPAND SPARSITY PATTERN FOR q2->q5 COMPONENTS
   idx nnz = mm.calcNumNonZeros();
   Log::info("Created sparse matrix of size {}x{}, with {} non-zeros for Q-tensor solver.", N, N, nnz);
@@ -89,7 +91,7 @@ std::unique_ptr<SpaMtrix::IRCMatrix> createQMassMatrix(const Geometry &geom,
                                                        const SolutionVector &q,
                                                        const int& materialNumber) {
   SpaMtrix::MatrixMaker mm(q.getnFreeNodes(),q.getnFreeNodes());
-  setupSingleBlock(geom, q, materialNumber, mm); // Create sparsity pattern for q1 only
+  setupSingleBlock(geom, q.getDofMap(), materialNumber, mm); // Create sparsity pattern for q1 only
   mm.expandDiagonal(5);                       // Expand sparsity pattern for q2->q5 components along diagonal
   idx nnz = mm.calcNumNonZeros();
   SpaMtrix::IRCMatrix* massMatrix = mm.newIRCMatrix();
@@ -105,7 +107,7 @@ SpaMtrix::IRCMatrix createQMatrix(Geometry &geom,
                                   const int &MatNum) {
     SpaMtrix::MatrixMaker mm(q.getnFreeNodes(),q.getnFreeNodes());
     const idx N = q.getnFreeNodes() * 5;
-    setupSingleBlock(geom, q, MatNum, mm);  // CREATE SPARSITY PATTERN FOR COMPONENT q1
+    setupSingleBlock(geom, q.getDofMap(), MatNum, mm);  // CREATE SPARSITY PATTERN FOR COMPONENT q1
     mm.expandBlocks(4);                     // EXPAND SPARSITY PATTERN FOR q2->q5 COMPONENTS
     idx nnz = mm.calcNumNonZeros();
     Log::info("Created sparse matrix of size {}x{}, with {} non-zeros for Q-tensor solver.", N, N, nnz);

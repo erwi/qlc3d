@@ -29,9 +29,8 @@ struct Geometries {
 
 struct SolutionVectors {
     SolutionVector *q;      // CURRENT Q-TENSOR
-    SolutionVector *qn;     // PREVIOUS Q-TENSOR
     SolutionVector *v;      // POTENTIAL
-    SolutionVectors(): q(NULL), qn(NULL), v(NULL) {}
+    SolutionVectors(): q(NULL), v(NULL) {}
 };
 
 void handleInitialEvents(SimulationState &simulationState,
@@ -42,7 +41,6 @@ void handleInitialEvents(SimulationState &simulationState,
                          Geometries &geometries,
                          SolutionVectors &solutionvectors,
                          const LC &lc,
-                         SpaMtrix::IRCMatrix &Kq,
                          ResultOutput &resultOutput,
                          PotentialSolver &potentialSolver,
                          SimulationAdaptiveTimeStep &simulationAdaptiveTimeStep);
@@ -55,7 +53,6 @@ void handleEvents(EventList &evel,
                   Geometries &geometries,
                   SolutionVectors &solutionvectors,
                   const LC &lc,
-                  SpaMtrix::IRCMatrix &Kq,
                   ResultOutput &resultOutput,
                   PotentialSolver &potentialSolver,
                   SimulationAdaptiveTimeStep &adaptiveTimeStep);
@@ -68,8 +65,7 @@ bool handleMeshRefinement(std::list<Event *> &refEvents,
                           SimulationState &simulationState,
                           Alignment &alignment,
                           Electrodes &electrodes,
-                          double S0,
-                          SpaMtrix::IRCMatrix &Kq);
+                          double S0);
 
 void handlePreRefinement(std::list<Event *> &refEvents,
                          Geometries &geometries,
@@ -78,6 +74,5 @@ void handlePreRefinement(std::list<Event *> &refEvents,
                          SimulationState &simulationState,
                          Alignment &alignment,
                          Electrodes &electrodes,
-                         double S0,
-                         SpaMtrix::IRCMatrix &Kq);
+                         double S0);
 #endif // EVENTHANDLER_H

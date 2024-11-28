@@ -155,7 +155,6 @@ idx getMaxRefiterCount(const list<RefInfo> &refInfos) {
 bool autoref(Geometry &geom_orig,
              Geometry &geom,
              SolutionVector &q,
-             SolutionVector &qn,
              SolutionVector &v,
              const list<RefInfo> &refInfos,
              Simu &simu,
@@ -214,18 +213,18 @@ bool autoref(Geometry &geom_orig,
                               simu.getRegularGridZCount());
     // RECREATE POTENTIAL SOLUTIONVECTOR FROM SCRATCH FOR THE NEW GEOMETRY.
     v.Resize(geom_temp.getnp() , 1);
-  v.initialisePotentialBoundaries(geom_temp, electrodes.getCurrentPotentials(simulationState.currentTime().getTime()));
+    v.initialisePotentialBoundaries(geom_temp, electrodes.getCurrentPotentials(simulationState.currentTime().getTime()));
 
     // REALLOCATE Q-TENSOR
-    qn = q; // temp swap
+    SolutionVector qTemp(q.getnDoF(), 5);
+    qTemp = q; // temp swap
     q.Resize(geom_temp.getnpLC(), 5);       // ALLOCATE FOR NEW MESH SIZE
-    interpolate(q, geom_temp, qn, geom);    // INTERPOLATE FROM PREVIOUS MESH
+    interpolate(q, geom_temp, qTemp, geom);    // INTERPOLATE FROM PREVIOUS MESH
     // SET BOUNDARY CONDITIONS
     setStrongSurfacesQ(q, alignment, S0, geom_temp);
-  q.initialiseLcBoundaries(geom_temp, alignment);
+    q.initialiseLcBoundaries(geom_temp, alignment);
 
     q.EnforceEquNodes(geom_temp);
-    qn = q;                                     // USE CURRENT Q FOR PREVIOUS TIME STEP Q-TENSOR
     geom.setTo(&geom_temp);
     // NEW MESH FILE NEEDS TO BE WRITTEN WHEN RESULTS ARE OUTPUT
     // LET REST OF PROGRAM KNOW THAT GEOMETRY HAS BEEN MODIFIED

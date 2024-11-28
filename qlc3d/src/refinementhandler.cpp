@@ -14,8 +14,7 @@ bool handleMeshRefinement(std::list<Event*>& refEvents,
                           SimulationState &simulationState,
                           Alignment& alignment,
                           Electrodes& electrodes,
-                          double S0,
-                          SpaMtrix::IRCMatrix &Kq) {
+                          double S0) {
     Log::info("Doing {} mesh refinements.", refEvents.size());
 
     // MAKE LIST OF ALL REFINFO OBJECTS THAT ARE HANDLES NOW
@@ -32,7 +31,6 @@ bool handleMeshRefinement(std::list<Event*>& refEvents,
     isRefined = autoref(*geometries.geom_orig,
             *geometries.geom,
             *solutionvectors.q,
-            *solutionvectors.qn,
             *solutionvectors.v,
             refInfos,
             simu,
@@ -45,12 +43,6 @@ bool handleMeshRefinement(std::list<Event*>& refEvents,
     for (evitr = refEvents.begin() ; evitr != refEvents.end() ; ++evitr){
         delete (*evitr);
     }
-    // IF MESH HAS BEEN REFINED NEED TO RECREATE MATRIXES
-    // FOR Q-TENSOR AND POTENTIAL
-    if (isRefined){
-        Log::info("Creating new matrix for potential Q-tensor solutions.");
-        Kq = createQMatrix(*geometries.geom, *solutionvectors.q);
-    }
     return isRefined;
 }
 
@@ -62,8 +54,7 @@ void handlePreRefinement(std::list<Event*>& refEvents,
                          SimulationState &simulationState,
                          Alignment& alignment,
                          Electrodes& electrodes,
-                         double S0,
-                         SpaMtrix::IRCMatrix &Kq)
+                         double S0)
 {
 // PRE REFINMENT MODIFICATIONS TO THE MESH CARRY THROUGH THE
 // REST OF THE SIMULATION. THAT IS, THE INITIAL GEOMETRY IS
@@ -78,8 +69,7 @@ void handlePreRefinement(std::list<Event*>& refEvents,
                          simulationState,
                          alignment,
                          electrodes,
-                         S0,
-                         Kq);
+                         S0);
     // "ORIGINAL" MESH IS MODIFIED
     geometries.geom_orig->setTo( geometries.geom );
 

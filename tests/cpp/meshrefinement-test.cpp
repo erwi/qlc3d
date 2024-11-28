@@ -33,7 +33,6 @@ TEST_CASE("mesh refinement") {
 
     unsigned int npLC = originalGeometry.getnpLC();
     SolutionVector qCurrent(npLC, 5);
-    SolutionVector qPrevious(npLC, 5);
     SolutionVector potential(npLC, 1);
 
     // refinement region is a single spherical volume
@@ -44,7 +43,7 @@ TEST_CASE("mesh refinement") {
     double S0 = 0.5;
 
     // ACT - run mesh refinement
-    autoref(originalGeometry, workingGeometry, qCurrent, qPrevious, potential, refInfos, *simu, simulationState, alignment, electrodes, S0);
+    autoref(originalGeometry, workingGeometry, qCurrent, potential, refInfos, *simu, simulationState, alignment, electrodes, S0);
 
     // ASSERT
     // check new refined mesh size

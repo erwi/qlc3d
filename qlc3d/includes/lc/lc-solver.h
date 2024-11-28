@@ -11,6 +11,7 @@ class SolutionVector;
 class Geometry;
 class SimulationState;
 class Alignment;
+class DofMap;
 
 namespace SpaMtrix {
   class IRCMatrix;
@@ -27,7 +28,6 @@ struct ElapsedTimes {
   const double solveTimeSeconds;
 };
 
-
 struct LCSolverResult {
   const LCSolverType solverType;
   const int iterations;
@@ -36,7 +36,6 @@ struct LCSolverResult {
   const bool maxIterationsReached;
   const ElapsedTimes elapsedTimes;
 };
-
 
 struct LCSolverParams {
   const double A;
@@ -111,11 +110,11 @@ protected:
    * Assemble the global matrix system from the local element matrices.
    * @param lK local element matrix. The size of the matrix is 20x20 and 15x15 for 1st order tets and tris.
    * @param lL local elemnt RHS vector. The size is 20 and 15 for 1st order tets and tris.
-   * @param q Q-tensor. Required only for its equivalent DoF mappings.
+   * @param dofMap DofMap for Q-tensor.
    * @param elemNodes tet or triangle element nodes. Size is elemNodeCount.
    * @param elemNodeCount number of nodes in the current element
    */
-  void addToGlobalMatrix(double* lK, double* lL, const SolutionVector &q,
+  void addToGlobalMatrix(double* lK, double* lL, const DofMap &dofMap,
                          const unsigned int* elemNodes, int elemNodeCount);
   void assembleMatrixSystemVolumeTerms(const SolutionVector &q, const SolutionVector &v, const Geometry &geom, const LCSolverParams &params);
   void assembleMatrixSystemWeakAnchoring(const SolutionVector &q, const Geometry &geom, const LCSolverParams &params);

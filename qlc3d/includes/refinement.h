@@ -93,7 +93,6 @@ void create_new_elements(   Geometry& geom,    // refinable geom
 bool autoref(Geometry& geom_orig,
              Geometry& geom_new,
              SolutionVector& q,
-             SolutionVector& qn,
              SolutionVector& v,
              const list<RefInfo>& refInfos,
              Simu& simu,
