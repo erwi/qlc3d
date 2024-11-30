@@ -3,21 +3,9 @@
 #include <algorithm>
 #include <lc-representation.h>
 #include <util/exception.h>
-#include <util/logging.h>
 #include <util/hash.h>
 #include <dofmap.h>
-
-// HACK DECLARATION OF TENSORTOVECTOR, NEEDED FOR FIXING POLYMERISED NODES
-//
-double *tensortovector(double *a, int npLC);
-
-SolutionVector::~SolutionVector() {
-    fixedNodes.clear();
-}
-//void SolutionVector::ClearFixed() {
-    //setnFixed(0);
-    //fixedNodes.clear();
-//}
+#include <unordered_set>
 
 SolutionVector &SolutionVector::operator=(const SolutionVector &r) {
     if (this == &r)
@@ -73,48 +61,50 @@ void SolutionVector::ClearAll() {
     nDoF = 0;
     nDimensions = 0;
     values.clear();
-    fixedNodes.clear();
     dofMap.reset();
 }
 
 void SolutionVector::initialiseLcBoundaries(const Geometry &geom, const Alignment &alignment) {
-  std::unordered_map<unsigned int, double> fixedQByNodeNumber;
   auto &triangles = geom.getTriangles();
+  std::unordered_set<unsigned int> allFixedNodes;
   for (auto &a : alignment.surface) {
     if (!a.isStrong()) {
       continue;
     }
 
-    auto fixLCNumber = a.getFixLCNumber();
-    auto surfaceNodes = triangles.listFixLCSurfaceNodes(fixLCNumber);
-
-    for (auto &i : surfaceNodes) {
-      fixedQByNodeNumber[i] = getValue(i, 0); // q1
-      fixedQByNodeNumber[i + getnDoF()] = getValue(i, 1); // q2
-      fixedQByNodeNumber[i + 2 * getnDoF()] = getValue(i, 2); // q3
-      fixedQByNodeNumber[i + 3 * getnDoF()] = getValue(i, 3); // q4
-      fixedQByNodeNumber[i + 4 * getnDoF()] = getValue(i, 4); // q5
-    }
+    auto surfaceNodes = triangles.listFixLCSurfaceNodes(a.getFixLCNumber());
+    allFixedNodes.insert(surfaceNodes.begin(), surfaceNodes.end());
   }
 
-  fixedNodes.setFixedNodesAndValues(fixedQByNodeNumber);
-
   dofMap = std::make_unique<DofMap>(nDoF, nDimensions);
-  dofMap->calculateMapping(geom, fixedNodes);
+  dofMap->calculateMapping(geom, allFixedNodes);
+  numFixedNodes = allFixedNodes.size();
 }
 
 void SolutionVector::initialisePotentialBoundaries(const Geometry &geom,
                                                    const std::unordered_map<unsigned int, double> &potentialByElectrode) {
-  fixedNodes.setFixedNodesPot(geom.getTriangles(), potentialByElectrode);
 
-  auto &fn = fixedNodes.getFixedValueByNodeIndex();
+  if (potentialByElectrode.empty()) { //
+    numFixedNodes = 0;
+    dofMap = std::make_unique<DofMap>(nDoF, nDimensions);
+    dofMap->calculateMapping(geom, {});
+    return;
+  }
 
-  for (auto & [nodeIndex, potential] : fn) {
-    values[nodeIndex] = potential;
+  std::unordered_set<unsigned int> allFixedNodes;
+  for (auto& [electrodeNumber, potential] : potentialByElectrode) {
+    set<unsigned int> nodeIndices = geom.getTriangles().findElectrodeSurfaceNodes(electrodeNumber);
+
+    for (auto &n : nodeIndices) {
+      setValue(n, 0, potential);
+    }
+
+    allFixedNodes.insert(nodeIndices.begin(), nodeIndices.end());
   }
 
   dofMap = std::make_unique<DofMap>(nDoF, nDimensions);
-  dofMap->calculateMapping(geom, fixedNodes);
+  dofMap->calculateMapping(geom, allFixedNodes);
+  numFixedNodes = allFixedNodes.size();
 }
 
 void SolutionVector::setValue(const idx n,
@@ -186,6 +176,13 @@ void SolutionVector::loadEquNodes(const idx* start, const idx* end, idx* equNode
   for (idx* i = const_cast<idx *>(start); i != end; ++i) {
     equNodesOut[i - start] = getEquNode(*i);
   }
+}
+
+const DofMap& SolutionVector::getDofMap() const {
+  if (dofMap == nullptr) {
+    RUNTIME_ERROR("DofMap not initialised");
+  }
+  return *dofMap;
 }
 
 qlc3d::Director SolutionVector::getDirector(idx i) const {

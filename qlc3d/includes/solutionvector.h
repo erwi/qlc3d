@@ -10,7 +10,6 @@
 #include <geometry.h>
 #include <globals.h>
 #include <cassert>
-#include <fixednodes.h>
 #include <dofmap.h>
 
 using std::vector;
@@ -47,16 +46,13 @@ private:
   /** Number of degrees of freedom per dimension, including fixed and periodic nodes. */
   idx nDoF;		// number of degrees of freedom per dimension
   idx nDimensions; // number of dofs per node. e.g potential = 1, Q = 5
-
+  unsigned int numFixedNodes;
   /** Number of independent degrees of freedom per dimension. Fixed nodes an periodic nodes are not counted. */
     //idx nFreeNodes; // number of independent degrees of freedom = nDoF - # number of nodes eliminated as periodic
     std::vector<double> values;
-
-    FixedNodes fixedNodes;
     std::unique_ptr<DofMap> dofMap;
 
 public:
-    ~SolutionVector();
     SolutionVector();
 
     /**
@@ -73,12 +69,11 @@ public:
     /** Number of independent degrees of freedom per dimension. Fixed nodes an periodic nodes are not counted. */
     [[nodiscard]] inline idx getnFreeNodes()const {return dofMap->getnFreeNodes(); }//nFreeNodes;} // nDof - periodic nodes
     /** Number of fixed nodes per dimension. */
-    [[nodiscard]] inline idx getnFixed() const { return fixedNodes.getnFixedNodes(); } //nFixed; }
+    [[nodiscard]] inline idx getnFixed() const { return numFixedNodes; }
     [[nodiscard]] inline idx getnDimensions() const { return nDimensions; }
     /** returns equivalent node to n (for periodic surfaces etc.) or max value (NOT_AN_INDEX) if node is fixed */
     [[nodiscard]] inline idx getEquNode(const idx n) const { return dofMap->getDof(n); }
-    [[nodiscard]] const DofMap &getDofMap() const { return *dofMap; }
-    [[nodiscard]] const FixedNodes &getFixedNodes() const { return fixedNodes; }
+    [[nodiscard]] const DofMap &getDofMap() const;
     void loadEquNodes(const idx *start, const idx *end, idx *equNodesOut) const;
 
     /** raw array access to values, ignores dimensions */

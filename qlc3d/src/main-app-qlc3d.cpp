@@ -50,7 +50,7 @@ int runSimulation(Configuration &configuration) {
     auto solverSettings = configuration.getSolverSettings();
 
     ResultOutput resultOutput(simu->getSaveFormat(), simu->meshName(), lc->S0(), simu->getSaveDirAbsolutePath());
-    std::shared_ptr<PotentialSolver> potentialSolver = std::make_shared<PotentialSolver>(electrodes, lc, solverSettings);
+    std::shared_ptr<PotentialSolver> potentialSolver = std::make_shared<PotentialSolver>(*electrodes, lc, solverSettings);
 
     unique_ptr<ILCSolver> lcSolver = simu->simulationMode() == SteadyState ?
                                      unique_ptr<ILCSolver>(new SteadyStateLCSolver(*lc, *solverSettings, *configuration.getAlignment())) :

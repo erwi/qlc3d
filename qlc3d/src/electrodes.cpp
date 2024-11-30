@@ -72,12 +72,31 @@ Electrodes::Electrodes() {
     eps_dielectric.push_back(1.0);
 }
 
-std::shared_ptr<Electrodes> Electrodes::withInitialPotentials(std::vector<unsigned int> electrodeNumber, std::vector<double> potential) {
+Electrodes::Electrodes(std::vector<std::shared_ptr<Electrode>> electrodes) {
+  this->electricField = nullptr;
+  for (auto e : electrodes) {
+    electrodeMap[e->getElectrodeNumber()] = e;
+  }
+}
+
+Electrodes::Electrodes(const Vec3 &electricField) {
+  this->electricField = std::make_unique<Vec3>(electricField);
+}
+
+Electrodes Electrodes::withConstantElectricField(const Vec3 &electricField) {
+  return Electrodes(electricField);
+}
+
+Electrodes Electrodes::withElectrodePotentials(std::vector<std::shared_ptr<Electrode>> electrodes) {
+  return Electrodes(electrodes);
+}
+
+Electrodes Electrodes::withInitialPotentials(const std::vector<unsigned int> &electrodeNumber, const std::vector<double> &potential) {
   std::vector<std::shared_ptr<Electrode>> electrodes;
   for (unsigned int i = 0; i < electrodeNumber.size(); i++) {
     electrodes.emplace_back(std::shared_ptr<Electrode>(new Electrode(electrodeNumber[i], {0}, {potential[i]})));
   }
-  return std::make_shared<Electrodes>(electrodes);
+  return withElectrodePotentials(electrodes);
 }
 
 double Electrodes:: getDielectricPermittivity(int i) const {
@@ -117,12 +136,12 @@ Vec3 Electrodes::getElectricField() const {
     return {electricField->x(), electricField->y(), electricField->z()};
 }
 
-void Electrodes::setElectricField(const Vec3 &eField) {
-    electricField = std::make_shared<Vec3>(eField);
-}
-
 std::unordered_map<unsigned int, double> Electrodes::getCurrentPotentials(double currentTime) const {
   std::unordered_map<unsigned int, double> currentPotentials;
+
+  if (hasElectricField()) { // return empty electrode potentials if a field is defined
+    return currentPotentials;
+  }
 
   for (auto &e : electrodeMap) {
     currentPotentials[e.first] = e.second->getPotentialAtTime(currentTime);

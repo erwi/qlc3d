@@ -14,7 +14,7 @@
 #include <qlc3d.h>
 
 TEST_CASE("Create solver") {
-  auto electrodes = std::make_shared<Electrodes>();
+  Electrodes electrodes;
   auto lc = std::shared_ptr<LC>(LCBuilder().build());
   auto settings = std::make_shared<SolverSettings>();
   PotentialSolver solver(electrodes, lc, settings);
@@ -31,10 +31,10 @@ TEST_CASE("Solve potential 1D mesh - Expect v = z") {
   auto alignment = Alignment();
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
 
   SolutionVector v(geom.getnp(), 1);
-  v.initialisePotentialBoundaries(geom, electrodes->getCurrentPotentials(0));
+  v.initialisePotentialBoundaries(geom, electrodes.getCurrentPotentials(0));
 
   // Set LC director to uniform vertical direction
   SolutionVector q(geom.getnpLC(), 5);
@@ -73,10 +73,10 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
 
-  prepareGeometry(geom, TestUtil::RESOURCE_PSEUDO_2D_NEUMANN_GMSH_MESH, *electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_PSEUDO_2D_NEUMANN_GMSH_MESH, electrodes, alignment, {1, 1, 1});
 
   SolutionVector v(geom.getnp(), 1);
-  v.initialisePotentialBoundaries(geom, electrodes->getCurrentPotentials(0));
+  v.initialisePotentialBoundaries(geom, electrodes.getCurrentPotentials(0));
 
   // Set LC director to uniform 45 degree tilt angle
   SolutionVector q(geom.getnpLC(), 5);
@@ -112,17 +112,18 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
 TEST_CASE("Set uniform Electric field along z-axis") {
   // ARRANGE: minimal set-up required. Presence of electric field in electrodes is sufficient.
   Geometry geom;
-  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
-  electrodes->setElectricField({0, 0, 1});
+  Electrodes electrodes = Electrodes::withConstantElectricField({0, 0, 1});
   Alignment alignment;
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
 
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
   auto lc = std::shared_ptr<LC>(LCBuilder().build());
   auto solverSettings = std::make_shared<SolverSettings>();
 
   SolutionVector v(geom.getnp(), 1);
+  v.initialisePotentialBoundaries(geom, electrodes.getCurrentPotentials(0));
+
   SolutionVector q(geom.getnpLC(), 5);
 
   PotentialSolver solver(electrodes, lc, solverSettings);
@@ -144,14 +145,14 @@ TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries")
   // ARRANGE:
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
-  electrodes->setDielectricPermittivities({1});
+  electrodes.setDielectricPermittivities({1});
   Alignment alignment;
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_GMSH_MESH, *electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_GMSH_MESH, electrodes, alignment, {1, 1, 1});
 
   SolutionVector v(geom.getnp(), 1);
-  v.initialisePotentialBoundaries(geom, electrodes->getCurrentPotentials(0));
+  v.initialisePotentialBoundaries(geom, electrodes.getCurrentPotentials(0));
 
   // Set LC director to uniform 45 degree tilt angle
   SolutionVector q(geom.getnpLC(), 5);
@@ -218,14 +219,14 @@ TEST_CASE("Convenience debugging set-up, not a test!") {
   auto path = std::filesystem::path("/home/eero/projects/lcprojects/meshes/lcos0.msh");
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2, 3, 4, 5, 6}, {5, 0, 0, 0, 0, 0});
-  electrodes->setDielectricPermittivities({1});
+  electrodes.setDielectricPermittivities({1});
 
   Alignment alignment;
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
-  prepareGeometry(geom, path, *electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, path, electrodes, alignment, {1, 1, 1});
 
   SolutionVector v(geom.getnp(), 1);
-  v.initialisePotentialBoundaries(geom, electrodes->getCurrentPotentials(0));
+  v.initialisePotentialBoundaries(geom, electrodes.getCurrentPotentials(0));
 
   // Set LC director to uniform 45 degree tilt angle
   SolutionVector q(geom.getnpLC(), 5);

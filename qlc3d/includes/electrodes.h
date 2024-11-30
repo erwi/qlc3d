@@ -1,6 +1,6 @@
 #ifndef ELECTRODES_H
 #define ELECTRODES_H
-#include <stdlib.h>
+#include <cstdlib>
 #include <utility>
 #include <vector>
 #include <unordered_map>
@@ -11,8 +11,9 @@
 #include <eventlist.h>
 #include <limits>
 #include <memory>
+#include <geom/vec3.h>
 
-class Vec3;
+
 class Event;
 
 class SwitchingInstance {
@@ -51,25 +52,22 @@ private:
   std::vector<double> currentElectrodePotentials;    // keeps current potential values for each electrode
 
   std::unordered_map<unsigned int, std::shared_ptr<Electrode>> electrodeMap;
-  std::shared_ptr<Vec3> electricField; // optional uniform electric field
+  std::unique_ptr<Vec3> electricField; // optional uniform electric field
   std::vector<double> eps_dielectric; // relative dielectric permittivity of dielectric regions
+  explicit Electrodes(const Vec3 &electricField);
+  explicit Electrodes(std::vector<std::shared_ptr<Electrode>> electrodes);
 public:
+  Electrodes();
 
-    Electrodes();
-    Electrodes(std::vector<std::shared_ptr<Electrode>> electrodes, std::shared_ptr<Vec3> electricField = nullptr) {
-      this->electricField = electricField;
-      for (auto e : electrodes) {
-        electrodeMap[e->getElectrodeNumber()] = e;
-      }
-    }
-
-    static std::shared_ptr<Electrodes> withInitialPotentials(std::vector<unsigned int> electrodeNumber, std::vector<double> potential);
+  static Electrodes withConstantElectricField(const Vec3 &electricField);
+  static Electrodes withElectrodePotentials(std::vector<std::shared_ptr<Electrode>> electrodes);
+  static Electrodes withInitialPotentials(const std::vector<unsigned int> &electrodeNumber, const std::vector<double> &potential);
 
     /**
      * return electrode with given number. This is Not 0 based, i.e. electrode 1 is the first one, as de
      * fined in material numbers
      */
-    [[nodiscard]] std::shared_ptr<Electrode> getElectrode(unsigned int electrode) const;
+    //[[nodiscard]] std::shared_ptr<Electrode> getElectrode(unsigned int electrode) const;
 
     double getDielectricPermittivity(int i) const;  // gets relative dielectric permittivity of dielectric#i
     void setDielectricPermittivities(std::vector<double> eps);
@@ -77,7 +75,6 @@ public:
     bool isPotentialCalculationRequired() const;
     bool hasElectricField() const;              // returns true if uniform E-field has been defined
     [[nodiscard]] Vec3 getElectricField() const;
-    void setElectricField(const Vec3 &eField);
 
     [[nodiscard]] std::unordered_map<unsigned int, double> getCurrentPotentials(double currentTime) const;
     /** Create list of all electrode switching events */

@@ -12,15 +12,13 @@ DofMap::DofMap(const DofMap &other) : dofs(other.dofs) {
 
 }
 
-void DofMap::calculateMapping(const Geometry &geom, const FixedNodes &fixedNodes) {
+void DofMap::calculateMapping(const Geometry &geom, const std::unordered_set<unsigned int> &fixedNodes) {
   // TODO: rewrite this
 // IF NO PERIODIC NODES PRESENT, DON'T GENERATE EQUIVALENT NODES INDEXES
   if (!geom.getleft_right_is_periodic() &&
       !geom.gettop_bottom_is_periodic() &&
       !geom.getfront_back_is_periodic() &&
-      //(this->nFixed == 0) &&
-      fixedNodes.getnFixedNodes() == 0
-          ) {
+      fixedNodes.empty()) {
     return; // no periodic boundaries, can return
   }
 
@@ -36,7 +34,7 @@ void DofMap::calculateMapping(const Geometry &geom, const FixedNodes &fixedNodes
   // MARK FIXED NODES. THSE WILL BE LATER ON REMOVED FROM
   // FREE DEGREES OF FREEDOM
   for (idx i = 0 ; i < nDof ; i++) {
-    if (fixedNodes.isFixedNode(i)) {
+    if (fixedNodes.find(i) != fixedNodes.end()) {
       elimt.at(i) = NOT_DOF;
     }
   }

@@ -1,7 +1,6 @@
 #include <catch.h>
 #include <test-util.h>
 #include <geometry.h>
-#include <geom/vec3.h>
 #include <inits.h>
 #include <simu.h>
 #include <electrodes.h>
@@ -23,8 +22,8 @@ TEST_CASE("mesh refinement") {
     electrodesVec.emplace_back(std::shared_ptr<Electrode>(new Electrode(1, {0}, {0})));
     electrodesVec.emplace_back(std::shared_ptr<Electrode>(new Electrode(2, {0}, {0})));
 
-     // Mesh contains two electrodes. This fakes them being defined in the settings file
-    Electrodes electrodes(electrodesVec, nullptr);
+    // Mesh contains two electrodes. This fakes them being defined in the settings file
+    Electrodes electrodes = Electrodes::withElectrodePotentials(electrodesVec);
 
     // reads and prepares test-mesh from resource file
     prepareGeometry(originalGeometry, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});

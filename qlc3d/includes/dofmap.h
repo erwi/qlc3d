@@ -2,6 +2,7 @@
 #define PROJECT_QLC3D_DOFMAP_H
 #include <vector>
 #include <limits>
+#include <unordered_set>
 
 class Geometry;
 class FixedNodes;
@@ -20,7 +21,7 @@ public:
   DofMap(const std::vector<unsigned int> map);
   DofMap(const DofMap &other);
 
-  void calculateMapping(const Geometry &geom, const FixedNodes &fixedNodules);
+  void calculateMapping(const Geometry &geom, const std::unordered_set<unsigned int> &fixedNodes);
 
   [[nodiscard]] unsigned int getDof(unsigned int index) const { return dofs[index]; }
   [[nodiscard]] bool isFixedNode(unsigned int index) const { return dofs[index] == NOT_DOF; }

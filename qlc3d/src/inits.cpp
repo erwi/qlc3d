@@ -41,7 +41,11 @@ void validateTriangleMaterials(const std::vector<idx> &triMaterials, const Elect
             RUNTIME_ERROR(fmt::format("Triangle {}, invalid FixLC number {} > 9", i, m));
         }
         else if (eNum > electrodes.getnElectrodes()) {
-            RUNTIME_ERROR(fmt::format("Triangle {} has electrode number {} but only {} electrode(s) have been defined.", i, eNum, electrodes.getnElectrodes()));
+          if (!electrodes.hasElectricField()) { // if no fixed electric field, the electrode must be properly defined
+            RUNTIME_ERROR(
+                    fmt::format("Triangle {} has electrode number {} but only {} electrode(s) have been defined.", i,
+                                eNum, electrodes.getnElectrodes()));
+          }
         }
 
         // If alignment surface material, check alignment has been defined for it

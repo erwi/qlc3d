@@ -64,7 +64,7 @@ TEST_CASE("Initialise mesh refinement events") {
       el.push_back(electrode1);
       el.push_back(electrode2);
 
-      Electrodes electrodes(el, nullptr);
+      Electrodes electrodes = Electrodes::withElectrodePotentials(el);
 
       createElectrodeSwitchingEvents(electrodes, eventList);
 

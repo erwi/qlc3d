@@ -27,10 +27,10 @@ struct TestData {
 TestData setUp1DGeometry(Alignment &alignmentIn, const LC &lc, double easyTopTilt, double easyBottomTilt) {
   auto *geom = new Geometry();
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {0, 0});
-  prepareGeometry(*geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, alignmentIn, {1, 1, 1});
+  prepareGeometry(*geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignmentIn, {1, 1, 1});
 
   auto *v = new SolutionVector(geom->getnp(), 1);
-  v->initialisePotentialBoundaries(*geom, electrodes->getCurrentPotentials(0));
+  v->initialisePotentialBoundaries(*geom, electrodes.getCurrentPotentials(0));
 
   auto* q = new SolutionVector(geom->getnpLC(), 5);
 
@@ -131,10 +131,10 @@ TEST_CASE("[SteadyState] Relax elastic distortions with strong anchoring") {
   alignment.addSurface(Surface::ofStrongAnchoring(1, topTilt, twistDegrees));
   alignment.addSurface(Surface::ofStrongAnchoring(2, bottomTilt, twistDegrees));
 
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
 
   SolutionVector v(geom.getnp(), 1);
-  v.initialisePotentialBoundaries(geom, electrodes->getCurrentPotentials(0));
+  v.initialisePotentialBoundaries(geom, electrodes.getCurrentPotentials(0));
 
   SolutionVector q(geom.getnpLC(), 5);
 
@@ -332,11 +332,11 @@ TEST_CASE("[SteadyState] Relax elastic distortions with chirality") {
 
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {0, 0});
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
 
   // No potential applied
   auto v = SolutionVector(geom.getnp(), 1);
-  v.initialisePotentialBoundaries(geom, electrodes->getCurrentPotentials(0));
+  v.initialisePotentialBoundaries(geom, electrodes.getCurrentPotentials(0));
 
   // Set up initial q-tensor configuration with 2 * PI twist over 1 micron pitch
   auto q = SolutionVector(geom.getnpLC(), 5);
@@ -417,11 +417,11 @@ TEST_CASE("[SteadyState] Electric switching with applied potential and three ela
   alignment.addSurface(Surface::ofStrongAnchoring(1, bottomTilt, twistDegrees));
   alignment.addSurface(Surface::ofStrongAnchoring(2, bottomTilt, twistDegrees));
 
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
 
   const double topPotential = 2.0;
   SolutionVector v(geom.getnp(), 1);
-  v.initialisePotentialBoundaries(geom, electrodes->getCurrentPotentials(0));
+  v.initialisePotentialBoundaries(geom, electrodes.getCurrentPotentials(0));
 
   SolutionVector q(geom.getnpLC(), 5);
 
@@ -509,11 +509,11 @@ TEST_CASE("[Dynamic] Switching dynamics with applied potential and three elastic
   alignment.addSurface(Surface::ofStrongAnchoring(1, bottomTilt, twistDegrees));
   alignment.addSurface(Surface::ofStrongAnchoring(2, bottomTilt, twistDegrees));
 
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
 
   const double topPotential = 2;
   SolutionVector v(geom.getnp(), 1);
-  v.initialisePotentialBoundaries(geom, electrodes->getCurrentPotentials(0));
+  v.initialisePotentialBoundaries(geom, electrodes.getCurrentPotentials(0));
 
   SolutionVector q(geom.getnpLC(), 5);
 
@@ -581,11 +581,11 @@ TEST_CASE("[Dynamic] Abort Newton iterations if convergence is not reached") {
   alignment.addSurface(Surface::ofStrongAnchoring(1, bottomTilt, twistDegrees));
   alignment.addSurface(Surface::ofStrongAnchoring(2, bottomTilt, twistDegrees));
 
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, *electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
 
   const double topPotential = 2;
   SolutionVector v(geom.getnp(), 1);
-  v.initialisePotentialBoundaries(geom, electrodes->getCurrentPotentials(0));
+  v.initialisePotentialBoundaries(geom, electrodes.getCurrentPotentials(0));
 
   SolutionVector q(geom.getnpLC(), 5);
 

@@ -19,14 +19,11 @@
 #include <util/exception.h>
 
 //<editor-fold desc="private">
-PotentialSolver::PotentialSolver(std::shared_ptr<Electrodes> electrodes, std::shared_ptr<LC> lc,
-                                 std::shared_ptr<SolverSettings> solverSettings) {
+PotentialSolver::PotentialSolver(Electrodes& electrodes, std::shared_ptr<LC> lc, std::shared_ptr<SolverSettings> solverSettings):
+  electrodes(electrodes), lc(lc), solverSettings(solverSettings) {
   K = nullptr;
   L = nullptr;
   V = nullptr;
-  this->electrodes = electrodes;
-  this->lc = lc;
-  this->solverSettings = solverSettings;
 
   S0 = lc->S0();
   eper_lc = lc->eps_per();
@@ -66,12 +63,12 @@ void setupSingleBlock(const Mesh &tetMesh,
 }
 
 bool PotentialSolver::isPotentialSolutionRequired(const SolutionVector &v) const {
-  return v.getnFixed() > 0 || electrodes->isPotentialCalculationRequired();
+  return v.getnFixed() > 0 || electrodes.isPotentialCalculationRequired();
   // todo: possibly also required if flexoelectric effect is present
 }
 
 void PotentialSolver::setUniformEField(SolutionVector &vOut, const Coordinates &coordinates) const {
-  Vec3 E = electrodes->getElectricField();
+  Vec3 E = electrodes.getElectricField();
   double Emag = E.norm();
   Vec3 Ehat = E.normalized();
 
@@ -93,7 +90,7 @@ void PotentialSolver::setUniformEField(SolutionVector &vOut, const Coordinates &
 }
 
 void PotentialSolver::createPotentialMatrix(const Geometry &geom, const DofMap &dofMap) {
-  if (!electrodes->isPotentialCalculationRequired()) {
+  if (!electrodes.isPotentialCalculationRequired()) {
     Log::info("Potential calculation not required. Creating empty matrix for Potential solver.");
     K = std::make_unique<SpaMtrix::IRCMatrix>();
   }
@@ -187,7 +184,7 @@ void PotentialSolver::assembleVolume(const SolutionVector &v, const SolutionVect
     geom.getTetrahedra().loadNodes(elementIndex, tetNodes);
     v.loadEquNodes(&tetNodes[0], &tetNodes[4], tetDofs);
 
-    localKL(geom, lK, lL, elementIndex, q, *lc, *electrodes, shapes);
+    localKL(geom, lK, lL, elementIndex, q, *lc, electrodes, shapes);
 
     addToGlobalMatrix(lK, lL, v, tetNodes, tetDofs);
   }
@@ -464,7 +461,7 @@ void PotentialSolver::solvePotential(SolutionVector &vOut,
 
   if (!isPotentialSolutionRequired(vOut)) {
     vOut.setValuesTo(0);
-    if (electrodes->hasElectricField()) {
+    if (electrodes.hasElectricField()) {
       setUniformEField(vOut, geom.getCoordinates());
     }
     return;

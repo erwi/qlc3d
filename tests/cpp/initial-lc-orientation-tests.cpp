@@ -153,7 +153,7 @@ TEST_CASE("Initial LC surface orientations") {
   std::vector<std::shared_ptr<Electrode>> el;
   el.push_back(std::make_shared<Electrode>(1, std::vector<double>(), std::vector<double>()));
   el.push_back(std::make_shared<Electrode>(2, std::vector<double>(), std::vector<double>()));
-  Electrodes electrodes(el);
+  Electrodes electrodes = Electrodes::withElectrodePotentials(el);
 
   Alignment alignment;
   std::vector<idx> surfaceNodesIndex;

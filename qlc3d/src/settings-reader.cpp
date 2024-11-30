@@ -173,7 +173,7 @@ void SettingsReader::readElectrodes(Reader &reader) {
 
   std::vector<double> eField = reader.getOptional<std::vector<double>>("efield").value_or(vector<double>());
   assertTrue(eField.size() == 0 || eField.size() == 3, "Unexpected number of components in EField. Expected 3.");
-  std::shared_ptr<Vec3> eFieldVec;
+  std::shared_ptr<Vec3> eFieldVec = nullptr;
   if (eField.size() == 3) {
     eFieldVec = std::make_shared<Vec3>(eField[0], eField[1], eField[2]);
   }
@@ -195,7 +195,12 @@ void SettingsReader::readElectrodes(Reader &reader) {
       electrodesVector.push_back(electrodePtr);
     }
   }
-  electrodes_ = std::make_unique<Electrodes>(electrodesVector, eFieldVec);
+
+  if (eFieldVec != nullptr) {
+    electrodes_ = std::make_unique<Electrodes>(Electrodes::withConstantElectricField(*eFieldVec));
+  } else {
+    electrodes_ = std::make_unique<Electrodes>(Electrodes::withElectrodePotentials(electrodesVector));
+  }
 }
 
 void SettingsReader::readRefinement(Reader &reader) {
