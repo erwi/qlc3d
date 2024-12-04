@@ -18,8 +18,6 @@ public:
   static constexpr unsigned int NOT_DOF = std::numeric_limits<unsigned int>::max();
 
   DofMap(unsigned int nDof, unsigned int nDimensions);
-  DofMap(const std::vector<unsigned int> map);
-  DofMap(const DofMap &other);
 
   void calculateMapping(const Geometry &geom, const std::unordered_set<unsigned int> &fixedNodes);
 

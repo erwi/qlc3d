@@ -53,9 +53,10 @@ void Mesh::setSurfaceNormal(idx i, const Vec3 &normal) {
 }
 
 Vec3 Mesh::getSurfaceNormal(unsigned int i) const {
-#ifdef DEBUG
+#ifndef NDEBUG
   assert(i < getnElements());
   assert(getDimension() == 2);
+  assert(surfaceNormals.size() == getnElements());
 #endif
   return surfaceNormals[i];
 }

@@ -605,6 +605,17 @@ void Geometry::makePeriEquNodes() {
 
 void Geometry::initialisePeriodicity() {
     Log::info("Initialising periodic surfaces");
+
+    PeriodicityType periodicityType(getTriangles());
+
+    this->front_back_is_periodic = periodicityType.isFrontBackPeriodic();
+    this->left_right_is_periodic = periodicityType.isLeftRightPeriodic();
+    this->top_bottom_is_periodic = periodicityType.isTopBottomPeriodic();
+
+    PeriodicNodesMapping mapping(getTriangles(), *coordinates_.get(), periodicityType);
+    mapping.initialisePeriodicNodes(getTriangles(), *coordinates_.get());
+    this->periNodes_ = mapping.getPeriNodes();
+
 /*
     PeriodicityType periodicity(getTriangles());
     if (periodicity.isAnyPeriodic()) {
@@ -620,6 +631,7 @@ void Geometry::initialisePeriodicity() {
     //      FRONT/BACK
     //      TOP/BOTTOM
     //*
+    /*
   const double EPS = 1e-7;
   for (idx i = 0 ; i < e->getnElements() ; i++) {
     if (e->getMaterialNumber(i) == MAT_PERIODIC) { // if surface is periodic

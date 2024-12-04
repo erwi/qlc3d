@@ -36,7 +36,7 @@ private:
   bool front_back_is_periodic;
   bool top_bottom_is_periodic;
   vector < list <int> > peri_equ_nodes;
-  vector<size_t> periNodes_;
+  vector<unsigned int> periNodes_;
   void setEdgePeriNodes(list <size_t> &edge0,
                         list <size_t> &edge1,
                         const int &dim);   // edge direction 0,1,2 -> x,y,z

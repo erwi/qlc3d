@@ -4,14 +4,6 @@
 
 DofMap::DofMap(unsigned int nDof, unsigned int nDimensions): nDof(nDof), nDimensions(nDimensions) {}
 
-DofMap::DofMap(const std::vector<unsigned int> dofs) : dofs(dofs){
-
-}
-
-DofMap::DofMap(const DofMap &other) : dofs(other.dofs) {
-
-}
-
 void DofMap::calculateMapping(const Geometry &geom, const std::unordered_set<unsigned int> &fixedNodes) {
   // TODO: rewrite this
 // IF NO PERIODIC NODES PRESENT, DON'T GENERATE EQUIVALENT NODES INDEXES

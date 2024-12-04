@@ -2,6 +2,8 @@
 #define PROJECT_QLC3D_PERIODICITY_H
 #include <unordered_map>
 #include <set>
+#include <vector>
+#include <list>
 
 class Mesh;
 class Coordinates;
@@ -21,16 +23,29 @@ public:
 };
 
 class PeriodicNodesMapping {
-  std::unordered_map<unsigned int, unsigned int> mapping;
+  PeriodicityType periodicityType;
+  std::vector<unsigned int> periNodes_;
 
-  void matchNodesFrontBack(const std::set<unsigned int> periNodes, const Coordinates &coords);
-  //void mathcNodesFrontBackLeftRight(const set<unsigned int> periNodes, const Coordinates &coords);
-  //void matchNodesFrontBackLeftRightTopBottom(const set<unsigned int> periNodes, const Coordinates &coords);
+  void makePeriEquNodes(const PeriodicityType &periodicityType,
+                        const Mesh &e,
+                        const Coordinates &coordinates);
 
+  void setFacePeriNodes(std::list<unsigned int> &face1,
+                        std::list<unsigned int> &face2,
+                        const int &norm,
+                        const Coordinates &coordinates);
+
+  void setEdgePeriNodes(std::list<unsigned int> &edge1,
+                        std::list<unsigned int> &edge2,
+                        const int &dim,
+                        const Coordinates &coordinates);
 public:
   PeriodicNodesMapping(const Mesh &tris, const Coordinates &coords, const PeriodicityType &periodicity);
   [[nodiscard]] unsigned int getPeriodicNode(unsigned int node) const;
 
+  void initialisePeriodicNodes(const Mesh &e, const Coordinates &coordinates);
+
+  const std::vector<unsigned int> &getPeriNodes() const { return periNodes_; };
 
 };
 
