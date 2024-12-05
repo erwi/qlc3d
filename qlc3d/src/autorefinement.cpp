@@ -224,7 +224,6 @@ bool autoref(Geometry &geom_orig,
     setStrongSurfacesQ(q, alignment, S0, geom_temp);
     q.initialiseLcBoundaries(geom_temp, alignment);
 
-    q.EnforceEquNodes(geom_temp);
     geom.setTo(&geom_temp);
     // NEW MESH FILE NEEDS TO BE WRITTEN WHEN RESULTS ARE OUTPUT
     // LET REST OF PROGRAM KNOW THAT GEOMETRY HAS BEEN MODIFIED

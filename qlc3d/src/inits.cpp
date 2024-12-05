@@ -123,7 +123,6 @@ void initialiseLcSolutionVector(SolutionVector &q, const Simu &simu, const LC &l
   }
   setSurfacesQ(q, alignment, S0, geom);
   q.initialiseLcBoundaries(geom, alignment);
-  q.EnforceEquNodes(geom);                // makes sure values at periodic boundaries match
 }
 
 void createMeshRefinementEvents(const MeshRefinement &meshRefinement,

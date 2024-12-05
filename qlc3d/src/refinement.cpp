@@ -609,7 +609,6 @@ void modify_geometry(Geometry& geom,
     tris.calculateSurfaceNormals(geom.getCoordinates(), &tets);
     tris.ScaleDeterminants( 1e-12); // scale to microns squared
     geom.initialisePeriodicity();
-    geom.makePeriEquNodes();
 }
 
 void Refine(Geometry& geom,                 // SOURCE (OLD) GEOMETRY

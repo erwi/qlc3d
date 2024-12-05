@@ -5,6 +5,7 @@
 #include <util/exception.h>
 #include <util/hash.h>
 #include <dofmap.h>
+#include <geom/periodicity.h>
 #include <unordered_set>
 
 SolutionVector &SolutionVector::operator=(const SolutionVector &r) {
@@ -77,7 +78,7 @@ void SolutionVector::initialiseLcBoundaries(const Geometry &geom, const Alignmen
   }
 
   dofMap = std::make_unique<DofMap>(nDoF, nDimensions);
-  dofMap->calculateMapping(geom, allFixedNodes);
+  dofMap->calculateMapping(allFixedNodes, geom.createPeriodicNodesMapping());
   numFixedNodes = allFixedNodes.size();
 }
 
@@ -87,7 +88,7 @@ void SolutionVector::initialisePotentialBoundaries(const Geometry &geom,
   if (potentialByElectrode.empty()) { //
     numFixedNodes = 0;
     dofMap = std::make_unique<DofMap>(nDoF, nDimensions);
-    dofMap->calculateMapping(geom, {});
+    dofMap->calculateMapping({}, geom.createPeriodicNodesMapping());
     return;
   }
 
@@ -103,7 +104,7 @@ void SolutionVector::initialisePotentialBoundaries(const Geometry &geom,
   }
 
   dofMap = std::make_unique<DofMap>(nDoF, nDimensions);
-  dofMap->calculateMapping(geom, allFixedNodes);
+  dofMap->calculateMapping(allFixedNodes, geom.createPeriodicNodesMapping());
   numFixedNodes = allFixedNodes.size();
 }
 
@@ -113,22 +114,6 @@ void SolutionVector::setValue(const idx n,
     assert(n < getnDoF());
     assert(dim < getnDimensions());
     values[n + dim * nDoF ] = val;
-}
-
-void SolutionVector::EnforceEquNodes(const Geometry &geom) {
-    // MAKES SURE THAT VALUES ON PERIODIC SURFACES ARE OK.
-    // THIS MAY BE NEEDED e.g. AT THE START OF A SIMULATION
-    // OR TO AVOID ACCUMULATION OF NUMERICAL NOISE(?)
-    // CALCULATES PERIODIC EQUIVALEN NODE FROM ELIM IN CASES WHERE
-    // WHERE MORE THAN 1 DEGREE OF FREEDOM EXISTS (i.e. Q-TENSOR)
-    for (size_t i = 0 ; i < (size_t) nDimensions ; i ++) {
-        for (size_t j = 0 ; j < (size_t) nDoF; j++) {
-            size_t equDof = geom.getPeriodicEquNode(j);
-            size_t dep = i * nDoF + j;        // DEPENDENT NODE
-            size_t indep = i * nDoF + equDof; // EQUIVALENT INDEPENDENT NODE
-            values[dep] = values[indep];
-        }
-    }
 }
 
 void SolutionVector::setValue(const idx n, const qlc3d::TTensor &t) {

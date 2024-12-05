@@ -17,6 +17,7 @@
 class RegularGrid; // forward declaration
 class Coordinates; // forward declaration
 class Vec3;
+class PeriodicNodesMapping;
 
 using namespace std;
 class Geometry {
@@ -35,19 +36,8 @@ private:
   bool left_right_is_periodic;
   bool front_back_is_periodic;
   bool top_bottom_is_periodic;
-  vector < list <int> > peri_equ_nodes;
-  vector<unsigned int> periNodes_;
-  void setEdgePeriNodes(list <size_t> &edge0,
-                        list <size_t> &edge1,
-                        const int &dim);   // edge direction 0,1,2 -> x,y,z
-  void setFacePeriNodes(list <size_t> &face0,
-                        list <size_t> &face1,
-                        const int &norm);    // face normal 0,1,2 -> x,y,z
-  void updateMaxNodeNumbers(); // Updates MaxNodeNumbers for surface and tet meshes after a node renumbering
 
-  double getAbsXDist(int i , double x);   // gets absolute distance between x-coord of node i and x
-  double getAbsYDist(int i , double y);   //
-  double getAbsZDist(int i , double z);   //
+  void updateMaxNodeNumbers(); // Updates MaxNodeNumbers for surface and tet meshes after a node renumbering
 
 public:
     // UNFORTUNATE HACKERY... SPECIAL ERROR INDEX VALUE FOR AN UNSIGNED INDEX THAT WAS NOT FOUND
@@ -72,7 +62,7 @@ public:
     void calculateNodeNormals();      // calculates surface node normals
     void setnpLC(int n);        // set number of LC nodes
     void ReorderDielectricNodes();  // reorder nodes so that dielectric material nodes are last
-    void makePeriEquNodes();    // generates periodic equivalent nodes index
+
     void ClearGeometry();       // clears all data for geometry
     [[nodiscard]] bool getleft_right_is_periodic() const;
     [[nodiscard]] bool getfront_back_is_periodic() const;
@@ -105,13 +95,6 @@ public:
     /** Detects periodicity of the structure and finds equivalent node mappings */
     void initialisePeriodicity();
 
-    [[nodiscard]] size_t getPeriodicEquNode(const size_t &i) const { // RETURNS INDEX TO NODE PERIODIC TO i
-        if (i < periNodes_.size())
-            return periNodes_[i];
-        else
-            return i;
-    }
-
     [[nodiscard]] unsigned int getnp() const;
     [[nodiscard]] unsigned int getnpLC() const { return npLC; }
     [[nodiscard]] const Coordinates& getCoordinates() const;
@@ -123,6 +106,8 @@ public:
     [[nodiscard]] const Mesh& getTriangles() const { return *e; }
     [[nodiscard]] Mesh& getTriangles() { return const_cast<Mesh&>(*e); }
     [[nodiscard]] RegularGrid* getRegularGrid() const { return regularGrid; }
+
+    [[nodiscard]] PeriodicNodesMapping createPeriodicNodesMapping() const;
 };
 #endif
 

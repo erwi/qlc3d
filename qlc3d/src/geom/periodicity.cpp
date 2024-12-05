@@ -109,6 +109,14 @@ PeriodicNodesMapping::PeriodicNodesMapping(const Mesh &tris,
   }
 }
 
+unsigned int PeriodicNodesMapping::getPeriodicNode(unsigned int node) const {
+  if (periodicityType.isAnyPeriodic()) {
+    return periNodes_[node];
+  } else {
+    return node;
+  }
+}
+
 void PeriodicNodesMapping::setFacePeriNodes(std::list<unsigned int> &face0,
                                 std::list<unsigned int> &face1,
                                 const int &norm,

@@ -92,7 +92,6 @@ public:
     /** DEPRECATED, this can probably be removed */
     void Resize(const unsigned int& n, const unsigned int& dim = 1); // resizes Values data, clears all data
     void ClearAll();
-    void EnforceEquNodes(const Geometry& geom); // enforces periodicity
 
     // Q-tensor related only
     //! set all of the 5 tensor values for te n'th DoF.

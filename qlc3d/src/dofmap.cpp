@@ -1,16 +1,17 @@
 #include <dofmap.h>
 #include <geometry.h>
 #include <fixednodes.h>
+#include <geom/periodicity.h>
 
 DofMap::DofMap(unsigned int nDof, unsigned int nDimensions): nDof(nDof), nDimensions(nDimensions) {}
 
-void DofMap::calculateMapping(const Geometry &geom, const std::unordered_set<unsigned int> &fixedNodes) {
+void DofMap::calculateMapping(const std::unordered_set<unsigned int> &fixedNodes,
+                              const PeriodicNodesMapping &peri) {
   // TODO: rewrite this
-// IF NO PERIODIC NODES PRESENT, DON'T GENERATE EQUIVALENT NODES INDEXES
-  if (!geom.getleft_right_is_periodic() &&
-      !geom.gettop_bottom_is_periodic() &&
-      !geom.getfront_back_is_periodic() &&
-      fixedNodes.empty()) {
+
+  auto &periType = peri.getPeriodicityType();
+  // IF NO PERIODIC NODES PRESENT, DON'T GENERATE EQUIVALENT NODES INDEXES
+  if (!periType.isAnyPeriodic() && fixedNodes.empty()) {
     return; // no periodic boundaries, can return
   }
 
@@ -19,10 +20,11 @@ void DofMap::calculateMapping(const Geometry &geom, const std::unordered_set<uns
   // NODAL EQUIVALENCIES HAVE BEEN SET.
   // REPLACE DEPENDENT NODES WITH THEIR
   // INDEPENDENT EQUIVALENT NODES
-  std::vector <idx> elimt(nDof, 0);    // convenience working copy of Elim
-  for (idx i = 0 ; i < nDof ; i++) {
-    elimt.at(i) =  geom.getPeriodicEquNode(i) ;
+  std::vector<idx> elimt(nDof, 0);    // convenience working copy of Elim
+  for (idx i = 0; i < nDof; i++) {
+    elimt.at(i) = peri.getPeriodicNode(i);
   }
+
   // MARK FIXED NODES. THSE WILL BE LATER ON REMOVED FROM
   // FREE DEGREES OF FREEDOM
   for (idx i = 0 ; i < nDof ; i++) {

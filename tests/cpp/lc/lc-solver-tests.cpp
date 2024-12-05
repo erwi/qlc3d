@@ -48,7 +48,6 @@ TestData setUp1DGeometry(Alignment &alignmentIn, const LC &lc, double easyTopTil
 
   setSurfacesQ(*q, alignmentIn, lc.S0(), *geom);
   q->initialiseLcBoundaries(*geom, alignmentIn);
-  q->EnforceEquNodes(*geom);
 
   return {std::unique_ptr<Geometry>(geom),
           std::unique_ptr<SolutionVector>(q),
@@ -149,7 +148,6 @@ TEST_CASE("[SteadyState] Relax elastic distortions with strong anchoring") {
   setSurfacesQ(q, alignment, lc->S0(), geom);
 
   q.initialiseLcBoundaries(geom, alignment);
-  q.EnforceEquNodes(geom);
 
   SimulationState simulationState;
   simulationState.dt(0);
@@ -352,7 +350,6 @@ TEST_CASE("[SteadyState] Relax elastic distortions with chirality") {
 
   setSurfacesQ(q, alignment, lc->S0(), geom);
   q.initialiseLcBoundaries(geom, alignment);
-  q.EnforceEquNodes(geom);
 
   SimulationState simulationState;
 
@@ -444,7 +441,6 @@ TEST_CASE("[SteadyState] Electric switching with applied potential and three ela
   setSurfacesQ(q, alignment, lc->S0(), geom);
 
   q.initialiseLcBoundaries(geom, alignment);
-  q.EnforceEquNodes(geom);
 
   SimulationState simulationState;
   simulationState.dt(0);
@@ -532,7 +528,6 @@ TEST_CASE("[Dynamic] Switching dynamics with applied potential and three elastic
   setSurfacesQ(q, alignment, lc->S0(), geom);
 
   q.initialiseLcBoundaries(geom, alignment);
-  q.EnforceEquNodes(geom);
 
   SimulationState simulationState;
   simulationState.dt(1e-4);
@@ -604,7 +599,6 @@ TEST_CASE("[Dynamic] Abort Newton iterations if convergence is not reached") {
   setSurfacesQ(q, alignment, lc->S0(), geom);
 
   q.initialiseLcBoundaries(geom, alignment);
-  q.EnforceEquNodes(geom);
 
   SimulationState simulationState;
   simulationState.dt(1e-4);
