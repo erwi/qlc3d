@@ -82,19 +82,20 @@ void SolutionVector::initialiseLcBoundaries(const Geometry &geom, const Alignmen
   numFixedNodes = allFixedNodes.size();
 }
 
-void SolutionVector::initialisePotentialBoundaries(const Geometry &geom,
+void SolutionVector::initialisePotentialBoundaries(const Mesh &triangles,
+                                                   const PeriodicNodesMapping &periodicNodesMapping,
                                                    const std::unordered_map<unsigned int, double> &potentialByElectrode) {
 
   if (potentialByElectrode.empty()) { //
     numFixedNodes = 0;
     dofMap = std::make_unique<DofMap>(nDoF, nDimensions);
-    dofMap->calculateMapping({}, geom.createPeriodicNodesMapping());
+    dofMap->calculateMapping({}, periodicNodesMapping);
     return;
   }
 
   std::unordered_set<unsigned int> allFixedNodes;
   for (auto& [electrodeNumber, potential] : potentialByElectrode) {
-    set<unsigned int> nodeIndices = geom.getTriangles().findElectrodeSurfaceNodes(electrodeNumber);
+    auto nodeIndices = triangles.findElectrodeSurfaceNodes(electrodeNumber);
 
     for (auto &n : nodeIndices) {
       setValue(n, 0, potential);
@@ -104,9 +105,24 @@ void SolutionVector::initialisePotentialBoundaries(const Geometry &geom,
   }
 
   dofMap = std::make_unique<DofMap>(nDoF, nDimensions);
-  dofMap->calculateMapping(allFixedNodes, geom.createPeriodicNodesMapping());
+  dofMap->calculateMapping(allFixedNodes, periodicNodesMapping);
   numFixedNodes = allFixedNodes.size();
 }
+
+void SolutionVector::setFixedPotentialValues(const Mesh &triangles,
+                                             const std::unordered_map<unsigned int, double> &potentialByElectrode) {
+  if (nDimensions > 1) {
+    RUNTIME_ERROR("This function is only for scalar potential solutions");
+  }
+
+  for (auto [electrodeNumber, potential] : potentialByElectrode) {
+    auto nodeIndices = triangles.findElectrodeSurfaceNodes(electrodeNumber);
+    for (auto &n : nodeIndices) {
+      setValue(n, 0, potential);
+    }
+  }
+}
+
 
 void SolutionVector::setValue(const idx n,
                               const idx dim,

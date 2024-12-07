@@ -26,27 +26,22 @@ class PeriodicNodesMapping {
   PeriodicityType periodicityType;
   std::vector<unsigned int> periNodes_;
 
-  void makePeriEquNodes(const PeriodicityType &periodicityType,
-                        const Mesh &e,
+  void makePeriEquNodes(const Mesh &e,
                         const Coordinates &coordinates);
 
-  void setFacePeriNodes(std::list<unsigned int> &face1,
-                        std::list<unsigned int> &face2,
-                        const int &norm,
+  void setFacePeriNodes(const std::vector<unsigned int> &face1,
+                        const std::vector<unsigned int> &face2,
+                        int norm,
                         const Coordinates &coordinates);
 
-  void setEdgePeriNodes(std::list<unsigned int> &edge1,
-                        std::list<unsigned int> &edge2,
-                        const int &dim,
+  void setEdgePeriNodes(const std::vector<unsigned int> &edge1,
+                        const std::vector<unsigned int> &edge2,
+                        int dim,
                         const Coordinates &coordinates);
 public:
   PeriodicNodesMapping(const Mesh &tris, const Coordinates &coords);
-  [[nodiscard]] unsigned int getPeriodicNode(unsigned int node) const; // { return periNodes_[node]; };
-
-  void initialisePeriodicNodes(const Mesh &e, const Coordinates &coordinates);
-
-  const std::vector<unsigned int> &getPeriNodes() const { return periNodes_; };
-  const PeriodicityType &getPeriodicityType() const { return periodicityType; };
+  [[nodiscard]] unsigned int getPeriodicNode(unsigned int node) const;
+  [[nodiscard]] const PeriodicityType &getPeriodicityType() const { return periodicityType; };
 };
 
 

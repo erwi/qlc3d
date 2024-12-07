@@ -33,7 +33,7 @@ void handleElectrodeSwitching(Event *currentEvent,
 
     // SET POTENTIAL BOUNDARY CONDITIONS FOR ALL ELECTRODES
     auto potentialsByElectrode = electr.getCurrentPotentials(simulationState.currentTime().getTime());
-  v.initialisePotentialBoundaries(geom, potentialsByElectrode);
+    v.setFixedPotentialValues(geom.getTriangles(), potentialsByElectrode);
 }
 
 /**

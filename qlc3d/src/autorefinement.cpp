@@ -9,6 +9,7 @@
 #include <geom/vec3.h>
 #include <geom/coordinates.h>
 #include <inits.h>
+#include "geom/periodicity.h"
 
 double intepolate_scalar(double *loc , double *S) {
     /*! Interpolates scalar value S[4] to a single value using four local coordinates in loc[4]*/
@@ -211,9 +212,10 @@ bool autoref(Geometry &geom_orig,
     geom_temp.makeRegularGrid(simu.getRegularGridXCount(),
                               simu.getRegularGridYCount(),
                               simu.getRegularGridZCount());
+    auto periodicMapping = geom_temp.createPeriodicNodesMapping();
     // RECREATE POTENTIAL SOLUTIONVECTOR FROM SCRATCH FOR THE NEW GEOMETRY.
     v.Resize(geom_temp.getnp() , 1);
-    v.initialisePotentialBoundaries(geom_temp, electrodes.getCurrentPotentials(simulationState.currentTime().getTime()));
+    v.initialisePotentialBoundaries(geom_temp.getTriangles(), periodicMapping, electrodes.getCurrentPotentials(simulationState.currentTime().getTime()));
 
     // REALLOCATE Q-TENSOR
     SolutionVector qTemp(q.getnDoF(), 5);

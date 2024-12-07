@@ -9,18 +9,18 @@ void setGlobalAngles(SolutionVector &q,
                      double S0,
                      double tiltDegrees,
                      double twistDegrees,
-                     const std::set<idx>& ind_nodes) {
+                     const std::unordered_set<idx>& indNodes) {
     auto director = qlc3d::Director::fromDegreeAngles(tiltDegrees, twistDegrees, S0);
-    for (unsigned int i : ind_nodes) {
+    for (unsigned int i : indNodes) {
       q.setValue(i, director);
     }
 }
 
 void setHomeotropic(SolutionVector& q,
                     double S0,
-                    const std::set<idx> &ind_nodes,
+                    const std::unordered_set<idx> &indNodes,
                     const Geometry &geom){
-    for (auto i : ind_nodes) {
+    for (auto i : indNodes) {
       Vec3 normal = geom.getNodeNormal(i);
 
       qlc3d::Director n(normal.x(), normal.y(), normal.z(), S0);
@@ -40,7 +40,7 @@ void setStrongSurfacesQ(SolutionVector &q,
                         const Geometry &geom) {
     // sets only strong anchoring surfaces
     for (int i = 0 ; i < alignment.getnSurfaces() ; i++ ){
-        std::set<idx> indSurfaceNodes = geom.getTriangles().listFixLCSurfaceNodes(i + 1);
+        auto indSurfaceNodes = geom.getTriangles().listFixLCSurfaceNodes(i + 1);
 
         if (!indSurfaceNodes.empty()) { // if nodes found
           // get type of current surface
@@ -68,15 +68,15 @@ void setManualNodesAnchoring(SolutionVector &q, double S0, const Surface& surf){
     double twist = surf.getEasyTwist();
 
     // CONVERT SURFACE PARAMS TO VALID NODE INDEX VECTOR
-    std::set<idx> nodes_idx;
+    std::unordered_set<idx> indNodes;
     for (size_t i = 0 ; i < surf.Params.size() ; i++){
         if ( (surf.Params[i] < 0 ) ){
             RUNTIME_ERROR("Negative node index when setting ManualNodesAnchoring.");
         }
         idx nodeIdx = static_cast<idx>(surf.Params[i]);
-        nodes_idx.insert(nodeIdx);
+        indNodes.insert(nodeIdx);
     }
-    setGlobalAngles(q, S0, tilt, twist, nodes_idx);
+    setGlobalAngles(q, S0, tilt, twist, indNodes);
 }
 
 void setSurfacesQ(SolutionVector &q, Alignment &alignment, double S0,  const Geometry &geom) {

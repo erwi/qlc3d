@@ -11,7 +11,7 @@ void FixedNodes::setFixedNodesPot(const Mesh &triangles, const std::unordered_ma
   for (const auto& [electrodeNumber, potential] : potentialByElectrode) {
     Log::info("Setting Electrode{} nodes to potential {}", electrodeNumber, potential);
 
-    set<unsigned int> nodeIndices = triangles.findElectrodeSurfaceNodes(electrodeNumber);
+    std::unordered_set<unsigned int> nodeIndices = triangles.findElectrodeSurfaceNodes(electrodeNumber);
     for (auto &i :nodeIndices) {
       fixedValueByNodeIndex[i] = potential;
     }

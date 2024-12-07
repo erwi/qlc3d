@@ -86,8 +86,11 @@ public:
     void setValue(const idx n,const idx dim, const double val);// sets nth value of dimension dim to val
 
     void initialiseLcBoundaries(const Geometry &geom, const Alignment &alignment);
-    void initialisePotentialBoundaries(const Geometry &geom,
+    void initialisePotentialBoundaries(const Mesh &triangles,
+                                       const PeriodicNodesMapping &periodicNodesMapping,
                                        const std::unordered_map<unsigned int, double> &potentialByElectrode);
+    /** Set the values for potential at electrode nodes. */
+    void setFixedPotentialValues(const Mesh &triangles, const std::unordered_map<unsigned int, double> &potentialByElectrode);
 
     /** DEPRECATED, this can probably be removed */
     void Resize(const unsigned int& n, const unsigned int& dim = 1); // resizes Values data, clears all data

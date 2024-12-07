@@ -20,6 +20,7 @@
 #include <simulation-adaptive-time-step.h>
 #include <spamtrix_ircmatrix.hpp>
 #include "util/stopwatch.h"
+#include "geom/periodicity.h"
 
 namespace fs = std::filesystem;
 
@@ -121,6 +122,7 @@ void SimulationContainer::initialise() {
     //Geometries geometries;
     geometries.geom = &geom1;
     geometries.geom_orig = &geom_orig;
+    auto periodicMapping = geom1.createPeriodicNodesMapping();
     // ==============================================
     //
     //	POTENTIAL SOLUTION DATA
@@ -128,7 +130,7 @@ void SimulationContainer::initialise() {
     //================================================
     Log::info("creating initial electric potential");
     v = SolutionVector((idx) geom1.getnp(), 1);
-  v.initialisePotentialBoundaries(geom1, electrodes->getCurrentPotentials(simulationState.currentTime().getTime()));
+    v.initialisePotentialBoundaries(geom1.getTriangles(), periodicMapping, electrodes->getCurrentPotentials(simulationState.currentTime().getTime()));
 
     // =============================================================
     //
@@ -139,6 +141,7 @@ void SimulationContainer::initialise() {
     Log::info("Creating initial Q tensor");
     q = SolutionVector(geom1.getnpLC(), 5);    //  Q-tensor for current time step
 
+    // TODO: pass periodicMapping to setVolumeQ
     initialiseLcSolutionVector(q, *simu, *lc, *boxes, alignment, geom1);
 
     // SET CONVENIENCE POINTERS STRUCTURE

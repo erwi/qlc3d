@@ -12,6 +12,7 @@
 #include <spamtrix_ircmatrix.hpp>
 #include <lc-representation.h>
 #include <qlc3d.h>
+#include "geom/periodicity.h"
 
 TEST_CASE("Create solver") {
   Electrodes electrodes;
@@ -33,8 +34,9 @@ TEST_CASE("Solve potential 1D mesh - Expect v = z") {
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
   prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
 
+  auto periodicMapping = geom.createPeriodicNodesMapping();
   SolutionVector v(geom.getnp(), 1);
-  v.initialisePotentialBoundaries(geom, electrodes.getCurrentPotentials(0));
+  v.initialisePotentialBoundaries(geom.getTriangles(), periodicMapping, electrodes.getCurrentPotentials(0));
 
   // Set LC director to uniform vertical direction
   SolutionVector q(geom.getnpLC(), 5);
@@ -74,9 +76,11 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
 
   prepareGeometry(geom, TestUtil::RESOURCE_PSEUDO_2D_NEUMANN_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+  auto periodicMapping = geom.createPeriodicNodesMapping();
+
 
   SolutionVector v(geom.getnp(), 1);
-  v.initialisePotentialBoundaries(geom, electrodes.getCurrentPotentials(0));
+  v.initialisePotentialBoundaries(geom.getTriangles(), periodicMapping, electrodes.getCurrentPotentials(0));
 
   // Set LC director to uniform 45 degree tilt angle
   SolutionVector q(geom.getnpLC(), 5);
@@ -118,11 +122,13 @@ TEST_CASE("Set uniform Electric field along z-axis") {
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
 
   prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
+  auto periodicMapping = geom.createPeriodicNodesMapping();
+
   auto lc = std::shared_ptr<LC>(LCBuilder().build());
   auto solverSettings = std::make_shared<SolverSettings>();
 
   SolutionVector v(geom.getnp(), 1);
-  v.initialisePotentialBoundaries(geom, electrodes.getCurrentPotentials(0));
+  v.initialisePotentialBoundaries(geom.getTriangles(), periodicMapping, electrodes.getCurrentPotentials(0));
 
   SolutionVector q(geom.getnpLC(), 5);
 
@@ -150,9 +156,10 @@ TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries")
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
   prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+  auto periodicMapping = geom.createPeriodicNodesMapping();
 
   SolutionVector v(geom.getnp(), 1);
-  v.initialisePotentialBoundaries(geom, electrodes.getCurrentPotentials(0));
+  v.initialisePotentialBoundaries(geom.getTriangles(), periodicMapping, electrodes.getCurrentPotentials(0));
 
   // Set LC director to uniform 45 degree tilt angle
   SolutionVector q(geom.getnpLC(), 5);
@@ -224,9 +231,10 @@ TEST_CASE("Convenience debugging set-up, not a test!") {
   Alignment alignment;
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   prepareGeometry(geom, path, electrodes, alignment, {1, 1, 1});
+  auto periodicMapping = geom.createPeriodicNodesMapping();
 
   SolutionVector v(geom.getnp(), 1);
-  v.initialisePotentialBoundaries(geom, electrodes.getCurrentPotentials(0));
+  v.initialisePotentialBoundaries(geom.getTriangles(), periodicMapping, electrodes.getCurrentPotentials(0));
 
   // Set LC director to uniform 45 degree tilt angle
   SolutionVector q(geom.getnpLC(), 5);

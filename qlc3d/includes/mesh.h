@@ -11,6 +11,8 @@
 #include <cmath>
 #include <globals.h>
 #include <functional>
+#include <unordered_set>
+
 using std::vector;
 using std::set;
 using std::list;
@@ -98,8 +100,8 @@ public:
     /**
      * Return a vector of all surface nodes by given FIXLC number.
      */
-    std::set<idx> listFixLCSurfaceNodes(const idx FixLCNum) const;
-    std::set<idx> findElectrodeSurfaceNodes(idx electrodeNumber) const;
+    std::unordered_set<idx> listFixLCSurfaceNodes(const idx FixLCNum) const;
+    std::unordered_set<idx> findElectrodeSurfaceNodes(idx electrodeNumber) const;
     [[nodiscard]] std::vector<unsigned int> findElementsWhere(std::function<bool(unsigned int)> &predicate) const;
 
     /**

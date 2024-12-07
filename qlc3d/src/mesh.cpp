@@ -474,41 +474,41 @@ void Mesh::listFixLCSurfaces(std::vector<idx> &nodes, const idx FixLCNumber) con
     }
 }
 
-std::set<idx> Mesh::listFixLCSurfaceNodes(const idx FixLCNum) const {
+std::unordered_set<idx> Mesh::listFixLCSurfaceNodes(const idx FixLCNum) const {
   if (FixLCNum < 1 || FixLCNum > 9) {
     RUNTIME_ERROR(format("FixLC number {} is not in range 1-9.", FixLCNum));
   }
 
-  std::set<idx> nodes;
+  std::unordered_set<idx> surfaceNodes;
   for(idx i = 0; i < getnElements(); i++) {
     const idx curMat = this->getMaterialNumber(i);
     const idx curFixLCNum = curMat / MAT_FIXLC1;
     if (curFixLCNum == FixLCNum) {
       for (idx n = 0; n < getnNodes(); n++) {
-        nodes.insert(getNode(i, n));
+        surfaceNodes.insert(getNode(i, n));
       }
     }
   }
 
-  return nodes;
+  return surfaceNodes;
 }
 
-std::set<idx> Mesh::findElectrodeSurfaceNodes(idx electrodeNumber) const {
+std::unordered_set<idx> Mesh::findElectrodeSurfaceNodes(idx electrodeNumber) const {
   if (electrodeNumber < 1 || electrodeNumber > 9) {
     RUNTIME_ERROR(format("Electrode number {} is not in range 1-9.", electrodeNumber));
   }
 
-  std::set<idx> nodes;
+  std::unordered_set<idx> surfaceNodes;
   for (idx i = 0; i < getnElements(); i++) {
     idx elementMaterial = getMaterialNumber(i);
     idx elementElectrodeNumber = MATNUM_TO_ELECTRODE_NUMBER(elementMaterial);
     if (elementElectrodeNumber == electrodeNumber) {
       for (idx n = 0; n < getnNodes(); n++) { // for each node in current element
-        nodes.insert(getNode(i, n));
+        surfaceNodes.insert(getNode(i, n));
       }
     }
   }
-  return nodes;
+  return surfaceNodes;
 }
 
 std::vector<unsigned int> Mesh::findElementsWhere(std::function<bool(unsigned int)> &predicate) const {

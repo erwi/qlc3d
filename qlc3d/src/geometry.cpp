@@ -492,6 +492,5 @@ Vec3 Geometry::getNodeNormal(unsigned int i) const {
 
 PeriodicNodesMapping Geometry::createPeriodicNodesMapping() const {
   PeriodicNodesMapping mapping(getTriangles(), getCoordinates());
-  //mapping.initialisePeriodicNodes(getTriangles(), getCoordinates());
   return mapping;
 }

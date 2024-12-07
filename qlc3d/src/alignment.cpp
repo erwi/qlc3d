@@ -165,7 +165,7 @@ Vec3 Surface::getEasyDirectionAt(const Vec3 &p) const {
 }
 
 void Surface::setFromTiltAndTwistAngles(SolutionVector &q, double S0, const Geometry &geom) const {
-  std::set<idx> indSurfaceNodes = geom.getTriangles().listFixLCSurfaceNodes(getFixLCNumber());
+  auto indSurfaceNodes = geom.getTriangles().listFixLCSurfaceNodes(getFixLCNumber());
   const Coordinates &coordinates = geom.getCoordinates();
 
   for (auto &i : indSurfaceNodes) {
