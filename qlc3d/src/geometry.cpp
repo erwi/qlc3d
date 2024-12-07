@@ -239,8 +239,8 @@ void Geometry::initialisePeriodicity() {
     this->left_right_is_periodic = periodicityType.isLeftRightPeriodic();
     this->top_bottom_is_periodic = periodicityType.isTopBottomPeriodic();
 
-    PeriodicNodesMapping mapping(getTriangles(), *coordinates_.get(), periodicityType);
-    mapping.initialisePeriodicNodes(getTriangles(), *coordinates_.get());
+    //PeriodicNodesMapping mapping(getTriangles(), *coordinates_.get());
+    //mapping.initialisePeriodicNodes(getTriangles(), *coordinates_.get());
     //this->periNodes_ = mapping.getPeriNodes();
 
 /*
@@ -491,7 +491,7 @@ Vec3 Geometry::getNodeNormal(unsigned int i) const {
 }
 
 PeriodicNodesMapping Geometry::createPeriodicNodesMapping() const {
-  PeriodicNodesMapping mapping(getTriangles(), getCoordinates(), PeriodicityType(getTriangles()));
-  mapping.initialisePeriodicNodes(getTriangles(), getCoordinates());
+  PeriodicNodesMapping mapping(getTriangles(), getCoordinates());
+  //mapping.initialisePeriodicNodes(getTriangles(), getCoordinates());
   return mapping;
 }

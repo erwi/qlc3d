@@ -10,6 +10,7 @@
 #include <cstring>
 #include <cmath>
 #include <globals.h>
+#include <functional>
 using std::vector;
 using std::set;
 using std::list;
@@ -99,6 +100,13 @@ public:
      */
     std::set<idx> listFixLCSurfaceNodes(const idx FixLCNum) const;
     std::set<idx> findElectrodeSurfaceNodes(idx electrodeNumber) const;
+    [[nodiscard]] std::vector<unsigned int> findElementsWhere(std::function<bool(unsigned int)> &predicate) const;
+
+    /**
+     * Find set of all node indexes from elements where predicate evaluates to true
+     * The input argument for predicate is index to element.
+     */
+    [[nodiscard]] std::set<unsigned int> findNodesWhere(std::function<bool(unsigned int)> &predicate) const;
 
     bool containsCoordinate(idx elem, const Coordinates& coordinates, const Vec3 p) const; // checks whether point p is within element elem
     void CompleteNodesSet(const idx elem, std::vector<idx> &nodes) const; // completes nodes vector with those from element, if nodes is empty returns all elements
@@ -109,6 +117,7 @@ public:
     void calcLocCoords(const idx elem, const Coordinates &coordinates, const Vec3 &targetPoint, double localCoordinates[4]) const; // calculates 4 local coordinates of coordinate cord in element elem
     [[nodiscard]] Vec3 elementCentroid(unsigned int i, const Coordinates &coordinates) const;
     [[nodiscard]] Vec3 getSurfaceNormal(unsigned int i) const;
+    [[nodiscard]] bool hasSurfaceNormals() const { return !surfaceNormals.empty(); }
     void gen_p_to_elem(vector<set <idx> > &p_to_elem) const; // generates index from points to mesh elements
     // index number of non-existent neighbours elements equals total number of elements
     // i.e. 1 too large to use as an index

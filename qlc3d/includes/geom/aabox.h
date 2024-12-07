@@ -12,6 +12,7 @@ private:
   double z_min, z_max;
 
 public:
+  static constexpr double DEFAULT_COMPARISON_EPSILON = 1e-9;
   AABox() : x_min(0), x_max(0), y_min(0), y_max(0), z_min(0), z_max(0) {}
   AABox(double xMin, double xMax, double yMin, double yMax, double zMin, double zMax)
           : x_min(xMin), x_max(xMax), y_min(yMin), y_max(yMax), z_min(zMin), z_max(zMax) {
@@ -24,6 +25,42 @@ public:
     return (x >= x_min && x <= x_max &&
             y >= y_min && y <= y_max &&
             z >= z_min && z <= z_max);
+  }
+
+  [[nodiscard]] bool leftFaceContains(const Vec3 &p, double eps = DEFAULT_COMPARISON_EPSILON) {
+    return std::abs(p.x() - x_min) < eps &&
+           p.y() <= y_max + eps && p.y() >= y_min - eps &&
+           p.z() <= z_max + eps && p.z() >= z_min - eps;
+  }
+
+  [[nodiscard]] bool rightFaceContains(const Vec3 &p, double eps = DEFAULT_COMPARISON_EPSILON) {
+    return std::abs(p.x() - x_max) < eps &&
+           p.y() <= y_max + eps && p.y() >= y_min - eps &&
+           p.z() <= z_max + eps && p.z() >= z_min - eps;
+  }
+
+  [[nodiscard]] bool frontFaceContains(const Vec3 &p, double eps = DEFAULT_COMPARISON_EPSILON) {
+    return std::abs(p.y() - y_min) < eps &&
+           p.x() <= x_max + eps && p.x() >= x_min - eps &&
+           p.z() <= z_max + eps && p.z() >= z_min - eps;
+  }
+
+  [[nodiscard]] bool backFaceContains(const Vec3 &p, double eps = DEFAULT_COMPARISON_EPSILON) {
+    return std::abs(p.y() - y_max) < eps &&
+           p.x() <= x_max + eps && p.x() >= x_min - eps &&
+           p.z() <= z_max + eps && p.z() >= z_min - eps;
+  }
+
+  [[nodiscard]] bool bottomFaceContains(const Vec3 &p, double eps = DEFAULT_COMPARISON_EPSILON) {
+    return std::abs(p.z() - z_min) < eps &&
+           p.x() <= x_max + eps && p.x() >= x_min - eps &&
+           p.y() <= y_max + eps && p.y() >= y_min - eps;
+  }
+
+  [[nodiscard]] bool topFaceContains(const Vec3 &p, double eps = DEFAULT_COMPARISON_EPSILON) {
+    return std::abs(p.z() - z_max) < eps &&
+           p.x() <= x_max + eps && p.x() >= x_min - eps &&
+           p.y() <= y_max + eps && p.y() >= y_min - eps;
   }
 
   [[nodiscard]] double volume() const {

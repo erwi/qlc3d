@@ -8,6 +8,11 @@
 #include <util/exception.h>
 
 PeriodicityType::PeriodicityType(const Mesh &triangles) {
+
+  if (!triangles.hasSurfaceNormals()) {
+    RUNTIME_ERROR("Mesh does not have surface normals.");
+  }
+
   left_right_is_periodic = false;
   front_back_is_periodic = false;
   top_bottom_is_periodic = false;
@@ -88,8 +93,9 @@ set<unsigned int> findPeriodicNodes(const Mesh &tris) {
 
 
 PeriodicNodesMapping::PeriodicNodesMapping(const Mesh &tris,
-                                           const Coordinates &coords,
-                                           const PeriodicityType &periodicityType) : periodicityType(periodicityType) {
+                                           const Coordinates &coords) : periodicityType(tris){
+
+  initialisePeriodicNodes(tris, coords);
 
   if (!periodicityType.isAnyPeriodic()) {
     Log::warn("No periodic surfaces detected. Periodic nodes mapping will not be created.");
@@ -97,15 +103,15 @@ PeriodicNodesMapping::PeriodicNodesMapping(const Mesh &tris,
   }
 
   std::set<unsigned int> periodicNodes = findPeriodicNodes(tris);
+}
 
-  if (periodicityType.isFrontBackPeriodic() && !periodicityType.isLeftRightPeriodic() && !periodicityType.isTopBottomPeriodic()) {
+void PeriodicNodesMapping::initialisePeriodicNodes(const Mesh &e, const Coordinates &coords) {
+  Log::info("Initialising periodic surfaces");
 
-  } else if (periodicityType.isFrontBackPeriodic() && periodicityType.isLeftRightPeriodic() && !periodicityType.isTopBottomPeriodic()) {
-
-  } else if (periodicityType.isFrontBackPeriodic() && periodicityType.isLeftRightPeriodic() && periodicityType.isTopBottomPeriodic()) {
-
-  } else {
-    RUNTIME_ERROR("Periodicity type not supported.");
+  if (periodicityType.isAnyPeriodic()) {
+    Log::info("Finding periodic nodes for periodic surfaces on left-right={}, front-back={}, top-bottom={}",
+              periodicityType.isLeftRightPeriodic(), periodicityType.isFrontBackPeriodic(), periodicityType.isTopBottomPeriodic());
+    makePeriEquNodes(periodicityType, e, coords);
   }
 }
 
@@ -134,6 +140,8 @@ void PeriodicNodesMapping::setFacePeriNodes(std::list<unsigned int> &face0,
   //list <size_t>:: iterator F0;    // FACE 0 NODES
   //list <size_t>:: iterator F1;    // FACE 1 NODES
   unsigned int fc, bc = 0; // debug counters
+
+  const AABox boundingBox = coordinates.findBoundingBox();
   for (auto F0 = face0.begin(); F0 != face0.end() ; ++F0, ++fc) { // LOOP OVER FACE 0
     bool found = false;
 
@@ -219,22 +227,6 @@ void PeriodicNodesMapping::setEdgePeriNodes(std::list<unsigned int> &edge0,
   }// end loop over all nodes in edge0
 }
 
-void PeriodicNodesMapping::initialisePeriodicNodes(const Mesh &e, const Coordinates &coords) {
-  Log::info("Initialising periodic surfaces");
-
-  bool left_right_is_periodic = periodicityType.isLeftRightPeriodic(); //false;
-  bool front_back_is_periodic = periodicityType.isFrontBackPeriodic(); //false;
-  bool top_bottom_is_periodic = periodicityType.isTopBottomPeriodic(); //false;
-
-  // IF ANY PERIODIC TRIANGLES WERE DETECTED
-  if (left_right_is_periodic
-      ||  front_back_is_periodic
-      ||  top_bottom_is_periodic) {
-    makePeriEquNodes(periodicityType, e, coords);
-  }
-  //*/
-}
-
 void PeriodicNodesMapping::makePeriEquNodes(const PeriodicityType &periodicityType,
                                             const Mesh &e,
                                             const Coordinates& coordinates) {
@@ -262,7 +254,7 @@ void PeriodicNodesMapping::makePeriEquNodes(const PeriodicityType &periodicityTy
   const double ymin = boundingBox.getYMin();
   const double ymax = boundingBox.getYMax();
   const double zmin = boundingBox.getZMin();
-  const double zmax = boundingBox.getZMin();
+  const double zmax = boundingBox.getZMax();
   /// PROBABLY EVIL, BUT SO CONVENIENT...
 #define LEFT    ( fabs(coordinates.getPoint(n).x() - xmin) <= eps )
 #define RIGHT   ( fabs(coordinates.getPoint(n).x() - xmax) <= eps )
@@ -443,8 +435,10 @@ void PeriodicNodesMapping::makePeriEquNodes(const PeriodicityType &periodicityTy
       } else if (TOP) { // top surface
         top.push_back(n);
       } else {
-        throw std::runtime_error(fmt::format("Periodic node {} is not on an external surface in {}, {}.",
-                                             n, __FILE__, __func__));
+        auto p = coordinates.getPoint(n);
+        auto isOnTop = boundingBox.topFaceContains(p);
+        throw std::runtime_error(fmt::format("Periodic node {} at {} is not on an external surface in {}, {}.",
+                                             n, p, __FILE__, __func__));
       }
     }// end for i, loop over all nodes
     // CHECK THAT OPPOSITE FACES HAVE EQUAL NUMBER OF NODES

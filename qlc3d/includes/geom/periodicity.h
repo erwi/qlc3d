@@ -14,7 +14,7 @@ class PeriodicityType {
   bool top_bottom_is_periodic;
 public:
 
-  PeriodicityType(const Mesh &triangles);
+  explicit PeriodicityType(const Mesh &triangles);
 
   [[nodiscard]] bool isAnyPeriodic() const { return isFrontBackPeriodic() || isLeftRightPeriodic() || isTopBottomPeriodic(); };
   [[nodiscard]] bool isFrontBackPeriodic() const { return front_back_is_periodic; };
@@ -40,7 +40,7 @@ class PeriodicNodesMapping {
                         const int &dim,
                         const Coordinates &coordinates);
 public:
-  PeriodicNodesMapping(const Mesh &tris, const Coordinates &coords, const PeriodicityType &periodicity);
+  PeriodicNodesMapping(const Mesh &tris, const Coordinates &coords);
   [[nodiscard]] unsigned int getPeriodicNode(unsigned int node) const; // { return periNodes_[node]; };
 
   void initialisePeriodicNodes(const Mesh &e, const Coordinates &coordinates);

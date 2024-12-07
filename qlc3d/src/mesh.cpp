@@ -291,9 +291,12 @@ void Mesh::calculateDeterminants3D(const Coordinates &coords) {
 void Mesh::calculateSurfaceNormals(const Coordinates &coords, Mesh* tets) {
   // CALCULATES THE SURFACE NORMAL FOR A TRIANGULAR MESH
   if ((Dimension != 2) ||  (getnElements() < 1) || (getnNodes() < 1)) {
-    RUNTIME_ERROR("Can not calculate surface normals.");
+    RUNTIME_ERROR(fmt::format("Can not calculate surface normals. Dimension={}, nElements={}, nNodes={}",
+                              Dimension, getnElements(), getnNodes()));
   }
-
+  if (connectedVolumes.empty()) {
+    RUNTIME_ERROR("Can not calculate surface normals, connectedVolumes vector is not initialised.");
+  }
   if (connectedVolumes.size() < getnElements()) {
     RUNTIME_ERROR("Can not calculate surface normals, connectedVolumes vector does not match number of elements.");
   }
@@ -508,7 +511,27 @@ std::set<idx> Mesh::findElectrodeSurfaceNodes(idx electrodeNumber) const {
   return nodes;
 }
 
+std::vector<unsigned int> Mesh::findElementsWhere(std::function<bool(unsigned int)> &predicate) const {
+  std::vector<unsigned int> elements;
+  for (unsigned int i = 0; i < getnElements(); i++) {
+    if (predicate(i)) {
+      elements.push_back(i);
+    }
+  }
+  return elements;
+}
 
+std::set<unsigned int> Mesh::findNodesWhere(std::function<bool(unsigned int)> &predicate) const {
+  std::set<unsigned int> elemNodes;
+  for (unsigned int i = 0; i < getnElements(); i++) {
+    if (predicate(i)) {
+      for (unsigned int j = 0; j < getnNodes(); j++) {
+        elemNodes.insert(getNode(i, j));
+      }
+    }
+  }
+  return elemNodes;
+}
 
 //
 //void Mesh::CopySurfaceNormal(idx i, double* norm) const {

@@ -15,6 +15,8 @@ namespace TestUtil {
   const std::string RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH = "resources/unit-cube-neumann.msh";
   /** 1 x 1 x 2 mesh with dielectric bottom half and LC top half. Neumann side boundaries. Electrodes on top and bottom. */
   const std::string RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_GMSH_MESH = "resources/unit-cube-dielectric-neumann.msh";
+  /** 1 x 1 x 1 mesh with periodic boundaries on all sides. */
+  const std::string RESOURCE_UNIT_CUBE_FULLY_PERIODIC_LINEAR_GMSH_MESH = "resources/unit-cube-fully-periodic-linear-gmsh.msh";
 
   bool isEquivalentAngleDegrees(double a, double b, double epsilon = 1e-6);
 
