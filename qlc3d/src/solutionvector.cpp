@@ -65,7 +65,7 @@ void SolutionVector::ClearAll() {
     dofMap.reset();
 }
 
-void SolutionVector::initialiseLcBoundaries(const Geometry &geom, const Alignment &alignment) {
+void SolutionVector::initialiseLcBoundaries(Geometry &geom, const Alignment &alignment) {
   auto &triangles = geom.getTriangles();
   std::unordered_set<unsigned int> allFixedNodes;
   for (auto &a : alignment.surface) {
@@ -82,9 +82,11 @@ void SolutionVector::initialiseLcBoundaries(const Geometry &geom, const Alignmen
   numFixedNodes = allFixedNodes.size();
 }
 
-void SolutionVector::initialisePotentialBoundaries(const Mesh &triangles,
-                                                   const PeriodicNodesMapping &periodicNodesMapping,
-                                                   const std::unordered_map<unsigned int, double> &potentialByElectrode) {
+void SolutionVector::initialisePotentialBoundaries(const std::unordered_map<unsigned int, double> &potentialByElectrode,
+                                                   Geometry &geom) {
+
+  const auto &periodicNodesMapping = geom.createPeriodicNodesMapping();
+  const auto& triangles = geom.getTriangles();
 
   if (potentialByElectrode.empty()) { //
     numFixedNodes = 0;

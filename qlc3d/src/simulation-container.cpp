@@ -122,7 +122,6 @@ void SimulationContainer::initialise() {
     //Geometries geometries;
     geometries.geom = &geom1;
     geometries.geom_orig = &geom_orig;
-    auto periodicMapping = geom1.createPeriodicNodesMapping();
     // ==============================================
     //
     //	POTENTIAL SOLUTION DATA
@@ -130,7 +129,7 @@ void SimulationContainer::initialise() {
     //================================================
     Log::info("creating initial electric potential");
     v = SolutionVector((idx) geom1.getnp(), 1);
-    v.initialisePotentialBoundaries(geom1.getTriangles(), periodicMapping, electrodes->getCurrentPotentials(simulationState.currentTime().getTime()));
+    v.initialisePotentialBoundaries(electrodes->getCurrentPotentials(simulationState.currentTime().getTime()), geom1);
 
     // =============================================================
     //
@@ -141,8 +140,9 @@ void SimulationContainer::initialise() {
     Log::info("Creating initial Q tensor");
     q = SolutionVector(geom1.getnpLC(), 5);    //  Q-tensor for current time step
 
-    // TODO: pass periodicMapping to setVolumeQ
     initialiseLcSolutionVector(q, *simu, *lc, *boxes, alignment, geom1);
+
+    geom1.clearPeriodicNodesMapping(); // release resources that are not needed anymore
 
     // SET CONVENIENCE POINTERS STRUCTURE
     solutionVectors.q = &q;

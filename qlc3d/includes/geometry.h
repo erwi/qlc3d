@@ -33,9 +33,7 @@ private:
   AABox boundingBox;
   RegularGrid *regularGrid;
 
-  bool left_right_is_periodic;
-  bool front_back_is_periodic;
-  bool top_bottom_is_periodic;
+  std::unique_ptr<PeriodicNodesMapping> periodicNodesMapping;
 
   void updateMaxNodeNumbers(); // Updates MaxNodeNumbers for surface and tet meshes after a node renumbering
 
@@ -64,9 +62,6 @@ public:
     void ReorderDielectricNodes();  // reorder nodes so that dielectric material nodes are last
 
     void ClearGeometry();       // clears all data for geometry
-    [[nodiscard]] bool getleft_right_is_periodic() const;
-    [[nodiscard]] bool getfront_back_is_periodic() const;
-    [[nodiscard]] bool gettop_bottom_is_periodic() const;
 
     void genIndToTetsByCoords(vector <unsigned int> &returnIndex,   // Return index
                               const Coordinates &targetCoordinates,    // coordinates to search
@@ -92,9 +87,6 @@ public:
 
     void setTo(Geometry *geom);                     // makes this = geom
 
-    /** Detects periodicity of the structure and finds equivalent node mappings */
-    void initialisePeriodicity();
-
     [[nodiscard]] unsigned int getnp() const;
     [[nodiscard]] unsigned int getnpLC() const { return npLC; }
     [[nodiscard]] const Coordinates& getCoordinates() const;
@@ -107,7 +99,9 @@ public:
     [[nodiscard]] Mesh& getTriangles() { return const_cast<Mesh&>(*e); }
     [[nodiscard]] RegularGrid* getRegularGrid() const { return regularGrid; }
 
-    [[nodiscard]] PeriodicNodesMapping createPeriodicNodesMapping() const;
+    [[nodiscard]] PeriodicNodesMapping& createPeriodicNodesMapping();
+    /** releases memory for periodic nodes mapping */
+    void clearPeriodicNodesMapping();
 };
 #endif
 

@@ -8,6 +8,8 @@
 #include <geom/coordinates.h>
 #include <util/exception.h>
 #include <util/logging.h>
+#include "geom/periodicity.h"
+
 using std::set;
 
 void find_all_core_lines( vector<Line>& lines, const vector <unsigned int>& i_tet, Mesh* m){
@@ -178,11 +180,12 @@ void gen_peri_lines_vec(peri_lines& plines,
     plines.lca.clear(); plines.lcb.clear(); plines.lcc.clear(); plines.lcd.clear();
     plines.lcA.clear(); plines.lcB.clear(); plines.lcC.clear(); plines.lcD.clear();
 
-    // this is a silly shortcut to save typing on detrmining which
+    // this is a silly shortcut to save typing on determining which
     // surfaces are periodic
-    bool peritype[3] = {geom.getfront_back_is_periodic() ,
-                        geom.getleft_right_is_periodic() ,
-                        geom.gettop_bottom_is_periodic() };
+    PeriodicityType periodicType(geom.getTriangles());
+    bool peritype[3] = {periodicType.isFrontBackPeriodic() ,
+                        periodicType.isLeftRightPeriodic() ,
+                        periodicType.isTopBottomPeriodic() };
 
 
     // loop over each surface triangle
@@ -295,11 +298,9 @@ void expand_periodic_boundaries(vector <Line>& lines, // lines to split
   *  plines is a convenience structure of vectors of lines along periodic surfaces
   *  and corners.
   */
+  PeriodicityType periodicityType(geom.getTriangles());
 
-    // minimum requirement for periodicity is that at least front/back
-    // surfaces are periodic. if not, can return
-    if ( !geom.getfront_back_is_periodic() )
-    {
+    if ( !periodicityType.isAnyPeriodic()) {
         return;
     }
     vector <Line> newlines;
@@ -309,9 +310,7 @@ void expand_periodic_boundaries(vector <Line>& lines, // lines to split
     for (litr = lines.begin() ; litr != lines.end() ; ++litr ) // loop over each line
     {
 
-        if ( geom.getfront_back_is_periodic() )
-        {
-
+        if (periodicityType.isFrontBackPeriodic()) {
 
             bool found = true;
             double dir[3] = {1,0,1};// compare X and Z coorinates (shift in Y is allowed)
@@ -342,8 +341,7 @@ void expand_periodic_boundaries(vector <Line>& lines, // lines to split
 
         }// end if front/back
 
-        if (geom.getleft_right_is_periodic() )
-        {
+        if (periodicityType.isLeftRightPeriodic()) {
             double dir[3] = {0,1,1}; // compare Y,Z. Allow X-shift
             bool found = true;
             if ( litr->isOnLeftSurface(&geom) )
@@ -406,9 +404,7 @@ void expand_periodic_boundaries(vector <Line>& lines, // lines to split
             }// end if vertical corner
         }// end if left/right
 
-        if (geom.gettop_bottom_is_periodic() )
-        {
-
+        if (periodicityType.isTopBottomPeriodic()) {
             bool found = true;
             double dir[3] = {1,1,0};// compare X and Y, shift in Z
 
@@ -516,11 +512,9 @@ void expand_refinement_region(vector <unsigned int>& i_tet,	// index to tet bise
     geom_prev.getTetrahedra().gen_p_to_elem( p_to_t );
     
     peri_lines plines;
+    PeriodicityType periodicType(geom_prev.getTriangles());
     // Construct list of periodic line elements iff structure has periodic boundaries
-    if (  geom_prev.getleft_right_is_periodic()  ||
-          geom_prev.getfront_back_is_periodic()  ||
-          geom_prev.gettop_bottom_is_periodic()  )
-    {
+    if (  periodicType.isAnyPeriodic()) {
         gen_peri_lines_vec( plines,	geom_prev);
     }
     
@@ -608,8 +602,7 @@ void modify_geometry(Geometry& geom,
     tets.ScaleDeterminants( 1e-18);// scale to microns cubed
     tris.calculateSurfaceNormals(geom.getCoordinates(), &tets);
     tris.ScaleDeterminants( 1e-12); // scale to microns squared
-    geom.initialisePeriodicity();
-}
+ }
 
 void Refine(Geometry& geom,                 // SOURCE (OLD) GEOMETRY
             vector <idx> & i_tet)        // REFINEMENT TYPES VECTOR

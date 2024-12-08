@@ -15,6 +15,8 @@
 class Vec3;
 class Geometry;
 class SolutionVector;
+class Mesh;
+class Coordinates;
 
 enum AnchoringType {Strong = 0, Weak = 1, Homeotropic = 2,
                      Degenerate = 3, Freeze = 5, Polymerise = 6,

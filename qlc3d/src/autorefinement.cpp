@@ -212,10 +212,10 @@ bool autoref(Geometry &geom_orig,
     geom_temp.makeRegularGrid(simu.getRegularGridXCount(),
                               simu.getRegularGridYCount(),
                               simu.getRegularGridZCount());
-    auto periodicMapping = geom_temp.createPeriodicNodesMapping();
+
     // RECREATE POTENTIAL SOLUTIONVECTOR FROM SCRATCH FOR THE NEW GEOMETRY.
     v.Resize(geom_temp.getnp() , 1);
-    v.initialisePotentialBoundaries(geom_temp.getTriangles(), periodicMapping, electrodes.getCurrentPotentials(simulationState.currentTime().getTime()));
+    v.initialisePotentialBoundaries(electrodes.getCurrentPotentials(simulationState.currentTime().getTime()), geom_temp);
 
     // REALLOCATE Q-TENSOR
     SolutionVector qTemp(q.getnDoF(), 5);
@@ -225,6 +225,7 @@ bool autoref(Geometry &geom_orig,
     // SET BOUNDARY CONDITIONS
     setStrongSurfacesQ(q, alignment, S0, geom_temp);
     q.initialiseLcBoundaries(geom_temp, alignment);
+    geom_temp.clearPeriodicNodesMapping(); // release resources that are not needed anymore
 
     geom.setTo(&geom_temp);
     // NEW MESH FILE NEEDS TO BE WRITTEN WHEN RESULTS ARE OUTPUT

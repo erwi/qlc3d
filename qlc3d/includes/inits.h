@@ -30,7 +30,7 @@ FILE* createOutputEnergyFile(Simu& simu);
 /**
  * Sets up initial LC solution vector including volume and surface orientations.
  */
-void initialiseLcSolutionVector(SolutionVector &q, const Simu &simu, const LC &lc, const InitialVolumeOrientation &boxes, Alignment &alignment, const Geometry &geom);
+void initialiseLcSolutionVector(SolutionVector &q, const Simu &simu, const LC &lc, const InitialVolumeOrientation &boxes, Alignment &alignment, Geometry &geom);
 
 void setVolumeQ(SolutionVector &q, double S0, const InitialVolumeOrientation &boxes, const Coordinates &coordinates);
 
