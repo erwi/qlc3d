@@ -3,18 +3,13 @@
 #include <fixednodes.h>
 #include <geom/periodicity.h>
 
-DofMap::DofMap(unsigned int nDof, unsigned int nDimensions): nDof(nDof), nDimensions(nDimensions) {}
+DofMap::DofMap(unsigned int nDof, unsigned int nDimensions): nDof(nDof), nDimensions(nDimensions) {
+  dofs.resize(nDof * nDimensions, NOT_DOF);
+}
 
 void DofMap::calculateMapping(const std::unordered_set<unsigned int> &fixedNodes,
-                              const PeriodicNodesMapping &peri) {
+                              const std::vector<unsigned int> &periodicNodesMapping) {
   // TODO: rewrite this
-
-  auto &periType = peri.getPeriodicityType();
-  // IF NO PERIODIC NODES PRESENT, DON'T GENERATE EQUIVALENT NODES INDEXES
-  if (!periType.isAnyPeriodic() && fixedNodes.empty()) {
-    return; // no periodic boundaries, can return
-  }
-
   dofs.clear();
   dofs.resize(nDof * nDimensions, 0);
   // NODAL EQUIVALENCIES HAVE BEEN SET.
@@ -22,7 +17,7 @@ void DofMap::calculateMapping(const std::unordered_set<unsigned int> &fixedNodes
   // INDEPENDENT EQUIVALENT NODES
   std::vector<idx> elimt(nDof, 0);    // convenience working copy of Elim
   for (idx i = 0; i < nDof; i++) {
-    elimt.at(i) = peri.getPeriodicNode(i);
+    elimt.at(i) = periodicNodesMapping[i];
   }
 
   // MARK FIXED NODES. THSE WILL BE LATER ON REMOVED FROM

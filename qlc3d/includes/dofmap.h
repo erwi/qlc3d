@@ -20,15 +20,18 @@ public:
 
   DofMap(unsigned int nDof, unsigned int nDimensions);
 
-  void calculateMapping(const std::unordered_set<unsigned int> &fixedNodes, const PeriodicNodesMapping &peri);
+  void calculateMapping(const std::unordered_set<unsigned int> &fixedNodes,
+                        const std::vector<unsigned int> &periodicNodesMapping);
 
   [[nodiscard]] unsigned int getDof(unsigned int index) const { return getDof(index, 0); }
   [[nodiscard]] unsigned int getDof(unsigned int index, unsigned int dimension) const { return dofs[index + dimension * nDof]; };
 
   [[nodiscard]] bool isFixedNode(unsigned int index) const { return dofs[index] == NOT_DOF; }
   [[nodiscard]] bool isFreeNode(unsigned int index) const { return !isFixedNode(index); }
+  /** Number of degrees of freedom per dimension, including fixed and periodic nodes. */
   [[nodiscard]] unsigned int getnDof() const { return nDof; }
   [[nodiscard]] unsigned int getnDimensions() const { return nDimensions; }
+  /** number of free nodes per dimension */
   [[nodiscard]] unsigned int getnFreeNodes() const { return nFreeNodes; }
 };
 

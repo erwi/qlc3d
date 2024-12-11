@@ -40,8 +40,8 @@ class PeriodicNodesMapping {
                         const Coordinates &coordinates);
 public:
   PeriodicNodesMapping(const Mesh &tris, const Coordinates &coords);
-  [[nodiscard]] unsigned int getPeriodicNode(unsigned int node) const;
   [[nodiscard]] const PeriodicityType &getPeriodicityType() const { return periodicityType; };
+  [[nodiscard]] const std::vector<unsigned int> &getMapping() const { return periNodes_; }
 };
 
 

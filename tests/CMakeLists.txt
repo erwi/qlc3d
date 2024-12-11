@@ -30,7 +30,8 @@ add_executable(cpp-test
         cpp/alignment-tests.cpp
         cpp/expression-tests.cpp
         cpp/reader-tests.cpp
-        cpp/geom/periodicity-tests.cpp)
+        cpp/geom/periodicity-tests.cpp
+        dofmap-tests.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 

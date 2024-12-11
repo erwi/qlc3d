@@ -78,7 +78,7 @@ void SolutionVector::initialiseLcBoundaries(Geometry &geom, const Alignment &ali
   }
 
   dofMap = std::make_unique<DofMap>(nDoF, nDimensions);
-  dofMap->calculateMapping(allFixedNodes, geom.createPeriodicNodesMapping());
+  dofMap->calculateMapping(allFixedNodes, geom.createPeriodicNodesMapping().getMapping());
   numFixedNodes = allFixedNodes.size();
 }
 
@@ -91,7 +91,7 @@ void SolutionVector::initialisePotentialBoundaries(const std::unordered_map<unsi
   if (potentialByElectrode.empty()) { //
     numFixedNodes = 0;
     dofMap = std::make_unique<DofMap>(nDoF, nDimensions);
-    dofMap->calculateMapping({}, periodicNodesMapping);
+    dofMap->calculateMapping({}, periodicNodesMapping.getMapping());
     return;
   }
 
@@ -107,7 +107,7 @@ void SolutionVector::initialisePotentialBoundaries(const std::unordered_map<unsi
   }
 
   dofMap = std::make_unique<DofMap>(nDoF, nDimensions);
-  dofMap->calculateMapping(allFixedNodes, periodicNodesMapping);
+  dofMap->calculateMapping(allFixedNodes, periodicNodesMapping.getMapping());
   numFixedNodes = allFixedNodes.size();
 }
 

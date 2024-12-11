@@ -48,18 +48,11 @@ PeriodicityType::PeriodicityType(const Mesh &triangles) {
 
 PeriodicNodesMapping::PeriodicNodesMapping(const Mesh &tris,
                                            const Coordinates &coords) : periodicityType(tris) {
-
   Log::info("Initialising periodic surfaces");
-
-  if (periodicityType.isAnyPeriodic()) {
-    Log::info("Finding periodic nodes for periodic surfaces on left-right={}, front-back={}, top-bottom={}",
-              periodicityType.isLeftRightPeriodic(), periodicityType.isFrontBackPeriodic(), periodicityType.isTopBottomPeriodic());
-    makePeriEquNodes(tris, coords);
-  } else {
-    Log::info("No periodic surfaces detected");
-  }
+  makePeriEquNodes(tris, coords);
 }
 
+/*
 unsigned int PeriodicNodesMapping::getPeriodicNode(unsigned int node) const {
   if (periodicityType.isAnyPeriodic()) {
     return periNodes_[node];
@@ -67,6 +60,7 @@ unsigned int PeriodicNodesMapping::getPeriodicNode(unsigned int node) const {
     return node;
   }
 }
+*/
 
 /**
  * Set the periodic nodes for the given mesh and coordinates.
@@ -187,6 +181,16 @@ void PeriodicNodesMapping::makePeriEquNodes(const Mesh &e,
   for (size_t i = 0 ; i < np ; i++) {
     periNodes_.push_back(i);
   }
+
+  if (!periodicityType.isAnyPeriodic()) {
+    Log::info("No periodic surfaces detected.");
+    // no periodic nodes, each node is equivalent to itself
+    return;
+  }
+
+  Log::info("Finding periodic nodes for periodic surfaces on left-right={}, front-back={}, top-bottom={}",
+            periodicityType.isLeftRightPeriodic(), periodicityType.isFrontBackPeriodic(), periodicityType.isTopBottomPeriodic());
+
   // NEED TO CONSIDER 3 DIFFERENT CASES, DEPENDING ON TYPE OF PERIODICITY OF MODELLING WINDOW
   const double eps = 1e-5; // accuracy for coordinate comparisons
 

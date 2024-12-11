@@ -31,6 +31,32 @@ TestMeshData createTestMeshData(const std::string &meshFile) {
   return {triMesh, coordinates};
 }
 
+TEST_CASE("No periodic boundaries in mesh") {
+  // ARRANGE
+  auto meshData = createTestMeshData(TestUtil::RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_GMSH_MESH);
+  auto &triMesh = meshData.triMesh;
+  auto &coordinates = meshData.coordinates;
+  auto boundingBox = coordinates.findBoundingBox();
+
+  // ACT
+  auto peri = PeriodicNodesMapping(triMesh, coordinates);
+
+  // ASSERT
+  auto pType = peri.getPeriodicityType();
+  REQUIRE_FALSE(pType.isAnyPeriodic());
+  REQUIRE_FALSE(pType.isLeftRightPeriodic());
+  REQUIRE_FALSE(pType.isFrontBackPeriodic());
+  REQUIRE_FALSE(pType.isTopBottomPeriodic());
+
+  auto &mapping = peri.getMapping();
+  REQUIRE(mapping.size() == coordinates.size());
+
+  // each node should be mapped to itself
+  for (unsigned int i = 0; i < coordinates.size(); i++) {
+    REQUIRE(mapping[i] == i);
+  }
+}
+
 TEST_CASE("Periodic front-back mesh") {
   // ARRANGE
   auto meshData = createTestMeshData(TestUtil::RESOURCE_PSEUDO_2D_NEUMANN_GMSH_MESH);
@@ -49,6 +75,7 @@ TEST_CASE("Periodic front-back mesh") {
   REQUIRE_FALSE(pType.isLeftRightPeriodic());
   REQUIRE_FALSE(pType.isTopBottomPeriodic());
 
+  auto &mapping = peri.getMapping();
   // Check that nodes on back surface are correctly mapped to front surface, but all other surface nodes
   // should be independent.
 
@@ -58,7 +85,7 @@ TEST_CASE("Periodic front-back mesh") {
     triMesh.loadNodes(i, nodes);
 
     for (auto n1 : nodes) {
-      auto n2 = peri.getPeriodicNode(n1);
+      auto n2 = mapping[n1];
       auto p1 = coordinates.getPoint(n1);
       auto p2 = coordinates.getPoint(n2);
 
@@ -100,6 +127,7 @@ TEST_CASE("Periodic left-right-front-back mesh") {
   auto nodeIsOnBackLeftEdge = [&boundingBox](Vec3 &p) { return boundingBox.backFaceContains(p) && boundingBox.leftFaceContains(p); };
   auto nodeIsOnBackRightEdge = [&boundingBox](Vec3 &p) { return boundingBox.backFaceContains(p) && boundingBox.rightFaceContains(p); };
 
+  auto &mapping = pnm.getMapping();
   for (unsigned int i = 0; i < triMesh.getnElements(); i++) {
     unsigned int nodes[3] = {0, 0, 0};
     triMesh.loadNodes(i, nodes);
@@ -107,7 +135,7 @@ TEST_CASE("Periodic left-right-front-back mesh") {
     // Check that nodes map to front or left surfaces on all vertical surfaces, but are independent on horizontal surfaces.
     // Note the order of checking is important here as edges nodes exist in multiple faces
     for (auto n1 : nodes) {
-      auto n2 = pnm.getPeriodicNode(n1);
+      auto n2 = mapping[n1];
 
       auto p1 = coordinates.getPoint(n1);
       auto p2 = coordinates.getPoint(n2);
@@ -197,12 +225,14 @@ TEST_CASE("Periodic left-right-top-bottom-front-back mesh") {
     return onFaceCount == 2;
   };
 
+  auto &mapping = pnm.getMapping();
+
   for (unsigned int indTri = 0; indTri < triMesh.getnElements(); indTri++) {
     unsigned int nodes[3] = {0, 0, 0};
     triMesh.loadNodes(indTri, nodes);
 
     for (auto n1 : nodes) {
-      auto n2 = pnm.getPeriodicNode(n1);
+      auto n2 = mapping[n1];
       auto p1 = coordinates.getPoint(n1);
       auto p2 = coordinates.getPoint(n2);
 
