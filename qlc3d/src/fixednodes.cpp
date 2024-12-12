@@ -1,8 +1,6 @@
 #include <fixednodes.h>
 #include <mesh.h>
-#include <util/exception.h>
 #include <util/logging.h>
-#include <material_numbers.h>
 
 void FixedNodes::setFixedNodesPot(const Mesh &triangles, const std::unordered_map<unsigned int, double> &potentialByElectrode) {
   fixedValueByNodeIndex.clear();

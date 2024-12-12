@@ -1,6 +1,7 @@
 #ifndef PROJECT_QLC3D_EXCEPTION_H
 #define PROJECT_QLC3D_EXCEPTION_H
 #include <string>
+#include <stdexcept>
 
 #define RUNTIME_ERROR(message) throw std::runtime_error((message) \
 + std::string("\nThrown in file ") + __FILE__\

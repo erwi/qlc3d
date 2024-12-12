@@ -82,9 +82,13 @@ void Geometry::addCoordinates(const vector<double> &coords) {
 void Geometry::setMeshData(unsigned int elementOrder, const std::shared_ptr<Coordinates> &coordinates,
                  std::vector<unsigned int> &&tetNodes, std::vector<unsigned int> &&tetMaterials,
                  std::vector<unsigned int> &&triNodes, std::vector<unsigned int> &&triMaterials) {
+  if (elementOrder != 1 && elementOrder != 2) {
+    RUNTIME_ERROR(fmt::format("Invalid element order: {}", elementOrder));
+  }
+
   setCoordinates(coordinates);
-  t->setElementData(elementOrder, std::move(tetNodes), std::move(tetMaterials));
-  e->setElementData(elementOrder, std::move(triNodes), std::move(triMaterials));
+  t->setElementData(elementOrder == 1 ? ElementType::LINEAR_TETRAHEDRON : ElementType::QUADRATIC_TETRAHEDRON, std::move(tetNodes), std::move(tetMaterials));
+  e->setElementData(elementOrder == 1 ? ElementType::LINEAR_TRIANGLE : ElementType::QUADRATIC_TRIANGLE, std::move(triNodes), std::move(triMaterials));
   ReorderDielectricNodes();
   e->setConnectedVolume(t.get()); // neighbour index tri -> tet
   t->calculateDeterminants3D(getCoordinates()); // calculate tetrahedral determinants
@@ -234,9 +238,10 @@ void Geometry::makeRegularGrid(const size_t &nx,
     }
     Log::info("Generating regular grid lookup with grid size nx={}, ny={}, nz={}", nx, ny, nz);
 
-    unsigned int elementOrder = getTetrahedra().getElementOrder();
-    if (elementOrder != 1) {
-      throw NotYetImplementedException("Regular grid generation is only implemented for first order elements, got elementOrder=" + std::to_string(elementOrder));
+    auto elementType = getTetrahedra().getElementType();
+    if (elementType != ElementType::LINEAR_TETRAHEDRON) {
+      throw NotYetImplementedException("Regular grid generation is only implemented for first order elements, got elementType=" +
+                                               toString(elementType));
     }
 
     if (regularGrid) {

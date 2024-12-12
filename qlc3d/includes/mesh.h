@@ -12,6 +12,7 @@
 #include <globals.h>
 #include <functional>
 #include <unordered_set>
+#include <fmt/format.h>
 
 using std::vector;
 using std::set;
@@ -20,14 +21,54 @@ using std::list;
 class Coordinates;
 class Vec3;
 
+enum class ElementType {
+  UNKNOWN = 0,
+  LINEAR_TRIANGLE = 1,
+  LINEAR_TETRAHEDRON = 2,
+  QUADRATIC_TRIANGLE = 3,
+  QUADRATIC_TETRAHEDRON = 4,
+};
+
+[[nodiscard]] inline std::string toString(ElementType elementType) {
+  return elementType == ElementType::LINEAR_TRIANGLE ? "LINEAR_TRIANGLE" :
+         elementType == ElementType::LINEAR_TETRAHEDRON ? "LINEAR_TETRAHEDRON" :
+         elementType == ElementType::QUADRATIC_TRIANGLE ? "QUADRATIC_TRIANGLE" :
+         elementType == ElementType::QUADRATIC_TETRAHEDRON ? "QUADRATIC_TETRAHEDRON" :
+         "UNKNOWN";
+}
+
+template <>
+class fmt::formatter<ElementType> {
+public:
+  constexpr auto parse (format_parse_context& ctx) { return ctx.begin(); }
+  template <typename Context>
+  constexpr auto format (ElementType const& t, Context& ctx) const {
+    return format_to(ctx.out(), "{}", toString(t));
+  }
+};
+
+[[nodiscard]] inline unsigned int getNodesPerElement(ElementType elementType) {
+  switch (elementType) {
+    case ElementType::LINEAR_TRIANGLE:
+      return 3;
+    case ElementType::QUADRATIC_TRIANGLE:
+      return 6;
+    case ElementType::LINEAR_TETRAHEDRON:
+      return 4;
+    case ElementType::QUADRATIC_TETRAHEDRON:
+      return 10;
+    default:
+      return 0; // unknown
+  }
+}
+
+
+
 class Mesh {
 private:
   const idx Dimension;  // number of dimensions of mesh - 2 for tris and 3 for tets
 
-  /* 0 for unset , 1 for linear elements, 2 for quadratic elements */
-  idx elementOrder;
-  /* number of nodes per element, 0 for unknown */
-  idx nNodes;
+  ElementType elementType_;
 
   idx nElements;  //total number of elements
   std::vector<idx> nodes;
@@ -38,25 +79,26 @@ private:
   double TotalSize;   // Total volume/area of the mesh
 
 public:
-  Mesh(unsigned int dimension);
+  Mesh(unsigned int dimension, ElementType elementType);
 
   ~Mesh();
 
   static std::shared_ptr<Mesh> triangleMesh() {
-    return std::make_shared<Mesh>(2);
+    return std::make_shared<Mesh>(2, ElementType::UNKNOWN);
   }
 
   static std::shared_ptr<Mesh> tetMesh() {
-    return std::make_shared<Mesh>(3);
+    return std::make_shared<Mesh>(3, ElementType::UNKNOWN);
   }
 
     inline idx getnElements() const {
       return nodes.size() / getnNodes();
     }
     /** Element order - 1 for linear elements, 2 for quadratic elements */
-    [[nodiscard]] inline idx getElementOrder() const { return elementOrder; }
+    //[[nodiscard]] inline idx getElementOrder() const { return elementOrder; }
+    [[nodiscard]] inline ElementType getElementType() const { return elementType_; }
     /** number of nodes per element */
-    [[nodiscard]] inline idx getnNodes() const { return nNodes; }
+    [[nodiscard]] inline unsigned int getnNodes() const { return getNodesPerElement(elementType_); }
     /** number of dimensions of mesh - 2 for tris and 3 for tets */
     [[nodiscard]] inline idx getDimension() const { return Dimension; }
     idx getConnectedVolume(const idx e) const;  // returns index to connected volume element, or -1 if not connected to LC1
@@ -68,7 +110,7 @@ public:
             exit(1);
         }
 #endif
-    return nodes[e * nNodes + n];
+    return nodes[e * getnNodes() + n];
     }
 
     [[nodiscard]] idx getMaterialNumber(idx e) const;   // returns material number of element e
@@ -80,7 +122,7 @@ public:
     [[nodiscard]] idx getDielectricNumber(idx e) const; // gets dielectric materials number, i.e. Dielectric 1, 2, 3 ....
     [[nodiscard]] double getDeterminant(idx i) const; // returns value of determinant of element i
 
-    void setElementData(unsigned int elementOrder, std::vector<unsigned int> &&nodes, std::vector<unsigned int> &&materials);
+    void setElementData(ElementType elementType, std::vector<unsigned int> &&nodes, std::vector<unsigned int> &&materials);
 
     void setConnectedVolume(Mesh *vol);     // sets indexes to connected LC volume elements
 

@@ -5,7 +5,6 @@
 #include <solutionvector.h>
 #include <lc-representation.h>
 #include <geom/coordinates.h>
-#include <geom/vec3.h>
 
 TEST_CASE("write VTK unstructured ascii grid") {
     using namespace vtkIOFun;
@@ -43,8 +42,8 @@ TEST_CASE("write VTK unstructured ascii grid") {
     potentials[3] = 0.3;
 
     // create mesh consisting of a single linear tetrahedron
-    Mesh tetrahedra(3);
-    tetrahedra.setElementData(1, {0, 1, 2, 3}, {4});
+    Mesh tetrahedra(3, ElementType::LINEAR_TETRAHEDRON);
+    tetrahedra.setElementData(ElementType::LINEAR_TETRAHEDRON, {0, 1, 2, 3}, {4});
 
     // ACT: write the result to a temporary file
     auto tempFile = TestUtil::TemporaryFile::empty();

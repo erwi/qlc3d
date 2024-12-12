@@ -165,9 +165,9 @@ bool autoref(Geometry &geom_orig,
              const Electrodes &electrodes,
              double S0) {
 
-  if (geom_orig.getTetrahedra().getElementOrder() != 1) {
-    throw NotYetImplementedException("Only linear tetrahedra are supported in mesh refinement. Found tetrahedra with element order "
-                                     + std::to_string(geom_orig.getTetrahedra().getElementOrder()));
+  if (geom_orig.getTetrahedra().getElementType() != ElementType::LINEAR_TETRAHEDRON) {
+    throw NotYetImplementedException("Only linear tetrahedra are supported in mesh refinement. Found element type " +
+      toString(geom_orig.getTetrahedra().getElementType()));
   }
 
     bool bRefined{false};   // indicates whether mesh is changed or not

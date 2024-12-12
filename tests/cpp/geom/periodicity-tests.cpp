@@ -17,11 +17,11 @@ struct TestMeshData {
 TestMeshData createTestMeshData(const std::string &meshFile) {
   auto meshData = MeshReader::readMesh(meshFile);
 
-  Mesh triMesh(2, 3);
-  triMesh.setElementData(std::move(meshData.triNodes), std::move(meshData.triMaterials));
+  Mesh triMesh(2, ElementType::LINEAR_TRIANGLE);
+  triMesh.setElementData(ElementType::LINEAR_TRIANGLE, std::move(meshData.triNodes), std::move(meshData.triMaterials));
 
-  Mesh tetMesh(3, 4);
-  tetMesh.setElementData(std::move(meshData.tetNodes), std::move(meshData.tetMaterials));
+  Mesh tetMesh(3, ElementType::LINEAR_TETRAHEDRON);
+  tetMesh.setElementData(ElementType::LINEAR_TETRAHEDRON, std::move(meshData.tetNodes), std::move(meshData.tetMaterials));
 
   Coordinates coordinates(std::move(meshData.points));
 

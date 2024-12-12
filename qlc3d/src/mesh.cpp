@@ -12,8 +12,9 @@
 
 using fmt::format;
 
-Mesh::Mesh(unsigned int dimension) :
-        Dimension{dimension}, elementOrder{0}, nNodes{0}, nElements{0}, TotalSize{0} {}
+// TODO: dimension is not needed, it can be deduced from elementType
+Mesh::Mesh(unsigned int dimension, ElementType elementType) :
+        Dimension{dimension}, elementType_{elementType}, nElements{0}, TotalSize{0} {}
 
 Mesh::~Mesh() { }
 
@@ -62,25 +63,25 @@ Vec3 Mesh::getSurfaceNormal(unsigned int i) const {
 }
 
 
-void Mesh::setElementData(unsigned int elementOrder, std::vector<unsigned int> &&nodes, std::vector<unsigned int> &&materials) {
-  this->elementOrder = elementOrder;
-  this->nNodes = this->getDimension() == 2 ?
-                 (elementOrder == 1 ? 3 : 6) : // if triangle mesh
-                 (elementOrder == 1 ? 4 : 10); // if tet mesh
+void Mesh::setElementData(ElementType elementType, std::vector<unsigned int> &&nodes, std::vector<unsigned int> &&materials) {
+  if (elementType == ElementType::UNKNOWN) {
+    RUNTIME_ERROR("Can't set element data with unknown element type.");
+  }
 
+  this->elementType_ = elementType;
+  // check that the provided data dimensions match the current mesh element type
+
+  unsigned int nodesPerElement = getnNodes();
   unsigned int numMaterials = materials.size();
-  unsigned int numElements = nodes.size() / getnNodes();
+  unsigned int numElements = nodes.size() / nodesPerElement;
 
   if (numMaterials != numElements) {
     RUNTIME_ERROR(format("Number of elements ({}) does not match number of materials ({}).", numElements, materials.size()));
   }
 
-  if (nodes.size() % getnNodes() != 0) {
-    RUNTIME_ERROR(format("Number of nodes ({}) is not a multiple of number of nodes per element ({}).", nodes.size(), getnNodes()));
-  }
-
-  if (numElements != materials.size()) {
-    RUNTIME_ERROR(format("Number of elements ({}) does not match number of materials ({}).", numElements, materials.size()));
+  unsigned int numNodesIn = nodes.size() / numElements != nodesPerElement;
+  if (nodes.size() / numElements != nodesPerElement) {
+    RUNTIME_ERROR(format("Number of nodes per element ({}) is not compatible with element type {}.", numNodesIn, getElementType()));
   }
 
   this->nodes = nodes;
@@ -487,9 +488,8 @@ void Mesh::listFixLCSurfaces(std::vector<idx> &nodes, const idx FixLCNumber) con
  */
 
 std::unordered_set<idx> Mesh::listFixLCSurfaceNodes(const idx FixLCNum) const {
-std::set<idx> Mesh::listFixLCSurfaceNodes(const idx FixLCNum) const {
-  if (elementOrder == 0) {
-    RUNTIME_ERROR("Mesh is not initialised with data.");
+  if (getElementType() != ElementType::LINEAR_TRIANGLE && getElementType() != ElementType::QUADRATIC_TRIANGLE) {
+    RUNTIME_ERROR(fmt::format("Invalid element type {} for FixLC surface nodes.", getElementType()));
   }
 
   if (FixLCNum < 1 || FixLCNum > 9) {
@@ -643,8 +643,7 @@ void Mesh::appendElements(const vector<idx> &nodeValues, const vector<idx> &mate
 }
 
 void Mesh::CopyMesh(Mesh* rhs) {
-    this->elementOrder = rhs->getElementOrder();
-    this->nNodes = rhs->getnNodes();
+    this->elementType_ = rhs->getElementType();
     setnElements(rhs->getnElements() );		// set number of elements
     TotalSize = rhs->TotalSize;
 
