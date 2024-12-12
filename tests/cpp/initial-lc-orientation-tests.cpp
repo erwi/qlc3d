@@ -215,6 +215,7 @@ TEST_CASE("Initial LC surface orientations") {
 
     // ASSERT
     // director should be [1, 0, 0] even though anchoring easy direction is defined as [0, 0, 1]
+    auto surfaceNodesIndex = geom.getTriangles().listFixLCSurfaceNodes(1);
     for (idx i: surfaceNodesIndex) {
       auto director = q.getDirector(i);
       Vec3 d = director.vector();
