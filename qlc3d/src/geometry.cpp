@@ -234,7 +234,8 @@ void Geometry::makeRegularGrid(const size_t &nx,
     // CREATES REUGLAR GRID OBJECT USED FOR INTERPOLATING VALUES FROM
     // TETRAHEDRAL MESH ONTO REGULARLY SPACED GRID
     if (nx == 0 || ny == 0 || nz == 0) {
-        return;
+      Log::info("Regular grid generation disabled, nx={}, ny={}, nz={}", nx, ny, nz);
+      return;
     }
     Log::info("Generating regular grid lookup with grid size nx={}, ny={}, nz={}", nx, ny, nz);
 
