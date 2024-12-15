@@ -67,6 +67,10 @@ void Coordinates::append(const std::vector<double> &p) {
 }
 
 void Coordinates::scale(const Vec3 &scale) {
+  if (scale.x() <= 0 || scale.y() <= 0 || scale.z() <= 0) {
+    RUNTIME_ERROR(fmt::format("Coordinates::scale: scale values must be positive, got {}", scale));
+  }
+
   for (auto &point : points) {
     point *= scale;
   }
