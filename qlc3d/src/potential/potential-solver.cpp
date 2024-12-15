@@ -4,6 +4,7 @@
 #include <memory>
 #include <spamtrix_matrixmaker.hpp>
 #include <spamtrix_vector.hpp>
+#include <spamtrix_densematrix.hpp>
 #include <geometry.h>
 #include <lc.h>
 #include <solutionvector.h>
@@ -39,21 +40,22 @@ void setupSingleBlock(const Mesh &tetMesh,
                       SpaMtrix::MatrixMaker &mm){
   const idx nodesPerElement = tetMesh.getnNodes();
 
+  std::vector<unsigned int> elemNodes(nodesPerElement, 0);
+
   for (idx it = 0; it < tetMesh.getnElements(); it++) {
-    unsigned int nn[4];
-    tetMesh.loadNodes(it, nn);
+    tetMesh.loadNodes(it, &elemNodes[0]);
 
     for (idx i = 0; i < nodesPerElement; ++i) {
-      if (dofMap.isFixedNode(nn[i])) {
+      if (dofMap.isFixedNode(elemNodes[i])) {
         continue;
       }
-      unsigned int iDof = dofMap.getDof(nn[i]);
+      unsigned int iDof = dofMap.getDof(elemNodes[i]);
       mm.addNonZero(iDof, iDof);
       for (idx j = i + 1; j < nodesPerElement; ++j) {
-        if (dofMap.isFixedNode(nn[j])) {
+        if (dofMap.isFixedNode(elemNodes[j])) {
           continue;
         }
-        unsigned int jDof = dofMap.getDof(nn[j]);
+        unsigned int jDof = dofMap.getDof(elemNodes[j]);
 
         mm.addNonZero(iDof, jDof);
         mm.addNonZero(jDof, iDof);
