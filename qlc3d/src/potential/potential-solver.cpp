@@ -2,6 +2,9 @@
 #include <electrodes.h>
 #include <util/logging.h>
 #include <memory>
+#include <spamtrix_matrixmaker.hpp>
+#include <spamtrix_vector.hpp>
+#include <spamtrix_densematrix.hpp>
 #include <geometry.h>
 #include <lc.h>
 #include <solutionvector.h>
