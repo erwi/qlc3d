@@ -143,6 +143,20 @@ public:
   }
 
   template<typename Src>
+  void sampleQ(const Src &source, double &v1, double &v2, double &v3, double &v4, double &v5) const {
+    v1 = v2 = v3 = v4 = v5 = 0;
+    const unsigned int nodesPerElement = source.size();
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      v1 += source[i][0] * N(i);
+      v2 += source[i][1] * N(i);
+      v3 += source[i][2] * N(i);
+      v4 += source[i][3] * N(i);
+      v5 += source[i][4] * N(i);
+    }
+  }
+
+  /** Deprecated */
+  template<typename Src>
   void sampleAllX(const Src* source, double &v1x, double &v2x, double &v3x, double &v4x, double &v5x) const {
     // gradient along x
     v1x = v2x = v3x = v4x = v5x = 0;
@@ -155,6 +169,7 @@ public:
     }
   }
 
+  /** Deprecated */
   template<typename Src>
   void sampleAllY(const Src* source, double &v1y, double &v2y, double &v3y, double &v4y, double &v5y) const {
     // gradient along y
@@ -168,11 +183,54 @@ public:
     }
   }
 
+  /** Deprecated */
   template<typename Src>
   void sampleAllZ(const Src* source, double &v1z, double &v2z, double &v3z, double &v4z, double &v5z) const {
     // gradient along z
     v1z = v2z = v3z = v4z = v5z = 0;
     for (unsigned int i = 0; i < NPE; i++) {
+      v1z += source[i][0] * Nz(i);
+      v2z += source[i][1] * Nz(i);
+      v3z += source[i][2] * Nz(i);
+      v4z += source[i][3] * Nz(i);
+      v5z += source[i][4] * Nz(i);
+    }
+  }
+
+  template<typename Src>
+  void sampleQX(const Src &source, double &v1x, double &v2x, double &v3x, double &v4x, double &v5x) const {
+    // gradient along x
+    const unsigned int nodesPerElement = source.size();
+    v1x = v2x = v3x = v4x = v5x = 0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      v1x += source[i][0] * Nx(i);
+      v2x += source[i][1] * Nx(i);
+      v3x += source[i][2] * Nx(i);
+      v4x += source[i][3] * Nx(i);
+      v5x += source[i][4] * Nx(i);
+    }
+  }
+
+  template<typename Src>
+  void sampleQY(const Src &source, double &v1y, double &v2y, double &v3y, double &v4y, double &v5y) const {
+    // gradient along y
+    const unsigned int nodesPerElement = source.size();
+    v1y = v2y = v3y = v4y = v5y = 0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      v1y += source[i][0] * Ny(i);
+      v2y += source[i][1] * Ny(i);
+      v3y += source[i][2] * Ny(i);
+      v4y += source[i][3] * Ny(i);
+      v5y += source[i][4] * Ny(i);
+    }
+  }
+
+  template<typename Src>
+  void sampleQZ(const Src &source, double &v1z, double &v2z, double &v3z, double &v4z, double &v5z) const {
+    // gradient along z
+    const unsigned int nodesPerElement = source.size();
+    v1z = v2z = v3z = v4z = v5z = 0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
       v1z += source[i][0] * Nz(i);
       v2z += source[i][1] * Nz(i);
       v3z += source[i][2] * Nz(i);
@@ -193,6 +251,21 @@ public:
       v6 += source[i][5] * N(i);
     }
   }
+
+  template<typename Src>
+  void samplePermittivity(const Src &source, double &v1, double &v2, double &v3, double &v4, double &v5, double &v6) const {
+    v1 = v2 = v3 = v4 = v5 = v6 = 0;
+    const unsigned int nodesPerElement = source.size();
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      v1 += source[i][0] * N(i);
+      v2 += source[i][1] * N(i);
+      v3 += source[i][2] * N(i);
+      v4 += source[i][3] * N(i);
+      v5 += source[i][4] * N(i);
+      v6 += source[i][5] * N(i);
+    }
+  }
+
 };
 
 template<unsigned int NGP>

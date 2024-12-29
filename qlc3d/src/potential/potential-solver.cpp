@@ -2,9 +2,6 @@
 #include <electrodes.h>
 #include <util/logging.h>
 #include <memory>
-#include <spamtrix_matrixmaker.hpp>
-#include <spamtrix_vector.hpp>
-#include <spamtrix_densematrix.hpp>
 #include <geometry.h>
 #include <lc.h>
 #include <solutionvector.h>
@@ -16,6 +13,9 @@
 #include <fe/gaussian-quadrature.h>
 #include <spamtrix_luincpreconditioner.hpp>
 #include <spamtrix_iterativesolvers.hpp>
+#include <spamtrix_matrixmaker.hpp>
+#include <spamtrix_vector.hpp>
+#include <spamtrix_densematrix.hpp>
 #include <fe/fe-util.h>
 #include <util/exception.h>
 
@@ -131,29 +131,37 @@ void PotentialSolver::assembleMatrixSystem(const SolutionVector &v, const Soluti
   assembleNeumann(v, q, geom); // dielectric material test pass if this is commented out
 }
 
-void PotentialSolver::addToGlobalMatrix(const double lK[4][4], const double lL[4],
+void PotentialSolver::addToGlobalMatrix(const SpaMtrix::DenseMatrix &lK, const std::vector<double> &lL,
                                         const SolutionVector &v,
-                                        const unsigned int tetNodes[4],
-                                        const unsigned int tetDofs[4]) {
+                                        const std::vector<unsigned int> &tetNodes,
+                                        const std::vector<unsigned int> &tetDofs) {
+#ifndef NDEBUG
+  assert(lK.getNumRows() == tetNodes.size());
+  assert(lK.getNumCols() == tetNodes.size());
+  assert(lL.size() == tetNodes.size());
+  assert(tetNodes.size() == tetDofs.size());
+#endif
+
   // System formed is K[i,j] * v[j] = L[i] , where we'll be solving for v.
   // Some values of v[j] are known, i.e. the nodes are fixed. No rows/columns exist for these nodes and the fixed
   // values are multiplied and subtracted from the RHS vector L[i].
 
   // check if any dof is fixed and load the nodal values if required.
-  bool anyFixed = std::any_of(tetDofs, tetDofs + 4, [this](auto val){ return this->isFixedNode(val); });
-  double values[4];
+  const unsigned int numTetNodes = tetNodes.size();
+  bool anyFixed = std::any_of(&tetDofs[0], &tetDofs[numTetNodes], [this](auto val){ return this->isFixedNode(val); });
+  std::vector<double> values(numTetNodes, 0.);
   if (anyFixed) {
-    v.loadValues(tetNodes, tetNodes + 4, values);
+    v.loadValues(&tetNodes[0], &tetNodes[numTetNodes], &values[0]);
   }
 
-  for (idx  i = 0; i < 4; i++) {
+  for (idx  i = 0; i < numTetNodes; i++) {
     const idx iDof = tetDofs[i];
     if (!isFreeNode(iDof)) { // this row/column doesn't even exist in the system as the value is already known
       continue;
     }
 
     double fixedContribution = 0.;
-    for (idx j = 0; j < 4; j++) {
+    for (idx j = 0; j < numTetNodes; j++) {
       const idx jDof = tetDofs[j];
       if (isFreeNode(jDof)) { // both i and j are free dofs, add the matrix contribution
         double *val = K->getValuePtr(iDof, jDof);
@@ -161,9 +169,9 @@ void PotentialSolver::addToGlobalMatrix(const double lK[4][4], const double lL[4
           RUNTIME_ERROR(fmt::format("Value at row {} and column {} is not found in the matrix for potential solution", iDof, jDof));
         }
         #pragma omp atomic
-        *val += lK[i][j];
+        *val += lK(i, j);
       } else { // j'th node is a fixed value. Add its contribution to the RHS vector L[i]
-        fixedContribution += lK[i][j] * values[j];
+        fixedContribution += lK(i, j) * values[j];
       }
     }
 
@@ -174,17 +182,17 @@ void PotentialSolver::addToGlobalMatrix(const double lK[4][4], const double lL[4
 
 void PotentialSolver::assembleVolume(const SolutionVector &v, const SolutionVector &q, const Geometry &geom) {
   const unsigned int elementCount = geom.getTetrahedra().getnElements();
+  const unsigned int nodesPerTet = geom.getTetrahedra().getnNodes();
+  SpaMtrix::DenseMatrix lK(nodesPerTet, nodesPerTet);
+  std::vector<double> lL(nodesPerTet, 0.0);
+  std::vector<unsigned int> tetNodes(nodesPerTet, 0);
+  std::vector<unsigned int> tetDofs(nodesPerTet, 0);
 
-  double lK[4][4];
-  double lL[4];
-  idx tetNodes[4];
-  idx tetDofs[4];
-
-  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, elementCount) private(lK, lL, tetNodes, tetDofs) schedule(guided)
+  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, elementCount, nodesPerTet) firstprivate(lK, lL, tetNodes, tetDofs) schedule(guided)
   for (idx elementIndex = 0; elementIndex < elementCount; elementIndex++) {
     GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
-    geom.getTetrahedra().loadNodes(elementIndex, tetNodes);
-    v.loadEquNodes(&tetNodes[0], &tetNodes[4], tetDofs);
+    geom.getTetrahedra().loadNodes(elementIndex, &tetNodes[0]);
+    v.loadEquNodes(&tetNodes[0], &tetNodes[nodesPerTet], &tetDofs[0]);
 
     localKL(geom, lK, lL, elementIndex, q, *lc, electrodes, shapes);
 
@@ -198,13 +206,15 @@ void PotentialSolver::assembleNeumann(const SolutionVector &v, const SolutionVec
   auto &tetMesh = geom.getTetrahedra();
   const unsigned int triCount = geom.getTriangles().getnElements();
 
-  double lK[4][4];
-  double lL[4];
-  unsigned int triNodes[3];
-  unsigned int tetNodes[4];
-  unsigned int tetDofs[4];
+  const unsigned int nodesPerTet = tetMesh.getnNodes();
+  const unsigned int nodesPerTri = triMesh.getnNodes();
+  SpaMtrix::DenseMatrix lK(nodesPerTet, nodesPerTet);
+  std::vector<double> lL(nodesPerTet, 0.0);
+  std::vector<unsigned int> triNodes(nodesPerTri, 0);
+  std::vector<unsigned int> tetNodes(nodesPerTet, 0);
+  std::vector<unsigned int> tetDofs(nodesPerTet, 0);
 
-  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, triMesh, tetMesh, triCount) private(lK, lL, triNodes, tetNodes, tetDofs) schedule(guided)
+  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, triMesh, tetMesh, triCount, nodesPerTet) firstprivate(lK, lL, triNodes, tetNodes, tetDofs) schedule(guided)
   for (unsigned int indTri = 0; indTri < triCount; indTri++) {
     if (triMesh.getMaterialNumber(indTri) != MAT_NEUMANN) {
       continue;
@@ -218,10 +228,10 @@ void PotentialSolver::assembleNeumann(const SolutionVector &v, const SolutionVec
       continue;
     }
     GaussianQuadratureTet<7> shapes = gaussQuadratureTetBoundaryIntegral4thOrder();
-    triMesh.loadNodes(indTri, triNodes);
-    tetMesh.loadNodes(indTet, tetNodes);
+    triMesh.loadNodes(indTri, &triNodes[0]);
+    tetMesh.loadNodes(indTet, &tetNodes[0]);
     reorderBoundaryTetNodes(tetNodes, triNodes);
-    v.loadEquNodes(&tetNodes[0], &tetNodes[4], tetDofs);
+    v.loadEquNodes(&tetNodes[0], &tetNodes[nodesPerTet], &tetDofs[0]);
 
     localKLNeumann(geom.getCoordinates(), lK, lL, tetNodes, q,
                    triMesh.getDeterminant(indTri),
@@ -241,13 +251,14 @@ bool PotentialSolver::isFreeNode(idx i) {
 }
 
 void PotentialSolver::localKL(const Geometry &geom,
-             double lK[4][4],
-             double lL[4],
-             unsigned int elementIndex,
-             const SolutionVector &q,
-             const LC &lc,
-             const Electrodes &electrodes,
-             GaussianQuadratureTet<11> &s) {
+                              SpaMtrix::DenseMatrix &lK,
+                              std::vector<double> &lL,
+                              unsigned int elementIndex,
+                              const SolutionVector &q,
+                              const LC &lc,
+                              const Electrodes &electrodes,
+                              GaussianQuadratureTet<11> &s) {
+  const unsigned int nodesPerTet = lL.size();
   const Mesh &mesh = geom.getTetrahedra();
   const bool isLCElement = isLCMaterial(mesh.getMaterialNumber(elementIndex));
   double eper = 0;
@@ -259,52 +270,51 @@ void PotentialSolver::localKL(const Geometry &geom,
 
   const bool isFlexoElectric = isLCElement && (efe != 0 || efe2 != 0);
 
-  memset(lK, 0, 4 * 4 * sizeof(double));
-  memset(lL, 0, 4 * sizeof(double));
-  idx elemNodeInds[4];
-  Vec3 elemCoords[4];
-  geom.getTetrahedra().loadNodes(elementIndex, elemNodeInds);
-  geom.getCoordinates().loadCoordinates(&elemNodeInds[0], &elemNodeInds[4], elemCoords);
-  elemCoords[0] *= 1e-6;
-  elemCoords[1] *= 1e-6;
-  elemCoords[2] *= 1e-6;
-  elemCoords[3] *= 1e-6;
+  lK.setAllValuesTo(0.0);
+  lL.assign(lL.size(), 0.0);
+
+  std::vector<unsigned int> elemNodeInds(nodesPerTet, 0);
+  std::vector<Vec3> elemCoords(nodesPerTet, Vec3());
+  geom.getTetrahedra().loadNodes(elementIndex, &elemNodeInds[0]);
+  geom.getCoordinates().loadCoordinates(&elemNodeInds[0], &elemNodeInds[nodesPerTet], &elemCoords[0]);
+  for (auto &elemCoord : elemCoords) { elemCoord *= 1e-6; }
+
   const double determinant = geom.getTetrahedra().getDeterminant(elementIndex);
 
-  s.initialiseElement(elemCoords, determinant);
+  s.initialiseElement(&elemCoords[0], determinant);
 
-  qlc3d::TTensor qNodal[4];
-  qlc3d::DielectricPermittivity eNodal[4];
+  std::vector<qlc3d::TTensor> qNodal(nodesPerTet, qlc3d::TTensor());
+  std::vector<qlc3d::DielectricPermittivity> eNodal(nodesPerTet, qlc3d::DielectricPermittivity());
   if (isLCElement) {
-    q.loadQtensorValues(&elemNodeInds[0], &elemNodeInds[4], qNodal);
-    eNodal[0] = qlc3d::DielectricPermittivity::fromTTensor(qNodal[0], S0, deleps, eper_lc);
-    eNodal[1] = qlc3d::DielectricPermittivity::fromTTensor(qNodal[1], S0, deleps, eper_lc);
-    eNodal[2] = qlc3d::DielectricPermittivity::fromTTensor(qNodal[2], S0, deleps, eper_lc);
-    eNodal[3] = qlc3d::DielectricPermittivity::fromTTensor(qNodal[3], S0, deleps, eper_lc);
+    q.loadQtensorValues(&elemNodeInds[0], &elemNodeInds[nodesPerTet], &qNodal[0]);
+
+    for (unsigned int i = 0; i < nodesPerTet; i++) {
+      eNodal[i] = qlc3d::DielectricPermittivity::fromTTensor(qNodal[i], S0, deleps, eper_lc);
+    }
   }
 
   // for each Gauss integration point
   for (; s.hasNextPoint(); s.nextPoint()) {
     double mul = s.weight() * determinant;
 
-    double exx, eyy, ezz, exy, exz, eyz;
+    double exx = 0, eyy = 0, ezz = 0, exy = 0, exz = 0, eyz = 0;
     if (isLCElement) {
-      s.sampleAll(eNodal, exx, eyy, ezz, exy, exz, eyz);
+      s.sampleAll(&eNodal[0], exx, eyy, ezz, exy, exz, eyz);
     } else {
-      exx = eper * (s.N(0) + s.N(1) + s.N(2) + s.N(3)); // same permittivity at each node
+      for (unsigned int i = 0; i < nodesPerTet; i++) { exx += s.N(i) * eper; }
       eyy = ezz = exx;
       exy = exz = eyz = 0.;
     }
 
     if (isFlexoElectric) {
       double q1, q2, q3, q4, q5;
-      s.sampleAll(qNodal, q1, q2, q3, q4, q5);
+      s.sampleAll(&qNodal[0], q1, q2, q3, q4, q5);
       double q1x, q2x, q3x, q4x, q5x, q1y, q2y, q3y, q4y, q5y, q1z, q2z, q3z, q4z, q5z;
-      s.sampleAllX(qNodal, q1x, q2x, q3x, q4x, q5x);
-      s.sampleAllY(qNodal, q1y, q2y, q3y, q4y, q5y);
-      s.sampleAllZ(qNodal, q1z, q2z, q3z, q4z, q5z);
+      s.sampleAllX(&qNodal[0], q1x, q2x, q3x, q4x, q5x);
+      s.sampleAllY(&qNodal[0], q1y, q2y, q3y, q4y, q5y);
+      s.sampleAllZ(&qNodal[0], q1z, q2z, q3z, q4z, q5z);
 
-      for (int i = 0; i < 4; i++) {
+      for (unsigned int i = 0; i < nodesPerTet; i++) {
         double ShRx = s.Nx(i);
         double ShRy = s.Ny(i);
         double ShRz = s.Nz(i);
@@ -322,9 +332,9 @@ void PotentialSolver::localKL(const Geometry &geom,
       }
     }
 
-    for (int i = 0; i < 4; i++) {
-      for (int j = 0; j < 4; j++) {
-        lK[i][j] -= mul * (
+    for (unsigned int i = 0; i < nodesPerTet; i++) {
+      for (unsigned int j = 0; j < nodesPerTet; j++) {
+        lK(i, j) -= mul * (
                 s.Nx(i) * s.Nx(j) * exx +
                 s.Ny(i) * s.Ny(j) * eyy +
                 s.Nz(i) * s.Nz(j) * ezz +
@@ -338,49 +348,47 @@ void PotentialSolver::localKL(const Geometry &geom,
 
 void PotentialSolver::localKLNeumann(
         const Coordinates &coordinates,
-        double lK[4][4],
-        double lL[4],
-        const unsigned int tetNodes[4],
+        SpaMtrix::DenseMatrix &lK,
+        std::vector<double> &lL,
+        const std::vector<unsigned int> &tetNodes,
         const SolutionVector &q,
         double triDet,
         double tetDet,
         const Vec3 &n,
         GaussianQuadratureTet<7> &shapes) {
+  using std::vector;
+  const unsigned int nodesPerTet = lL.size();
   const bool isFlexoelectric = (efe != 0 || efe2 != 0);
 
-  memset(lK, 0, 4 * 4 * sizeof(double));
-  memset(lL, 0, 4 * sizeof(double));
+  lK.setAllValuesTo(0.0);
+  lL.assign(lL.size(), 0.0);
 
-  Vec3 tetCoords[4];
-  coordinates.loadCoordinates(&tetNodes[0], &tetNodes[4], tetCoords);
-  tetCoords[0] *= 1e-6;
-  tetCoords[1] *= 1e-6;
-  tetCoords[2] *= 1e-6;
-  tetCoords[3] *= 1e-6;
+  vector<Vec3> tetCoords(nodesPerTet, Vec3());
+  coordinates.loadCoordinates(&tetNodes[0], &tetNodes[nodesPerTet], &tetCoords[0]);
+  for (auto &tetCoord : tetCoords) { tetCoord *= 1e-6; }
 
-  shapes.initialiseElement(tetCoords, tetDet);
+  shapes.initialiseElement(&tetCoords[0], tetDet);
 
-  qlc3d::TTensor qNodal[4];
-  q.loadQtensorValues(&tetNodes[0], &tetNodes[4], qNodal);
+  vector<qlc3d::TTensor> qNodal(nodesPerTet, qlc3d::TTensor());
+  q.loadQtensorValues(&tetNodes[0], &tetNodes[nodesPerTet], &qNodal[0]);
 
-  qlc3d::DielectricPermittivity eNodal[4] = {
-          qlc3d::DielectricPermittivity::fromTTensor(qNodal[0], S0, deleps, eper_lc),
-          qlc3d::DielectricPermittivity::fromTTensor(qNodal[1], S0, deleps, eper_lc),
-          qlc3d::DielectricPermittivity::fromTTensor(qNodal[2], S0, deleps, eper_lc),
-          qlc3d::DielectricPermittivity::fromTTensor(qNodal[3], S0, deleps, eper_lc) };
+  vector<qlc3d::DielectricPermittivity> eNodal(nodesPerTet, qlc3d::DielectricPermittivity());
+  for (unsigned int i = 0; i < nodesPerTet; i++) {
+    eNodal[i] = qlc3d::DielectricPermittivity::fromTTensor(qNodal[i], S0, deleps, eper_lc);
+  }
 
   for (;shapes.hasNextPoint(); shapes.nextPoint()) {
     double mul = shapes.weight() * triDet;
 
     if (isFlexoelectric) {
       double q1, q2, q3, q4, q5;
-      shapes.sampleAll(qNodal, q1, q2, q3, q4, q5);
+      shapes.sampleQ(qNodal, q1, q2, q3, q4, q5);
       double q1x, q2x, q3x, q4x, q5x, q1y, q2y, q3y, q4y, q5y, q1z, q2z, q3z, q4z, q5z;
-      shapes.sampleAllX(qNodal, q1x, q2x, q3x, q4x, q5x);
-      shapes.sampleAllY(qNodal, q1y, q2y, q3y, q4y, q5y);
-      shapes.sampleAllZ(qNodal, q1z, q2z, q3z, q4z, q5z);
+      shapes.sampleQX(qNodal, q1x, q2x, q3x, q4x, q5x);
+      shapes.sampleQY(qNodal, q1y, q2y, q3y, q4y, q5y);
+      shapes.sampleQZ(qNodal, q1z, q2z, q3z, q4z, q5z);
 
-      for (int i = 0; i < 4; i++) {
+      for (unsigned int i = 0; i < nodesPerTet; i++) {
         const double Ni = shapes.N(i);
 
         // Flexoelectric polarisation terms, minus, since minus residual formed
@@ -398,17 +406,17 @@ void PotentialSolver::localKLNeumann(
     }
 
     double exx, eyy, ezz, exy, exz, eyz;
-    shapes.sampleAll(eNodal, exx, eyy, ezz, exy, exz, eyz);
+    shapes.samplePermittivity(eNodal, exx, eyy, ezz, exy, exz, eyz);
 
-    for (int i =0; i < 4; i++) {
+    for (unsigned int i = 0; i < nodesPerTet; i++) {
       double Ni = shapes.N(i);
-      for (int j = 0; j < 4; j++) {
+      for (unsigned int j = 0; j < nodesPerTet; j++) {
         const double Njx = shapes.Nx(j);
         const double Njy = shapes.Ny(j);
         const double Njz = shapes.Nz(j);
 
         // negative as surface normal is pointing in towards LC, but convention in FE equations is outward
-        lK[i][j] -= mul * Ni * (((exx - 1) * Njx + exy * Njy + exz * Njz) * n.x()
+        lK(i, j) -= mul * Ni * (((exx - 1) * Njx + exy * Njy + exz * Njz) * n.x()
                                 + (exy * Njx + (eyy - 1) * Njy + eyz * Njz) * n.y()
                                 + (exz * Njx + eyz * Njy + (ezz - 1) * Njz) * n.z());
       }

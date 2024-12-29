@@ -2,6 +2,7 @@
 #define PROJECT_QLC3D_POTENTIAL_SOLVER_H
 #include <memory>
 #include <fe/gaussian-quadrature.h>
+#include <spamtrix_densematrix.hpp>
 
 class SolutionVector;
 class Geometry;
@@ -14,6 +15,7 @@ class SolverSettings;
 namespace SpaMtrix {
   class IRCMatrix;
   class Vector;
+  class DenseMatrix;
 }
 
 class DofMap;
@@ -56,14 +58,14 @@ class PotentialSolver {
   void assembleMatrixSystem(const SolutionVector &v, const SolutionVector &q, const Geometry &geom);
   void assembleVolume(const SolutionVector &v, const SolutionVector &q, const Geometry &geom);
   void assembleNeumann(const SolutionVector &v, const SolutionVector &q, const Geometry &geom);
-  void addToGlobalMatrix(const double lK[4][4], const double lL[4],
+  void addToGlobalMatrix(const SpaMtrix::DenseMatrix &lK, const std::vector<double> &lL,
                          const SolutionVector &v,
-                         const unsigned int tetNodes[4],
-                         const unsigned int tetDofs[4]);
+                         const std::vector<unsigned int> &tetNodes,
+                         const std::vector<unsigned int> &tetDofs);
 
   void localKL(const Geometry &geom,
-               double lK[4][4],
-               double lL[4],
+               SpaMtrix::DenseMatrix &lK,
+               std::vector<double> &lL,
                unsigned int elementIndex,
                const SolutionVector &q,
                const LC &lc,
@@ -72,9 +74,9 @@ class PotentialSolver {
 
   void localKLNeumann(
           const Coordinates &coordinates,
-          double lK[4][4],
-          double lL[4],
-          const unsigned int tetNodes[4],
+          SpaMtrix::DenseMatrix &lK,
+          std::vector<double> &lL,
+          const std::vector<unsigned int> &tetNodes,
           const SolutionVector &q,
           double triDet,
           double tetDet,
