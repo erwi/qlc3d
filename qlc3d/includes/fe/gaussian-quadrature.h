@@ -2,12 +2,380 @@
 #define PROJECT_QLC3D_GAUSSIAN_QUADRATURE_H
 #include <geom/vec3.h>
 #include <lc-representation.h>
+#include <fe/keast.h>
+#include <util/exception.h>
+
+#include <vector>
+#include <cassert>
+
+struct ShapeFunctionParams {
+  const std::vector<double> weights;
+  const std::vector<double> r;
+  const std::vector<double> s;
+  const std::vector<double> t;
+};
+
+
+class TetShapeFunction {
+  unsigned int elementOrder;
+  unsigned int nodesPerElement;
+  unsigned int numGaussPoints;
+  const TetrahedronIntegrationPoints *integrationPoints = nullptr;
+  std::vector<double> weights;
+
+  std::vector<double> sh;
+  std::vector<double> shR;
+  std::vector<double> shS;
+  std::vector<double> shT;
+
+  std::vector<double> shX;
+  std::vector<double> shY;
+  std::vector<double> shZ;
+
+  unsigned int currentPoint = 0;
+
+  [[nodiscard]] double& get(std::vector<double> &vec, unsigned int i) { return vec[currentPoint * nodesPerElement + i]; }
+  [[nodiscard]] double& getShR(unsigned int i) { return get(shR, i); }
+  [[nodiscard]] double& getShS(unsigned int i) { return get(shS, i); }
+  [[nodiscard]] double& getShT(unsigned int i) { return get(shT, i); }
+
+  void initialiseLinearTet() {
+    assert(integrationPoints != nullptr);
+    nodesPerElement = 4;
+
+    sh.resize(numGaussPoints * nodesPerElement, 0);
+    shR.resize(numGaussPoints * nodesPerElement, 0);
+    shS.resize(numGaussPoints * nodesPerElement, 0);
+    shT.resize(numGaussPoints * nodesPerElement, 0);
+
+    for (unsigned int i = 0; i < numGaussPoints; ++i) {
+      //weights[i] = integrationPoints.weights[i];
+
+      double r = integrationPoints->points[i * 3 + 0];
+      double s = integrationPoints->points[i * 3 + 1];
+      double t = integrationPoints->points[i * 3 + 2];
+
+      sh[i * nodesPerElement + 0] = 1 - r - s - t;
+      sh[i * nodesPerElement + 1] = r;
+      sh[i * nodesPerElement + 2] = s;
+      sh[i * nodesPerElement + 3] = t;
+
+      shR[i * nodesPerElement + 0] = -1.0;
+      shR[i * nodesPerElement + 1] = 1.0;
+      shR[i * nodesPerElement + 2] = 0.0;
+      shR[i * nodesPerElement + 3] = 0.0;
+
+      shS[i * nodesPerElement + 0] = -1.0;
+      shS[i * nodesPerElement + 1] = 0.0;
+      shS[i * nodesPerElement + 2] = 1.0;
+      shS[i * nodesPerElement + 3] = 0.0;
+
+      shT[i * nodesPerElement + 0] = -1.0;
+      shT[i * nodesPerElement + 1] = 0.0;
+      shT[i * nodesPerElement + 2] = 0.0;
+      shT[i * nodesPerElement + 3] = 1.0;
+    }
+
+    shX.resize(nodesPerElement, 0);
+    shY.resize(nodesPerElement, 0);
+    shZ.resize(nodesPerElement, 0);
+
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      shX[i] = 0.;
+      shY[i] = 0.;
+      shZ[i] = 0.;
+    }
+  }
+
+  void initialiseQuadraticTet() {
+    assert(integrationPoints != nullptr);
+    nodesPerElement = 10;
+
+    sh.resize(numGaussPoints * nodesPerElement, 0);
+    shR.resize(numGaussPoints * nodesPerElement, 0);
+    shS.resize(numGaussPoints * nodesPerElement, 0);
+    shT.resize(numGaussPoints * nodesPerElement, 0);
+
+    for (unsigned int i = 0; i < numGaussPoints; ++i) {
+      double r = integrationPoints->points[i * 3 + 0];
+      double s = integrationPoints->points[i * 3 + 1];
+      double t = integrationPoints->points[i * 3 + 2];
+
+      // corner nodes expressed in natural coordinates
+      double N1 = 1 - r - s - t;
+      double N2 = r;
+      double N3 = s;
+      double N4 = t;
+
+      sh[i * nodesPerElement + 0] = N1 * (2 * N1 - 1);
+      sh[i * nodesPerElement + 1] = N2 * (2 * N2 - 1);
+      sh[i * nodesPerElement + 2] = N3 * (2 * N3 - 1);
+      sh[i * nodesPerElement + 3] = N4 * (2 * N4 - 1);
+
+      // mid-edge nodes
+      // TODO: probably we must swap some to match node ordering of GMSH
+      sh[i * nodesPerElement + 4] = 4 * N1 * N2;
+      sh[i * nodesPerElement + 5] = 4 * N2 * N3;
+      sh[i * nodesPerElement + 6] = 4 * N3 * N1;
+      sh[i * nodesPerElement + 7] = 4 * N1 * N4;
+      sh[i * nodesPerElement + 8] = 4 * N2 * N4;
+      sh[i * nodesPerElement + 9] = 4 * N3 * N4;
+
+
+      shR[i * nodesPerElement + 0] = 4 * r + 4 * s + 4 * t - 3;
+      shS[i * nodesPerElement + 0] = 4 * r + 4 * s + 4 * t - 3;
+      shT[i * nodesPerElement + 0] = 4 * r + 4 * s + 4 * t - 3;
+
+      shR[i * nodesPerElement + 1] = 4 * r - 1;
+      shS[i * nodesPerElement + 1] = 0;
+      shT[i * nodesPerElement + 1] = 0;
+
+      shR[i * nodesPerElement + 2] = 0;
+      shS[i * nodesPerElement + 2] = 4 * s - 1;
+      shT[i * nodesPerElement + 2] = 0;
+
+      shR[i * nodesPerElement + 3] = 0;
+      shS[i * nodesPerElement + 3] = 0;
+      shT[i * nodesPerElement + 3] = 4 * t - 1;
+
+      shR[i * nodesPerElement + 4] = -8 * r - 4 * s - 4 * t + 4;
+      shS[i * nodesPerElement + 4] = -4 * r;
+      shT[i * nodesPerElement + 4] = -4 * r;
+
+      shR[i * nodesPerElement + 5] = 4 * s;
+      shS[i * nodesPerElement + 5] = 4 * r;
+      shT[i * nodesPerElement + 5] = 0;
+
+      shR[i * nodesPerElement + 6] = -4 * s;
+      shS[i * nodesPerElement + 6] = -4 * r - 8 * s - 4 * t + 4;
+      shT[i * nodesPerElement + 6] = -4 * s;
+
+      shR[i * nodesPerElement + 7] = -4 * t;
+      shS[i * nodesPerElement + 7] = -4 * t;
+      shT[i * nodesPerElement + 7] = -4 * r - 4 * s - 8 * t + 4;
+
+      shR[i * nodesPerElement + 8] = 4 * t;
+      shS[i * nodesPerElement + 8] = 0;
+      shT[i * nodesPerElement + 8] = 4 * r;
+
+      shR[i * nodesPerElement + 9] = 0;
+      shS[i * nodesPerElement + 9] = 4 * t;
+      shT[i * nodesPerElement + 9] = 4 * s;
+    }
+
+    shX.resize(nodesPerElement, 0);
+    shY.resize(nodesPerElement, 0);
+    shZ.resize(nodesPerElement, 0);
+
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      shX[i] = 0.;
+      shY[i] = 0.;
+      shZ[i] = 0.;
+    }
+
+  }
+
+public:
+  TetShapeFunction(unsigned int elementOrder) :
+          elementOrder(elementOrder) {
+    // do separate initialisation to simplify use with openmp parallel for loops where separate instances of this
+    // class are used
+  }
+
+  void initialise(const TetrahedronIntegrationPoints &integrationPoints) {
+    if (this->integrationPoints != nullptr ) {
+      return; // already initialised
+    }
+    this->integrationPoints = &integrationPoints;
+
+    assert(integrationPoints.weights.size() == integrationPoints.points.size() / 3);
+    numGaussPoints = integrationPoints.numGaussPoints();
+
+    switch (elementOrder) {
+      case 1:
+        initialiseLinearTet();
+        break;
+      case 2:
+        initialiseQuadraticTet();
+        break;
+      default:
+        RUNTIME_ERROR("Unsupported element order " + std::to_string(elementOrder));
+    }
+  }
+
+
+
+
+  [[nodiscard]] double getWeight() const { return integrationPoints->weights[currentPoint]; }
+  [[nodiscard]] unsigned int getNumGaussPoints() const { return numGaussPoints; }
+  [[nodiscard]] unsigned int getNumPointsPerElement() const { return nodesPerElement; }
+  [[nodiscard]] bool hasNextPoint() {
+    bool hasNext = currentPoint < numGaussPoints;
+    if (!hasNext) {
+      currentPoint = 0;
+    }
+    return hasNext;
+
+  }
+  void nextPoint() { currentPoint++; }
+
+  void initialiseElement(Vec3 *nodes, double determinant) {
+    double xr, xs, xt, yr, ys, yt, zr, zs, zt;
+    xr = xs = xt = yr = ys = yt = zr = zs = zt = 0.0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      double x = nodes[i].x();
+      double y = nodes[i].y();
+      double z = nodes[i].z();
+
+      double r = getShR(i);
+      double s = getShS(i);
+      double t = getShT(i);
+
+      xr += x * r;
+      xs += x * s;
+      xt += x * t;
+      yr += y * r;
+      ys += y * s;
+      yt += y * t;
+      zr += z * r;
+      zs += z * s;
+      zt += z * t;
+    }
+
+    double Jinv[3][3] = {
+              {(zt * ys - yt * zs) / determinant, (xt * zs - zt * xs) / determinant, (xs * yt - ys * xt) / determinant}
+            , {(yt * zr - zt * yr) / determinant, (zt * xr - xt * zr) / determinant, (xt * yr - yt * xr) / determinant}
+            , {(yr * zs - ys * zr) / determinant, (xs * zr - xr * zs) / determinant, (ys * xr - xs * yr) / determinant}
+    };
+
+    // x,y,z derivatives of shape functions
+    for (int i = 0; i < nodesPerElement; i++) {
+      double r = getShR(i);
+      double s = getShS(i);
+      double t = getShT(i);
+      shX[i] = r * Jinv[0][0] +
+               s * Jinv[1][0] +
+               t * Jinv[2][0];
+      shY[i] = r * Jinv[0][1] +
+               s * Jinv[1][1] +
+               t * Jinv[2][1];
+      shZ[i] = r * Jinv[0][2] +
+               s * Jinv[1][2] +
+               t * Jinv[2][2];
+    }
+  }
+
+  /**
+   * @param i = 0..3 for linear tetrahedron, 0..9 for quadratic tetrahedron
+   */
+  [[nodiscard]] double N(int i) { return get(sh, i); }
+  [[nodiscard]] double Nx(int i) { return shX[i]; }
+  [[nodiscard]] double Ny(int i) { return shY[i]; }
+  [[nodiscard]] double Nz(int i) { return shZ[i]; }
+
+  [[nodiscard]] double sampleX(const double *values) {
+    double sum = 0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      sum += values[i] * Nx(i);
+    }
+    return sum;
+    //return values[0] * Nx(0) + values[1] * Nx(1) + values[2] * Nx(2) + values[3] * Nx(3);
+  }
+
+  [[nodiscard]] double sampleY(const double *values) {
+    double sum = 0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      sum += values[i] * Ny(i);
+    }
+    return sum;
+    //return values[0] * Ny(0) + values[1] * Ny(1) + values[2] * Ny(2) + values[3] * Ny(3);
+  }
+
+  [[nodiscard]] double sampleZ(const double *values) {
+    double sum = 0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      sum += values[i] * Nz(i);
+    }
+    return sum;
+    //return values[0] * Nz(0) + values[1] * Nz(1) + values[2] * Nz(2) + values[3] * Nz(3);
+  }
+};
+
+class TriShapeFunction {
+  unsigned int nodesPerElement;
+  unsigned int numGaussPoints;
+  std::vector<double> weights;
+  std::vector<double> gaussPoints;
+
+  std::vector<double> sh;
+  std::vector<double> shR;
+  std::vector<double> shS;
+  std::vector<double> shT;
+
+  std::vector<double> shX;
+  std::vector<double> shY;
+  std::vector<double> shZ;
+public:
+  TriShapeFunction(unsigned int nodesPerElement, const std::vector<double> &weights,
+                   const std::vector<double> &r, const std::vector<double> &s) :
+    nodesPerElement(nodesPerElement), numGaussPoints(weights.size()),
+    weights(weights),
+    gaussPoints(gaussPoints) {
+
+    sh.resize(numGaussPoints * nodesPerElement, 0);
+    shR.resize(numGaussPoints * nodesPerElement, 0);
+    shS.resize(numGaussPoints * nodesPerElement, 0);
+    shT.resize(numGaussPoints * nodesPerElement, 0);
+    for (unsigned int i = 0; i < numGaussPoints; ++i) {
+
+      sh[i] = (1.0 - r[i] - s[i]) * (1.0 - 2.0 * r[i] - 2.0 * s[i]);
+      sh[i + 1 * numGaussPoints] = r[i] * (2 * r[i] - 1.);
+      sh[i + 2 * numGaussPoints] = s[i] * (2 * s[i] - 1.);
+      sh[i + 3 * numGaussPoints] = 4 * r[i] * (1. - r[i] - s[i]);
+      sh[i + 4 * numGaussPoints] = 4 * r[i] * s[i];
+      sh[i + 5 * numGaussPoints] = 4 * s[i] * (1. - r[i] - s[i]);
+    }
+  }
+  [[nodiscard]] double getWeight(unsigned int i) const { return weights[i]; }
+  //[[nodiscard]] double getGaussPoint(unsigned int i, unsigned int j) const { return gaussPoints[i][j]; }
+  [[nodiscard]] unsigned int getNumGaussPoints() const { return numGaussPoints; }
+  [[nodiscard]] unsigned int getNumPointsPerElement() const { return nodesPerElement; }
+};
+
+/*
+inline TetShapeFunction createLinearTetShapeFunction() {
+  // Weights and Gauss points from table 10.4 in
+  // J. E. Akin Finite Element Analysis with Error Estimators
+  const double w1 = -74.0/5625.0;
+  const double w2 = 343.0/45000.0;
+  const double w3 = 56.0/2250.0;
+  std::vector<double> weights = {w1, w2, w2, w2, w2, w3, w3, w3, w3, w3, w3};
+  const double a = (1 + sqrt(5.0 / 14.0)) / 4.0;
+  const double b = (1 - sqrt(5.0 / 14.0)) / 4.0;
+
+  std::vector<double> r = {
+          0.25,
+          11.0 / 14.0, 1.0 / 14.0, 1.0 / 14.0, 1.0 / 14.0,
+          a, a, a, b, b, b};
+
+  std::vector<double> s = {
+          0.25,
+          1.0 / 14.0, 11.0 / 14.0, 1.0 / 14.0, 1.0 / 14.0,
+          a, b, b, a, a, b};
+
+  std::vector <double> t = {
+          0.25,
+          1.0 / 14.0, 1.0 / 14.0, 11.0 / 14.0, 1.0 / 14.0,
+          b, a, b, a, b, a};
+
+  return TetShapeFunction(4, weights, r, s, t);
+}
+ */
 
 template<unsigned int NGP>
 class GaussianQuadratureTet {
   static const unsigned int NPE = 4;
   double w[NGP];
-  double gp[NGP][NPE];
 
   double shX[NGP];
   double shY[NGP];
@@ -56,10 +424,7 @@ public:
     }
   }
 
-  [[nodiscard]] double weight(unsigned int i) const { return w[i]; }
-  [[nodiscard]] double gaussPoint(unsigned int i, unsigned int j) const { return gp[i][j]; }
   [[nodiscard]] unsigned int numGaussPoints() const { return NGP; }
-  [[nodiscard]] unsigned int numPointsPerElement() const { return NPE; }
 
   void initialiseElement(Vec3 *nodes, double determinant) {
     currentPoint = 0;
@@ -98,11 +463,10 @@ public:
       shZ[i] = shR[0][i] * Jinv[0][2] +
                shS[0][i] * Jinv[1][2] +
                shT[0][i] * Jinv[2][2];
-    }//end for i
+    }
   }
 
   [[nodiscard]] double weight() const { return w[currentPoint]; }
-  [[nodiscard]] double gaussPoint(int i) const { return gp[currentPoint][i]; }
   [[nodiscard]] double N(int i) const { return sh[currentPoint][i]; }
   [[nodiscard]] double Nx(int i) const { return shX[i]; }
   [[nodiscard]] double Ny(int i) const { return shY[i]; }
