@@ -75,6 +75,62 @@ void validateTetrahedralMaterials(const std::vector<idx> matt) {
     }
 }
 
+/**
+ * Find the index of the node in the nodes vector that is nearest to the target point.
+ */
+int findNearestNodeIndex(const Vec3 &target, const std::vector<Vec3> &nodes) {
+  double minDist = std::numeric_limits<double>::max();
+  int nearestIndex = -1;
+  for (size_t i = 0; i < nodes.size(); i++) {
+    double dist = target.distanceSquared(nodes[i]);
+    if (dist < minDist) {
+      minDist = dist;
+      nearestIndex = i;
+    }
+  }
+  return nearestIndex;
+}
+
+/**
+ * Reorder the tetrahedral element node indices if the current ordering is the GMSH ordering.
+ */
+void reorderTetNodeOrder(vector<idx> &tetNodes, const Coordinates &coords) {
+
+  size_t numTets = tetNodes.size() / 10;
+  Log::info("Checking quadratic tetrahedron element node oder for {} elements.", numTets);
+
+  std::vector<Vec3> elemCoords;
+  elemCoords.resize(10, Vec3());
+  for (size_t i = 0; i < numTets; i++) {
+    idx ind0 = i * 10;
+
+    coords.loadCoordinates(&tetNodes[ind0], &tetNodes[ind0 + 10], &elemCoords[0]);
+
+    // swap the two last node indices in tet element if current ordering is the GMSH ordering.
+    // The expected mid-edge node positions are:
+    // p8 = (p1 + p3) / 2
+    // p9 = (p2 + p3) / 2
+    Vec3 p8 = (elemCoords[1] + elemCoords[3]) * 0.5;
+    Vec3 p9 = (elemCoords[2] + elemCoords[3]) * 0.5;
+
+    // find indices to the actual nearest ones. This avoids comparison tolerance complications
+    // but may not detect if the nodes are really far from expected positions.
+    int indNearest8 = findNearestNodeIndex(p8, elemCoords);
+    int indNearest9 = findNearestNodeIndex(p9, elemCoords);
+
+    bool isExpectedOrder = indNearest8 == 8 && indNearest9 == 9;
+    bool isGmsOrder = indNearest8 == 9 && indNearest9 == 8;
+    if (isExpectedOrder) {
+      continue;
+    } else if (isGmsOrder) {
+      std::swap(tetNodes[ind0 + 8], tetNodes[ind0 + 9]);
+    } else {
+      RUNTIME_ERROR(fmt::format("Tetrahedron {} has unexpected node ordering. Expected: 8, 9. Found: {}, {}.",
+                                i, indNearest8, indNearest9));
+    }
+  }
+}
+
 void prepareGeometry(Geometry& geom,
                      const std::filesystem::path &meshFileName,
                      Electrodes& electrodes,
@@ -95,6 +151,11 @@ void prepareGeometry(Geometry& geom,
     validateTetrahedralMaterials(rawMeshData.tetMaterials);
 
     auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
+
+    if (rawMeshData.elementOrder == 2) {
+      reorderTetNodeOrder(rawMeshData.tetNodes, *coordinates);
+    }
+
     coordinates->scale(stretchVector);
 
     geom.setMeshData(rawMeshData.elementOrder, coordinates,

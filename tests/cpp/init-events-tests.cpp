@@ -2,7 +2,7 @@
 #include <inits.h>
 #include <eventlist.h>
 #include <meshrefinement.h>
-#include "simulation-state.h"
+#include <simulation-state.h>
 
 using namespace std;
 

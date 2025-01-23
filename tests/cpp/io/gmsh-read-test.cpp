@@ -4,7 +4,7 @@
 #include <iostream>
 #include <algorithm>
 #include <set>
-#include "material_numbers.h"
+#include <material_numbers.h>
 
 TEST_CASE("throw exception when") {
     GmshFileReader reader;

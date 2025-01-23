@@ -320,10 +320,6 @@ TEST_CASE("New tet 3D shape function - quadratic tet") {
     for (int iTet = 0; iTet < tets.getnElements(); iTet++) {
       tets.loadNodes(iTet, elemNodes);
 
-      // swap last nodes because gmsh order is different
-      // TODO: this should be done during reading/initialisation for each element, if detected?
-      std::swap(elemNodes[8], elemNodes[9]);
-
       coords.loadCoordinates(&elemNodes[0], &elemNodes[10], elemCoords);
       double x[] = {elemCoords[0].x(), elemCoords[1].x(), elemCoords[2].x(), elemCoords[3].x(), elemCoords[4].x(), elemCoords[5].x(), elemCoords[6].x(), elemCoords[7].x(), elemCoords[8].x(), elemCoords[9].x()};
       double y[] = {elemCoords[0].y(), elemCoords[1].y(), elemCoords[2].y(), elemCoords[3].y(), elemCoords[4].y(), elemCoords[5].y(), elemCoords[6].y(), elemCoords[7].y(), elemCoords[8].y(), elemCoords[9].y()};

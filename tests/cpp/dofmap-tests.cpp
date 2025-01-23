@@ -1,5 +1,5 @@
-#include <catch.h>
-#include <dofmap.h>
+#include "catch.h"
+#include "dofmap.h"
 
 TEST_CASE("Initialise DofMap") {
   DofMap dofMap(10, 5);
