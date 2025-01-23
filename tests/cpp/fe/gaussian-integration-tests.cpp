@@ -8,6 +8,7 @@
 #include <inits.h>
 #include <util/logging.h>
 #include <fe/gaussian-quadrature.h>
+#include <fe/keast.h>
 
 TEST_CASE("Linear tet 3D shape function") {
   GaussianQuadratureTet<11> g = gaussQuadratureTet4thOrder();
@@ -164,6 +165,203 @@ TEST_CASE("Linear tet 3D shape function") {
     REQUIRE(v5 == Approx(5).margin(1e-12));
   }
 }
+
+TEST_CASE("New tet 3D shape function - linear tet") { // TODO: repeat this with quadratic element
+  TetShapeFunction shape(1); // = createLinearTetShapeFunction();
+
+  shape.initialise(Keast4);
+  //shape.initialise(Keast0);
+
+
+  Geometry geom;
+  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
+  auto alignment = Alignment();
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+  auto tets = geom.getTetrahedra();
+  auto coords = geom.getCoordinates();
+  idx elemNodes[4] = {0, 0, 0, 0};
+  Vec3 elemCoords[4] = {Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0)};
+
+
+
+  SECTION("Check gaussian integration parameters") {
+    //REQUIRE(11 == shape.getNumGaussPoints());
+
+    double sumWeight = 0;
+    for (; shape.hasNextPoint(); shape.nextPoint()) {
+      sumWeight += shape.getWeight();
+    }
+
+    REQUIRE(sumWeight == Approx(1.0 / 6.).margin(1e-12)); // sum of weights should be 1/6 because Tetrahedron volume is 6x determinant
+  }
+
+  SECTION("Integrate total volume of unit cube") {
+    double totalVolume = 0;
+
+    for (int iTet = 0; iTet < tets.getnElements(); iTet++) {
+      tets.loadNodes(iTet, elemNodes);
+      coords.loadCoordinates(&elemNodes[0], &elemNodes[4], elemCoords);
+
+      double determinant = tets.getDeterminant(iTet);
+
+
+      for (; shape.hasNextPoint(); shape.nextPoint()) {
+        shape.initialiseElement(elemCoords, determinant);
+        double mul = shape.getWeight() * determinant;
+        for (int i = 0; i < 4; i++) {
+          totalVolume += mul * shape.N(i);
+        }
+      }
+    }
+
+    totalVolume *= 1e18;
+    Log::info("Total volume: {}", totalVolume);
+
+    REQUIRE(totalVolume == Approx(1.0).margin(1e-9));
+  }
+
+  SECTION("Evaluate gradients") {
+    for (int iTet = 0; iTet < tets.getnElements(); iTet++) {
+      tets.loadNodes(iTet, elemNodes);
+      coords.loadCoordinates(&elemNodes[0], &elemNodes[4], elemCoords);
+
+      double determinant = tets.getDeterminant(iTet) * 1e18;
+      double x[] = {elemCoords[0].x(), elemCoords[1].x(), elemCoords[2].x(), elemCoords[3].x()};
+      double y[] = {elemCoords[0].y(), elemCoords[1].y(), elemCoords[2].y(), elemCoords[3].y()};
+      double z[] = {elemCoords[0].z(), elemCoords[1].z(), elemCoords[2].z(), elemCoords[3].z()};
+
+      for (; shape.hasNextPoint(); shape.nextPoint()) {
+        shape.initialiseElement(elemCoords, determinant);
+        double xx = shape.sampleX(x);
+        double xy = shape.sampleY(x);
+        double xz = shape.sampleZ(x);
+
+        double yx = shape.sampleX(y);
+        double yy = shape.sampleY(y);
+        double yz = shape.sampleZ(y);
+
+        double zx = shape.sampleX(z);
+        double zy = shape.sampleY(z);
+        double zz = shape.sampleZ(z);
+
+        REQUIRE(xx == Approx(1).margin(1e-12));
+        REQUIRE(xy == Approx(0).margin(1e-12));
+        REQUIRE(xz == Approx(0).margin(1e-12));
+
+        REQUIRE(yx == Approx(0).margin(1e-12));
+        REQUIRE(yy == Approx(1).margin(1e-12));
+        REQUIRE(yz == Approx(0).margin(1e-12));
+
+        REQUIRE(zx == Approx(0).margin(1e-12));
+        REQUIRE(zy == Approx(0).margin(1e-12));
+        REQUIRE(zz == Approx(1).margin(1e-12));
+      }
+    }
+  }
+}
+
+TEST_CASE("New tet 3D shape function - quadratic tet") {
+  TetShapeFunction shape(2); // = createLinearTetShapeFunction();
+  shape.initialise(Keast4);
+
+
+  Geometry geom;
+  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
+  auto alignment = Alignment();
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+  prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH, electrodes, alignment, {1, 1, 1}, 0, 0, 0);
+  auto tets = geom.getTetrahedra();
+  auto coords = geom.getCoordinates();
+  idx elemNodes[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  Vec3 elemCoords[10] = {Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0),
+                         Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0)};
+
+  SECTION("Check gaussian integration parameters") {
+    //REQUIRE(11 == shape.getNumGaussPoints());
+
+    double sumWeight = 0;
+    for (; shape.hasNextPoint(); shape.nextPoint()) {
+      sumWeight += shape.getWeight();
+    }
+
+    REQUIRE(sumWeight == Approx(1.0 / 6.).margin(
+            1e-12)); // sum of weights should be 1/6 because Tetrahedron volume is 6x determinant
+  }
+
+  SECTION("Integrate total volume of unit cube") {
+    double totalVolume = 0;
+
+    for (int iTet = 0; iTet < tets.getnElements(); iTet++) {
+      tets.loadNodes(iTet, elemNodes);
+      coords.loadCoordinates(&elemNodes[0], &elemNodes[tets.getnNodes()], elemCoords);
+
+      double determinant = tets.getDeterminant(iTet);
+      shape.initialiseElement(elemCoords, determinant);
+
+      for (; shape.hasNextPoint(); shape.nextPoint()) {
+
+        double mul = shape.getWeight() * determinant;
+        for (int i = 0; i < tets.getnNodes(); i++) {
+          totalVolume += mul * shape.N(i);
+        }
+      }
+    }
+
+    totalVolume *= 1e18;
+    Log::info("Total volume: {}", totalVolume);
+
+    REQUIRE(totalVolume == Approx(1.0).margin(1e-9));
+  }
+
+  SECTION("Evaluate gradients") {
+    for (int iTet = 0; iTet < tets.getnElements(); iTet++) {
+      tets.loadNodes(iTet, elemNodes);
+
+      // swap last nodes because gmsh order is different
+      // TODO: this should be done during reading/initialisation for each element, if detected?
+      std::swap(elemNodes[8], elemNodes[9]);
+
+      coords.loadCoordinates(&elemNodes[0], &elemNodes[10], elemCoords);
+      double x[] = {elemCoords[0].x(), elemCoords[1].x(), elemCoords[2].x(), elemCoords[3].x(), elemCoords[4].x(), elemCoords[5].x(), elemCoords[6].x(), elemCoords[7].x(), elemCoords[8].x(), elemCoords[9].x()};
+      double y[] = {elemCoords[0].y(), elemCoords[1].y(), elemCoords[2].y(), elemCoords[3].y(), elemCoords[4].y(), elemCoords[5].y(), elemCoords[6].y(), elemCoords[7].y(), elemCoords[8].y(), elemCoords[9].y()};
+      double z[] = {elemCoords[0].z(), elemCoords[1].z(), elemCoords[2].z(), elemCoords[3].z(), elemCoords[4].z(), elemCoords[5].z(), elemCoords[6].z(), elemCoords[7].z(), elemCoords[8].z(), elemCoords[9].z()};
+
+      double determinant = tets.getDeterminant(iTet) * 1e18;
+
+      for (; shape.hasNextPoint(); shape.nextPoint()) {
+        shape.initialiseElement(elemCoords, determinant); // TODO: call this inside nextPoint()?
+        double xx = shape.sampleX(x);
+        double xy = shape.sampleY(x);
+        double xz = shape.sampleZ(x);
+
+        double yx = shape.sampleX(y);
+        double yy = shape.sampleY(y);
+        double yz = shape.sampleZ(y);
+
+        double zx = shape.sampleX(z);
+        double zy = shape.sampleY(z);
+        double zz = shape.sampleZ(z);
+
+        REQUIRE(xx == Approx(1).margin(1e-12));
+        REQUIRE(xy == Approx(0).margin(1e-12));
+        REQUIRE(xz == Approx(0).margin(1e-12));
+
+        REQUIRE(yx == Approx(0).margin(1e-12));
+        REQUIRE(yy == Approx(1).margin(1e-12));
+        REQUIRE(yz == Approx(0).margin(1e-12));
+
+        REQUIRE(zx == Approx(0).margin(1e-12));
+        REQUIRE(zy == Approx(0).margin(1e-12));
+        REQUIRE(zz == Approx(1).margin(1e-12));
+       }
+    }
+
+  }
+}
+
 
 TEST_CASE("3D boundary integral in a unit cube") {
   GaussianQuadratureTet<7> g = gaussQuadratureTetBoundaryIntegral4thOrder();
