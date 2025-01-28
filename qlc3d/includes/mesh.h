@@ -62,7 +62,18 @@ public:
   }
 }
 
-
+[[nodiscard]] inline unsigned int getElementOrder(ElementType elementType) {
+  switch (elementType) {
+    case ElementType::LINEAR_TRIANGLE:
+    case ElementType::LINEAR_TETRAHEDRON:
+      return 1;
+    case ElementType::QUADRATIC_TRIANGLE:
+    case ElementType::QUADRATIC_TETRAHEDRON:
+      return 2;
+    default:
+      return 0; // unknown
+  }
+}
 
 class Mesh {
 private:

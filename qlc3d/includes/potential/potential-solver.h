@@ -70,7 +70,7 @@ class PotentialSolver {
                const SolutionVector &q,
                const LC &lc,
                const Electrodes &electrodes,
-               GaussianQuadratureTet<11> &s);
+              TetShapeFunction &s);
 
   void localKLNeumann(
           const Coordinates &coordinates,

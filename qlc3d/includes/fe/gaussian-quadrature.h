@@ -34,10 +34,10 @@ class TetShapeFunction {
 
   unsigned int currentPoint = 0;
 
-  [[nodiscard]] double& get(std::vector<double> &vec, unsigned int i) { return vec[currentPoint * nodesPerElement + i]; }
-  [[nodiscard]] double& getShR(unsigned int i) { return get(shR, i); }
-  [[nodiscard]] double& getShS(unsigned int i) { return get(shS, i); }
-  [[nodiscard]] double& getShT(unsigned int i) { return get(shT, i); }
+  [[nodiscard]] const double& get(const std::vector<double> &vec, unsigned int i) const { return vec[currentPoint * nodesPerElement + i]; }
+  [[nodiscard]] const double& getShR(unsigned int i) const { return get(shR, i); }
+  [[nodiscard]] const double& getShS(unsigned int i) const { return get(shS, i); }
+  [[nodiscard]] const double& getShT(unsigned int i) const { return get(shT, i); }
 
   void initialiseLinearTet() {
     assert(integrationPoints != nullptr);
@@ -203,9 +203,6 @@ public:
     }
   }
 
-
-
-
   [[nodiscard]] double getWeight() const { return integrationPoints->weights[currentPoint]; }
   [[nodiscard]] unsigned int getNumGaussPoints() const { return numGaussPoints; }
   [[nodiscard]] unsigned int getNumPointsPerElement() const { return nodesPerElement; }
@@ -268,36 +265,107 @@ public:
   /**
    * @param i = 0..3 for linear tetrahedron, 0..9 for quadratic tetrahedron
    */
-  [[nodiscard]] double N(int i) { return get(sh, i); }
-  [[nodiscard]] double Nx(int i) { return shX[i]; }
-  [[nodiscard]] double Ny(int i) { return shY[i]; }
-  [[nodiscard]] double Nz(int i) { return shZ[i]; }
+  [[nodiscard]] const double& N(int i) const { return get(sh, i); }
+  [[nodiscard]] const double& Nx(int i) const { return shX[i]; }
+  [[nodiscard]] const double& Ny(int i) const { return shY[i]; }
+  [[nodiscard]] const double& Nz(int i) const { return shZ[i]; }
 
-  [[nodiscard]] double sampleX(const double *values) {
+  [[nodiscard]] double sample(const double *value) const {
+    double sum = 0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      sum += value[i] * N(i);
+    }
+    return sum;
+  }
+
+  [[nodiscard]] double sampleX(const double *values) const {
     double sum = 0;
     for (unsigned int i = 0; i < nodesPerElement; i++) {
       sum += values[i] * Nx(i);
     }
     return sum;
-    //return values[0] * Nx(0) + values[1] * Nx(1) + values[2] * Nx(2) + values[3] * Nx(3);
   }
 
-  [[nodiscard]] double sampleY(const double *values) {
+  [[nodiscard]] double sampleY(const double *values) const {
     double sum = 0;
     for (unsigned int i = 0; i < nodesPerElement; i++) {
       sum += values[i] * Ny(i);
     }
     return sum;
-    //return values[0] * Ny(0) + values[1] * Ny(1) + values[2] * Ny(2) + values[3] * Ny(3);
   }
 
-  [[nodiscard]] double sampleZ(const double *values) {
+  [[nodiscard]] double sampleZ(const double *values) const {
     double sum = 0;
     for (unsigned int i = 0; i < nodesPerElement; i++) {
       sum += values[i] * Nz(i);
     }
     return sum;
-    //return values[0] * Nz(0) + values[1] * Nz(1) + values[2] * Nz(2) + values[3] * Nz(3);
+  }
+
+
+  template<typename Src>
+  void sampleQX(const Src &source, double &v1x, double &v2x, double &v3x, double &v4x, double &v5x) const {
+    // gradient along x
+    v1x = v2x = v3x = v4x = v5x = 0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      v1x += source[i][0] * Nx(i);
+      v2x += source[i][1] * Nx(i);
+      v3x += source[i][2] * Nx(i);
+      v4x += source[i][3] * Nx(i);
+      v5x += source[i][4] * Nx(i);
+    }
+  }
+
+  template<typename Src>
+  void sampleQY(const Src &source, double &v1y, double &v2y, double &v3y, double &v4y, double &v5y) const {
+    // gradient along y
+    v1y = v2y = v3y = v4y = v5y = 0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      v1y += source[i][0] * Ny(i);
+      v2y += source[i][1] * Ny(i);
+      v3y += source[i][2] * Ny(i);
+      v4y += source[i][3] * Ny(i);
+      v5y += source[i][4] * Ny(i);
+    }
+  }
+
+  template<typename Src>
+  void sampleQZ(const Src &source, double &v1z, double &v2z, double &v3z, double &v4z, double &v5z) const {
+    // gradient along z
+    v1z = v2z = v3z = v4z = v5z = 0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      v1z += source[i][0] * Nz(i);
+      v2z += source[i][1] * Nz(i);
+      v3z += source[i][2] * Nz(i);
+      v4z += source[i][3] * Nz(i);
+      v5z += source[i][4] * Nz(i);
+    }
+  }
+
+
+  template<typename Src>
+  void sampleQ(const Src* source, double &q1, double &q2, double &q3, double &q4, double &q5) const {
+    q1 = q2 = q3 = q4 = q5 = 0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      q1 += source[i][0] * N(i);
+      q2 += source[i][1] * N(i);
+      q3 += source[i][2] * N(i);
+      q4 += source[i][3] * N(i);
+      q5 += source[i][4] * N(i);
+    }
+  }
+
+  template<typename Src>
+  void sampleAll(const Src* source, double &v1, double &v2, double &v3, double &v4, double &v5, double &v6) const {
+    v1 = v2 = v3 = v4 = v5 = v6 = 0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      v1 += source[i][0] * N(i);
+      v2 += source[i][1] * N(i);
+      v3 += source[i][2] * N(i);
+      v4 += source[i][3] * N(i);
+      v5 += source[i][4] * N(i);
+      v6 += source[i][5] * N(i);
+    }
   }
 };
 

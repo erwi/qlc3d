@@ -183,14 +183,17 @@ void PotentialSolver::addToGlobalMatrix(const SpaMtrix::DenseMatrix &lK, const s
 void PotentialSolver::assembleVolume(const SolutionVector &v, const SolutionVector &q, const Geometry &geom) {
   const unsigned int elementCount = geom.getTetrahedra().getnElements();
   const unsigned int nodesPerTet = geom.getTetrahedra().getnNodes();
+  unsigned int elementOrder = getElementOrder(geom.getTetrahedra().getElementType());
   SpaMtrix::DenseMatrix lK(nodesPerTet, nodesPerTet);
   std::vector<double> lL(nodesPerTet, 0.0);
   std::vector<unsigned int> tetNodes(nodesPerTet, 0);
   std::vector<unsigned int> tetDofs(nodesPerTet, 0);
 
-  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, elementCount, nodesPerTet) firstprivate(lK, lL, tetNodes, tetDofs) schedule(guided)
+  TetShapeFunction shapes(elementOrder);
+  shapes.initialise(Keast4);
+
+  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, elementCount, nodesPerTet) firstprivate(lK, lL, tetNodes, tetDofs, shapes) schedule(guided)
   for (idx elementIndex = 0; elementIndex < elementCount; elementIndex++) {
-    GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
     geom.getTetrahedra().loadNodes(elementIndex, &tetNodes[0]);
     v.loadEquNodes(&tetNodes[0], &tetNodes[nodesPerTet], &tetDofs[0]);
 
@@ -219,6 +222,12 @@ void PotentialSolver::assembleNeumann(const SolutionVector &v, const SolutionVec
     if (triMesh.getMaterialNumber(indTri) != MAT_NEUMANN) {
       continue;
     }
+
+    if(tetMesh.getElementType() != ElementType::LINEAR_TETRAHEDRON) {
+      throw std::runtime_error("Quadratic tetrahedra not supported for Neumann boundary conditions");
+    }
+
+
     const unsigned int indTet = triMesh.getConnectedVolume(indTri);
     if (indTet == NOT_AN_INDEX) {
       throw std::runtime_error(fmt::format("Neumann boundary triangle {} not connected to a volume element", indTri));
@@ -257,7 +266,8 @@ void PotentialSolver::localKL(const Geometry &geom,
                               const SolutionVector &q,
                               const LC &lc,
                               const Electrodes &electrodes,
-                              GaussianQuadratureTet<11> &s) {
+                              TetShapeFunction &s) {
+                              //GaussianQuadratureTet<11> &s) {
   const unsigned int nodesPerTet = lL.size();
   const Mesh &mesh = geom.getTetrahedra();
   const bool isLCElement = isLCMaterial(mesh.getMaterialNumber(elementIndex));
@@ -281,7 +291,7 @@ void PotentialSolver::localKL(const Geometry &geom,
 
   const double determinant = geom.getTetrahedra().getDeterminant(elementIndex);
 
-  s.initialiseElement(&elemCoords[0], determinant);
+  //s.initialiseElement(&elemCoords[0], determinant);
 
   std::vector<qlc3d::TTensor> qNodal(nodesPerTet, qlc3d::TTensor());
   std::vector<qlc3d::DielectricPermittivity> eNodal(nodesPerTet, qlc3d::DielectricPermittivity());
@@ -295,7 +305,8 @@ void PotentialSolver::localKL(const Geometry &geom,
 
   // for each Gauss integration point
   for (; s.hasNextPoint(); s.nextPoint()) {
-    double mul = s.weight() * determinant;
+    s.initialiseElement(&elemCoords[0], determinant); // TODO: for linear elements this can be done only once outside the loop. move this inside nextPoint??
+    double mul = s.getWeight() * determinant;
 
     double exx = 0, eyy = 0, ezz = 0, exy = 0, exz = 0, eyz = 0;
     if (isLCElement) {
@@ -308,11 +319,11 @@ void PotentialSolver::localKL(const Geometry &geom,
 
     if (isFlexoElectric) {
       double q1, q2, q3, q4, q5;
-      s.sampleAll(&qNodal[0], q1, q2, q3, q4, q5);
+      s.sampleQ(&qNodal[0], q1, q2, q3, q4, q5);
       double q1x, q2x, q3x, q4x, q5x, q1y, q2y, q3y, q4y, q5y, q1z, q2z, q3z, q4z, q5z;
-      s.sampleAllX(&qNodal[0], q1x, q2x, q3x, q4x, q5x);
-      s.sampleAllY(&qNodal[0], q1y, q2y, q3y, q4y, q5y);
-      s.sampleAllZ(&qNodal[0], q1z, q2z, q3z, q4z, q5z);
+      s.sampleQX(&qNodal[0], q1x, q2x, q3x, q4x, q5x);
+      s.sampleQY(&qNodal[0], q1y, q2y, q3y, q4y, q5y);
+      s.sampleQZ(&qNodal[0], q1z, q2z, q3z, q4z, q5z);
 
       for (unsigned int i = 0; i < nodesPerTet; i++) {
         double ShRx = s.Nx(i);
@@ -478,9 +489,9 @@ void PotentialSolver::solvePotential(SolutionVector &vOut,
   }
 
   auto elementType = geom.getTetrahedra().getElementType();
-  if (elementType != ElementType::LINEAR_TETRAHEDRON) {
-    throw NotYetImplementedException("Potential solver only supports linear tetrahedral elements, got elementType " + toString(elementType));
-  }
+  //if (elementType != ElementType::LINEAR_TETRAHEDRON) {
+  //  throw NotYetImplementedException("Potential solver only supports linear tetrahedral elements, got elementType " + toString(elementType));
+  //}
 
   initialiseMatrixSystem(vOut, geom);
 
