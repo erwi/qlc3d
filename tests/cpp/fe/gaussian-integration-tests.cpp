@@ -263,7 +263,8 @@ TEST_CASE("New tet 3D shape function - linear tet") { // TODO: repeat this with 
 }
 
 TEST_CASE("New tet 3D shape function - quadratic tet") {
-  TetShapeFunction shape(2); // = createLinearTetShapeFunction();
+  const int elementOrder = 2;
+  TetShapeFunction shape(elementOrder); // = createLinearTetShapeFunction();
   shape.initialise(Keast4);
 
 
@@ -278,6 +279,14 @@ TEST_CASE("New tet 3D shape function - quadratic tet") {
   idx elemNodes[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   Vec3 elemCoords[10] = {Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0),
                          Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0)};
+
+  AABox bbox = coords.findBoundingBox();
+  REQUIRE(bbox.getXMin() == Approx(0).margin(1e-12));
+  REQUIRE(bbox.getXMax() == Approx(1).margin(1e-12));
+  REQUIRE(bbox.getYMin() == Approx(0).margin(1e-12));
+  REQUIRE(bbox.getYMax() == Approx(1).margin(1e-12));
+  REQUIRE(bbox.getZMin() == Approx(0).margin(1e-12));
+  REQUIRE(bbox.getZMax() == Approx(1).margin(1e-12));
 
   SECTION("Check gaussian integration parameters") {
     //REQUIRE(11 == shape.getNumGaussPoints());
@@ -356,6 +365,92 @@ TEST_CASE("New tet 3D shape function - quadratic tet") {
     }
 
   }
+
+  SECTION("Evaluate x^4 in unit cube") {
+
+    // intgrals of f(x) in in unit cube when f(x) = x ^ n is 1 / (n + 1)
+    // x -> 0.5
+    // x^2 -> 1 / 3
+    // x ^ 3 -> 1 / 4
+    // x ^ 4 -> 1 / 5
+    // and so on
+    int n = 4;
+    double expected = 1. / (n + 1);
+    double totalIntegral = 0;
+    for (int iTet = 0; iTet < tets.getnElements(); iTet++) {
+      tets.loadNodes(iTet, elemNodes);
+      coords.loadCoordinates(&elemNodes[0], &elemNodes[10], elemCoords);
+      double nodalX[10] = {elemCoords[0].x(), elemCoords[1].x(), elemCoords[2].x(), elemCoords[3].x(), elemCoords[4].x(), elemCoords[5].x(), elemCoords[6].x(), elemCoords[7].x(), elemCoords[8].x(), elemCoords[9].x()};
+
+      double determinant = tets.getDeterminant(iTet) * 1e18;
+      shape.initialiseElement(elemCoords, determinant);
+
+      for (; shape.hasNextPoint(); shape.nextPoint()) {
+        double mul = shape.getWeight() * determinant;
+        double x = shape.sample(nodalX);
+
+        double fx = 1;
+        for (int order = 0; order < n; order++) {
+          fx *= x;
+        }
+
+        totalIntegral += mul * fx;
+      }
+    }
+
+    std::cout << "order = " << n << " totalIntegral: " << totalIntegral << std::endl;
+    REQUIRE(totalIntegral == Approx(expected).margin(1e-12));
+  }
+
+  SECTION("Sampling 6 nodal values (permittivity tensor)") {
+    double nodalValues[10][6] = {
+            {1, 2, 3, 4, 5, 6}, // values at node 1
+            {1, 2, 3, 4, 5, 6}, // values at node 2
+            {1, 2, 3, 4, 5, 6}, // values at node 3
+            {1, 2, 3, 4, 5, 6}, // ...
+            {1, 2, 3, 4, 5, 6},
+            {1, 2, 3, 4, 5, 6},
+            {1, 2, 3, 4, 5, 6},
+            {1, 2, 3, 4, 5, 6},
+            {1, 2, 3, 4, 5, 6},
+            {1, 2, 3, 4, 5, 6}  // values at node 10
+    };
+
+    double v1, v2, v3, v4, v5, v6;
+    shape.sampleAll(nodalValues, v1, v2, v3, v4, v5, v6);
+
+    REQUIRE(v1 == Approx(1).margin(1e-12));
+    REQUIRE(v2 == Approx(2).margin(1e-12));
+    REQUIRE(v3 == Approx(3).margin(1e-12));
+    REQUIRE(v4 == Approx(4).margin(1e-12));
+    REQUIRE(v5 == Approx(5).margin(1e-12));
+    REQUIRE(v6 == Approx(6).margin(1e-12));
+  }
+
+  SECTION("Sampling 5 nodal values (Q-tensor)") {
+    double nodalValues[10][5] = {
+            {1, 2, 3, 4, 5}, // values at node 1
+            {1, 2, 3, 4, 5}, // values at node 2
+            {1, 2, 3, 4, 5}, // values at node 3
+            {1, 2, 3, 4, 5}, // ...
+            {1, 2, 3, 4, 5},
+            {1, 2, 3, 4, 5},
+            {1, 2, 3, 4, 5},
+            {1, 2, 3, 4, 5},
+            {1, 2, 3, 4, 5},
+            {1, 2, 3, 4, 5}  // values at node 10
+    };
+
+    double v1, v2, v3, v4, v5;
+    shape.sampleQ(nodalValues, v1, v2, v3, v4, v5);
+
+    REQUIRE(v1 == Approx(1).margin(1e-12));
+    REQUIRE(v2 == Approx(2).margin(1e-12));
+    REQUIRE(v3 == Approx(3).margin(1e-12));
+    REQUIRE(v4 == Approx(4).margin(1e-12));
+    REQUIRE(v5 == Approx(5).margin(1e-12));
+  }
+
 }
 
 
@@ -437,7 +532,7 @@ TEST_CASE("3D boundary integral in a unit cube") {
   }
 }
 
-TEST_CASE("Linear triangle 2D share function") {
+TEST_CASE("Linear triangle 2D shape function") {
   GaussianQuadratureTri<7> g = gaussianQuadratureTri4thOrder();
 
   SECTION("Sum of weights should equal 0.5") {
