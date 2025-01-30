@@ -165,6 +165,20 @@ const IntegrationPoints Keast8 = {
         }
 };
 
+/*
+ * Weights and Gauss points from table 10.3 in J. E. Akin
+ */
+const IntegrationPoints Tri4thOrder {
+  4,
+  {0    , 0,
+   0.5  , 0,
+   1.0  , 0,
+   0.5  , 0.5,
+   0    , 1.0,
+   0    , 0.5,
+   1./3., 1./3.},
+  {1. / 40, 1./ 15, 1. / 40, 1. / 15, 1. / 40, 1. / 15, 9. / 40}
+};
 
 
 
