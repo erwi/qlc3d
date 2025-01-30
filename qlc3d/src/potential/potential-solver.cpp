@@ -190,7 +190,7 @@ void PotentialSolver::assembleVolume(const SolutionVector &v, const SolutionVect
   std::vector<unsigned int> tetDofs(nodesPerTet, 0);
 
   TetShapeFunction shapes(elementOrder);
-  shapes.initialise(Keast4);
+  shapes.setIntegrationPoints(Keast4);
 
   #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, elementCount, nodesPerTet) firstprivate(lK, lL, tetNodes, tetDofs, shapes) schedule(guided)
   for (idx elementIndex = 0; elementIndex < elementCount; elementIndex++) {

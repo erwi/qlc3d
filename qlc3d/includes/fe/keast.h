@@ -12,7 +12,7 @@
  */
 
 
-struct TetrahedronIntegrationPoints {
+struct IntegrationPoints {
   /** max polynomial order */
   const int p;
   const std::vector<double> points;
@@ -22,15 +22,15 @@ struct TetrahedronIntegrationPoints {
 
 };
 
-/** Keast integration points for 1st order polynomial, with 1 gauss point */
-const TetrahedronIntegrationPoints Keast0 = {
+/** Keast integration points for tetrahedral element with 1st order polynomial, with 1 gauss point */
+const IntegrationPoints Keast0 = {
         1,
         {0.25, 0.25, 0.25},
         {1. / 6}
 };
 
-/** Keast integration points for 4th order polynomial, with 11 gauss points */
-const TetrahedronIntegrationPoints Keast4 = {
+/** Keast integration points for tetrahedral element with 4th order polynomial, with 11 gauss points */
+const IntegrationPoints Keast4 = {
         4,
         {0.2500000000000000,  0.2500000000000000,  0.2500000000000000,
          0.7857142857142857,  0.0714285714285714,  0.0714285714285714,
@@ -60,5 +60,19 @@ const TetrahedronIntegrationPoints Keast4 = {
 };
 
 
+/*
+ * Weights and Gauss points from table 10.3 in J. E. Akin
+ */
+const IntegrationPoints Tri4thOrder {
+  4,
+  {0    , 0,
+   0.5  , 0,
+   1.0  , 0,
+   0.5  , 0.5,
+   0    , 1.0,
+   0    , 0.5,
+   1./3., 1./3.},
+  {1. / 40, 1./ 15, 1. / 40, 1. / 15, 1. / 40, 1. / 15, 9. / 40}
+};
 
 #endif //PROJECT_QLC3D_KEAST_H
