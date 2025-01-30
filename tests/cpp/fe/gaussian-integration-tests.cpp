@@ -169,7 +169,7 @@ TEST_CASE("Linear tet 3D shape function") {
 TEST_CASE("New tet 3D shape function - linear tet") { // TODO: repeat this with quadratic element
   TetShapeFunction shape(1); // = createLinearTetShapeFunction();
 
-  shape.initialise(Keast4);
+  shape.setIntegrationPoints(Keast4);
   //shape.initialise(Keast0);
 
 
@@ -265,7 +265,7 @@ TEST_CASE("New tet 3D shape function - linear tet") { // TODO: repeat this with 
 TEST_CASE("New tet 3D shape function - quadratic tet") {
   const int elementOrder = 2;
   TetShapeFunction shape(elementOrder); // = createLinearTetShapeFunction();
-  shape.initialise(Keast4);
+  shape.setIntegrationPoints(Keast4);
 
 
   Geometry geom;
@@ -456,7 +456,7 @@ TEST_CASE("New tet 3D shape function - quadratic tet") {
 
 TEST_CASE("3D boundary integral in a unit cube") {
   GaussianQuadratureTet<7> g = gaussQuadratureTetBoundaryIntegral4thOrder();
-  SECTION("Check Gaussian intergration parameters") {
+  SECTION("Check Gaussian integration parameters") {
     REQUIRE(7 == g.numGaussPoints());
 
     double weightSum = 0;
@@ -532,6 +532,8 @@ TEST_CASE("3D boundary integral in a unit cube") {
   }
 }
 
+
+
 TEST_CASE("Linear triangle 2D shape function") {
   GaussianQuadratureTri<7> g = gaussianQuadratureTri4thOrder();
 
@@ -597,4 +599,55 @@ TEST_CASE("Linear triangle 2D shape function") {
     totalArea *= 1e12;
     REQUIRE(totalArea == Approx(6.0).margin(1e-9));
   }
+}
+
+TEST_CASE("New tri tests - linear shape function") {
+  TriShapeFunction shape(1);
+  shape.setIntegrationPoints(Tri4thOrder);
+
+  SECTION("Check Gaussian integration parameters") {
+    REQUIRE(7 == shape.getNumGaussPoints());
+
+    double weightSum = 0;
+    for (; shape.hasNextPoint(); shape.nextPoint()) {
+      weightSum += shape.getWeight();
+    }
+    REQUIRE(weightSum == Approx(0.5).margin(1e-12));
+  }
+
+  SECTION("Integrate total surface area of a unit cube mesh") {
+    Geometry geom;
+    auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
+    auto alignment = Alignment();
+    alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+    alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+    prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    auto tris = geom.getTriangles();
+    auto coords = geom.getCoordinates();
+    idx elemNodes[3] = {0, 0, 0};
+    Vec3 elemCoords[3] = {Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0)};
+
+    double totalArea = 0;
+    for (idx it = 0; it < tris.getnElements(); it++) {
+      tris.loadNodes(it, elemNodes);
+      coords.loadCoordinates(&elemNodes[0], &elemNodes[3], elemCoords);
+
+      double determinant = tris.getDeterminant(it);
+
+      double area = 0;
+      for (; shape.hasNextPoint(); shape.nextPoint()) {
+        double mul = shape.getWeight() * determinant;
+        for (int i = 0; i < 3; i++) {
+          area += mul * shape.N(i);
+        }
+      }
+      totalArea += area;
+    }
+
+    // convert coordinates from microns to metres
+    totalArea *= 1e12;
+    REQUIRE(totalArea == Approx(6.0).margin(1e-9));
+  }
+
+
 }

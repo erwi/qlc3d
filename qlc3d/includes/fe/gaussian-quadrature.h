@@ -8,22 +8,90 @@
 #include <vector>
 #include <cassert>
 
-struct ShapeFunctionParams {
-  const std::vector<double> weights;
-  const std::vector<double> r;
-  const std::vector<double> s;
-  const std::vector<double> t;
+/**
+ * Common base class for both triangle and tetrahedron shape functions.
+ */
+class ShapeFunction {
+protected:
+  unsigned int elementOrder;
+  unsigned int nodesPerElement = 0;
+  unsigned int numGaussPoints = 0;
+  unsigned int currentPoint = 0;
+
+  const IntegrationPoints *integrationPoints = nullptr;
+
+  /* Local coordinates sampled at integration points of the element */
+  std::vector<double> sh;
+
+  explicit ShapeFunction(unsigned int elementOrder) : elementOrder(elementOrder) {}
+
+  [[nodiscard]] const double& get(const std::vector<double> &vec, unsigned int i) const { return vec[currentPoint * nodesPerElement + i]; }
+public:
+  virtual void setIntegrationPoints(const IntegrationPoints &integrationPoints) = 0;
+  [[nodiscard]] unsigned int getNumGaussPoints() const { return numGaussPoints; }
+  [[nodiscard]] double getWeight() const { return integrationPoints->weights[currentPoint]; }
+  [[nodiscard]] unsigned int getNumPointsPerElement() const { return nodesPerElement; }
+  [[nodiscard]] bool hasNextPoint() {
+    bool hasNext = currentPoint < numGaussPoints;
+    if (!hasNext) {
+      currentPoint = 0; // side effect: reset to start so that next shape function can be calculated. TODO: should we reset it explicitly?
+    }
+    return hasNext;
+
+  }
+  void nextPoint() { currentPoint++; }
+
+  /**
+   * Get the i'th shape function value for the current integration point
+   * @param i = 0..3 for linear tetrahedron, 0..9 for quadratic tetrahedron
+   */
+  [[nodiscard]] const double& N(int i) const { return get(sh, i); }
+
 };
 
+/**
+ * Shape function for Triangle element. This is pretty simple as no gradients are currently needed.
+ */
+class TriShapeFunction : public ShapeFunction {
+  std::vector<double> shR;
+  std::vector<double> shS;
+public:
+  TriShapeFunction(unsigned int elementOrder) : ShapeFunction(elementOrder) {}
 
-class TetShapeFunction {
-  unsigned int elementOrder;
-  unsigned int nodesPerElement;
-  unsigned int numGaussPoints;
-  const TetrahedronIntegrationPoints *integrationPoints = nullptr;
-  std::vector<double> weights;
+  void setIntegrationPoints(const IntegrationPoints &integrationPoints) override {
+    if (this->integrationPoints != nullptr) {
+      return; // already initialised
+    }
+    this->integrationPoints = &integrationPoints;
+    assert(integrationPoints.weights.size() == integrationPoints.points.size() / 2);
+    numGaussPoints = integrationPoints.weights.size();
+    assert(elementOrder == 1); // only linear elements are supported
 
-  std::vector<double> sh;
+    nodesPerElement = 3;
+    sh.resize(numGaussPoints * nodesPerElement, 0);
+    shR.resize(numGaussPoints * nodesPerElement, 0);
+    shS.resize(numGaussPoints * nodesPerElement, 0);
+
+    for(unsigned int i = 0; i < numGaussPoints; i++) {
+      double r = integrationPoints.points[i * 2 + 0];
+      double s = integrationPoints.points[i * 2 + 1];
+
+      sh[i * nodesPerElement + 0] = 1 - r - s;
+      sh[i * nodesPerElement + 1] = r;
+      sh[i * nodesPerElement + 2] = s;
+
+      shR[i * nodesPerElement + 0] = -1.0;
+      shR[i * nodesPerElement + 1] = 1.0;
+      shR[i * nodesPerElement + 2] = 0.0;
+
+      shS[i * nodesPerElement + 0] = -1.0;
+      shS[i * nodesPerElement + 1] = 0.0;
+      shS[i * nodesPerElement + 2] = 1.0;
+    }
+  }
+};
+
+class TetShapeFunction : public ShapeFunction {
   std::vector<double> shR;
   std::vector<double> shS;
   std::vector<double> shT;
@@ -32,9 +100,6 @@ class TetShapeFunction {
   std::vector<double> shY;
   std::vector<double> shZ;
 
-  unsigned int currentPoint = 0;
-
-  [[nodiscard]] const double& get(const std::vector<double> &vec, unsigned int i) const { return vec[currentPoint * nodesPerElement + i]; }
   [[nodiscard]] const double& getShR(unsigned int i) const { return get(shR, i); }
   [[nodiscard]] const double& getShS(unsigned int i) const { return get(shS, i); }
   [[nodiscard]] const double& getShT(unsigned int i) const { return get(shT, i); }
@@ -49,8 +114,6 @@ class TetShapeFunction {
     shT.resize(numGaussPoints * nodesPerElement, 0);
 
     for (unsigned int i = 0; i < numGaussPoints; ++i) {
-      //weights[i] = integrationPoints.weights[i];
-
       double r = integrationPoints->points[i * 3 + 0];
       double s = integrationPoints->points[i * 3 + 1];
       double t = integrationPoints->points[i * 3 + 2];
@@ -176,13 +239,13 @@ class TetShapeFunction {
   }
 
 public:
-  TetShapeFunction(unsigned int elementOrder) :
-          elementOrder(elementOrder) {
+  explicit TetShapeFunction(unsigned int elementOrder) : ShapeFunction(elementOrder)
+  {
     // do separate initialisation to simplify use with openmp parallel for loops where separate instances of this
     // class are used
   }
 
-  void initialise(const TetrahedronIntegrationPoints &integrationPoints) {
+  void setIntegrationPoints(const IntegrationPoints &integrationPoints) override {
     if (this->integrationPoints != nullptr ) {
       return; // already initialised
     }
@@ -203,18 +266,8 @@ public:
     }
   }
 
-  [[nodiscard]] double getWeight() const { return integrationPoints->weights[currentPoint]; }
-  [[nodiscard]] unsigned int getNumGaussPoints() const { return numGaussPoints; }
-  [[nodiscard]] unsigned int getNumPointsPerElement() const { return nodesPerElement; }
-  [[nodiscard]] bool hasNextPoint() {
-    bool hasNext = currentPoint < numGaussPoints;
-    if (!hasNext) {
-      currentPoint = 0;
-    }
-    return hasNext;
 
-  }
-  void nextPoint() { currentPoint++; }
+  [[nodiscard]] unsigned int getNumGaussPoints() const { return numGaussPoints; }
 
   void initialiseElement(Vec3 *nodes, double determinant) {
     double xr, xs, xt, yr, ys, yt, zr, zs, zt;
@@ -246,7 +299,7 @@ public:
     };
 
     // x,y,z derivatives of shape functions
-    for (int i = 0; i < nodesPerElement; i++) {
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
       double r = getShR(i);
       double s = getShS(i);
       double t = getShT(i);
@@ -262,10 +315,6 @@ public:
     }
   }
 
-  /**
-   * @param i = 0..3 for linear tetrahedron, 0..9 for quadratic tetrahedron
-   */
-  [[nodiscard]] const double& N(int i) const { return get(sh, i); }
   [[nodiscard]] const double& Nx(int i) const { return shX[i]; }
   [[nodiscard]] const double& Ny(int i) const { return shY[i]; }
   [[nodiscard]] const double& Nz(int i) const { return shZ[i]; }
@@ -342,7 +391,6 @@ public:
     }
   }
 
-
   template<typename Src>
   void sampleQ(const Src* source, double &q1, double &q2, double &q3, double &q4, double &q5) const {
     q1 = q2 = q3 = q4 = q5 = 0;
@@ -367,47 +415,6 @@ public:
       v6 += source[i][5] * N(i);
     }
   }
-};
-
-class TriShapeFunction {
-  unsigned int nodesPerElement;
-  unsigned int numGaussPoints;
-  std::vector<double> weights;
-  std::vector<double> gaussPoints;
-
-  std::vector<double> sh;
-  std::vector<double> shR;
-  std::vector<double> shS;
-  std::vector<double> shT;
-
-  std::vector<double> shX;
-  std::vector<double> shY;
-  std::vector<double> shZ;
-public:
-  TriShapeFunction(unsigned int nodesPerElement, const std::vector<double> &weights,
-                   const std::vector<double> &r, const std::vector<double> &s) :
-    nodesPerElement(nodesPerElement), numGaussPoints(weights.size()),
-    weights(weights),
-    gaussPoints(gaussPoints) {
-
-    sh.resize(numGaussPoints * nodesPerElement, 0);
-    shR.resize(numGaussPoints * nodesPerElement, 0);
-    shS.resize(numGaussPoints * nodesPerElement, 0);
-    shT.resize(numGaussPoints * nodesPerElement, 0);
-    for (unsigned int i = 0; i < numGaussPoints; ++i) {
-
-      sh[i] = (1.0 - r[i] - s[i]) * (1.0 - 2.0 * r[i] - 2.0 * s[i]);
-      sh[i + 1 * numGaussPoints] = r[i] * (2 * r[i] - 1.);
-      sh[i + 2 * numGaussPoints] = s[i] * (2 * s[i] - 1.);
-      sh[i + 3 * numGaussPoints] = 4 * r[i] * (1. - r[i] - s[i]);
-      sh[i + 4 * numGaussPoints] = 4 * r[i] * s[i];
-      sh[i + 5 * numGaussPoints] = 4 * s[i] * (1. - r[i] - s[i]);
-    }
-  }
-  [[nodiscard]] double getWeight(unsigned int i) const { return weights[i]; }
-  //[[nodiscard]] double getGaussPoint(unsigned int i, unsigned int j) const { return gaussPoints[i][j]; }
-  [[nodiscard]] unsigned int getNumGaussPoints() const { return numGaussPoints; }
-  [[nodiscard]] unsigned int getNumPointsPerElement() const { return nodesPerElement; }
 };
 
 /*
@@ -798,60 +805,6 @@ public:
                       source[i].z() * N(i));
     }
   }
-
-  /*
-  template<typename Src>
-  void sampleAllX(const Src* source, double &v1x, double &v2x, double &v3x, double &v4x, double &v5x) const {
-    // gradient along x
-    v1x = v2x = v3x = v4x = v5x = 0;
-    for (unsigned int i = 0; i < NPE; i++) {
-      v1x += source[i][0] * Nx(i);
-      v2x += source[i][1] * Nx(i);
-      v3x += source[i][2] * Nx(i);
-      v4x += source[i][3] * Nx(i);
-      v5x += source[i][4] * Nx(i);
-    }
-  }
-
-  template<typename Src>
-  void sampleAllY(const Src* source, double &v1y, double &v2y, double &v3y, double &v4y, double &v5y) const {
-    // gradient along y
-    v1y = v2y = v3y = v4y = v5y = 0;
-    for (unsigned int i = 0; i < NPE; i++) {
-      v1y += source[i][0] * Ny(i);
-      v2y += source[i][1] * Ny(i);
-      v3y += source[i][2] * Ny(i);
-      v4y += source[i][3] * Ny(i);
-      v5y += source[i][4] * Ny(i);
-    }
-  }
-
-  template<typename Src>
-  void sampleAllZ(const Src* source, double &v1z, double &v2z, double &v3z, double &v4z, double &v5z) const {
-    // gradient along z
-    v1z = v2z = v3z = v4z = v5z = 0;
-    for (unsigned int i = 0; i < NPE; i++) {
-      v1z += source[i][0] * Nz(i);
-      v2z += source[i][1] * Nz(i);
-      v3z += source[i][2] * Nz(i);
-      v4z += source[i][3] * Nz(i);
-      v5z += source[i][4] * Nz(i);
-    }
-  }
-
-  template<typename Src>
-  void sampleAll(const Src* source, double &v1, double &v2, double &v3, double &v4, double &v5, double &v6) const {
-    v1 = v2 = v3 = v4 = v5 = v6 = 0;
-    for (unsigned int i = 0; i < NPE; i++) {
-      v1 += source[i][0] * N(i);
-      v2 += source[i][1] * N(i);
-      v3 += source[i][2] * N(i);
-      v4 += source[i][3] * N(i);
-      v5 += source[i][4] * N(i);
-      v6 += source[i][5] * N(i);
-    }
-  }
-   */
 };
 
 
