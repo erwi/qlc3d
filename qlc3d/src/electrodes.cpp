@@ -99,6 +99,12 @@ Electrodes Electrodes::withInitialPotentials(const std::vector<unsigned int> &el
   return withElectrodePotentials(electrodes);
 }
 
+Electrodes Electrodes::withInitialPotentials(const std::vector<unsigned int> &electrodeNumber, double potential) {
+  std::vector<double> potentials;
+  potentials.resize(electrodeNumber.size(), potential);
+  return withInitialPotentials(electrodeNumber, potentials);
+}
+
 double Electrodes:: getDielectricPermittivity(int i) const {
 #ifndef NDEBUG
   if (i < 0 || i >= (int) eps_dielectric.size()) {
