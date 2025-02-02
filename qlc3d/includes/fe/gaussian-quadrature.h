@@ -55,19 +55,10 @@ public:
 class TriShapeFunction : public ShapeFunction {
   std::vector<double> shR;
   std::vector<double> shS;
-public:
-  TriShapeFunction(unsigned int elementOrder) : ShapeFunction(elementOrder) {}
 
-  void setIntegrationPoints(const IntegrationPoints &integrationPoints) override {
-    if (this->integrationPoints != nullptr) {
-      return; // already initialised
-    }
-    this->integrationPoints = &integrationPoints;
-    assert(integrationPoints.weights.size() == integrationPoints.points.size() / 2);
-    numGaussPoints = integrationPoints.weights.size();
-    assert(elementOrder == 1); // only linear elements are supported
-
+  void setLinearTrianglePoints(const IntegrationPoints &integrationPoints) {
     nodesPerElement = 3;
+
     sh.resize(numGaussPoints * nodesPerElement, 0);
     shR.resize(numGaussPoints * nodesPerElement, 0);
     shS.resize(numGaussPoints * nodesPerElement, 0);
@@ -89,9 +80,63 @@ public:
       shS[i * nodesPerElement + 2] = 1.0;
     }
   }
+
+  void setQuadraticTrianglePoints(const IntegrationPoints &integrationPoints) {
+    nodesPerElement = 6;
+    sh.resize(numGaussPoints * nodesPerElement, 0);
+    shR.resize(numGaussPoints * nodesPerElement, 0);
+    shS.resize(numGaussPoints * nodesPerElement, 0);
+
+    for (unsigned int i = 0; i < numGaussPoints; i++) {
+      double r = integrationPoints.points[i * 2 + 0];
+      double s = integrationPoints.points[i * 2 + 1];
+
+      sh[i * nodesPerElement + 0] = (1 - r - s) * (1 - 2 * r - 2 * s);
+      sh[i * nodesPerElement + 1] = r * (2 * r - 1);
+      sh[i * nodesPerElement + 2] = s * (2 * s - 1);
+      sh[i * nodesPerElement + 3] = 4 * r * (1 - r - s);
+      sh[i * nodesPerElement + 4] = 4 * r * s;
+      sh[i * nodesPerElement + 5] = 4 * s * (1 - r - s);
+
+      shR[i * nodesPerElement + 0] = -3 + 4 * r + 4 * s;
+      shR[i * nodesPerElement + 1] = 4 * r - 1;
+      shR[i * nodesPerElement + 2] = 0;
+      shR[i * nodesPerElement + 3] = 4 - 8 * r - 4 * s;
+      shR[i * nodesPerElement + 4] = 4 * s;
+      shR[i * nodesPerElement + 5] = -4 * s;
+
+      shS[i * nodesPerElement + 0] = -3 + 4 * r + 4 * s;
+      shS[i * nodesPerElement + 1] = 0;
+      shS[i * nodesPerElement + 2] = 4 * s - 1;
+      shS[i * nodesPerElement + 3] = -4 * r;
+      shS[i * nodesPerElement + 4] = 4 * r;
+      shS[i * nodesPerElement + 5] = 4 - 4 * r - 8 * s;
+    }
+  }
+
+public:
+  TriShapeFunction(unsigned int elementOrder) : ShapeFunction(elementOrder) {}
+
+  void setIntegrationPoints(const IntegrationPoints &integrationPoints) override {
+    if (this->integrationPoints != nullptr) {
+      return; // already initialised
+    }
+    this->integrationPoints = &integrationPoints;
+    numGaussPoints = integrationPoints.weights.size();
+    assert(numGaussPoints == integrationPoints.points.size() / 2);
+
+    if (elementOrder == 1) {
+      setLinearTrianglePoints(integrationPoints);
+    } else if (elementOrder == 2) {
+      setQuadraticTrianglePoints(integrationPoints);
+    } else {
+      RUNTIME_ERROR("Unsupported element order " + std::to_string(elementOrder));
+    }
+  }
 };
 
 class TetShapeFunction : public ShapeFunction {
+protected:
   std::vector<double> shR;
   std::vector<double> shS;
   std::vector<double> shT;
@@ -104,6 +149,7 @@ class TetShapeFunction : public ShapeFunction {
   [[nodiscard]] const double& getShS(unsigned int i) const { return get(shS, i); }
   [[nodiscard]] const double& getShT(unsigned int i) const { return get(shT, i); }
 
+private:
   void initialiseLinearTet() {
     assert(integrationPoints != nullptr);
     nodesPerElement = 4;
@@ -351,7 +397,6 @@ public:
     return sum;
   }
 
-
   template<typename Src>
   void sampleQX(const Src &source, double &v1x, double &v2x, double &v3x, double &v4x, double &v5x) const {
     // gradient along x
@@ -415,6 +460,69 @@ public:
       v6 += source[i][5] * N(i);
     }
   }
+};
+
+class BoundaryIntegralShapeFunction : public TetShapeFunction {
+
+public:
+  BoundaryIntegralShapeFunction(unsigned int elementOrder) : TetShapeFunction(elementOrder) {
+    currentPoint = 0;
+  }
+
+  void setIntegrationPoints(const IntegrationPoints &integrationPoints) override {
+
+    this->numGaussPoints = integrationPoints.numGaussPoints();
+    this->integrationPoints = &integrationPoints;
+    // expect 2D integration points since this is a boundary integral
+    assert(integrationPoints.points.size() / numGaussPoints == 2);
+
+    nodesPerElement = 4;
+
+    sh.resize(numGaussPoints * nodesPerElement, 0);
+    shR.resize(numGaussPoints * nodesPerElement, 0);
+    shS.resize(numGaussPoints * nodesPerElement, 0);
+    shT.resize(numGaussPoints * nodesPerElement, 0);
+
+    for (unsigned int i = 0; i < numGaussPoints; ++i) {
+      double r = integrationPoints.points[i * 3 + 0];
+      double s = integrationPoints.points[i * 3 + 1];
+      double t = 0; // the t-node is the internal node in the element, which is always 0 since integration is on the boundary
+
+      sh[i * nodesPerElement + 0] = 1 - r - s - t;
+      sh[i * nodesPerElement + 1] = r;
+      sh[i * nodesPerElement + 2] = s;
+      sh[i * nodesPerElement + 3] = t;
+
+      shR[i * nodesPerElement + 0] = -1.0;
+      shR[i * nodesPerElement + 1] = 1.0;
+      shR[i * nodesPerElement + 2] = 0.0;
+      shR[i * nodesPerElement + 3] = 0.0;
+
+      shS[i * nodesPerElement + 0] = -1.0;
+      shS[i * nodesPerElement + 1] = 0.0;
+      shS[i * nodesPerElement + 2] = 1.0;
+      shS[i * nodesPerElement + 3] = 0.0;
+
+      shT[i * nodesPerElement + 0] = 0.0; //-1.0;
+      shT[i * nodesPerElement + 1] = 0.0;
+      shT[i * nodesPerElement + 2] = 0.0;
+      shT[i * nodesPerElement + 3] = 0.0; //1.0;
+    }
+
+    shX.resize(nodesPerElement, 0);
+    shY.resize(nodesPerElement, 0);
+    shZ.resize(nodesPerElement, 0);
+
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      shX[i] = 0.;
+      shY[i] = 0.;
+      shZ[i] = 0.;
+    }
+
+
+
+  }
+
 };
 
 /*

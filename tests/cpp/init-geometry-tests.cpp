@@ -21,9 +21,7 @@ TEST_CASE("Reorder quadratic element node order") {
   prepareGeometry(geom,
                   TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH,
                   electrodes,
-                  alignment,
-                  {1, 1, 1},
-                  0, 0, 0);
+                  alignment);
 
   Mesh &tets = geom.getTetrahedra();
   const Coordinates &coords = geom.getCoordinates();

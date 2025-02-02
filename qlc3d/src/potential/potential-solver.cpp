@@ -488,7 +488,7 @@ void PotentialSolver::solvePotential(SolutionVector &vOut,
     return;
   }
 
-  auto elementType = geom.getTetrahedra().getElementType();
+  //auto elementType = geom.getTetrahedra().getElementType();
   //if (elementType != ElementType::LINEAR_TETRAHEDRON) {
   //  throw NotYetImplementedException("Potential solver only supports linear tetrahedral elements, got elementType " + toString(elementType));
   //}
