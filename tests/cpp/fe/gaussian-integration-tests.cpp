@@ -13,13 +13,8 @@
 TEST_CASE("Linear tet 3D shape function") {
   GaussianQuadratureTet<11> g = gaussQuadratureTet4thOrder();
 
-
   Geometry geom;
-  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
-  auto alignment = Alignment();
-  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
-  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment);
+  prepareGeometryWithDefaultBoundaries(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH);
   auto tets = geom.getTetrahedra();
   auto coords = geom.getCoordinates();
   idx elemNodes[4] = {0, 0, 0, 0};
@@ -172,19 +167,12 @@ TEST_CASE("New tet 3D shape function - linear tet") { // TODO: repeat this with 
   shape.setIntegrationPoints(Keast4);
   //shape.initialise(Keast0);
 
-
   Geometry geom;
-  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
-  auto alignment = Alignment();
-  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
-  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment);
+  prepareGeometryWithDefaultBoundaries(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH);
   auto tets = geom.getTetrahedra();
   auto coords = geom.getCoordinates();
   idx elemNodes[4] = {0, 0, 0, 0};
   Vec3 elemCoords[4] = {Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0)};
-
-
 
   SECTION("Check gaussian integration parameters") {
     //REQUIRE(11 == shape.getNumGaussPoints());
@@ -267,13 +255,8 @@ TEST_CASE("New tet 3D shape function - quadratic tet") {
   TetShapeFunction shape(elementOrder); // = createLinearTetShapeFunction();
   shape.setIntegrationPoints(Keast4);
 
-
   Geometry geom;
-  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
-  auto alignment = Alignment();
-  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
-  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-  prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH, electrodes, alignment);
+  prepareGeometryWithDefaultBoundaries(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH);
   auto tets = geom.getTetrahedra();
   auto coords = geom.getCoordinates();
   idx elemNodes[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -453,7 +436,6 @@ TEST_CASE("New tet 3D shape function - quadratic tet") {
 
 }
 
-
 TEST_CASE("3D boundary integral in a unit cube") {
   GaussianQuadratureTet<7> g = gaussQuadratureTetBoundaryIntegral4thOrder();
   SECTION("Check Gaussian integration parameters") {
@@ -467,11 +449,8 @@ TEST_CASE("3D boundary integral in a unit cube") {
   }
 
   Geometry geom;
-  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
-  auto alignment = Alignment();
-  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
-  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment);
+  prepareGeometryWithDefaultBoundaries(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH);
+
   auto tets = geom.getTetrahedra();
   auto tris = geom.getTriangles();
   auto coords = geom.getCoordinates();
@@ -537,11 +516,8 @@ TEST_CASE("New Tet - 3D boundary integral in a unit cube") {
   shape.setIntegrationPoints(Tri4thOrder);
 
   Geometry geom;
-  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
-  auto alignment = Alignment();
-  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
-  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment);
+  prepareGeometryWithDefaultBoundaries(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH);
+
   auto tets = geom.getTetrahedra();
   auto tris = geom.getTriangles();
   auto coords = geom.getCoordinates();
@@ -669,7 +645,7 @@ TEST_CASE("Linear triangle 2D shape function") {
   }
 }
 
-TEST_CASE("New tri tests - linear shape function") {
+TEST_CASE("New triangle 2D shape function") {
   SECTION("Sum of weights should equal 0.5 - linear shape function") {
     TriShapeFunction shape(1);
     shape.setIntegrationPoints(Tri4thOrder);
@@ -721,11 +697,7 @@ TEST_CASE("New tri tests - linear shape function") {
     shape.setIntegrationPoints(Tri4thOrder);
 
     Geometry geom;
-    auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
-    auto alignment = Alignment();
-    alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
-    alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-    prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment);
+    prepareGeometryWithDefaultBoundaries(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH);
     auto tris = geom.getTriangles();
     auto coords = geom.getCoordinates();
     idx elemNodes[3] = {0, 0, 0};
@@ -758,12 +730,7 @@ TEST_CASE("New tri tests - linear shape function") {
     shape.setIntegrationPoints(Tri4thOrder);
 
     Geometry geom;
-    auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
-    auto alignment = Alignment();
-    alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
-    alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-
-    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH, electrodes, alignment);
+    prepareGeometryWithDefaultBoundaries(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH);
 
     auto tris = geom.getTriangles();
     auto coords = geom.getCoordinates();

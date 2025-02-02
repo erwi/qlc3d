@@ -1,5 +1,6 @@
 // Define GiD material numbers
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #ifndef MATERIAL_NUMBERS_H
 #define MATERIAL_NUMBERS_H
@@ -85,9 +86,7 @@ int FIXLCN_TO_MATNUM(const int &n) {
     return n * MAT_FIXLC1;
 }
 
-inline
-size_t MATNUM_TO_ELECTRODE_NUMBER(const size_t &mat) {
-/*!
+/*
  * Converts a material number to Electrode number, or 0 if
  * input material number does not corrspond any electrode.
  *
@@ -97,6 +96,8 @@ size_t MATNUM_TO_ELECTRODE_NUMBER(const size_t &mat) {
  *      2080 -> 1  (FIXLC1 + ELECTRODE1)
  *      8768 -> 9  (FIXLC4 + ELECTRODE9)
  */
+inline
+size_t MATNUM_TO_ELECTRODE_NUMBER(const size_t &mat) {
     // CREATE MASK WITH BITS 6,7,8,9 SET
     size_t mask = 64 | 128 | 256 | 512;
     // ONLY KEEP ELECTRODE BITS OF INPUT VARIABLE
@@ -104,6 +105,22 @@ size_t MATNUM_TO_ELECTRODE_NUMBER(const size_t &mat) {
     // GET ELECTRODE INDEX NUMBER
     size_t eleNum = eleBits / MAT_ELECTRODE1;
     return eleNum;
+}
+
+/*
+ * Returns a set of electrode numbers from a list of material numbers.
+ */
+template <typename InputIt>
+std::unordered_set<size_t> findElectrodeNumbers(InputIt first, InputIt last) {
+  std::unordered_set<size_t> eleNums;
+  for (auto it = first; it != last; ++it) {
+    size_t m = *it;
+    size_t eleNum = MATNUM_TO_ELECTRODE_NUMBER(m);
+    if (eleNum > 0) {
+      eleNums.insert(eleNum);
+    }
+  }
+  return eleNums;
 }
 
 inline bool isDielectricMaterial(unsigned int i) {
@@ -123,4 +140,18 @@ size_t MATNUM_TO_FIXLC_NUMBER(const size_t &mat) {
     size_t fixlcNum = fixlcBits / MAT_FIXLC1;
     return fixlcNum;
 }
+
+template <typename InputIt>
+std::unordered_set<size_t> findFixlcNumbers(InputIt first, InputIt last) {
+  std::unordered_set<size_t> fixlcNums;
+  for (auto it = first; it != last; ++it) {
+    size_t m = *it;
+    size_t fixlcNum = MATNUM_TO_FIXLC_NUMBER(m);
+    if (fixlcNum > 0) {
+      fixlcNums.insert(fixlcNum);
+    }
+  }
+  return fixlcNums;
+}
+
 #endif
