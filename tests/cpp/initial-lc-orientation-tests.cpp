@@ -162,7 +162,7 @@ TEST_CASE("Initial LC surface orientations") {
     alignment.addSurface(Surface::ofPlanarDegenerate(2, -1e-3));
     alignment.surface[0].setOverrideVolume(true);
     alignment.surface[1].setOverrideVolume(true);
-    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment);
     SolutionVector q(geom.getnpLC(), 5);
 
     // ACT
@@ -185,7 +185,7 @@ TEST_CASE("Initial LC surface orientations") {
   SECTION("Strong homeotropic anchoring") {
     alignment.addSurface(Surface::ofStrongHomeotropic(1));
     alignment.addSurface(Surface::ofStrongHomeotropic(2));
-    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment);
     SolutionVector q(geom.getnpLC(), 5);
     // ACT
     initialiseLcSolutionVector(q, *simu, *lc, boxes, alignment, geom);
@@ -208,7 +208,7 @@ TEST_CASE("Initial LC surface orientations") {
   SECTION("Strong anchoring but overrideVolumes is false") {
     alignment.addSurface(Surface::ofStrongAnchoring(1, 90, 0, false));
     alignment.addSurface(Surface::ofStrongAnchoring(2, 90, 0, false));
-    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment);
     SolutionVector q(geom.getnpLC(), 5);
     // ACT
     initialiseLcSolutionVector(q, *simu, *lc, boxes, alignment, geom);
@@ -232,7 +232,7 @@ TEST_CASE("Initial LC surface orientations") {
     double twistDegrees = 12;
     alignment.addSurface(Surface::ofWeakAnchoring(1, tiltDegrees, twistDegrees, 1e-3, 1, 1));
     alignment.addSurface(Surface::ofWeakAnchoring(2, tiltDegrees, twistDegrees, 1e-3, 1, 1));
-    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment);
     SolutionVector q(geom.getnpLC(), 5);
     // ACT
     initialiseLcSolutionVector(q, *simu, *lc, boxes, alignment, geom);
@@ -268,7 +268,7 @@ TEST_CASE("Initial LC surface orientations") {
 
     alignment.addSurface(s1);
     alignment.addSurface(s2);
-    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment);
     SolutionVector q(geom.getnpLC(), 5);
     // ACT
     initialiseLcSolutionVector(q, *simu, *lc, boxes, alignment, geom);

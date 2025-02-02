@@ -94,7 +94,7 @@ int findNearestNodeIndex(const Vec3 &target, const std::vector<Vec3> &nodes) {
 /**
  * Reorder the tetrahedral element node indices if the current ordering is the GMSH ordering.
  */
-void reorderTetNodeOrder(vector<idx> &tetNodes, const Coordinates &coords) {
+void reorderQuadraticTetNodeOrder(vector<idx> &tetNodes, const Coordinates &coords) {
 
   size_t numTets = tetNodes.size() / 10;
   Log::info("Checking quadratic tetrahedron element node oder for {} elements.", numTets);
@@ -153,7 +153,7 @@ void prepareGeometry(Geometry& geom,
     auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
 
     if (rawMeshData.elementOrder == 2) {
-      reorderTetNodeOrder(rawMeshData.tetNodes, *coordinates);
+      reorderQuadraticTetNodeOrder(rawMeshData.tetNodes, *coordinates);
     }
 
     coordinates->scale(stretchVector);
