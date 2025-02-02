@@ -32,7 +32,7 @@ TEST_CASE("Solve potential 1D mesh - Expect v = z") {
   auto alignment = Alignment();
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment);
 
   SolutionVector v(geom.getnp(), 1);
   v.initialisePotentialBoundaries(electrodes.getCurrentPotentials(0), geom);
@@ -74,7 +74,7 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
 
-  prepareGeometry(geom, TestUtil::RESOURCE_PSEUDO_2D_NEUMANN_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_PSEUDO_2D_NEUMANN_GMSH_MESH, electrodes, alignment);
 
   SolutionVector v(geom.getnp(), 1);
   v.initialisePotentialBoundaries(electrodes.getCurrentPotentials(0), geom);
@@ -118,7 +118,7 @@ TEST_CASE("Set uniform Electric field along z-axis") {
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
 
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment);
 
   auto lc = std::shared_ptr<LC>(LCBuilder().build());
   auto solverSettings = std::make_shared<SolverSettings>();
@@ -151,7 +151,7 @@ TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries")
   Alignment alignment;
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_GMSH_MESH, electrodes, alignment);
 
   SolutionVector v(geom.getnp(), 1);
   v.initialisePotentialBoundaries(electrodes.getCurrentPotentials(0), geom);
@@ -224,9 +224,7 @@ TEST_CASE("Solve potential - cube with quadratic elements an periodic boundaries
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
 
-
-  prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH, electrodes, alignment, {1, 1, 1}, 0, 0, 0);
-  //prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1}, 0, 0, 0);
+  prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH, electrodes, alignment);
 
   SolutionVector v(geom.getnp(), 1);
   v.initialisePotentialBoundaries(electrodes.getCurrentPotentials(0), geom);

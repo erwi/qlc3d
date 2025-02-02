@@ -28,7 +28,7 @@ struct TestData {
 TestData setUp1DGeometry(Alignment &alignmentIn, const LC &lc, double easyTopTilt, double easyBottomTilt) {
   auto *geom = new Geometry();
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {0, 0});
-  prepareGeometry(*geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignmentIn, {1, 1, 1});
+  prepareGeometry(*geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignmentIn);
 
   auto *v = new SolutionVector(geom->getnp(), 1);
   v->initialisePotentialBoundaries(electrodes.getCurrentPotentials(0), *geom);
@@ -131,7 +131,7 @@ TEST_CASE("[SteadyState] Relax elastic distortions with strong anchoring") {
   alignment.addSurface(Surface::ofStrongAnchoring(1, topTilt, twistDegrees));
   alignment.addSurface(Surface::ofStrongAnchoring(2, bottomTilt, twistDegrees));
 
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment);
 
   SolutionVector v(geom.getnp(), 1);
   v.initialisePotentialBoundaries(electrodes.getCurrentPotentials(0), geom);
@@ -331,7 +331,7 @@ TEST_CASE("[SteadyState] Relax elastic distortions with chirality") {
 
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {0, 0});
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment);
 
   // No potential applied
   auto v = SolutionVector(geom.getnp(), 1);
@@ -415,7 +415,7 @@ TEST_CASE("[SteadyState] Electric switching with applied potential and three ela
   alignment.addSurface(Surface::ofStrongAnchoring(1, bottomTilt, twistDegrees));
   alignment.addSurface(Surface::ofStrongAnchoring(2, bottomTilt, twistDegrees));
 
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment);
 
   const double topPotential = 2.0;
   SolutionVector v(geom.getnp(), 1);
@@ -506,7 +506,7 @@ TEST_CASE("[Dynamic] Switching dynamics with applied potential and three elastic
   alignment.addSurface(Surface::ofStrongAnchoring(1, bottomTilt, twistDegrees));
   alignment.addSurface(Surface::ofStrongAnchoring(2, bottomTilt, twistDegrees));
 
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment);
 
   const double topPotential = 2;
   SolutionVector v(geom.getnp(), 1);
@@ -577,7 +577,7 @@ TEST_CASE("[Dynamic] Abort Newton iterations if convergence is not reached") {
   alignment.addSurface(Surface::ofStrongAnchoring(1, bottomTilt, twistDegrees));
   alignment.addSurface(Surface::ofStrongAnchoring(2, bottomTilt, twistDegrees));
 
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment);
 
   const double topPotential = 2;
   SolutionVector v(geom.getnp(), 1);

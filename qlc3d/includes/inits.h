@@ -20,10 +20,10 @@ void prepareGeometry(Geometry& geom,
                     const std::filesystem::path &meshFileName,
                     Electrodes& electrodes,
                     const Alignment& alignment,
-                    const Vec3& stretchVector,
-                    unsigned int regularGridCountX = 1,
-                    unsigned int regularGridCountY = 1,
-                    unsigned int regularGridCountZ = 1);
+                    const Vec3& stretchVector = {1, 1, 1},
+                    unsigned int regularGridCountX = 0,
+                    unsigned int regularGridCountY = 0,
+                    unsigned int regularGridCountZ = 0);
 
 FILE* createOutputEnergyFile(Simu& simu);
 

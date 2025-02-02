@@ -19,7 +19,7 @@ TEST_CASE("Linear tet 3D shape function") {
   auto alignment = Alignment();
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment);
   auto tets = geom.getTetrahedra();
   auto coords = geom.getCoordinates();
   idx elemNodes[4] = {0, 0, 0, 0};
@@ -178,7 +178,7 @@ TEST_CASE("New tet 3D shape function - linear tet") { // TODO: repeat this with 
   auto alignment = Alignment();
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment);
   auto tets = geom.getTetrahedra();
   auto coords = geom.getCoordinates();
   idx elemNodes[4] = {0, 0, 0, 0};
@@ -273,7 +273,7 @@ TEST_CASE("New tet 3D shape function - quadratic tet") {
   auto alignment = Alignment();
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-  prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH, electrodes, alignment, {1, 1, 1}, 0, 0, 0);
+  prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH, electrodes, alignment);
   auto tets = geom.getTetrahedra();
   auto coords = geom.getCoordinates();
   idx elemNodes[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -471,7 +471,7 @@ TEST_CASE("3D boundary integral in a unit cube") {
   auto alignment = Alignment();
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment);
   auto tets = geom.getTetrahedra();
   auto tris = geom.getTriangles();
   auto coords = geom.getCoordinates();
@@ -532,7 +532,75 @@ TEST_CASE("3D boundary integral in a unit cube") {
   }
 }
 
+TEST_CASE("New Tet - 3D boundary integral in a unit cube") {
+  BoundaryIntegralShapeFunction shape(1);
+  shape.setIntegrationPoints(Tri4thOrder);
 
+  Geometry geom;
+  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
+  auto alignment = Alignment();
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment);
+  auto tets = geom.getTetrahedra();
+  auto tris = geom.getTriangles();
+  auto coords = geom.getCoordinates();
+  idx tetNodes[4] = {0, 0, 0, 0};
+  idx triNodes[3] = {0, 0, 0};
+
+  Vec3 tetCoords[4] = {Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0)};
+  const Vec3 *triCoord = &tetCoords[0];
+
+  SECTION("Integrate total surface area of Neumann boundaries in a unit cube") {
+    double totalArea = 0;
+    for (int iTri = 0; iTri < tris.getnElements(); iTri++) {
+      unsigned int material = tris.getMaterialNumber(iTri);
+      if (MAT_NEUMANN != material) {
+        continue;
+      }
+
+      unsigned int iTet = tris.getConnectedVolume(iTri);
+
+      double tetDet = tets.getDeterminant(iTet);
+      double triDet = tris.getDeterminant(iTri);
+
+      tris.loadNodes(iTri, triNodes);
+      tets.loadNodes(iTet, tetNodes);
+
+      // reorder tet nodes so that the triangle is the first three nodes
+      reorderBoundaryTetNodes(tetNodes, triNodes);
+
+      coords.loadCoordinates(&tetNodes[0], &tetNodes[4], tetCoords);
+      tetCoords[0] *= 1e-6;
+      tetCoords[1] *= 1e-6;
+      tetCoords[2] *= 1e-6;
+      tetCoords[3] *= 1e-6;
+
+      // calculate triangle area of the Numan boundary
+      Vec3 v1 = triCoord[1] - triCoord[0];
+      Vec3 v2 = triCoord[2] - triCoord[0];
+      double area = 0.5 * v1.cross(v2).norm();
+
+      // calculate triangle area using Gauss integration over the element
+      double triArea = 0;
+      shape.initialiseElement(tetCoords, tetDet);
+      for (; shape.hasNextPoint(); shape.nextPoint()) {
+        double mul = shape.getWeight() * triDet;
+        for (int i = 0; i < tets.getnNodes(); i++) {
+          triArea += mul * shape.N(i);
+        }
+      }
+
+      REQUIRE(triArea == Approx(area).margin(1e-12));
+      totalArea += triArea;
+    }
+
+    totalArea *= 1e12;
+    Log::info("Total area: {}", totalArea);
+
+    REQUIRE(totalArea == Approx(4.0).margin(1e-9));
+  }
+}
 
 TEST_CASE("Linear triangle 2D shape function") {
   GaussianQuadratureTri<7> g = gaussianQuadratureTri4thOrder();
@@ -571,7 +639,7 @@ TEST_CASE("Linear triangle 2D shape function") {
     auto alignment = Alignment();
     alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
     alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-    prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment);
     auto tris = geom.getTriangles();
     auto coords = geom.getCoordinates();
     idx elemNodes[3] = {0, 0, 0};
@@ -602,10 +670,31 @@ TEST_CASE("Linear triangle 2D shape function") {
 }
 
 TEST_CASE("New tri tests - linear shape function") {
-  TriShapeFunction shape(1);
-  shape.setIntegrationPoints(Tri4thOrder);
+  SECTION("Sum of weights should equal 0.5 - linear shape function") {
+    TriShapeFunction shape(1);
+    shape.setIntegrationPoints(Tri4thOrder);
 
-  SECTION("Check Gaussian integration parameters") {
+    double sumWeight = 0;
+    for (; shape.hasNextPoint(); shape.nextPoint()) {
+      sumWeight += shape.getWeight();
+    }
+    REQUIRE(sumWeight == Approx(0.5).margin(1e-12)); // because determinant is 2x triangle area
+  }
+
+  SECTION("Sum of weights should equal 0.5 - quadratic shape function") {
+    TriShapeFunction shape(2);
+    shape.setIntegrationPoints(Tri4thOrder);
+
+    double sumWeight = 0;
+    for (; shape.hasNextPoint(); shape.nextPoint()) {
+      sumWeight += shape.getWeight();
+    }
+    REQUIRE(sumWeight == Approx(0.5).margin(1e-12)); // because determinant is 2x triangle area
+  }
+
+  SECTION("Check Gaussian integration parameters - linear shape function") {
+    TriShapeFunction shape(1);
+    shape.setIntegrationPoints(Tri4thOrder);
     REQUIRE(7 == shape.getNumGaussPoints());
 
     double weightSum = 0;
@@ -615,13 +704,28 @@ TEST_CASE("New tri tests - linear shape function") {
     REQUIRE(weightSum == Approx(0.5).margin(1e-12));
   }
 
-  SECTION("Integrate total surface area of a unit cube mesh") {
+  SECTION("Check Gaussian integration parameters - quadratic shape function") {
+    TriShapeFunction shape(2);
+    shape.setIntegrationPoints(Tri4thOrder);
+    REQUIRE(7 == shape.getNumGaussPoints());
+
+    double weightSum = 0;
+    for (; shape.hasNextPoint(); shape.nextPoint()) {
+      weightSum += shape.getWeight();
+    }
+    REQUIRE(weightSum == Approx(0.5).margin(1e-12));
+  }
+
+  SECTION("Integrate total surface area of a unit cube mesh - linear shape function") {
+    TriShapeFunction shape(1);
+    shape.setIntegrationPoints(Tri4thOrder);
+
     Geometry geom;
     auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
     auto alignment = Alignment();
     alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
     alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-    prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH, electrodes, alignment);
     auto tris = geom.getTriangles();
     auto coords = geom.getCoordinates();
     idx elemNodes[3] = {0, 0, 0};
@@ -649,5 +753,45 @@ TEST_CASE("New tri tests - linear shape function") {
     REQUIRE(totalArea == Approx(6.0).margin(1e-9));
   }
 
+  SECTION("Integrate total surface area of a unit cube mesh - quadratic shape function") {
+    TriShapeFunction shape(2);
+    shape.setIntegrationPoints(Tri4thOrder);
 
+    Geometry geom;
+    auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
+    auto alignment = Alignment();
+    alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+    alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+
+    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH, electrodes, alignment);
+
+    auto tris = geom.getTriangles();
+    auto coords = geom.getCoordinates();
+    std::vector<idx> elemNodes;
+    elemNodes.resize(tris.getnNodes(), 0);
+    std::vector<Vec3> elemCoords;
+    elemCoords.resize(tris.getnNodes(), Vec3(0, 0, 0));
+
+    double totalArea = 0;
+    for (idx it = 0; it < tris.getnElements(); it++) {
+      tris.loadNodes(it, &elemNodes[0]);
+      coords.loadCoordinates(&elemNodes[0], &elemNodes[3], &elemCoords[0]);
+
+      double determinant = tris.getDeterminant(it);
+
+      double area = 0;
+      for (; shape.hasNextPoint(); shape.nextPoint()) {
+
+        double mul = shape.getWeight() * determinant;
+        for (int i = 0; i < tris.getnNodes(); i++) {
+          area += mul * shape.N(i);
+        }
+      }
+      totalArea += area;
+    }
+
+    // convert coordinates from microns to metres
+    totalArea *= 1e12;
+    REQUIRE(totalArea == Approx(6.0).margin(1e-9));
+  }
 }
