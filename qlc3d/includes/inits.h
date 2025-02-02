@@ -25,6 +25,14 @@ void prepareGeometry(Geometry& geom,
                     unsigned int regularGridCountY = 0,
                     unsigned int regularGridCountZ = 0);
 
+/**
+ * Set up geometry from mesh file, with any electrode potentials set to all 0 and anchoring to to strong with 0 tilt, twist.
+ * This is mainly for test purposes.
+ */
+void prepareGeometryWithDefaultBoundaries(Geometry &geom,
+                                          const std::filesystem::path &meshFileName);
+
+
 FILE* createOutputEnergyFile(Simu& simu);
 
 /**

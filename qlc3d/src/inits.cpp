@@ -131,6 +131,53 @@ void reorderQuadraticTetNodeOrder(vector<idx> &tetNodes, const Coordinates &coor
   }
 }
 
+void prepareGeometry(Geometry &geom,
+                     RawMeshData &rawMeshData,
+                     Electrodes &electrodes,
+                     const Alignment &alignment,
+                     const Vec3 &stretchVector,
+                     unsigned int regularGridCountX,
+                     unsigned int regularGridCountY,
+                     unsigned int regularGridCountZ) {
+  Log::info("mesh element order = {}, triangles count = {}, tetrahedra count = {}, nodes count = {}",
+            rawMeshData.elementOrder, rawMeshData.triMaterials.size(), rawMeshData.tetMaterials.size(), rawMeshData.points.size());
+  validateTriangleMaterials(rawMeshData.triMaterials, electrodes, alignment);
+  validateTetrahedralMaterials(rawMeshData.tetMaterials);
+
+  auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
+
+  if (rawMeshData.elementOrder == 2) {
+    reorderQuadraticTetNodeOrder(rawMeshData.tetNodes, *coordinates);
+  }
+
+  coordinates->scale(stretchVector);
+
+  geom.setMeshData(rawMeshData.elementOrder, coordinates,
+                   std::move(rawMeshData.tetNodes), std::move(rawMeshData.tetMaterials),
+                   std::move(rawMeshData.triNodes), std::move(rawMeshData.triMaterials));
+
+  geom.makeRegularGrid(regularGridCountX, regularGridCountY, regularGridCountZ);
+}
+
+void prepareGeometryWithDefaultBoundaries(Geometry& geom,
+                                          const std::filesystem::path &meshFileName) {
+  // read mesh data from file. Allocates the data arrays.
+  RawMeshData rawMeshData = MeshReader::readMesh(meshFileName);
+
+  // find electrodes from raw mesh data
+  std::unordered_set<size_t> electrodeNumbers = findElectrodeNumbers(rawMeshData.triMaterials.begin(), rawMeshData.triMaterials.end());
+  Electrodes electrodes = Electrodes::withInitialPotentials(std::vector<unsigned int>(electrodeNumbers.begin(), electrodeNumbers.end()), 0.0);
+
+  // find alignment surfaces from raw mesh data
+  std::unordered_set<size_t> fixLcNumbers = findFixlcNumbers(rawMeshData.triMaterials.begin(), rawMeshData.triMaterials.end());
+  Alignment alignment = Alignment();
+  for (auto fixLcNumber : fixLcNumbers) {
+    alignment.addSurface(Surface::ofStrongAnchoring(fixLcNumber, 0, 0));
+  }
+
+  prepareGeometry(geom, rawMeshData, electrodes, alignment, {1, 1, 1}, 0, 0, 0);
+}
+
 void prepareGeometry(Geometry& geom,
                      const std::filesystem::path &meshFileName,
                      Electrodes& electrodes,
@@ -142,27 +189,7 @@ void prepareGeometry(Geometry& geom,
 
     // read mesh data from file. Allocates the data arrays.
     RawMeshData rawMeshData = MeshReader::readMesh(meshFileName);
-
-    Log::info("mesh element order = {}, triangles count = {}, tetrahedra count = {}, nodes count = {}",
-              rawMeshData.elementOrder, rawMeshData.triMaterials.size(), rawMeshData.tetMaterials.size(), rawMeshData.points.size());
-
-    // Throw exception if invalid element material numbers are detected.
-    validateTriangleMaterials(rawMeshData.triMaterials, electrodes, alignment);
-    validateTetrahedralMaterials(rawMeshData.tetMaterials);
-
-    auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
-
-    if (rawMeshData.elementOrder == 2) {
-      reorderQuadraticTetNodeOrder(rawMeshData.tetNodes, *coordinates);
-    }
-
-    coordinates->scale(stretchVector);
-
-    geom.setMeshData(rawMeshData.elementOrder, coordinates,
-                   std::move(rawMeshData.tetNodes), std::move(rawMeshData.tetMaterials),
-                   std::move(rawMeshData.triNodes), std::move(rawMeshData.triMaterials));
-
-    geom.makeRegularGrid(regularGridCountX, regularGridCountY, regularGridCountZ);
+    prepareGeometry(geom, rawMeshData, electrodes, alignment, stretchVector, regularGridCountX, regularGridCountY, regularGridCountZ);
 }
 
 FILE* createOutputEnergyFile(Simu& simu) {

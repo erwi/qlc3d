@@ -62,7 +62,8 @@ public:
   static Electrodes withConstantElectricField(const Vec3 &electricField);
   static Electrodes withElectrodePotentials(std::vector<std::shared_ptr<Electrode>> electrodes);
   static Electrodes withInitialPotentials(const std::vector<unsigned int> &electrodeNumber, const std::vector<double> &potential);
-
+  /** Electrodes with all potentials set to the same value starting at time 0 */
+  static Electrodes withInitialPotentials(const std::vector<unsigned int> &electrodeNumber, double potential);
     /**
      * return electrode with given number. This is Not 0 based, i.e. electrode 1 is the first one, as de
      * fined in material numbers
