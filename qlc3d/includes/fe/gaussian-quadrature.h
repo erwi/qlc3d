@@ -479,69 +479,6 @@ public:
 
 };
 
-class BoundaryIntegralShapeFunction : public TetShapeFunction {
-
-public:
-  BoundaryIntegralShapeFunction(unsigned int elementOrder) : TetShapeFunction(elementOrder) {
-    currentPoint = 0;
-  }
-
-  void setIntegrationPoints(const IntegrationPoints &integrationPoints) override {
-
-    this->numGaussPoints = integrationPoints.numGaussPoints();
-    this->integrationPoints = &integrationPoints;
-    // expect 2D integration points since this is a boundary integral
-    assert(integrationPoints.points.size() / numGaussPoints == 2);
-
-    nodesPerElement = 4;
-
-    sh.resize(numGaussPoints * nodesPerElement, 0);
-    shR.resize(numGaussPoints * nodesPerElement, 0);
-    shS.resize(numGaussPoints * nodesPerElement, 0);
-    shT.resize(numGaussPoints * nodesPerElement, 0);
-
-    for (unsigned int i = 0; i < numGaussPoints; ++i) {
-      double r = integrationPoints.points[i * 3 + 0];
-      double s = integrationPoints.points[i * 3 + 1];
-      double t = 0; // the t-node is the internal node in the element, which is always 0 since integration is on the boundary
-
-      sh[i * nodesPerElement + 0] = 1 - r - s - t;
-      sh[i * nodesPerElement + 1] = r;
-      sh[i * nodesPerElement + 2] = s;
-      sh[i * nodesPerElement + 3] = t;
-
-      shR[i * nodesPerElement + 0] = -1.0;
-      shR[i * nodesPerElement + 1] = 1.0;
-      shR[i * nodesPerElement + 2] = 0.0;
-      shR[i * nodesPerElement + 3] = 0.0;
-
-      shS[i * nodesPerElement + 0] = -1.0;
-      shS[i * nodesPerElement + 1] = 0.0;
-      shS[i * nodesPerElement + 2] = 1.0;
-      shS[i * nodesPerElement + 3] = 0.0;
-
-      shT[i * nodesPerElement + 0] = 0.0; //-1.0;
-      shT[i * nodesPerElement + 1] = 0.0;
-      shT[i * nodesPerElement + 2] = 0.0;
-      shT[i * nodesPerElement + 3] = 0.0; //1.0;
-    }
-
-    shX.resize(nodesPerElement, 0);
-    shY.resize(nodesPerElement, 0);
-    shZ.resize(nodesPerElement, 0);
-
-    for (unsigned int i = 0; i < nodesPerElement; i++) {
-      shX[i] = 0.;
-      shY[i] = 0.;
-      shZ[i] = 0.;
-    }
-
-
-
-  }
-
-};
-
 /*
 inline TetShapeFunction createLinearTetShapeFunction() {
   // Weights and Gauss points from table 10.4 in
