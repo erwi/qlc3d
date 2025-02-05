@@ -1,6 +1,7 @@
 #ifndef PROJECT_QLC3D_KEAST_H
 #define PROJECT_QLC3D_KEAST_H
 #include <vector>
+#include <cassert>
 /*
  * "Moderate degree tetrahedral quadrature formulas"
  * Keast, P.
@@ -20,6 +21,13 @@ struct IntegrationPoints {
 
   [[nodiscard]] unsigned int numGaussPoints() const { return weights.size(); }
 
+  /**
+   * Number of dimensions of the integration points. For example, 3 for 3D tetrahedron points, 2 for 2D triangle points.
+   */
+  [[nodiscard]] unsigned int numDimensions() const {
+    assert(points.size() % numGaussPoints() == 0);
+    return points.size() / numGaussPoints();
+  }
 };
 
 /** Keast integration points for tetrahedral element with 1st order polynomial, with 1 gauss point */

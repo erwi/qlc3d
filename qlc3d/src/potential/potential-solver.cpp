@@ -217,16 +217,15 @@ void PotentialSolver::assembleNeumann(const SolutionVector &v, const SolutionVec
   std::vector<unsigned int> tetNodes(nodesPerTet, 0);
   std::vector<unsigned int> tetDofs(nodesPerTet, 0);
 
-  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, triMesh, tetMesh, triCount, nodesPerTet) firstprivate(lK, lL, triNodes, tetNodes, tetDofs) schedule(guided)
+  const auto elementType = tetMesh.getElementType();
+  TetShapeFunction shapes(getElementOrder(elementType));
+  shapes.setIntegrationPoints(Tri4thOrder);
+
+  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, triMesh, tetMesh, triCount, nodesPerTet, elementType) firstprivate(lK, lL, triNodes, tetNodes, tetDofs, shapes) schedule(guided)
   for (unsigned int indTri = 0; indTri < triCount; indTri++) {
     if (triMesh.getMaterialNumber(indTri) != MAT_NEUMANN) {
       continue;
     }
-
-    if(tetMesh.getElementType() != ElementType::LINEAR_TETRAHEDRON) {
-      throw std::runtime_error("Quadratic tetrahedra not supported for Neumann boundary conditions");
-    }
-
 
     const unsigned int indTet = triMesh.getConnectedVolume(indTri);
     if (indTet == NOT_AN_INDEX) {
@@ -236,10 +235,18 @@ void PotentialSolver::assembleNeumann(const SolutionVector &v, const SolutionVec
     if (!isLCMaterial(tetMaterial)) {
       continue;
     }
-    GaussianQuadratureTet<7> shapes = gaussQuadratureTetBoundaryIntegral4thOrder();
     triMesh.loadNodes(indTri, &triNodes[0]);
     tetMesh.loadNodes(indTet, &tetNodes[0]);
-    reorderBoundaryTetNodes(tetNodes, triNodes);
+
+    // TODO: hide the details in a single function
+    if (elementType == ElementType::QUADRATIC_TETRAHEDRON) {
+      reorderQuadraticBoundaryTetNodes(tetNodes, triNodes, geom.getCoordinates());
+    } else if (elementType == ElementType::LINEAR_TETRAHEDRON) {
+      reorderBoundaryTetNodes(tetNodes, triNodes);
+    } else {
+      throw std::runtime_error("Unsupported element type for Neumann boundary conditions");
+    }
+
     v.loadEquNodes(&tetNodes[0], &tetNodes[nodesPerTet], &tetDofs[0]);
 
     localKLNeumann(geom.getCoordinates(), lK, lL, tetNodes, q,
@@ -366,7 +373,7 @@ void PotentialSolver::localKLNeumann(
         double triDet,
         double tetDet,
         const Vec3 &n,
-        GaussianQuadratureTet<7> &shapes) {
+        TetShapeFunction &shapes) {
   using std::vector;
   const unsigned int nodesPerTet = lL.size();
   const bool isFlexoelectric = (efe != 0 || efe2 != 0);
@@ -389,11 +396,11 @@ void PotentialSolver::localKLNeumann(
   }
 
   for (;shapes.hasNextPoint(); shapes.nextPoint()) {
-    double mul = shapes.weight() * triDet;
+    double mul = shapes.getWeight() * triDet;
 
     if (isFlexoelectric) {
       double q1, q2, q3, q4, q5;
-      shapes.sampleQ(qNodal, q1, q2, q3, q4, q5);
+      shapes.sampleQ(&qNodal[0], q1, q2, q3, q4, q5);
       double q1x, q2x, q3x, q4x, q5x, q1y, q2y, q3y, q4y, q5y, q1z, q2z, q3z, q4z, q5z;
       shapes.sampleQX(qNodal, q1x, q2x, q3x, q4x, q5x);
       shapes.sampleQY(qNodal, q1y, q2y, q3y, q4y, q5y);
@@ -417,7 +424,7 @@ void PotentialSolver::localKLNeumann(
     }
 
     double exx, eyy, ezz, exy, exz, eyz;
-    shapes.samplePermittivity(eNodal, exx, eyy, ezz, exy, exz, eyz);
+    shapes.sampleAll(&eNodal[0], exx, eyy, ezz, exy, exz, eyz);
 
     for (unsigned int i = 0; i < nodesPerTet; i++) {
       double Ni = shapes.N(i);

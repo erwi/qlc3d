@@ -153,16 +153,17 @@ private:
   void initialiseLinearTet() {
     assert(integrationPoints != nullptr);
     nodesPerElement = 4;
-
+    unsigned int numDimensions = integrationPoints->numDimensions();
+    assert(numDimensions == 2 || numDimensions == 3);
     sh.resize(numGaussPoints * nodesPerElement, 0);
     shR.resize(numGaussPoints * nodesPerElement, 0);
     shS.resize(numGaussPoints * nodesPerElement, 0);
     shT.resize(numGaussPoints * nodesPerElement, 0);
 
     for (unsigned int i = 0; i < numGaussPoints; ++i) {
-      double r = integrationPoints->points[i * 3 + 0];
-      double s = integrationPoints->points[i * 3 + 1];
-      double t = integrationPoints->points[i * 3 + 2];
+      double r = integrationPoints->points[i * numDimensions + 0];
+      double s = integrationPoints->points[i * numDimensions + 1];
+      double t = numDimensions == 2 ? 0 : integrationPoints->points[i * numDimensions + 2];
 
       sh[i * nodesPerElement + 0] = 1 - r - s - t;
       sh[i * nodesPerElement + 1] = r;
@@ -198,6 +199,10 @@ private:
 
   void initialiseQuadraticTet() {
     assert(integrationPoints != nullptr);
+
+    unsigned int dimensions = integrationPoints->numDimensions();
+    assert(dimensions == 3 || dimensions == 2);
+
     nodesPerElement = 10;
 
     sh.resize(numGaussPoints * nodesPerElement, 0);
@@ -206,9 +211,10 @@ private:
     shT.resize(numGaussPoints * nodesPerElement, 0);
 
     for (unsigned int i = 0; i < numGaussPoints; ++i) {
-      double r = integrationPoints->points[i * 3 + 0];
-      double s = integrationPoints->points[i * 3 + 1];
-      double t = integrationPoints->points[i * 3 + 2];
+      double r = integrationPoints->points[i * dimensions + 0];
+      double s = integrationPoints->points[i * dimensions + 1];
+      // for triangle weights, local coordinate t is always 0. This case is used for surface integrals
+      double t = dimensions == 2 ? 0 : integrationPoints->points[i * dimensions + 2];
 
       // corner nodes expressed in natural coordinates
       double N1 = 1 - r - s - t;
@@ -222,7 +228,6 @@ private:
       sh[i * nodesPerElement + 3] = N4 * (2 * N4 - 1);
 
       // mid-edge nodes
-      // TODO: probably we must swap some to match node ordering of GMSH
       sh[i * nodesPerElement + 4] = 4 * N1 * N2;
       sh[i * nodesPerElement + 5] = 4 * N2 * N3;
       sh[i * nodesPerElement + 6] = 4 * N3 * N1;
@@ -297,7 +302,7 @@ public:
     }
     this->integrationPoints = &integrationPoints;
 
-    assert(integrationPoints.weights.size() == integrationPoints.points.size() / 3);
+    //assert(integrationPoints.weights.size() == integrationPoints.points.size() / 3);
     numGaussPoints = integrationPoints.numGaussPoints();
 
     switch (elementOrder) {
@@ -460,69 +465,6 @@ public:
       v6 += source[i][5] * N(i);
     }
   }
-};
-
-class BoundaryIntegralShapeFunction : public TetShapeFunction {
-
-public:
-  BoundaryIntegralShapeFunction(unsigned int elementOrder) : TetShapeFunction(elementOrder) {
-    currentPoint = 0;
-  }
-
-  void setIntegrationPoints(const IntegrationPoints &integrationPoints) override {
-
-    this->numGaussPoints = integrationPoints.numGaussPoints();
-    this->integrationPoints = &integrationPoints;
-    // expect 2D integration points since this is a boundary integral
-    assert(integrationPoints.points.size() / numGaussPoints == 2);
-
-    nodesPerElement = 4;
-
-    sh.resize(numGaussPoints * nodesPerElement, 0);
-    shR.resize(numGaussPoints * nodesPerElement, 0);
-    shS.resize(numGaussPoints * nodesPerElement, 0);
-    shT.resize(numGaussPoints * nodesPerElement, 0);
-
-    for (unsigned int i = 0; i < numGaussPoints; ++i) {
-      double r = integrationPoints.points[i * 3 + 0];
-      double s = integrationPoints.points[i * 3 + 1];
-      double t = 0; // the t-node is the internal node in the element, which is always 0 since integration is on the boundary
-
-      sh[i * nodesPerElement + 0] = 1 - r - s - t;
-      sh[i * nodesPerElement + 1] = r;
-      sh[i * nodesPerElement + 2] = s;
-      sh[i * nodesPerElement + 3] = t;
-
-      shR[i * nodesPerElement + 0] = -1.0;
-      shR[i * nodesPerElement + 1] = 1.0;
-      shR[i * nodesPerElement + 2] = 0.0;
-      shR[i * nodesPerElement + 3] = 0.0;
-
-      shS[i * nodesPerElement + 0] = -1.0;
-      shS[i * nodesPerElement + 1] = 0.0;
-      shS[i * nodesPerElement + 2] = 1.0;
-      shS[i * nodesPerElement + 3] = 0.0;
-
-      shT[i * nodesPerElement + 0] = 0.0; //-1.0;
-      shT[i * nodesPerElement + 1] = 0.0;
-      shT[i * nodesPerElement + 2] = 0.0;
-      shT[i * nodesPerElement + 3] = 0.0; //1.0;
-    }
-
-    shX.resize(nodesPerElement, 0);
-    shY.resize(nodesPerElement, 0);
-    shZ.resize(nodesPerElement, 0);
-
-    for (unsigned int i = 0; i < nodesPerElement; i++) {
-      shX[i] = 0.;
-      shY[i] = 0.;
-      shZ[i] = 0.;
-    }
-
-
-
-  }
-
 };
 
 /*

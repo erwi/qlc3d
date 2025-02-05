@@ -86,6 +86,10 @@ public:
     return std::pow(x_ - that.x_, 2) + std::pow(y_ - that.y_, 2) + std::pow(z_ - that.z_, 2);
   }
 
+  [[nodiscard]] double distance(const Vec3 &that) const {
+    return std::sqrt(distanceSquared(that));
+  }
+
   Vec3 &operator+=(const Vec3 &rhs) {
     x_ += rhs.x_;
     y_ += rhs.y_;
@@ -121,21 +125,7 @@ public:
     return *this;
   }
 
-  Vec3 operator-() const {
-    return Vec3(-x_, -y_, -z_);
-  }
-
-  Vec3 operator*(double rhs) const {
-    return Vec3(x_ * rhs, y_ * rhs, z_ * rhs);
-  }
-
-  Vec3 operator/(double rhs) const {
-    return Vec3(x_ / rhs, y_ / rhs, z_ / rhs);
-  }
-
-  [[nodiscard]]
-
-  std::string toString() const {
+  [[nodiscard]] std::string toString() const {
     return std::to_string(x_) + ", " + std::to_string(y_) + ", " + std::to_string(z_);
   }
 
@@ -168,6 +158,18 @@ public:
                 x_ * rhs.y_ - y_ * rhs.x_);
   }
 
+  Vec3 operator-() const {
+    return Vec3(-x_, -y_, -z_);
+  }
+
+  Vec3 operator*(double rhs) const {
+    return Vec3(x_ * rhs, y_ * rhs, z_ * rhs);
+  }
+
+  Vec3 operator/(double rhs) const {
+    return Vec3(x_ / rhs, y_ / rhs, z_ / rhs);
+  }
+
   friend Vec3 operator+(const Vec3 &lhs, const Vec3 &rhs) {
     return Vec3(lhs.x_ + rhs.x_, lhs.y_ + rhs.y_, lhs.z_ + rhs.z_);
   }
@@ -176,6 +178,10 @@ public:
     return Vec3(lhs.x_ - rhs.x_, lhs.y_ - rhs.y_, lhs.z_ - rhs.z_);
   }
 };
+
+inline Vec3 operator*(double lhs, const Vec3 &rhs) {
+  return rhs * lhs;
+}
 
 template <>
 class fmt::formatter<Vec3> {
