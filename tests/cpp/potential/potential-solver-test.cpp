@@ -214,7 +214,84 @@ TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries")
   }
 }
 
-TEST_CASE("Solve potential - cube with quadratic elements an periodic boundaries") {
+TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries using quadratic elements") {
+  // ARRANGE:
+  Geometry geom;
+  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
+  electrodes.setDielectricPermittivities({1});
+  Alignment alignment;
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+  //prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_GMSH_MESH, electrodes, alignment);
+  prepareGeometry(geom, TestUtil::RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_QUADRATIC_GMSH_MESH, electrodes, alignment);
+
+  SolutionVector v(geom.getnp(), 1);
+  v.initialisePotentialBoundaries(electrodes.getCurrentPotentials(0), geom);
+
+  // Set LC director to uniform 45 degree tilt angle
+  SolutionVector q(geom.getnpLC(), 5);
+  auto director = qlc3d::Director::fromDegreeAngles(45, 0, 0.5);
+  for (idx i = 0; i < geom.getnpLC(); i++) {
+    q.setValue(i, director);
+  }
+
+  auto solverSettings = std::make_shared<SolverSettings>();
+
+  SECTION("LC material with permittivity to match the dielectric layer") {
+    // LC material that matches permittivity of dielectric layer
+    auto lc = std::shared_ptr<LC>(LCBuilder()
+                                          .eps_par(1)
+                                          .eps_per(1)
+                                          .build());
+
+    // ACT
+    PotentialSolver solver(electrodes, lc, solverSettings);
+    solver.solvePotential(v, q, geom);
+
+    // ASSERT
+    // check that potential value is 0.5 * z for every point, since mesh ranges from 0 to 2 along z-axis
+    for (unsigned int i = 0; i < geom.getCoordinates().size(); i++) {
+      double z = geom.getCoordinates().getPoint(i).z();
+      double pot = v.getValue(i);
+      REQUIRE(pot == Approx(0.5 * z).margin(3e-4));
+    }
+  }
+
+  SECTION("LC material with permittivity 2x that of the dielectric layer") {
+    // LC material that matches permittivity of dielectric layer
+    auto lc = std::shared_ptr<LC>(LCBuilder()
+                                          .eps_par(2)
+                                          .eps_per(2)
+                                          .build());
+
+    // ACT
+    PotentialSolver solver(electrodes, lc, solverSettings);
+    solver.solvePotential(v, q, geom);
+
+    // ASSERT
+    // check that potential value is 0.5 * z for every point, since mesh ranges from 0 to 2 along z-axis
+    for (unsigned int i = 0; i < geom.getCoordinates().size(); i++) {
+      double z = geom.getCoordinates().getPoint(i).z();
+      double pot = v.getValue(i);
+      if (z < 1) { // dielectric region
+        // about double the gradient so ranging from 0 to 0.333
+        double expected = 2 * z / 3.;
+        REQUIRE(pot == Approx(expected).margin(3e-4));
+      } else if (z > 1) {
+        // about half the gradient, so ranging from 0.666 to 1.0;
+        double expected = 2./ 3 + (z - 1) / 3;
+        REQUIRE(pot == Approx(expected).margin(3e-4));
+      }
+    }
+  }
+}
+
+
+
+
+
+
+TEST_CASE("Solve potential - cube with quadratic elements and periodic boundaries") {
   //return;
   // ARRANGE
   Geometry geom;

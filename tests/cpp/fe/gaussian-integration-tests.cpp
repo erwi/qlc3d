@@ -512,19 +512,24 @@ TEST_CASE("3D boundary integral in a unit cube") {
 }
 
 TEST_CASE("New Tet - 3D boundary integral in a unit cube") {
-  BoundaryIntegralShapeFunction shape(1);
+  // Surface integrals are calculated using triangle weights on a tet shape.
+  TetShapeFunction shape(2);
   shape.setIntegrationPoints(Tri4thOrder);
 
   Geometry geom;
-  prepareGeometryWithDefaultBoundaries(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH);
+  prepareGeometryWithDefaultBoundaries(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_QUADRATIC_GMSH_MESH);
 
   auto tets = geom.getTetrahedra();
   auto tris = geom.getTriangles();
   auto coords = geom.getCoordinates();
-  idx tetNodes[4] = {0, 0, 0, 0};
-  idx triNodes[3] = {0, 0, 0};
+  std::vector<unsigned int> tetNodes;
+  tetNodes.resize(tets.getnNodes(), 0);
 
-  Vec3 tetCoords[4] = {Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0)};
+  std::vector<unsigned int> triNodes;
+  triNodes.resize(tris.getnNodes(), 0);
+
+  std::vector<Vec3> tetCoords;
+  tetCoords.resize(tets.getnNodes(), Vec3(0, 0, 0));
   const Vec3 *triCoord = &tetCoords[0];
 
   SECTION("Integrate total surface area of Neumann boundaries in a unit cube") {
@@ -540,26 +545,25 @@ TEST_CASE("New Tet - 3D boundary integral in a unit cube") {
       double tetDet = tets.getDeterminant(iTet);
       double triDet = tris.getDeterminant(iTri);
 
-      tris.loadNodes(iTri, triNodes);
-      tets.loadNodes(iTet, tetNodes);
+      tris.loadNodes(iTri, &triNodes[0]);
+      tets.loadNodes(iTet, &tetNodes[0]);
 
       // reorder tet nodes so that the triangle is the first three nodes
-      reorderBoundaryTetNodes(tetNodes, triNodes);
+      reorderQuadraticBoundaryTetNodes(tetNodes, triNodes, coords);
 
-      coords.loadCoordinates(&tetNodes[0], &tetNodes[4], tetCoords);
-      tetCoords[0] *= 1e-6;
-      tetCoords[1] *= 1e-6;
-      tetCoords[2] *= 1e-6;
-      tetCoords[3] *= 1e-6;
+      coords.loadCoordinates(&tetNodes[0], &tetNodes[tets.getnNodes()], &tetCoords[0]);
+      for (auto & c : tetCoords) {
+        c *= 1e-6;
+      }
 
-      // calculate triangle area of the Numan boundary
+      // calculate triangle area of the Neumann boundary
       Vec3 v1 = triCoord[1] - triCoord[0];
       Vec3 v2 = triCoord[2] - triCoord[0];
       double area = 0.5 * v1.cross(v2).norm();
 
       // calculate triangle area using Gauss integration over the element
       double triArea = 0;
-      shape.initialiseElement(tetCoords, tetDet);
+      shape.initialiseElement(&tetCoords[0], tetDet);
       for (; shape.hasNextPoint(); shape.nextPoint()) {
         double mul = shape.getWeight() * triDet;
         for (int i = 0; i < tets.getnNodes(); i++) {

@@ -81,7 +81,8 @@ class PotentialSolver {
           double triDet,
           double tetDet,
           const Vec3 &n,
-          GaussianQuadratureTet<7> &shapes);
+          TetShapeFunction &shapes);
+          //GaussianQuadratureTet<7> &shapes);
 
   void solveMatrixSystem(SolutionVector &v);
 
