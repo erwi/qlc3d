@@ -164,8 +164,8 @@ TEST_CASE("Linear tet 3D shape function") {
 TEST_CASE("New tet 3D shape function - linear tet") { // TODO: repeat this with quadratic element
   TetShapeFunction shape(1); // = createLinearTetShapeFunction();
 
-  shape.setIntegrationPoints(Keast4);
-  //shape.initialise(Keast0);
+  shape.setIntegrationPoints(Keast8);
+
 
   Geometry geom;
   prepareGeometryWithDefaultBoundaries(geom, TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH);
@@ -252,8 +252,8 @@ TEST_CASE("New tet 3D shape function - linear tet") { // TODO: repeat this with 
 
 TEST_CASE("New tet 3D shape function - quadratic tet") {
   const int elementOrder = 2;
-  TetShapeFunction shape(elementOrder); // = createLinearTetShapeFunction();
-  shape.setIntegrationPoints(Keast4);
+  TetShapeFunction shape(elementOrder);
+  shape.setIntegrationPoints(Keast8);
 
   Geometry geom;
   prepareGeometryWithDefaultBoundaries(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH);
