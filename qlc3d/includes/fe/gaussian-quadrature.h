@@ -45,8 +45,50 @@ public:
    * Get the i'th shape function value for the current integration point
    * @param i = 0..3 for linear tetrahedron, 0..9 for quadratic tetrahedron
    */
-  [[nodiscard]] const double& N(int i) const { return get(sh, i); }
+  [[nodiscard]] const double& N(unsigned int i) const { return get(sh, i); }
+  [[nodiscard]] double sample(const double *value) const {
+    double sum = 0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      sum += value[i] * N(i);
+    }
+    return sum;
+  }
 
+
+  template<typename Src>
+  void sampleQ(const Src* source, double &q1, double &q2, double &q3, double &q4, double &q5) const {
+    q1 = q2 = q3 = q4 = q5 = 0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      q1 += source[i][0] * N(i);
+      q2 += source[i][1] * N(i);
+      q3 += source[i][2] * N(i);
+      q4 += source[i][3] * N(i);
+      q5 += source[i][4] * N(i);
+    }
+  }
+
+  template<typename Src>
+  void sampleAll(const Src* source, double &v1, double &v2, double &v3, double &v4, double &v5, double &v6) const {
+    v1 = v2 = v3 = v4 = v5 = v6 = 0;
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      v1 += source[i][0] * N(i);
+      v2 += source[i][1] * N(i);
+      v3 += source[i][2] * N(i);
+      v4 += source[i][3] * N(i);
+      v5 += source[i][4] * N(i);
+      v6 += source[i][5] * N(i);
+    }
+  }
+
+  template<typename Src>
+  void sample(const Src source, Vec3 &destination) const {
+    destination.set(0, 0, 0);
+    for (unsigned int i = 0; i < nodesPerElement; i++) {
+      destination.add(source[i].x() * N(i),
+                      source[i].y() * N(i),
+                      source[i].z() * N(i));
+    }
+  }
 };
 
 /**
@@ -370,14 +412,6 @@ public:
   [[nodiscard]] const double& Ny(int i) const { return shY[i]; }
   [[nodiscard]] const double& Nz(int i) const { return shZ[i]; }
 
-  [[nodiscard]] double sample(const double *value) const {
-    double sum = 0;
-    for (unsigned int i = 0; i < nodesPerElement; i++) {
-      sum += value[i] * N(i);
-    }
-    return sum;
-  }
-
   [[nodiscard]] double sampleX(const double *values) const {
     double sum = 0;
     for (unsigned int i = 0; i < nodesPerElement; i++) {
@@ -441,30 +475,8 @@ public:
     }
   }
 
-  template<typename Src>
-  void sampleQ(const Src* source, double &q1, double &q2, double &q3, double &q4, double &q5) const {
-    q1 = q2 = q3 = q4 = q5 = 0;
-    for (unsigned int i = 0; i < nodesPerElement; i++) {
-      q1 += source[i][0] * N(i);
-      q2 += source[i][1] * N(i);
-      q3 += source[i][2] * N(i);
-      q4 += source[i][3] * N(i);
-      q5 += source[i][4] * N(i);
-    }
-  }
 
-  template<typename Src>
-  void sampleAll(const Src* source, double &v1, double &v2, double &v3, double &v4, double &v5, double &v6) const {
-    v1 = v2 = v3 = v4 = v5 = v6 = 0;
-    for (unsigned int i = 0; i < nodesPerElement; i++) {
-      v1 += source[i][0] * N(i);
-      v2 += source[i][1] * N(i);
-      v3 += source[i][2] * N(i);
-      v4 += source[i][3] * N(i);
-      v5 += source[i][4] * N(i);
-      v6 += source[i][5] * N(i);
-    }
-  }
+
 };
 
 /*

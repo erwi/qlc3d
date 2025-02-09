@@ -70,50 +70,49 @@ void ImplicitLCSolver::assembleLocalVolumeMatrix(const unsigned int indTet,
                                                  const Geometry &geom,
                                                  const LCSolverParams &params) {
 
-  const unsigned int len = lL.size();
+  const unsigned int npe = lL.size() / 5; // nodes per element
   lK.setAllValuesTo(0.0);
-  memset(&lL[0], 0., len * sizeof(double));
+  memset(&lL[0], 0., lL.size() * sizeof(double));
 
-  std::vector<Vec3> tetCoords(len, Vec3());
-  geom.getCoordinates().loadCoordinates(tetNodes.data(), tetNodes.data() + len, tetCoords.data());
+  std::vector<Vec3> tetCoords(npe, Vec3());
+  geom.getCoordinates().loadCoordinates(tetNodes.data(), tetNodes.data() + npe, tetCoords.data());
   for (auto &coord : tetCoords) {
     coord *= 1e-6;
   }
 
   const double tetDeterminant = geom.getTetrahedra().getDeterminant(indTet);
-  shapes.initialiseElement(tetCoords.data(), tetDeterminant);
 
-  std::vector<qlc3d::TTensor> qNodal(len, qlc3d::TTensor());
-  q.loadQtensorValues(tetNodes.data(), tetNodes.data() + len, qNodal.data());
+  std::vector<qlc3d::TTensor> qNodal(npe, qlc3d::TTensor());
+  q.loadQtensorValues(tetNodes.data(), tetNodes.data() + npe, qNodal.data());
 
-  std::vector<double> potential(len, 0.);
-  v.loadValues(tetNodes.data(), tetNodes.data() + 4, potential.data());
-
-  double q1x, q1y, q1z, q2x, q2y, q2z, q3x, q3y, q3z, q4x, q4y, q4z, q5x, q5y, q5z;
-  shapes.sampleQX(qNodal, q1x, q2x, q3x, q4x, q5x);
-  shapes.sampleQY(qNodal, q1y, q2y, q3y, q4y, q5y);
-  shapes.sampleQZ(qNodal, q1z, q2z, q3z, q4z, q5z);
+  std::vector<double> potential(npe, 0.);
+  v.loadValues(tetNodes.data(), tetNodes.data() + npe, potential.data());
 
   for (; shapes.hasNextPoint(); shapes.nextPoint()) {
+    shapes.initialiseElement(tetCoords.data(), tetDeterminant);
     double q1, q2, q3, q4, q5;
     double Vx, Vy, Vz;
+    double q1x, q1y, q1z, q2x, q2y, q2z, q3x, q3y, q3z, q4x, q4y, q4z, q5x, q5y, q5z;
     shapes.sampleQ(qNodal.data(), q1, q2, q3, q4, q5);
+    shapes.sampleQX(qNodal, q1x, q2x, q3x, q4x, q5x);
+    shapes.sampleQY(qNodal, q1y, q2y, q3y, q4y, q5y);
+    shapes.sampleQZ(qNodal, q1z, q2z, q3z, q4z, q5z);
     Vx = shapes.sampleX(potential.data());
     Vy = shapes.sampleY(potential.data());
     Vz = shapes.sampleZ(potential.data());
 
-    LcEnergyTerms::assembleThermotropic(lK, lL, shapes, tetDeterminant, q1, q2, q3, q4, q5, params.A, params.B, params.C);
+    LcEnergyTerms::assembleThermotropic(&lK, lL, shapes, tetDeterminant, q1, q2, q3, q4, q5, params.A, params.B, params.C);
 
-    LcEnergyTerms::assembleElasticL1(lK, lL, shapes, tetDeterminant, q1x, q1y, q1z, q2x, q2y, q2z, q3x, q3y, q3z, q4x, q4y, q4z, q5x, q5y, q5z, params.L1);
+    LcEnergyTerms::assembleElasticL1(&lK, lL, shapes, tetDeterminant, q1x, q1y, q1z, q2x, q2y, q2z, q3x, q3y, q3z, q4x, q4y, q4z, q5x, q5y, q5z, params.L1);
 
     if (isThreeElasticConstants) {
-      LcEnergyTerms::assembleThreeElasticConstants(lK, lL, shapes, tetDeterminant, q1, q2, q3, q4, q5, q1x, q1y, q1z,
+      LcEnergyTerms::assembleThreeElasticConstants(&lK, lL, shapes, tetDeterminant, q1, q2, q3, q4, q5, q1x, q1y, q1z,
                                                    q2x, q2y, q2z, q3x, q3y, q3z, q4x, q4y, q4z, q5x, q5y, q5z,
                                                    params.L2, params.L3, params.L6);
     }
 
     if (isChiral) {
-      LcEnergyTerms::assembleChiralTerms(lK, lL, shapes, tetDeterminant,
+      LcEnergyTerms::assembleChiralTerms(&lK, lL, shapes, tetDeterminant,
                                          q1, q2, q3, q4, q5,
                                          q1x, q1y, q1z,
                                           q2x, q2y, q2z,
@@ -129,49 +128,56 @@ void ImplicitLCSolver::assembleLocalVolumeMatrix(const unsigned int indTet,
   }
 }
 
-void ImplicitLCSolver::assembleLocalWeakAnchoringMatrix(unsigned int indTri, double lK[15][15], double lL[15],
-                                                        unsigned int triNodes[3], unsigned int triDofs[3],
-                                                        GaussianQuadratureTri<7> shapes, const SolutionVector &q,
-                                                        const Geometry &geom, const Surface &surface,
+void ImplicitLCSolver::assembleLocalWeakAnchoringMatrix(unsigned int indTri,
+                                                        SpaMtrix::DenseMatrix &lK,
+                                                        std::vector<double> &lL,
+                                                        const std::vector<unsigned int> &triNodes,
+                                                        const std::vector<unsigned int> &triDofs,
+                                                        TriShapeFunction &shapes,
+                                                        const SolutionVector &q,
+                                                        const Geometry &geom,
+                                                        const Surface &surface,
                                                         double surfaceOrder) {
-  memset(lK, 0., 15 * 15 * sizeof(double));
-  memset(lL, 0., 15 * sizeof(double));
+  lK.setAllValuesTo(0);
+  memset(lL.data(), 0., lL.size() * sizeof(double));
 
-  Vec3 triCoords[3];
-  geom.getCoordinates().loadCoordinates(triNodes, triNodes + 3, triCoords);
-  triCoords[0] *= 1e-6;
-  triCoords[1] *= 1e-6;
-  triCoords[2] *= 1e-6;
+  const unsigned int npe = lL.size() / 5; // nodes per element
+
+  std::vector<Vec3> triCoords(npe, Vec3());
+  geom.getCoordinates().loadCoordinates(triNodes.data(), triNodes.data() + npe, triCoords.data());
+  for(auto &coord : triCoords) {
+    coord *= 1e-6;
+  }
 
   const double triDeterminant = geom.getTriangles().getDeterminant(indTri);
-  shapes.initialiseElement(triCoords, triDeterminant);
 
-  Vec3 vec1[3];
-  Vec3 vec2[3];
+  //shapes.initialiseElement(triCoords, triDeterminant);
+
+  // anchoring principal axes vectors for each node
+  std::vector<Vec3> vec1(npe, Vec3());
+  std::vector<Vec3> vec2(npe, Vec3());
   if (surface.usesSurfaceNormal()) {
     assert(surface.getK1() == 0.);
-    vec2[0] = geom.getNodeNormal(triNodes[0]);
-    vec2[1] = geom.getNodeNormal(triNodes[1]);
-    vec2[2] = geom.getNodeNormal(triNodes[2]);
+    for (unsigned int i = 0; i < npe; i++) {
+      vec2[i] = geom.getNodeNormal(triNodes[i]);
+    }
   } else {
     // use the principal axes of the element anchoring at each node
-    vec1[0] = surface.getV1();
-    vec1[1] = surface.getV1();
-    vec1[2] = surface.getV1();
-    vec2[0] = surface.getV2();
-    vec2[1] = surface.getV2();
-    vec2[2] = surface.getV2();
+    for(unsigned  int i = 0; i < npe; i++) {
+      vec1[i] = surface.getV1();
+      vec2[i] = surface.getV2();
+    }
   }
 
   const double W = surface.getAnchoringType() == WeakHomeotropic ? -surface.getStrength() : surface.getStrength();
   const double K1 = surface.getK1();
   const double K2 = surface.getK2();
-  qlc3d::TTensor qNodal[3];
-  q.loadQtensorValues(triNodes, triNodes + 3, qNodal);
+  std::vector<qlc3d::TTensor> qNodal(npe, qlc3d::TTensor());
+  q.loadQtensorValues(triNodes.data(), triNodes.data() + npe, qNodal.data());
 
   for (; shapes.hasNextPoint(); shapes.nextPoint()) {
     double q1, q2, q3, q4, q5;
-    shapes.sampleAll(qNodal, q1, q2, q3, q4, q5);
+    shapes.sampleQ(qNodal.data(), q1, q2, q3, q4, q5);
 
     Vec3 v1, v2;
     if (!surface.usesSurfaceNormal()) {
@@ -179,14 +185,18 @@ void ImplicitLCSolver::assembleLocalWeakAnchoringMatrix(unsigned int indTri, dou
     }
     shapes.sample(vec2, v2);
 
-    LcEnergyTerms::addWeakAnchoring(lK, lL, shapes, triDeterminant, q1, q2, q3, q4, q5, v1, v2, W, K1, K2, surfaceOrder);
+    LcEnergyTerms::addWeakAnchoring(&lK, lL, shapes, triDeterminant, q1, q2, q3, q4, q5, v1, v2, W, K1, K2, surfaceOrder);
   }
 }
 
-void ImplicitLCSolver::addToGlobalMatrix(double* lK, double* lL, const DofMap &dofMap,
-                                         const unsigned int* elemNodes, int elemNodeCount) {
+void ImplicitLCSolver::addToGlobalMatrix(const SpaMtrix::DenseMatrix &lK,
+                                         const std::vector<double> &lL,
+                                         const DofMap &dofMap,
+                                         const std::vector<unsigned int> &elemNodes) {
   const idx npLC = dofMap.getnDof();
-  for (int i = 0; i < 5 * elemNodeCount; i++) {
+  const idx elemNodeCount = elemNodes.size();
+  const idx len = lL.size();
+  for (unsigned int i = 0; i < len; i++) {
     idx ri = elemNodes[i % elemNodeCount] + npLC * (i / elemNodeCount);
 
     if (dofMap.isFixedNode(ri)) {
@@ -196,7 +206,7 @@ void ImplicitLCSolver::addToGlobalMatrix(double* lK, double* lL, const DofMap &d
 
     #pragma omp atomic
     (*L)[eqr] += lL[i];
-    for (int j = 0 ; j < 5 * elemNodeCount ; j++) { // LOOP OVER COLUMNS
+    for (unsigned int j = 0 ; j < len ; j++) { // LOOP OVER COLUMNS
       idx rj = elemNodes[j % elemNodeCount] + npLC * (j / elemNodeCount);
 
       // Note: we can simply ignore fixed columns as they correspond to fixed zeroes in the RHS vector L,
@@ -207,16 +217,14 @@ void ImplicitLCSolver::addToGlobalMatrix(double* lK, double* lL, const DofMap &d
       }
       idx eqc = dofMap.getDof(rj);
 
-
       double* value = K->getValuePtr(eqr, eqc);
 
       if (value == nullptr) {
         RUNTIME_ERROR(fmt::format("Value at row {} and column {} is not found in the matrix for LC solution", eqr, eqc));
       }
 
-      // [i][j] = j + 5 * elemNodeCount * i
       #pragma omp atomic
-      *value += lK[j + 5 * elemNodeCount * i];
+      *value += lK(i, j);
     }
   }
 }
@@ -236,7 +244,7 @@ void ImplicitLCSolver::assembleMatrixSystemVolumeTerms(const SolutionVector &q, 
   TetShapeFunction shapes(getElementOrder(elementType));
   shapes.setIntegrationPoints(Keast4); // TODO: need higher order integration points
 
-  #pragma omp parallel for private(lL, tetNodes, tetDofs) firstprivate(shapes, lK) schedule(guided)
+  #pragma omp parallel for firstprivate(shapes, lK, lL, tetNodes, tetDofs) schedule(guided)
   for (unsigned int indTet = 0; indTet < elementCount; indTet++) {
     if (tets.getMaterialNumber(indTet) != MAT_DOMAIN1) {
       continue;
@@ -244,28 +252,30 @@ void ImplicitLCSolver::assembleMatrixSystemVolumeTerms(const SolutionVector &q, 
     tets.loadNodes(indTet, &tetNodes[0]);
     q.loadEquNodes(&tetNodes[0], &tetNodes[elementNodeCount], &tetDofs[0]);
 
-    //GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
     assembleLocalVolumeMatrix(indTet, lK, lL, tetNodes, tetDofs, shapes, q, v, geom, params);
-    addToGlobalMatrix(&lK[0][0], lL, q.getDofMap(), tetNodes, elementNodeCount);
+    addToGlobalMatrix(lK, lL, q.getDofMap(), tetNodes);
   }
 }
 
 void ImplicitLCSolver::assembleMatrixSystemWeakAnchoring(const SolutionVector &q, const Geometry &geom,
                                                          const LCSolverParams &params) {
-  const int elementNodeCount = 3;
-
   auto &tris = geom.getTriangles();
+  const auto elementType = tris.getElementType();
+  const unsigned int elementCount = tris.getnElements();
+  const unsigned int nodesPerElement = tris.getnNodes();
 
-  double lK[elementNodeCount * 5][elementNodeCount * 5];
-  double lL[elementNodeCount * 5];
-  idx triNodes[elementNodeCount];
-  idx triDofs[elementNodeCount];
+  TriShapeFunction shapes(getElementOrder(elementType));
+  shapes.setIntegrationPoints(Tri4thOrder);
+
+  SpaMtrix::DenseMatrix lK(nodesPerElement * 5, nodesPerElement * 5);
+  std::vector<double> lL(nodesPerElement * 5, 0.0);
+  std::vector<idx> triNodes(nodesPerElement, 0);
+  std::vector<idx> triDofs(nodesPerElement, 0);
 
   std::unordered_map<unsigned int, Surface> weakSurfaces = alignment.getWeakSurfacesByFixLcNumber();
 
-  #pragma omp parallel for private(lK, lL, triNodes, triDofs) schedule(guided)
-  for (unsigned int indTri = 0; indTri < tris.getnElements(); indTri++) {
-    auto shapes = gaussianQuadratureTri4thOrder();
+  #pragma omp parallel for firstprivate(lL, lK, triNodes, triDofs, shapes) schedule(guided)
+  for (unsigned int indTri = 0; indTri < elementCount; indTri++) {
     unsigned int fixLcNumber = tris.getFixLCNumber(indTri);
 
     // check if a weak surface exists by the FixLC number
@@ -273,14 +283,13 @@ void ImplicitLCSolver::assembleMatrixSystemWeakAnchoring(const SolutionVector &q
     if (weakSurface == weakSurfaces.end()) {
       continue;
     }
-    tris.loadNodes(indTri, triNodes);
-    q.loadEquNodes(triNodes, triNodes + elementNodeCount, triDofs);
+    tris.loadNodes(indTri, triNodes.data());
+    q.loadEquNodes(triNodes.data(), triNodes.data() + nodesPerElement, triDofs.data());
 
     // assemble local matrix for weak anchoring
     assembleLocalWeakAnchoringMatrix(indTri, lK, lL, triNodes, triDofs, shapes, q, geom, weakSurface->second, params.S0);
     // add to global matrix
-
-    addToGlobalMatrix(&lK[0][0], lL, q.getDofMap(), triNodes, elementNodeCount);
+    addToGlobalMatrix(lK, lL, q.getDofMap(), triNodes);
   }
 }
 
@@ -295,7 +304,6 @@ void ImplicitLCSolver::assembleMatrixSystem(const SolutionVector &q, const Solut
     assembleMatrixSystemWeakAnchoring(q, geom, params);
   }
 }
-
 
 double ImplicitLCSolver::maxAbs(const SpaMtrix::Vector &v) const {
   double max = 0.0;
