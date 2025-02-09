@@ -47,7 +47,7 @@ namespace LcEnergyTerms {
       lL[i + 8] += (A * q3 + D3 * B * (-q3 * q1 * rt6 + 1.5 * rt2 * q5 * q4) + C * R * q3) * mul * shapes.N(i);
       lL[i + 12] +=
               (A * q4 + D3 * 0.5 * B * (3.0 * q3 * rt2 * q5 + q4 * q1 * rt6 - 3.0 * q4 * q2 * rt2) + C * R * q4) * ShR;
-      lL[1 + 16] +=
+      lL[i + 16] +=
               (A * q5 + D3 * 0.5 * B * (q5 * q1 * rt6 + 3.0 * q5 * q2 * rt2 + 3.0 * q3 * rt2 * q4) + C * R * q5) * ShR;
 
       if (lK == nullptr) { continue; }

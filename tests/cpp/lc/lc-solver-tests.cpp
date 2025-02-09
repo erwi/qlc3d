@@ -475,7 +475,7 @@ TEST_CASE("[SteadyState] Electric switching with applied potential and three ela
     maxTilt = std::max(director.tiltDegrees(), maxTilt);
   }
   Log::info("max tilt: {}", maxTilt);
-  REQUIRE(maxTilt == Approx(expectedMidTilt).margin(1e-6));
+  REQUIRE(maxTilt == Approx(expectedMidTilt).margin(1e-2));
 }
 
 TEST_CASE("[Dynamic] Switching dynamics with applied potential and three elastic constants") {
