@@ -19,6 +19,9 @@ void setupSingleBlock(const Geometry &geom,
     const idx npt = tets.getnNodes(); // 4 FOR LINEAR TETS
     vector<idx> eqn(npt,0);              // KEEPS EQU NODES FOR ELEMENT
 
+    vector<idx> tetNodes;
+    tetNodes.resize(npt, 0);
+
     for (idx it = 0 ; it < tets.getnElements() ; it++){
         // MAKE SURE ONLY ELEMENTS WITH MATERIAL NUMBER MatNum ARE USED
         // IF MatNum HAS BEEN DEFINED
@@ -28,13 +31,11 @@ void setupSingleBlock(const Geometry &geom,
             }
         }
 
-        //idx* nn = geom.t->getPtrToElement(it); // SHORTCUT TO ELEMENT NODES
-        unsigned int nn[4];
-        geom.getTetrahedra().loadNodes(it, nn);
+        geom.getTetrahedra().loadNodes(it, &tetNodes[0]);
 
         // CONVERT TO EQU NODES FOR THIS ELEMENT
         for (idx i = 0 ; i < npt ;++i){
-            eqn[i] = dofMap.getDof(nn[i]);
+            eqn[i] = dofMap.getDof(tetNodes[i]);
         }
 
         // ADD EQU NODES TO MATRIX

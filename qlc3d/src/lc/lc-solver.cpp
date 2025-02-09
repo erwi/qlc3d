@@ -59,39 +59,48 @@ bool ImplicitLCSolver::solveMatrixSystem(const SpaMtrix::IRCMatrix &Kmatrix, con
   return converged;
 }
 
-void ImplicitLCSolver::assembleLocalVolumeMatrix(const unsigned int indTet, double lK[20][20], double lL[20], unsigned int tetNodes[4], unsigned int *tetDofs,
-                                                 GaussianQuadratureTet<11> shapes, const SolutionVector &q,
-                                                 const SolutionVector &v, const Geometry &geom, const LCSolverParams &params) {
-  memset(lK, 0., 20 * 20 * sizeof(double));
-  memset(lL, 0., 20 * sizeof(double));
-  Vec3 tetCoords[4];
-  geom.getCoordinates().loadCoordinates(tetNodes, tetNodes + 4, tetCoords);
-  tetCoords[0] *= 1e-6;
-  tetCoords[1] *= 1e-6;
-  tetCoords[2] *= 1e-6;
-  tetCoords[3] *= 1e-6;
+void ImplicitLCSolver::assembleLocalVolumeMatrix(const unsigned int indTet,
+                                                 SpaMtrix::DenseMatrix &lK,
+                                                 std::vector<double> &lL,
+                                                 std::vector<unsigned int> &tetNodes,
+                                                 std::vector<unsigned int> &tetDofs,
+                                                 TetShapeFunction &shapes,
+                                                 const SolutionVector &q,
+                                                 const SolutionVector &v,
+                                                 const Geometry &geom,
+                                                 const LCSolverParams &params) {
+
+  const unsigned int len = lL.size();
+  lK.setAllValuesTo(0.0);
+  memset(&lL[0], 0., len * sizeof(double));
+
+  std::vector<Vec3> tetCoords(len, Vec3());
+  geom.getCoordinates().loadCoordinates(tetNodes.data(), tetNodes.data() + len, tetCoords.data());
+  for (auto &coord : tetCoords) {
+    coord *= 1e-6;
+  }
 
   const double tetDeterminant = geom.getTetrahedra().getDeterminant(indTet);
-  shapes.initialiseElement(tetCoords, tetDeterminant);
+  shapes.initialiseElement(tetCoords.data(), tetDeterminant);
 
-  qlc3d::TTensor qNodal[4];
-  q.loadQtensorValues(tetNodes, tetNodes + 4, qNodal);
+  std::vector<qlc3d::TTensor> qNodal(len, qlc3d::TTensor());
+  q.loadQtensorValues(tetNodes.data(), tetNodes.data() + len, qNodal.data());
 
-  double potential[4];
-  v.loadValues(tetNodes, tetNodes + 4, potential);
+  std::vector<double> potential(len, 0.);
+  v.loadValues(tetNodes.data(), tetNodes.data() + 4, potential.data());
 
   double q1x, q1y, q1z, q2x, q2y, q2z, q3x, q3y, q3z, q4x, q4y, q4z, q5x, q5y, q5z;
-  shapes.sampleAllX(qNodal, q1x, q2x, q3x, q4x, q5x);
-  shapes.sampleAllY(qNodal, q1y, q2y, q3y, q4y, q5y);
-  shapes.sampleAllZ(qNodal, q1z, q2z, q3z, q4z, q5z);
+  shapes.sampleQX(qNodal, q1x, q2x, q3x, q4x, q5x);
+  shapes.sampleQY(qNodal, q1y, q2y, q3y, q4y, q5y);
+  shapes.sampleQZ(qNodal, q1z, q2z, q3z, q4z, q5z);
 
   for (; shapes.hasNextPoint(); shapes.nextPoint()) {
     double q1, q2, q3, q4, q5;
     double Vx, Vy, Vz;
-    shapes.sampleAll(qNodal, q1, q2, q3, q4, q5);
-    Vx = shapes.sampleX(potential);
-    Vy = shapes.sampleY(potential);
-    Vz = shapes.sampleZ(potential);
+    shapes.sampleQ(qNodal.data(), q1, q2, q3, q4, q5);
+    Vx = shapes.sampleX(potential.data());
+    Vy = shapes.sampleY(potential.data());
+    Vz = shapes.sampleZ(potential.data());
 
     LcEnergyTerms::assembleThermotropic(lK, lL, shapes, tetDeterminant, q1, q2, q3, q4, q5, params.A, params.B, params.C);
 
@@ -213,24 +222,29 @@ void ImplicitLCSolver::addToGlobalMatrix(double* lK, double* lL, const DofMap &d
 }
 
 void ImplicitLCSolver::assembleMatrixSystemVolumeTerms(const SolutionVector &q, const SolutionVector &v, const Geometry &geom, const LCSolverParams &params) {
-  const int elementNodeCount = 4;
-
   const unsigned int elementCount = geom.getTetrahedra().getnElements();
   const Mesh &tets = geom.getTetrahedra();
-  double lK[elementNodeCount * 5][elementNodeCount * 5];
-  double lL[elementNodeCount * 5];
-  idx tetNodes[elementNodeCount];
-  idx tetDofs[elementNodeCount];
 
-  #pragma omp parallel for private(lK, lL, tetNodes, tetDofs) schedule(guided)
+  const ElementType elementType = tets.getElementType();
+  const unsigned int elementNodeCount = tets.getnNodes();
+
+  SpaMtrix::DenseMatrix lK(elementNodeCount * 5, elementNodeCount * 5);
+  std::vector<double> lL(elementNodeCount * 5, 0.0);
+  std::vector<unsigned int> tetNodes(elementNodeCount, 0);
+  std::vector<unsigned int> tetDofs(elementNodeCount, 0);
+
+  TetShapeFunction shapes(getElementOrder(elementType));
+  shapes.setIntegrationPoints(Keast4); // TODO: need higher order integration points
+
+  #pragma omp parallel for private(lL, tetNodes, tetDofs) firstprivate(shapes, lK) schedule(guided)
   for (unsigned int indTet = 0; indTet < elementCount; indTet++) {
     if (tets.getMaterialNumber(indTet) != MAT_DOMAIN1) {
       continue;
     }
-    tets.loadNodes(indTet, tetNodes);
-    q.loadEquNodes(tetNodes, tetNodes + elementNodeCount, tetDofs);
+    tets.loadNodes(indTet, &tetNodes[0]);
+    q.loadEquNodes(&tetNodes[0], &tetNodes[elementNodeCount], &tetDofs[0]);
 
-    GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
+    //GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
     assembleLocalVolumeMatrix(indTet, lK, lL, tetNodes, tetDofs, shapes, q, v, geom, params);
     addToGlobalMatrix(&lK[0][0], lL, q.getDofMap(), tetNodes, elementNodeCount);
   }

@@ -32,7 +32,8 @@ add_executable(cpp-test
         cpp/reader-tests.cpp
         cpp/geom/periodicity-tests.cpp
         cpp/dofmap-tests.cpp
-        cpp/init-geometry-tests.cpp)
+        cpp/init-geometry-tests.cpp
+        cpp/sparsematrix-tests.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 
