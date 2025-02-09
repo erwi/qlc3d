@@ -3,6 +3,7 @@
 #include <memory>
 #include <fe/gaussian-quadrature.h>
 #include <alignment.h>
+#include "spamtrix_densematrix.hpp"
 
 class LC;
 class Simu;
@@ -89,12 +90,12 @@ protected:
    * In the time-stepping solver, the results of this method are further augmented by terms required by the
    * implicit time-stepping algorithm.
    */
-  void assembleLocalVolumeMatrix(unsigned int indTet,
-                                 double lK[20][20],
-                                 double lL[20],
-                                 unsigned int tetNodes[4],
-                                 unsigned int tetDofs[4],
-                                 GaussianQuadratureTet<11> shapes,
+  void assembleLocalVolumeMatrix(const unsigned int indTet,
+                                 SpaMtrix::DenseMatrix &lK,
+                                 std::vector<double> &lL,
+                                 std::vector<unsigned int> &tetNodes,
+                                 std::vector<unsigned int> &tetDofs,
+                                 TetShapeFunction &shapes,
                                  const SolutionVector &q,
                                  const SolutionVector &v,
                                  const Geometry &geom,
