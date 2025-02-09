@@ -101,9 +101,9 @@ protected:
                                  const Geometry &geom,
                                  const LCSolverParams &params);
 
-  void assembleLocalWeakAnchoringMatrix(unsigned int indTri, double lK[15][15], double lL[15],
-                                        unsigned int triNodes[3], unsigned int triDofs[3],
-                                        GaussianQuadratureTri<7> shapes, const SolutionVector &q,
+  void assembleLocalWeakAnchoringMatrix(unsigned int indTri, SpaMtrix::DenseMatrix &lK, std::vector<double> &lL,
+                                        const std::vector<unsigned int> &triNodes, const std::vector<unsigned int> &triDofs,
+                                        TriShapeFunction &shapes, const SolutionVector &q,
                                         const Geometry &geom, const Surface &surface,
                                         double surfaceOrder);
 
@@ -115,8 +115,8 @@ protected:
    * @param elemNodes tet or triangle element nodes. Size is elemNodeCount.
    * @param elemNodeCount number of nodes in the current element
    */
-  void addToGlobalMatrix(double* lK, double* lL, const DofMap &dofMap,
-                         const unsigned int* elemNodes, int elemNodeCount);
+  void addToGlobalMatrix(const SpaMtrix::DenseMatrix &lK, const std::vector<double> &lL,
+                         const DofMap &dofMap, const std::vector<unsigned int> &elemNodes);
   void assembleMatrixSystemVolumeTerms(const SolutionVector &q, const SolutionVector &v, const Geometry &geom, const LCSolverParams &params);
   void assembleMatrixSystemWeakAnchoring(const SolutionVector &q, const Geometry &geom, const LCSolverParams &params);
   void assembleMatrixSystem(const SolutionVector &q, const SolutionVector &v, const Geometry &geom, const LCSolverParams &params);

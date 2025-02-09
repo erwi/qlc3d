@@ -176,6 +176,7 @@ void SolutionVector::loadQtensorValues(const idx *start, const idx *end, qlc3d::
 }
 
 void SolutionVector::loadEquNodes(const idx* start, const idx* end, idx* equNodesOut) const {
+  assert(end > start);
   for (idx* i = const_cast<idx *>(start); i != end; ++i) {
     equNodesOut[i - start] = getEquNode(*i);
   }
