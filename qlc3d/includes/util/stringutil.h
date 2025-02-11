@@ -11,5 +11,8 @@ public:
 
   /** Converts a string to lower case */
   [[nodiscard]] static std::string toLowerCase(const std::string in);
+
+  /** Splits a string into a vector of strings using a regular expression delimiter */
+  [[nodiscard]] static std::vector<std::string> split(const std::string &s, const std::string &regexDelimiter);
 };
 #endif //PROJECT_QLC3D_STRINGUTIL_H
