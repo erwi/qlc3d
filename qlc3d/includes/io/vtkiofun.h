@@ -46,7 +46,7 @@ namespace vtkIOFun {
      */
     class UnstructuredGridWriter {
         void writePoints(std::ostream &os, const Coordinates &coordinates) const;
-        void writeTetrahedra(std::ostream &os, const Mesh &tetrahedra, size_t numPoints) const;
+        void writeTetrahedra(std::ostream &os, const Mesh &tetrahedra) const;
         void writePotentials(std::ostream &os, size_t numPotentials, const SolutionVector &potentials) const;
         void writeLiquidCrystal(std::ostream &os, size_t numPoints, size_t numLcPoints, const SolutionVector &q) const;
 
@@ -58,6 +58,9 @@ namespace vtkIOFun {
                    const SolutionVector &potentials,
                    const SolutionVector &q
                    ) const;
+
+        static constexpr unsigned int CELL_TYPE_LINEAR_TETRAHEDRON = 10;
+        static constexpr unsigned int CELL_TYPE_QUADRATIC_TETRAHEDRON = 24;
     };
 }//end namespace
 

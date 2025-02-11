@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <solutionvector.h>
 #include <lc-representation.h>
+#include "util/exception.h"
 
 namespace vtkIOFun {
     const char* const ID_STRING = "# vtk DataFile Version 3.0";
@@ -113,7 +114,7 @@ namespace vtkIOFun {
         os << "DATASET UNSTRUCTURED_GRID\n";
 
         writePoints(os, coordinates);
-        writeTetrahedra(os, tetrahedra, coordinates.size());
+        writeTetrahedra(os, tetrahedra);
 
         writePotentials(os, coordinates.size(), potentials);
         writeLiquidCrystal(os, coordinates.size(), numLcPoints, q);
@@ -131,28 +132,31 @@ namespace vtkIOFun {
         }
     }
 
-    void UnstructuredGridWriter::writeTetrahedra(std::ostream &os, const Mesh &tetrahedra, size_t numPoints) const {
+    void UnstructuredGridWriter::writeTetrahedra(std::ostream &os, const Mesh &tetrahedra) const {
         size_t numTetrahedra = tetrahedra.getnElements();
         size_t numNodes = tetrahedra.getnNodes();
         size_t arrayLength = numTetrahedra * (numNodes + 1); // length of array required to store cell data
 
-        assert(numNodes == 4);
+        if (numNodes != 4 && numNodes != 10) {
+          RUNTIME_ERROR("Only linear and quadratic tetrahedra are supported, got element with " + std::to_string(numNodes) + " nodes.");
+        }
+
+        std::vector<unsigned int> nodes(numNodes, 0);
 
         os << "\n";
         os << "CELLS " << numTetrahedra << " " << arrayLength << "\n";
         for (unsigned int i = 0; i < numTetrahedra; i++) {
-            size_t n1 = tetrahedra.getNode(i, 0);
-            size_t n2 = tetrahedra.getNode(i, 1);
-            size_t n3 = tetrahedra.getNode(i, 2);
-            size_t n4 = tetrahedra.getNode(i, 3);
-
-            assert(n1 < numPoints && n2 < numPoints && n3 < numPoints && n4 < numPoints);
-
-            os << numNodes << " " << n1 << " " << n2 << " " << n3 << " " << n4 << "\n";
+          tetrahedra.loadNodes(i, nodes.data());
+          os << numNodes << " ";
+          for (unsigned int nodeInd = 0; nodeInd < numNodes - 1; nodeInd++) {
+            os << nodes[nodeInd] << " ";
+          }
+          os << nodes[numNodes - 1] << "\n";
         }
         os << "\n";
         os << "CELL_TYPES " << numTetrahedra << "\n";
-        const int CELL_TYPE_TETRAHEDRON = 10;
+        const int CELL_TYPE_TETRAHEDRON = tetrahedra.getElementType() == ElementType::LINEAR_TETRAHEDRON ?
+                CELL_TYPE_LINEAR_TETRAHEDRON : CELL_TYPE_QUADRATIC_TETRAHEDRON;
         for (unsigned int i = 0; i < numTetrahedra; i++) {
             os << CELL_TYPE_TETRAHEDRON << "\n";
         }
