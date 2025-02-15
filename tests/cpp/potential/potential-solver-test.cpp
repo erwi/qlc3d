@@ -110,6 +110,51 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
   }
 }
 
+TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries - quadratic elements") {
+  Geometry geom;
+  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
+  auto alignment = Alignment();
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+
+  prepareGeometry(geom, TestUtil::RESOURCE_PSEUDO_2D_NEUMANN_QUADRATIC_GMSH_MESH, electrodes, alignment);
+
+  SolutionVector v(geom.getnp(), 1);
+  v.initialisePotentialBoundaries(electrodes.getCurrentPotentials(0), geom);
+
+  // Set LC director to uniform 45 degree tilt angle
+  SolutionVector q(geom.getnpLC(), 5);
+  auto director = qlc3d::Director::fromDegreeAngles(45, 0, 0.5);
+  for (idx i = 0; i < geom.getnpLC(); i++) {
+    q.setValue(i, director);
+  }
+
+  auto lc = std::shared_ptr<LC>(LCBuilder()
+                                        .eps_par(1)
+                                        .eps_per(5)
+                                        .build());
+
+  auto solverSettings = std::make_shared<SolverSettings>();
+  solverSettings->setnThreads(10); // result should not depend on number of threads
+  PotentialSolver solver(electrodes, lc, solverSettings);
+
+  // ACT
+  solver.solvePotential(v, q, geom);
+
+  //vtkIOFun::UnstructuredGridWriter writer;
+  //writer.write("/home/eero/Desktop/pseudo2d.vtk", geom.getnpLC(), geom.getCoordinates(), geom.getTetrahedra(), v, q);
+
+  // ASSERT
+  // Check that potential values equal the z-coordinate value everywhere
+  for (unsigned int i = 0; i < geom.getnp(); i++) {
+    double z = geom.getCoordinates().getPoint(i).z();
+    double pot = v.getValue(i);
+    REQUIRE(pot == Approx(z).margin(1e-6));
+  }
+}
+
+
+
 TEST_CASE("Set uniform Electric field along z-axis") {
   // ARRANGE: minimal set-up required. Presence of electric field in electrodes is sufficient.
   Geometry geom;
