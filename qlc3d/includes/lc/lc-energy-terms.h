@@ -54,11 +54,11 @@ namespace LcEnergyTerms {
       for (int j = 0; j < 4; j++) {
         const double ShRC = shapes.N(i) * shapes.N(j) * mul;
         // Matrix diagonal terms 11, 22, 33, 44, 55
-        lK[i + 0][i + 0] += (A + D3 * B * q1 * rt6 + 2.0 * C * q1 * q1 + C * R) * ShRC;
-        lK[i + 4][i + 4] += (A - D3 * B * q1 * rt6 + 2.0 * C * q2 * q2 + C * R) * ShRC;
-        lK[i + 8][i + 8] += (A - B * q1 * rt6 * D3 + 2.0 * C * q3 * q3 + C * R) * ShRC;
-        lK[i + 12][i + 12] += (A + B * (q1 * rt6 - 3.0 * q2 * rt2) * D6 + 2.0 * C * q4 * q4 + C * R) * ShRC;
-        lK[i + 16][i + 16] += (A + B * (q1 * rt6 + 3.0 * q2 * rt2) * D6 + 2.0 * C * q5 * q5 + C * R) * ShRC;
+        lK[i + 0][j + 0] += (A + D3 * B * q1 * rt6 + 2.0 * C * q1 * q1 + C * R) * ShRC;
+        lK[i + 4][j + 4] += (A - D3 * B * q1 * rt6 + 2.0 * C * q2 * q2 + C * R) * ShRC;
+        lK[i + 8][j + 8] += (A - B * q1 * rt6 * D3 + 2.0 * C * q3 * q3 + C * R) * ShRC;
+        lK[i + 12][j + 12] += (A + B * (q1 * rt6 - 3.0 * q2 * rt2) * D6 + 2.0 * C * q4 * q4 + C * R) * ShRC;
+        lK[i + 16][j + 16] += (A + B * (q1 * rt6 + 3.0 * q2 * rt2) * D6 + 2.0 * C * q5 * q5 + C * R) * ShRC;
 
         // Matrix off-diagonal terms
         // 12

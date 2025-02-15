@@ -160,7 +160,7 @@ TEST_CASE("[SteadyState] Relax elastic distortions with strong anchoring") {
   // ACT
   // solve to tolerance of 1e-9
   int iter = 0;
-  for (iter = 0; iter < 11; iter++) {
+  for (iter = 0; iter < 3; iter++) {
     LCSolverResult solverResult = solver.solve(q, v, geom, simulationState);
 
 
@@ -215,7 +215,7 @@ TEST_CASE("[SteadyState] Relax elastic distortions with weak anchoring") {
   SolutionVector &v = *data.v;
   Geometry &geom = *data.geom;
 
-  steadyStateSolve(*lc, alignment, q, v, geom, 10);
+  steadyStateSolve(*lc, alignment, q, v, geom, 8);
 
   //writer.write("/home/eero/Desktop/after.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
   // ASSERT
@@ -270,7 +270,7 @@ TEST_CASE("TODO: not completed [SteadyState] Relax elastic distortions with weak
   Geometry &geom = *data.geom;
 
   // ACT
-  steadyStateSolve(*lc, alignment, q, v, geom, 21);
+  steadyStateSolve(*lc, alignment, q, v, geom, 17);
 
   auto topDir = findDirectorAtZ(geom, q, 1);
   Log::info("topDir={}, tilt={}, twist={}", topDir.vector(), topDir.tiltDegrees(), topDir.twistDegrees());
@@ -299,7 +299,7 @@ TEST_CASE("TODO: not completed [SteadyState] Relax elastic distortions with plan
   Geometry &geom = *data.geom;
 
   // ACT
-  steadyStateSolve(*lc, alignment, q, v, geom, 8);
+  steadyStateSolve(*lc, alignment, q, v, geom, 4);
 
   auto topDir = findDirectorAtZ(geom, q, 1);
   Log::info("topDir={}, tilt={}, twist={}", topDir.vector(), topDir.tiltDegrees(), topDir.twistDegrees());
@@ -453,7 +453,7 @@ TEST_CASE("[SteadyState] Electric switching with applied potential and three ela
   // ACT
   // solve to tolerance of 1e-9
   int iter = 0;
-  for (iter = 0; iter < 11; iter++) {
+  for (iter = 0; iter < 10; iter++) {
     auto solverResult = solver.solve(q, v, geom, simulationState);
     Log::info("iter={}, dq={}", iter, solverResult.dq);
 
