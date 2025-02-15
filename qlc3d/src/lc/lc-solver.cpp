@@ -274,7 +274,7 @@ void ImplicitLCSolver::assembleMatrixSystemVolumeTerms(const SolutionVector &q, 
   //shapes.setIntegrationPoints(Keast4); // TODO: need higher order integration points
   shapes.setIntegrationPoints(Keast8);
 
-  //#pragma omp parallel for firstprivate(shapes, lK, lL, tetNodes, tetDofs) schedule(guided)
+  #pragma omp parallel for firstprivate(shapes, lK, lL, tetNodes, tetDofs) schedule(guided)
   for (unsigned int indTet = 0; indTet < elementCount; indTet++) {
     if (tets.getMaterialNumber(indTet) != MAT_DOMAIN1) {
       continue;
@@ -412,64 +412,68 @@ bool isFixedNode(idx i) {
   return i == NOT_AN_INDEX;
 }
 
-void addToGlobalMassMatrix(const double lK[4][4], idx tetDofs[4], SpaMtrix::IRCMatrix &M) {
+void addToGlobalMassMatrix(const SpaMtrix::DenseMatrix &lK, const std::vector<unsigned int> &tetDofs, SpaMtrix::IRCMatrix &M) {
+  const unsigned int npt = lK.getNumRows();
   const unsigned int numFreeNodes = M.getNumRows() / 5;
 
-  for (idx i = 0; i < 4; i++) {
+  for (idx i = 0; i < npt; i++) {
     const idx iDof = tetDofs[i];
     if (isFixedNode(iDof)) { continue; } // this row should not even exist in the matrix
 
-    for (idx j = 0; j < 4; j++) {
+    for (idx j = 0; j < npt; j++) {
       const idx jDof = tetDofs[j];
       if (isFixedNode(jDof)) { continue; }
 
       for (int dof = 0; dof < 5; dof ++) {
-        M.sparse_add(iDof + dof * numFreeNodes, jDof + dof * numFreeNodes, lK[i][j]);
+        M.sparse_add(iDof + dof * numFreeNodes, jDof + dof * numFreeNodes, lK(i, j));
       }
     }
   }
 }
 
-void assembleElementMassMatrix(double lK[4][4], idx tetNodes[4], double tetDeterminant, const Geometry &geom, GaussianQuadratureTet<11> &shapes) {
-  assert(geom.getTetrahedra().getElementType() == ElementType::LINEAR_TETRAHEDRON); // only linear tetrahedra supported
-  memset(lK, 0, 4 * 4 * sizeof(double));
-  Vec3 coordinates[4];
-  geom.getCoordinates().loadCoordinates(tetNodes, tetNodes + 4, coordinates);
-  coordinates[0] *= 1e-6;
-  coordinates[1] *= 1e-6;
-  coordinates[2] *= 1e-6;
-  coordinates[3] *= 1e-6;
+void assembleElementMassMatrix(SpaMtrix::DenseMatrix &lK, const std::vector<idx> &tetNodes, double tetDeterminant, const Geometry &geom, TetShapeFunction &shapes) {
+  const idx npt = tetNodes.size();
+  assert(npt == shapes.getNumPointsPerElement());
+  assert(lK.getNumRows() == npt);
+  assert(lK.getNumCols() == npt);
 
-  shapes.initialiseElement(coordinates, tetDeterminant);
+  lK.setAllValuesTo(0.0);
+  std::vector<Vec3> coordinates(npt, Vec3());
+  geom.getCoordinates().loadCoordinates(tetNodes.data(), tetNodes.data() + npt, coordinates.data());
+  for (auto &coord : coordinates) {
+    coord *= 1e-6;
+  }
 
   for (; shapes.hasNextPoint(); shapes.nextPoint()) {
-    const double mul = shapes.weight() * tetDeterminant;
-    for (idx i = 0; i < 4; i++) { //woo
-      for (idx j = 0; j < 4; j++) {
-        lK[i][j] += mul * shapes.N(i) * shapes.N(j);
+    shapes.initialiseElement(coordinates.data(), tetDeterminant);
+    const double mul = shapes.getWeight() * tetDeterminant;
+    for (idx i = 0; i < npt; i++) {
+      for (idx j = 0; j < npt; j++) {
+        lK(i, j) += mul * shapes.N(i) * shapes.N(j);
       }
     }
   }
 }
 
 void assembleGlobalMassMatrix(SpaMtrix::IRCMatrix &M, const Geometry &geom, const SolutionVector &q) {
+  const unsigned int elementOrder = getElementOrder(geom.getTetrahedra().getElementType());
+  TetShapeFunction shapes = TetShapeFunction(elementOrder);
+  shapes.setIntegrationPoints(Keast4); // 4th order is enough for both linear and quadratic elements
 
-  assert(geom.getTetrahedra().getElementType() == ElementType::LINEAR_TETRAHEDRON); // only linear tetrahedra supported
-
-  GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
   const Mesh tetMesh = geom.getTetrahedra();
-  const idx tetCount = tetMesh.getnElements();
-  double lK[4][4];
-  idx tetNodes[4];
-  idx tetDofs[4];
+  const unsigned int tetCount = tetMesh.getnElements();
+  const unsigned int npt = tetMesh.getnNodes();
+  SpaMtrix::DenseMatrix lK(npt, npt);
+  std::vector<idx> tetNodes(npt, 0);
+  std::vector<idx> tetDofs(npt, 0);
 
   for (idx tetIndex = 0; tetIndex < tetCount; tetIndex++) {
     if (tetMesh.getMaterialNumber(tetIndex) != MAT_DOMAIN1) {
       continue;
     }
 
-    tetMesh.loadNodes(tetIndex, tetNodes);
-    q.loadEquNodes(tetNodes, tetNodes + 4, tetDofs);
+    tetMesh.loadNodes(tetIndex, tetNodes.data());
+    q.loadEquNodes(tetNodes.data(), tetNodes.data() + npt, tetDofs.data());
 
     assembleElementMassMatrix(lK, tetNodes, tetMesh.getDeterminant(tetIndex), geom, shapes);
 

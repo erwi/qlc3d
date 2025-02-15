@@ -559,7 +559,9 @@ TEST_CASE("[SteadyState] Electric switching with applied potential and three ela
   REQUIRE(maxTilt == Approx(expectedMidTilt).margin(1e-2));
 }
 
-TEST_CASE("[Dynamic] Switching dynamics with applied potential and three elastic constants") {
+
+
+void switchingDynamicsTest(const std::string meshName, unsigned int expectedIterations) {
   // ARRANGE
   // Solve for steady state switching with uniform e-field. The expected mid-plane tilt angle is
   // assumed to be correct, determined at a time when the "examples/steady-state-switching-1d" example
@@ -587,7 +589,7 @@ TEST_CASE("[Dynamic] Switching dynamics with applied potential and three elastic
   alignment.addSurface(Surface::ofStrongAnchoring(1, bottomTilt, twistDegrees));
   alignment.addSurface(Surface::ofStrongAnchoring(2, bottomTilt, twistDegrees));
 
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment);
+  prepareGeometry(geom, meshName, electrodes, alignment); //TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment);
 
   const double topPotential = 2;
   SolutionVector v(geom.getnp(), 1);
@@ -628,8 +630,13 @@ TEST_CASE("[Dynamic] Switching dynamics with applied potential and three elastic
   // is observation and may change with changes to the solver.
   REQUIRE(solverResult.solverType == LCSolverType::TIME_STEPPING);
   REQUIRE(solverResult.converged == true);
-  REQUIRE(solverResult.iterations <= 8);
+  REQUIRE(solverResult.iterations == expectedIterations);
   REQUIRE(solverResult.maxIterationsReached == false);
+}
+
+TEST_CASE("[Dynamic] Switching dynamics with applied potential and three elastic constants") {
+  switchingDynamicsTest(TestUtil::RESOURCE_THIN_GID_MESH, 7);
+  switchingDynamicsTest(TestUtil::RESOURCE_THIN_QUADRATIC_GMSH_MESH, 6);
 }
 
 TEST_CASE("[Dynamic] Abort Newton iterations if convergence is not reached") {
