@@ -120,7 +120,8 @@ namespace LcEnergyTerms {
                                 const double &q4x, const double &q4y, const double &q4z,
                                 const double &q5x, const double &q5y, const double &q5z,
                                 const double &L1) {
-    const unsigned int npe = lL.size() / 5; // nodes per element
+    const unsigned int npe = shapes.getNumPointsPerElement();
+    assert(5 * npe == lL.size());
     const double mul = shapes.getWeight() * tetDeterminant;
 
     const unsigned int x0 = 0 * npe;

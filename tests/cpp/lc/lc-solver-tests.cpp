@@ -193,8 +193,7 @@ TEST_CASE("[SteadyState] Relax elastic distortions with strong anchoring") {
   }
 }
 
-TEST_CASE("[SteadyState] Relax elastic distortion with strong anchoring - quadratic") {
-  return;
+TEST_CASE("[SteadyState] Relax elastic distortion with strong anchoring - quadratic elements") {
   // ARRANGE
   // Set up LC with uniform distortion with -45 degrees tilt at bottom and +45 degrees tilt at top
   // Apply no electric field. Anchoring is trong on both top and bottom surfaces.
@@ -240,7 +239,7 @@ TEST_CASE("[SteadyState] Relax elastic distortion with strong anchoring - quadra
   // ACT
   // solve to tolerance of 1e-9
   int iter = 0;
-  for (iter = 0; iter < 11; iter++) {
+  for (iter = 0; iter < 3; iter++) {
     LCSolverResult solverResult = solver.solve(q, v, geom, simulationState);
 
 
@@ -269,10 +268,8 @@ TEST_CASE("[SteadyState] Relax elastic distortion with strong anchoring - quadra
     auto expectedDirector = qlc3d::Director::fromDegreeAngles(expectedTiltDegrees, twistDegrees, lc->S0());
     double dot = expectedDirector.vector().dot(q.getDirector(i).vector());
 
-    // REQUIRE(std::abs(dot) == Approx(1).margin(1e-6));
+    REQUIRE(std::abs(dot) == Approx(1).margin(1e-6));
   }
-
-
 }
 
 TEST_CASE("[SteadyState] Relax elastic distortions with weak anchoring") {

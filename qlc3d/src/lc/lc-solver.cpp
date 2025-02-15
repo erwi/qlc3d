@@ -70,7 +70,7 @@ void ImplicitLCSolver::assembleLocalVolumeMatrix(const unsigned int indTet,
                                                  const Geometry &geom,
                                                  const LCSolverParams &params) {
 
-  const unsigned int npe = lL.size() / 5; // nodes per element
+  const unsigned int npe = shapes.getNumPointsPerElement();
   lK.setAllValuesTo(0.0);
   memset(&lL[0], 0., lL.size() * sizeof(double));
 
@@ -81,6 +81,35 @@ void ImplicitLCSolver::assembleLocalVolumeMatrix(const unsigned int indTet,
   }
 
   const double tetDeterminant = geom.getTetrahedra().getDeterminant(indTet);
+
+#ifndef NDEBUG
+  if (npe == 10) {
+    // sanity checks
+    // calculate the volume enclosed by the tetrahedron defined by the first 4 nodes in tetCoords
+    auto vec1 = tetCoords[3] - tetCoords[0];
+    auto vec2 = tetCoords[2] - tetCoords[0];
+    auto vec3 = tetCoords[1] - tetCoords[0];
+    const double volume = std::abs(vec1.dot(vec2.cross(vec3)));
+
+    double diff = std::abs(tetDeterminant - volume);
+    double eps = 1e-12;
+    assert(diff < eps);
+
+    auto p5 = 0.5 * (tetCoords[0] + tetCoords[1]);
+    auto p6 = 0.5 * (tetCoords[1] + tetCoords[2]);
+    auto p7 = 0.5 * (tetCoords[0] + tetCoords[2]);
+    auto p8 = 0.5 * (tetCoords[0] + tetCoords[3]);
+    auto p9 = 0.5 * (tetCoords[1] + tetCoords[3]);
+    auto p10 = 0.5 * (tetCoords[2] + tetCoords[3]);
+
+    assert(p5.equals(tetCoords[4], eps));
+    assert(p6.equals(tetCoords[5], eps));
+    assert(p7.equals(tetCoords[6], eps));
+    assert(p8.equals(tetCoords[7], eps));
+    assert(p9.equals(tetCoords[8], eps));
+    assert(p10.equals(tetCoords[9], eps));
+  }
+#endif
 
   std::vector<qlc3d::TTensor> qNodal(npe, qlc3d::TTensor());
   q.loadQtensorValues(tetNodes.data(), tetNodes.data() + npe, qNodal.data());
@@ -93,7 +122,7 @@ void ImplicitLCSolver::assembleLocalVolumeMatrix(const unsigned int indTet,
     double q1, q2, q3, q4, q5;
     double Vx, Vy, Vz;
     double q1x, q1y, q1z, q2x, q2y, q2z, q3x, q3y, q3z, q4x, q4y, q4z, q5x, q5y, q5z;
-    shapes.sampleQ(qNodal.data(), q1, q2, q3, q4, q5);
+    shapes.sampleQ(qNodal, q1, q2, q3, q4, q5);
     shapes.sampleQX(qNodal, q1x, q2x, q3x, q4x, q5x);
     shapes.sampleQY(qNodal, q1y, q2y, q3y, q4y, q5y);
     shapes.sampleQZ(qNodal, q1z, q2z, q3z, q4z, q5z);
@@ -242,9 +271,10 @@ void ImplicitLCSolver::assembleMatrixSystemVolumeTerms(const SolutionVector &q, 
   std::vector<unsigned int> tetDofs(elementNodeCount, 0);
 
   TetShapeFunction shapes(getElementOrder(elementType));
-  shapes.setIntegrationPoints(Keast4); // TODO: need higher order integration points
+  //shapes.setIntegrationPoints(Keast4); // TODO: need higher order integration points
+  shapes.setIntegrationPoints(Keast8);
 
-  #pragma omp parallel for firstprivate(shapes, lK, lL, tetNodes, tetDofs) schedule(guided)
+  //#pragma omp parallel for firstprivate(shapes, lK, lL, tetNodes, tetDofs) schedule(guided)
   for (unsigned int indTet = 0; indTet < elementCount; indTet++) {
     if (tets.getMaterialNumber(indTet) != MAT_DOMAIN1) {
       continue;
@@ -401,6 +431,7 @@ void addToGlobalMassMatrix(const double lK[4][4], idx tetDofs[4], SpaMtrix::IRCM
 }
 
 void assembleElementMassMatrix(double lK[4][4], idx tetNodes[4], double tetDeterminant, const Geometry &geom, GaussianQuadratureTet<11> &shapes) {
+  assert(geom.getTetrahedra().getElementType() == ElementType::LINEAR_TETRAHEDRON); // only linear tetrahedra supported
   memset(lK, 0, 4 * 4 * sizeof(double));
   Vec3 coordinates[4];
   geom.getCoordinates().loadCoordinates(tetNodes, tetNodes + 4, coordinates);
@@ -413,7 +444,7 @@ void assembleElementMassMatrix(double lK[4][4], idx tetNodes[4], double tetDeter
 
   for (; shapes.hasNextPoint(); shapes.nextPoint()) {
     const double mul = shapes.weight() * tetDeterminant;
-    for (idx i = 0; i < 4; i++) {
+    for (idx i = 0; i < 4; i++) { //woo
       for (idx j = 0; j < 4; j++) {
         lK[i][j] += mul * shapes.N(i) * shapes.N(j);
       }
@@ -422,6 +453,9 @@ void assembleElementMassMatrix(double lK[4][4], idx tetNodes[4], double tetDeter
 }
 
 void assembleGlobalMassMatrix(SpaMtrix::IRCMatrix &M, const Geometry &geom, const SolutionVector &q) {
+
+  assert(geom.getTetrahedra().getElementType() == ElementType::LINEAR_TETRAHEDRON); // only linear tetrahedra supported
+
   GaussianQuadratureTet<11> shapes = gaussQuadratureTet4thOrder();
   const Mesh tetMesh = geom.getTetrahedra();
   const idx tetCount = tetMesh.getnElements();
