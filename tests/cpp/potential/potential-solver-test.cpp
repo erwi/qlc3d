@@ -153,8 +153,6 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries - quadratic elements") {
   }
 }
 
-
-
 TEST_CASE("Set uniform Electric field along z-axis") {
   // ARRANGE: minimal set-up required. Presence of electric field in electrodes is sufficient.
   Geometry geom;
@@ -330,11 +328,6 @@ TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries u
     }
   }
 }
-
-
-
-
-
 
 TEST_CASE("Solve potential - cube with quadratic elements and periodic boundaries") {
   //return;
