@@ -56,7 +56,7 @@ public:
 
 
   template<typename Src>
-  void sampleQ(const Src* source, double &q1, double &q2, double &q3, double &q4, double &q5) const {
+  void sampleQ(const Src &source, double &q1, double &q2, double &q3, double &q4, double &q5) const {
     q1 = q2 = q3 = q4 = q5 = 0;
     for (unsigned int i = 0; i < nodesPerElement; i++) {
       q1 += source[i][0] * N(i);

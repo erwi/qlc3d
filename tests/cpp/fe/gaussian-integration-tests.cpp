@@ -254,14 +254,15 @@ TEST_CASE("New tet 3D shape function - quadratic tet") {
   const int elementOrder = 2;
   TetShapeFunction shape(elementOrder);
   shape.setIntegrationPoints(Keast8);
+  //shape.setIntegrationPoints(Keast4);
 
   Geometry geom;
   prepareGeometryWithDefaultBoundaries(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH);
   auto tets = geom.getTetrahedra();
   auto coords = geom.getCoordinates();
-  idx elemNodes[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-  Vec3 elemCoords[10] = {Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0),
-                         Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(0, 0, 0)};
+  const unsigned int npe = getNodesPerElement(tets.getElementType());
+  std::vector<unsigned int> elemNodes(npe, 0);
+  std::vector<Vec3> elemCoords(npe, Vec3());
 
   AABox bbox = coords.findBoundingBox();
   REQUIRE(bbox.getXMin() == Approx(0).margin(1e-12));
@@ -287,16 +288,16 @@ TEST_CASE("New tet 3D shape function - quadratic tet") {
     double totalVolume = 0;
 
     for (int iTet = 0; iTet < tets.getnElements(); iTet++) {
-      tets.loadNodes(iTet, elemNodes);
-      coords.loadCoordinates(&elemNodes[0], &elemNodes[tets.getnNodes()], elemCoords);
+      tets.loadNodes(iTet, elemNodes.data());
+      coords.loadCoordinates(elemNodes.data(), elemNodes.data() + npe, elemCoords.data());
 
       double determinant = tets.getDeterminant(iTet);
-      shape.initialiseElement(elemCoords, determinant);
+
 
       for (; shape.hasNextPoint(); shape.nextPoint()) {
-
+        shape.initialiseElement(elemCoords.data(), determinant);
         double mul = shape.getWeight() * determinant;
-        for (int i = 0; i < tets.getnNodes(); i++) {
+        for (int i = 0; i < npe; i++) {
           totalVolume += mul * shape.N(i);
         }
       }
@@ -310,9 +311,9 @@ TEST_CASE("New tet 3D shape function - quadratic tet") {
 
   SECTION("Evaluate gradients") {
     for (int iTet = 0; iTet < tets.getnElements(); iTet++) {
-      tets.loadNodes(iTet, elemNodes);
+      tets.loadNodes(iTet, elemNodes.data());
 
-      coords.loadCoordinates(&elemNodes[0], &elemNodes[10], elemCoords);
+      coords.loadCoordinates(elemNodes.data(), elemNodes.data() + npe, elemCoords.data());
       double x[] = {elemCoords[0].x(), elemCoords[1].x(), elemCoords[2].x(), elemCoords[3].x(), elemCoords[4].x(), elemCoords[5].x(), elemCoords[6].x(), elemCoords[7].x(), elemCoords[8].x(), elemCoords[9].x()};
       double y[] = {elemCoords[0].y(), elemCoords[1].y(), elemCoords[2].y(), elemCoords[3].y(), elemCoords[4].y(), elemCoords[5].y(), elemCoords[6].y(), elemCoords[7].y(), elemCoords[8].y(), elemCoords[9].y()};
       double z[] = {elemCoords[0].z(), elemCoords[1].z(), elemCoords[2].z(), elemCoords[3].z(), elemCoords[4].z(), elemCoords[5].z(), elemCoords[6].z(), elemCoords[7].z(), elemCoords[8].z(), elemCoords[9].z()};
@@ -320,7 +321,7 @@ TEST_CASE("New tet 3D shape function - quadratic tet") {
       double determinant = tets.getDeterminant(iTet) * 1e18;
 
       for (; shape.hasNextPoint(); shape.nextPoint()) {
-        shape.initialiseElement(elemCoords, determinant); // TODO: call this inside nextPoint()?
+        shape.initialiseElement(elemCoords.data(), determinant); // TODO: call this inside nextPoint()?
         double xx = shape.sampleX(x);
         double xy = shape.sampleY(x);
         double xz = shape.sampleZ(x);
@@ -360,17 +361,22 @@ TEST_CASE("New tet 3D shape function - quadratic tet") {
     int n = 4;
     double expected = 1. / (n + 1);
     double totalIntegral = 0;
+    std::vector<double> nodalX(shape.getNumPointsPerElement(), 0);
     for (int iTet = 0; iTet < tets.getnElements(); iTet++) {
-      tets.loadNodes(iTet, elemNodes);
-      coords.loadCoordinates(&elemNodes[0], &elemNodes[10], elemCoords);
-      double nodalX[10] = {elemCoords[0].x(), elemCoords[1].x(), elemCoords[2].x(), elemCoords[3].x(), elemCoords[4].x(), elemCoords[5].x(), elemCoords[6].x(), elemCoords[7].x(), elemCoords[8].x(), elemCoords[9].x()};
+      tets.loadNodes(iTet, elemNodes.data());
+      coords.loadCoordinates(elemNodes.data(), elemNodes.data() + npe, elemCoords.data());
+
+      // value inside element equals the nodal x-coordinate
+      for (int i = 0; i < shape.getNumPointsPerElement(); i++) {
+        nodalX[i] = elemCoords[i].x();
+      }
 
       double determinant = tets.getDeterminant(iTet) * 1e18;
-      shape.initialiseElement(elemCoords, determinant);
+      shape.initialiseElement(elemCoords.data(), determinant);
 
       for (; shape.hasNextPoint(); shape.nextPoint()) {
         double mul = shape.getWeight() * determinant;
-        double x = shape.sample(nodalX);
+        double x = shape.sample(nodalX.data());
 
         double fx = 1;
         for (int order = 0; order < n; order++) {
@@ -381,7 +387,6 @@ TEST_CASE("New tet 3D shape function - quadratic tet") {
       }
     }
 
-    std::cout << "order = " << n << " totalIntegral: " << totalIntegral << std::endl;
     REQUIRE(totalIntegral == Approx(expected).margin(1e-12));
   }
 
