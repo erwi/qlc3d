@@ -23,9 +23,9 @@ public:
 };
 
 class RawMeshData {
-
+  unsigned int elementOrder_; // 1 for linear elements, 2 for quadratic elements
 public:
-  const unsigned int elementOrder; // 1 for linear elements, 2 for quadratic elements
+
   std::vector<Vec3> points;
   std::vector<idx> tetNodes;
   std::vector<idx> tetMaterials;
@@ -36,6 +36,9 @@ public:
               std::vector<Vec3> points,
               std::vector<idx> tetNodes, std::vector<idx> tetMaterials,
               std::vector<idx> triNodes, std::vector<idx> triMaterials);
+
+  void setElementOrder(unsigned int elementOrder) { elementOrder_ = elementOrder; }
+  [[nodiscard]] unsigned int getElementOrder() const { return elementOrder_; };
 };
 
 /**

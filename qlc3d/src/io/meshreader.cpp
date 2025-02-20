@@ -11,7 +11,7 @@ RawMeshData::RawMeshData(unsigned int elementOrder,
                          std::vector<Vec3> points,
                          std::vector<idx> tetNodes, std::vector<idx> tetMaterials,
                          std::vector<idx> triNodes, std::vector<idx> triMaterials)
-  : elementOrder(elementOrder),
+  : elementOrder_(elementOrder),
   points(std::move(points)),
   tetNodes(std::move(tetNodes)), tetMaterials(std::move(tetMaterials)),
   triNodes(std::move(triNodes)), triMaterials(std::move(triMaterials)) { }
