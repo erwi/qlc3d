@@ -14,19 +14,6 @@ namespace LcEnergyTerms {
   const double rt6 = std::sqrt(6.0);
   const double eps0 = 8.854187817e-12;
 
-  /*
-  inline void assembleMassMatrix(double M[4][4], const GaussianQuadratureTet<11> &shapes, const double &tetDeterminant,
-                                 const double multiplier = 1.0) {
-    const double mul = shapes.weight() * tetDeterminant;
-    for (int i = 0; i < 4; i++) {
-      for (int j = 0; j < 4; j++) {
-        const double m = mul * shapes.N(i) * shapes.N(j) * multiplier;
-        M[i][j] += m;
-      }
-    }
-  }
-   */
-
   inline void assembleThermotropic(SpaMtrix::DenseMatrix *lK,
                                    std::vector<double> &lL,
                                    const TetShapeFunction &shapes,
@@ -171,8 +158,6 @@ namespace LcEnergyTerms {
                                   const double &q5x, const double &q5y, const double &q5z,
                                   const double &L4) {
     const unsigned int npe = shapes.getNumPointsPerElement();
-    const unsigned int len = lL.size();
-    assert(5 * npe == len);
     const double mul = shapes.getWeight() * tetDeterminant;
     const unsigned int x0 = 0 * npe;
     const unsigned int x1 = 1 * npe;
@@ -240,7 +225,6 @@ namespace LcEnergyTerms {
                                             const double &L2, const double &L3, const double &L6
   ) {
     const unsigned int npe = shapes.getNumPointsPerElement();
-    assert(lL.size() == 5 * npe);
     const double rt23 = rt2 * rt3;
     const double mul = shapes.getWeight() * tetDeterminant;
     const unsigned int x0 = 0 * npe;
@@ -483,7 +467,6 @@ namespace LcEnergyTerms {
                                const Vec3 &v1, const Vec3 &v2,
                                const double &W, const double &K1, const double &K2, const double &surfaceOrder) {
     const unsigned int npe = shapes.getNumPointsPerElement();
-    assert(lL.size() == npe * 5);
     // orientation independent terms
     const double A = (K1 + K2) / (surfaceOrder * 6);
     const double Tii = 2 * W * A;

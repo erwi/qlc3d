@@ -101,8 +101,9 @@ protected:
                                  const Geometry &geom,
                                  const LCSolverParams &params);
 
-  void assembleLocalWeakAnchoringMatrix(unsigned int indTri, SpaMtrix::DenseMatrix &lK, std::vector<double> &lL,
-                                        const std::vector<unsigned int> &triNodes, const std::vector<unsigned int> &triDofs,
+  void assembleLocalWeakAnchoringMatrix(unsigned int indTri, SpaMtrix::DenseMatrix &lK,
+                                        std::vector<double> &lL,
+                                        const std::vector<unsigned int> &triNodes,
                                         TriShapeFunction &shapes, const SolutionVector &q,
                                         const Geometry &geom, const Surface &surface,
                                         double surfaceOrder);
@@ -133,7 +134,7 @@ protected:
   const double L1, L2, L3, L4, L6;
   const double deleps;
 
-  void initialiseMatrixSystem(const SolutionVector &q, const Geometry &geom, double dt);
+  void initialiseMatrixSystem(const SolutionVector &q, const Geometry &geom);
 
 
 public:
