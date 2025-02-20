@@ -42,7 +42,8 @@ add_executable(cpp-test
         cpp/geom/periodicity-tests.cpp
         cpp/dofmap-tests.cpp
         cpp/init-geometry-tests.cpp
-        cpp/sparsematrix-tests.cpp)
+        cpp/sparsematrix-tests.cpp
+        cpp/geom/element-split-tests.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 

@@ -7,6 +7,7 @@
 #include <resultio.h>
 #include <util/exception.h>
 #include <lc-representation.h>
+#include <geom/element-split.h>
 
 namespace fs = std::filesystem;
 
@@ -37,27 +38,94 @@ void LcViewResultFormatWriter::writeMeshIfRequired(const Geometry &geom, const S
   if (isFirstTime || isNewMesh) {
     writtenMeshPath_ = outputDirectory / numberedMeshName;
     Log::info("Writing mesh file {}", writtenMeshPath_.string());
-    writeMeshFile(geom.getCoordinates(), geom.getTetrahedra(), geom.getTriangles(), geom.getnp(), writtenMeshPath_);
+    writeMeshFile(geom.getCoordinates(), geom.getTetrahedra(), geom.getTriangles(), writtenMeshPath_);
     lastMeshNumber_ = simulationState.meshNumber();
   }
 }
 
-void LcViewResultFormatWriter::writeMeshFile(const Coordinates &coordinates, const Mesh &t, const Mesh &e, idx np,
+
+void writeLinearTetrahedra(FILE *fid, const Mesh &t) {
+  assert(t.getElementType() == ElementType::LINEAR_TETRAHEDRON);
+  for (unsigned i = 0 ; i < t.getnElements() ; i++) {
+    fprintf(fid, "%i\t%i\t%i\t%i\t%i\t%i\n",
+            i + 1, t.getNode(i, 0) + 1, t.getNode(i, 1) + 1, t.getNode(i, 2) + 1, t.getNode(i, 3) + 1, t.getMaterialNumber(i));
+  }
+}
+
+void writeQuadraticTetrahedra(FILE *fid, const Mesh &t) {
+  assert(t.getElementType() == ElementType::QUADRATIC_TETRAHEDRON);
+
+  std::vector<unsigned int> tetNodes(t.getnNodes());
+  for (unsigned i = 0 ; i < t.getnElements() ; i++) {
+    t.loadNodes(i, tetNodes.data());
+    // Split the quadratic element into 8 linear elements
+    // This is essentially same as mesh refinement using red-green element splitting, but here only the red tet
+    // is considered
+    std::vector<std::vector<unsigned int>> splitTets = splitQuadraticTetrahedronToLinear(tetNodes);
+
+    unsigned int material = t.getMaterialNumber(i);
+
+    for (unsigned j = 0 ; j < splitTets.size() ; j++) {
+      fprintf(fid, "%i\t%i\t%i\t%i\t%i\t%i\n", 8 * i + j + 1,
+              splitTets[j][0] + 1, splitTets[j][1] + 1, splitTets[j][2] + 1, splitTets[j][3] + 1, material);
+    }
+  }
+}
+
+void writeLinearTriangles(FILE *fid, const Mesh &e) {
+  assert(e.getElementType() == ElementType::LINEAR_TRIANGLE);
+  for (unsigned i = 0; i < e.getnElements(); i++) {
+    fprintf(fid, "%i\t%i\t%i\t%i\t%i\n", i + 1, e.getNode(i, 0) + 1, e.getNode(i, 1) + 1, e.getNode(i, 2) + 1, e.getMaterialNumber(i));
+  }
+}
+
+void writeQuadraticTriangles(FILE *fid, const Mesh &e) {
+  assert(e.getElementType() == ElementType::QUADRATIC_TRIANGLE);
+  std::vector<unsigned int> triNodes(e.getnNodes());
+  for (unsigned i = 0 ; i < e.getnElements() ; i++) {
+    e.loadNodes(i, triNodes.data());
+    auto splitTris = splitQuadraticTriangleToLinear(triNodes);
+
+    unsigned int material = e.getMaterialNumber(i);
+
+    for (unsigned j = 0 ; j < splitTris.size() ; j++) {
+      fprintf(fid, "%i\t%i\t%i\t%i\t%i\n", 4 * i + j + 1, splitTris[j][0] + 1, splitTris[j][1] + 1, splitTris[j][2] + 1, material);
+    }
+  }
+}
+
+void LcViewResultFormatWriter::writeMeshFile(const Coordinates &coordinates, const Mesh &t, const Mesh &e,
                                              const std::filesystem::path &fileName) {
-  idx i;
+  ElementType elementType = t.getElementType();
   FILE *fid = fopen(fileName.string().c_str(), "w");
+  unsigned int np = coordinates.size();
   if (fid != NULL) {
     fputs("MESH    dimension 3 ElemType Tetrahedra  Nnode 4\nCoordinates\n", fid);
-    for (i = 0; i < np; i++) {
+    for (unsigned int i = 0; i < np; i++) {
       auto &p = coordinates.getPoint(i);
       fprintf(fid, "%i\t%f\t%f\t%f\n", i + 1, p.x(), p.y(), p.z());
     }
     fprintf(fid, "end coordinates\n\nElements\n");
-    for (i = 0 ; i < t.getnElements() ; i++)
-      fprintf(fid, "%i\t%i\t%i\t%i\t%i\t%i\n", i + 1, t.getNode(i, 0) + 1, t.getNode(i, 1) + 1, t.getNode(i, 2) + 1, t.getNode(i, 3) + 1, t.getMaterialNumber(i));
+
+    // Write tetrahedra
+    if (elementType == ElementType::LINEAR_TETRAHEDRON) {
+      writeLinearTetrahedra(fid, t);
+    } else if (elementType == ElementType::QUADRATIC_TETRAHEDRON) {
+      writeQuadraticTetrahedra(fid, t);
+    } else {
+      RUNTIME_ERROR("Only linear and quadratic tetrahedra are supported, got element with " + std::to_string(t.getnNodes()) + " nodes.");
+    }
     fprintf(fid, "end elements\nMESH    dimension 3 ElemType Triangle  Nnode 3\nCoordinates\nend coordinates\n\nElements\n");
-    for (i = 0 ; i < e.getnElements() ; i++)
-      fprintf(fid, "%i\t%i\t%i\t%i\t%i\n", i + 1, e.getNode(i, 0) + 1, e.getNode(i, 1) + 1, e.getNode(i, 2) + 1, e.getMaterialNumber(i));
+
+    // Write triangles
+    if (elementType == ElementType::LINEAR_TETRAHEDRON) {
+      writeLinearTriangles(fid, e);
+    } else if (elementType == ElementType::QUADRATIC_TETRAHEDRON) {
+      writeQuadraticTriangles(fid, e);
+    } else {
+      RUNTIME_ERROR("Only linear and quadratic tetrahedra are supported, got element with " + std::to_string(t.getnNodes()) + " nodes.");
+    }
+
     fprintf(fid, "end elements\n");
     fclose(fid);
   } else {
@@ -151,19 +219,16 @@ void LcViewTxtResultFormatWriter::writeResult(const Geometry &geom, const Simula
     RUNTIME_ERROR("Simulation state is not RUNNING or COMPLETED");
   }
 
-  writeTextResultFile(geom.getCoordinates(),
-                      &geom.getTetrahedra(),
-                      &geom.getTriangles(),
-                      *potential,
+  writeTextResultFile(*potential,
                       *directors,
                       simulationState.currentTime().getTime(),
                       writtenMeshPath_.filename().string(),
                       filePath);
 }
 
-void LcViewTxtResultFormatWriter::writeTextResultFile(const Coordinates& coordinates,
-                                                      const Mesh *t,
-                                                      const Mesh *e,
+void LcViewTxtResultFormatWriter::writeTextResultFile(//const Coordinates& coordinates,
+                                                      //const Mesh *t,
+                                                      //const Mesh *e,
                                                       const SolutionVector &v,
                                                       const std::vector<qlc3d::Director> &dir,
                                                       double currentTime,

@@ -16,7 +16,7 @@ namespace fs = std::filesystem;
 const unsigned int LC_MATERIAL = 4;
 const unsigned int PERIODIC_BC = 3;
 
-std::shared_ptr<Geometry> createSingleTetGeometry() {
+std::shared_ptr<Geometry> createSingleLinearTetGeometry() {
   std::shared_ptr<Geometry> geom = std::make_shared<Geometry>();
   int np = 4;
   std::vector<Vec3> points = {Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, 1, 0), Vec3(0, 0, 1)};
@@ -34,10 +34,31 @@ std::shared_ptr<Geometry> createSingleTetGeometry() {
   return geom;
 }
 
+std::shared_ptr<Geometry> createSingleQuadraticTetGeometry() {
+  std::shared_ptr<Geometry> geom = std::make_shared<Geometry>();
+  int np = 10;
+  std::vector<Vec3> points = {
+      Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, 1, 0), Vec3(0, 0, 1),
+      Vec3(0.5, 0, 0), Vec3(0.5, 0.5, 0), Vec3(0, 0.5, 0), Vec3(0, 0, 0.5),
+      Vec3(0.5, 0, 0.5), Vec3(0, 0.5, 0.5)};
+  geom->setCoordinates(std::make_shared<Coordinates>(std::move(points)));
+
+  std::shared_ptr<Mesh> tetrahedra = Mesh::tetMesh();
+  tetrahedra->setElementData(ElementType::QUADRATIC_TETRAHEDRON, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, {LC_MATERIAL});
+  geom->setTetrahedra(tetrahedra);
+
+  std::shared_ptr<Mesh> triangles = Mesh::triangleMesh();
+  triangles->setElementData(ElementType::QUADRATIC_TRIANGLE, {0, 1, 2, 4, 5, 6}, {PERIODIC_BC});
+  geom->setTriangles(triangles);
+
+  return geom;
+}
+
+
 TEST_CASE("Write binary LCView result file") {
   const std::string meshName = "path/to/mesh.msh";
   const double S0 = 0.5;
-  const auto geom = createSingleTetGeometry();
+  const auto geom = createSingleLinearTetGeometry();
 
   const SolutionVector potential(geom->getnpLC(), 1);
   const SolutionVector qTensor(geom->getnpLC(), 5);
@@ -98,7 +119,7 @@ TEST_CASE("Write binary LCView result file") {
 TEST_CASE("Write text LCViewTxt result file") {
   const std::string meshName = "path/to/mesh.msh";
   const double S0 = 0.5;
-  const auto geom = createSingleTetGeometry();
+  const auto geom = createSingleLinearTetGeometry();
 
   const SolutionVector potential(geom->getnpLC(), 1);
   const SolutionVector qTensor(geom->getnpLC(), 5);
@@ -172,10 +193,10 @@ void shouldEqual(const SolutionVector &q1, const SolutionVector &q2) {
   }
 }
 
-TEST_CASE("Write and read back Q-tensor as LCView format") {
+TEST_CASE("Write and read back Q-tensor as LCView format - Linear elements") {
   const std::string meshName = "path/to/mesh.msh";
   const double S0 = 0.5;
-  const auto geom = createSingleTetGeometry();
+  const auto geom = createSingleLinearTetGeometry();
 
   const SolutionVector potential(geom->getnpLC(), 1);
   SolutionVector qTensor(geom->getnpLC(), 5);
@@ -239,3 +260,70 @@ TEST_CASE("Write and read back Q-tensor as LCView format") {
   }
 }
 
+TEST_CASE("Write and read back Q-tensor as LCView format - Quadratic elements") {
+  const std::string meshName = "path/to/mesh.msh";
+  const double S0 = 0.5;
+  const auto geom = createSingleQuadraticTetGeometry();
+
+  const SolutionVector potential(geom->getnpLC(), 1);
+  SolutionVector qTensor(geom->getnpLC(), 5);
+
+  // create q-tensor with arbitrary but valid values
+  for (int i = 0; i < geom->getnpLC(); i++) {
+    auto dir = qlc3d::Director::fromDegreeAngles(i * 10, i * 13, 0.5);
+    qTensor.setValue(i, dir);
+  }
+
+  SimulationState simulationState;
+  simulationState.state(RunningState::RUNNING);
+  simulationState.currentIteration(0);
+  TestUtil::TemporaryDirectory resDir;
+
+  SECTION("Binary LCView file format") {
+    LcViewBinaryResultFormatWriter writer(resDir.path(), meshName, S0);
+
+    writer.setPotential(potential);
+    writer.setQTensor(qTensor);
+    writer.writeResult(*geom, simulationState);
+
+    // WHEN:
+    // Read back the Q-tensor from the binary file
+    SolutionVector qTensorRead(geom->getnpLC(), 5);
+
+    const std::string resultFile = (resDir.path() / "result00000.dat").string();
+    REQUIRE(fs::exists(resultFile));
+    ResultIO::ReadResult(resultFile, qTensorRead);
+
+    // THEN:
+    REQUIRE(qTensorRead.getnDoF() == geom->getnpLC());
+
+    // check that the read values equal the written values
+    shouldEqual(qTensor, qTensorRead);
+  }
+
+  SECTION("Text LCView file format") {
+    LcViewTxtResultFormatWriter writer(resDir.path(), meshName, S0);
+
+    // Text LCView requires director, not q-tensor
+    std::vector<qlc3d::Director> director;
+    for (int i = 0; i < geom->getnpLC(); i++) {
+      director.push_back(qTensor.getDirector(i));
+    }
+
+    writer.setPotential(potential);
+    writer.setDirector(&director);
+    writer.writeResult(*geom, simulationState);
+
+    const std::string resultFile = (resDir.path() / "result-t-00000.dat").string();
+    REQUIRE(fs::exists(resultFile));
+    // WHEN:
+    // Read back the Q-tensor from the text file
+    SolutionVector qTensorRead(geom->getnpLC(), 5);
+    ResultIO::ReadResult(resultFile, qTensorRead);
+
+    // THEN:
+    // Check that the read values equal the written values
+    shouldEqual(qTensor, qTensorRead);
+  }
+
+}

@@ -127,7 +127,7 @@ void Mesh::setConnectedVolume(Mesh* vol) {
     vol->gen_p_to_elem( p_to_t);
 
     for (idx i = 0 ; i < this->getnElements() ; i++){ // loop over surface elements
-        if (( getMaterialNumber( i ) < MAT_ELECTRODE1) ||     // exclude eletrode only surfaces as
+        if (( getMaterialNumber( i ) < MAT_ELECTRODE1) ||     // exclude electrode only surfaces as
             (  getMaterialNumber( i ) > MAT_ELECTRODE9) ){    // these are fixed, and do not need to know
                                                                   // about neighbouring LC tets
             // NOW HAVE 3 LISTS OF TETS CONNECTED TO THIS SURFACE
@@ -156,7 +156,7 @@ void Mesh::setConnectedVolume(Mesh* vol) {
             if (final.empty()) {
                 auto msg = format("Triangle {} with nodes [{}, {}, {}] is not connected to any tetrahedron in {}, {}",
                                   i, getNode(i, 0), getNode(i, 1), getNode(i, 2), __FILE__, __func__);
-                throw std::runtime_error(msg);
+                RUNTIME_ERROR(msg);
             }
 
             // SURFACE CAN BE BETWEEN LC AND DIELECTRIC LAYERS

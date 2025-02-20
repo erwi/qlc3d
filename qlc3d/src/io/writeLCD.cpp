@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <string>
-#include <iostream>
 #include <simu.h>
 #include <resultio.h>
 #include <util/logging.h>

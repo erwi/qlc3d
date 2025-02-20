@@ -9,11 +9,6 @@ class Coordinates;
 class LcViewResultFormatWriter : public ResultFormatWriter {
   [[nodiscard]] static std::string numberedMeshName(const SimulationState &simulationState, const std::string &meshName) ;
 
-  static void writeMeshFile(const Coordinates &coordinates,
-                            const Mesh &t,
-                            const Mesh &e,
-                            idx np,
-                            const std::filesystem::path &fileName);
 protected:
   double S0_;
   std::string meshName_;
@@ -26,6 +21,14 @@ protected:
 
   /** writes mesh file if required and sets writtenMeshPath_ */
   void writeMeshIfRequired(const Geometry &geom, const SimulationState &simulationState);
+public:
+  /**
+   * Write LCView format mesh file. public for testing purposes.
+   */
+  static void writeMeshFile(const Coordinates &coordinates,
+                            const Mesh &t,
+                            const Mesh &e,
+                            const std::filesystem::path &fileName);
 };
 
 //=============================================
@@ -47,10 +50,7 @@ public:
 //=============================================
 class LcViewTxtResultFormatWriter : public LcViewResultFormatWriter {
   static constexpr char LCVIEW_TEXT_FORMAT_STRING[] = "%i %f %f %f %f %f %f\n";
-  static void writeTextResultFile(const Coordinates &coordinates,
-                           const Mesh *t,
-                           const Mesh *e,
-                           const SolutionVector &v,
+  static void writeTextResultFile(const SolutionVector &v,
                            const std::vector<qlc3d::Director> &dir,
                            double currentTime,
                            const std::string &meshFileName,
