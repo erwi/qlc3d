@@ -1,8 +1,7 @@
 #include "mesh/element-split.h"
-#include <util/exception.h>
-#include <util/logging.h>
+#include "util/exception.h"
+#include "util/logging.h"
 #include <unordered_set>
-#include <cassert>
 
 std::vector<std::vector<unsigned int>> splitQuadraticTetrahedronToLinear(const std::vector<unsigned int> &quadraticTetrahedron) {
   if (quadraticTetrahedron.size() != 10) {

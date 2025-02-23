@@ -6,7 +6,7 @@
 #include <io/lcview-result-output.h>
 #include <geom/coordinates.h>
 #include <geometry.h>
-#include <mesh.h>
+#include <mesh/mesh.h>
 #include <inits.h>
 
 TEST_CASE("Read GiD mesh file") {

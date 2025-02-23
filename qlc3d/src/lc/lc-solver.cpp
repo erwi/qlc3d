@@ -6,7 +6,7 @@
 #include <spamtrix_ircmatrix.hpp>
 #include <spamtrix_vector.hpp>
 #include <sparsematrix.h>
-#include <mesh.h>
+#include <mesh/mesh.h>
 #include <fe/gaussian-quadrature.h>
 #include <geometry.h>
 #include <geom/coordinates.h>

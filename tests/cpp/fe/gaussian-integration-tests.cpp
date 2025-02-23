@@ -5,6 +5,7 @@
 #include <geometry.h>
 #include <test-util.h>
 #include <inits.h>
+#include <material_numbers.h>
 #include <util/logging.h>
 #include <fe/gaussian-quadrature.h>
 #include <fe/keast.h>

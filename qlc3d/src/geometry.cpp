@@ -1,9 +1,11 @@
 #include <geometry.h>
+#include <material_numbers.h>
 #include <util/logging.h>
 #include <util/exception.h>
 #include <geom/coordinates.h>
 #include <geom/vec3.h>
 #include <geom/periodicity.h>
+#include <mesh/mesh.h>
 
 const idx Geometry::NOT_AN_INDEX = std::numeric_limits<idx>::max();
 

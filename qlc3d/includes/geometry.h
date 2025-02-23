@@ -1,17 +1,10 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
-#include <mesh.h>
-#include <material_numbers.h>
+#include <mesh/mesh.h>
 #include <cfloat> // MAXIMUM DOUBLE VALUES NEEDED IN COORDINATE COMPARISON
 #include <vector>
-#include <list>
 #include <memory>
-#include <iostream>
-#include <algorithm>
-#include <limits>
-#include <alignment.h>
 #include <regulargrid.h>
-#include <globals.h>
 #include <geom/aabox.h>
 
 class RegularGrid; // forward declaration

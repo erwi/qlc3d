@@ -2,6 +2,7 @@
 #include <geom/coordinates.h>
 #include <geom/vec3.h>
 #include <geometry.h>
+#include <material_numbers.h>
 #include <solutionvector.h>
 
 #include <vector>

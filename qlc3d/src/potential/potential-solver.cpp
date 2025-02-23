@@ -9,6 +9,7 @@
 #include <geom/vec3.h>
 #include <geom/coordinates.h>
 #include <dofmap.h>
+#include <material_numbers.h>
 #include <thread>
 #include <fe/gaussian-quadrature.h>
 #include <spamtrix_luincpreconditioner.hpp>

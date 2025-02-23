@@ -7,6 +7,7 @@
 #include <solutionvector.h>
 #include <lc-representation.h>
 #include <filesystem>
+#include <material_numbers.h>
 
 
 const idx RegularGrid::NOT_AN_INDEX = std::numeric_limits<idx>::max();

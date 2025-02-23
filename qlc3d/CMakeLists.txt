@@ -78,7 +78,9 @@ add_library(lib-qlc3d STATIC
         includes/util/containerutil.h
         includes/fe/keast.h
         includes/mesh/element-split.h
-        src/geom/element-split.cpp
+        src/mesh/element-split.cpp
+        includes/mesh/mesh.h
+        src/mesh/mesh.cpp
 )
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 set_target_properties(lib-qlc3d PROPERTIES CXX_STANDARD 17)
