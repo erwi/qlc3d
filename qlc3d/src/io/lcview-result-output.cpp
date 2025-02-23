@@ -7,7 +7,7 @@
 #include <resultio.h>
 #include <util/exception.h>
 #include <lc-representation.h>
-#include <geom/element-split.h>
+#include "mesh/element-split.h"
 
 namespace fs = std::filesystem;
 
