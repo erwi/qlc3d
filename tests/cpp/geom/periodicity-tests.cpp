@@ -2,7 +2,7 @@
 #include <io/gmsh-read.h>
 #include <test-util.h>
 #include <io/meshreader.h>
-#include <mesh.h>
+#include <mesh/mesh.h>
 #include <geom/coordinates.h>
 #include <geom/periodicity.h>
 #include "material_numbers.h"

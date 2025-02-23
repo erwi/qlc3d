@@ -6,7 +6,7 @@
 #include <alignment.h>
 #include <electrodes.h>
 #include <simu.h>
-#include <mesh.h>
+#include <mesh/mesh.h>
 #include <geometry.h>
 #include <globals.h>
 #include <cassert>

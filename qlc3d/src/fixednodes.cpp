@@ -1,5 +1,5 @@
 #include <fixednodes.h>
-#include <mesh.h>
+#include <mesh/mesh.h>
 #include <util/logging.h>
 
 void FixedNodes::setFixedNodesPot(const Mesh &triangles, const std::unordered_map<unsigned int, double> &potentialByElectrode) {

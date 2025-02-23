@@ -1,7 +1,7 @@
 #include <geom/periodicity.h>
 #include <geom/vec3.h>
 #include <geom/coordinates.h>
-#include <mesh.h>
+#include <mesh/mesh.h>
 #include <material_numbers.h>
 #include <geom/aabox.h>
 #include <util/logging.h>

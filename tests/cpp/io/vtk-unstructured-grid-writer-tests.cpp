@@ -1,6 +1,6 @@
 #include <catch.h>
 #include <io/vtkiofun.h>
-#include <mesh.h>
+#include <mesh/mesh.h>
 #include <test-util.h>
 #include <solutionvector.h>
 #include <lc-representation.h>

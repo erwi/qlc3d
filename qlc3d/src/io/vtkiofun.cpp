@@ -1,8 +1,7 @@
 
 #include <io/vtkiofun.h>
 #include <geom/coordinates.h>
-#include <geom/vec3.h>
-#include <mesh.h>
+#include <mesh/mesh.h>
 #include <assert.h>
 #include <solutionvector.h>
 #include <lc-representation.h>

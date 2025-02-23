@@ -7,8 +7,7 @@
 #include <box.h>
 #include <alignment.h>
 #include <simu.h>
-#include <mesh.h>
-
+#include <mesh/mesh.h>
 #include <solutionvector.h>
 #include <material_numbers.h>
 #include <eventlist.h>
