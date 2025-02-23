@@ -1,5 +1,5 @@
-#include <catch.h>
-#include <geom/element-split.h>
+#include "catch.h"
+#include "mesh/element-split.h"
 
 TEST_CASE("Split and recombine tets") {
   // Tet node numbering as in fig 6.1 (b) in Eero's thesis

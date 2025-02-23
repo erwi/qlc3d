@@ -77,7 +77,7 @@ add_library(lib-qlc3d STATIC
         src/dofmap.cpp
         includes/util/containerutil.h
         includes/fe/keast.h
-        includes/geom/element-split.h
+        includes/mesh/element-split.h
         src/geom/element-split.cpp
 )
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)

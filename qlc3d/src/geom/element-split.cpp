@@ -1,5 +1,6 @@
-#include <geom/element-split.h>
+#include "mesh/element-split.h"
 #include <util/exception.h>
+#include <util/logging.h>
 #include <unordered_set>
 #include <cassert>
 
@@ -126,4 +127,113 @@ std::vector<unsigned int> recombineLinearTrianglesToQuadratic(const std::vector<
   }
 
   return {A, B, C, ab, bc, ac};
+}
+
+bool recombineLinearisedMeshToQuadratic(RawMeshData &meshData) {
+
+  const int elementOrder = meshData.getElementOrder();
+  if (elementOrder != 1) {
+    RUNTIME_ERROR("Can only recombine linearised mesh to quadratic if the mesh is linearised. Got mesh with elementOrder=" + std::to_string(elementOrder));
+  }
+
+  const size_t numTetsIn = meshData.tetNodes.size() / 4;
+  const size_t numTrisIn = meshData.triNodes.size() / 3;
+  const size_t numTetsOut = numTetsIn / 8;
+  const size_t numTrisOut = numTrisIn / 4;
+
+  Log::info("Attempting to recombine first order mesh with {} tetrahedra {} triangles to second order mesh with {} tetrahedra {} triangles.",
+            numTetsIn, numTrisIn, numTetsOut, numTrisOut);
+
+  if (numTetsIn % 8 != 0) {
+    Log::info("Number of tetrahedra is not a multiple of 8, cannot recombine.");
+    return false;
+  }
+  if (numTrisIn % 4 != 0) {
+    Log::info("Number of triangles is not a multiple of 4, cannot recombine.");
+    return false;
+  }
+
+  std::vector<unsigned int> tetMaterialsOut;
+  tetMaterialsOut.reserve(numTetsOut);
+
+  for (size_t i = 0; i < numTetsIn; i+= 8) {
+    // materials for all 8 tets must match
+    unsigned int tetMat = meshData.tetMaterials[i];
+    for (size_t j = 0; j < 8; j++) {
+      if (meshData.tetMaterials[i + j] != tetMat) {
+        Log::info("Tetrahedron {} has different material than {}, cannot recombine.", i + j, i);
+        return false;
+      }
+    }
+    tetMaterialsOut.push_back(tetMat);
+  }
+
+  // Recombine tet elements
+  auto &t = meshData.tetNodes;
+  std::vector<unsigned int> tetNodesOut;
+  tetNodesOut.reserve(numTetsOut * 10);
+
+  try {
+    for (size_t i = 0; i < numTetsOut; i++) {
+      std::vector<std::vector<unsigned int>> linearTets;
+      auto start = i * 8 * 4; // 8 tets, 4 nodes each
+      linearTets.emplace_back(std::vector<unsigned int>({t[start + 0], t[start + 1], t[start + 2], t[start + 3]}));
+      linearTets.emplace_back(std::vector<unsigned int>({t[start + 4], t[start + 5], t[start + 6], t[start + 7]}));
+      linearTets.emplace_back(std::vector<unsigned int>({t[start + 8], t[start + 9], t[start + 10], t[start + 11]}));
+      linearTets.emplace_back(std::vector<unsigned int>({t[start + 12], t[start + 13], t[start + 14], t[start + 15]}));
+      linearTets.emplace_back(std::vector<unsigned int>({t[start + 16], t[start + 17], t[start + 18], t[start + 19]}));
+      linearTets.emplace_back(std::vector<unsigned int>({t[start + 20], t[start + 21], t[start + 22], t[start + 23]}));
+      linearTets.emplace_back(std::vector<unsigned int>({t[start + 24], t[start + 25], t[start + 26], t[start + 27]}));
+      linearTets.emplace_back(std::vector<unsigned int>({t[start + 28], t[start + 29], t[start + 30], t[start + 31]}));
+
+      auto recombinedNodes = recombineLinearTetsToQuadratic(linearTets);
+      tetNodesOut.insert(tetNodesOut.end(), recombinedNodes.begin(), recombinedNodes.end());
+    }
+  } catch (ElementSplitCombineException &e) {
+    Log::info("Can not combine quadratic tetrahedron from input");
+    return false;
+  }
+
+  // Recombine triangle materials
+  std::vector<unsigned int> triMaterialsOut;
+  triMaterialsOut.reserve(numTrisOut);
+  for (size_t i = 0; i < numTrisIn; i+= 4) {
+    unsigned int triMat = meshData.triMaterials[i];
+    for (size_t j = 0; j < 4; j++) { // materials for all 4 source tris must match
+      if (meshData.triMaterials[i + j] != triMat) {
+        Log::info("Triangle {} has different material than {}, cannot recombine.", i + j, i);
+        return false;
+      }
+    }
+    triMaterialsOut.push_back(triMat);
+  }
+
+  // Recombine triangle elements
+  auto &e = meshData.triNodes;
+  std::vector<unsigned int> triNodesOut;
+  triNodesOut.reserve(numTrisOut * 6);
+  try {
+    for (size_t i = 0; i < numTrisOut; i++) {
+      std::vector<std::vector<unsigned int>> linearTris;
+      auto start = i * 4 * 3; // 4 tris, 3 nodes each
+      linearTris.emplace_back(std::vector<unsigned int>({e[start + 0], e[start + 1], e[start + 2]}));
+      linearTris.emplace_back(std::vector<unsigned int>({e[start + 3], e[start + 4], e[start + 5]}));
+      linearTris.emplace_back(std::vector<unsigned int>({e[start + 6], e[start + 7], e[start + 8]}));
+      linearTris.emplace_back(std::vector<unsigned int>({e[start + 9], e[start + 10], e[start + 11]}));
+
+      auto recombinedNodes = recombineLinearTrianglesToQuadratic(linearTris);
+      triNodesOut.insert(triNodesOut.end(), recombinedNodes.begin(), recombinedNodes.end());
+    }
+  } catch (ElementSplitCombineException &e) {
+    Log::info("Can not combine quadratic triangle from input");
+    return false;
+  }
+
+  // Update mesh data with quadratic element data
+  meshData.setElementOrder(2);
+  meshData.tetMaterials = std::move(tetMaterialsOut);
+  meshData.tetNodes = std::move(tetNodesOut);
+  meshData.triMaterials = std::move(triMaterialsOut);
+  meshData.triNodes = std::move(triNodesOut);
+  return true;
 }
