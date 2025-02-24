@@ -10,7 +10,7 @@
 #include <geom/vec3.h>
 #include <resultio.h>
 #include <lc-representation.h>
-#include <mesh/element-split.h>
+#include <mesh/element-split-convert.h>
 
 /**
  * Goes through all triangle material numbers and tries to check that all is well.

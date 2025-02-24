@@ -7,7 +7,7 @@
 #include <resultio.h>
 #include <util/exception.h>
 #include <lc-representation.h>
-#include "mesh/element-split.h"
+#include "mesh/element-split-convert.h"
 
 namespace fs = std::filesystem;
 

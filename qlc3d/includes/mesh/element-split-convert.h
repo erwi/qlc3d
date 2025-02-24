@@ -30,4 +30,6 @@ std::vector<unsigned int> recombineLinearTrianglesToQuadratic(const std::vector<
  */
 bool recombineLinearisedMeshToQuadratic(RawMeshData &meshData);
 
+void convertLinearMeshDataToQuadratic(RawMeshData &meshData);
+
 #endif //PROJECT_QLC3D_ELEMENT_SPLIT_H
