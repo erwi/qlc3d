@@ -77,8 +77,8 @@ add_library(lib-qlc3d STATIC
         src/dofmap.cpp
         includes/util/containerutil.h
         includes/fe/keast.h
-        includes/mesh/element-split.h
-        src/mesh/element-split.cpp
+        includes/mesh/element-split-convert.h
+        src/mesh/element-split-convert.cpp
         includes/mesh/mesh.h
         src/mesh/mesh.cpp
 )

@@ -1,4 +1,9 @@
-#include "mesh/element-split.h"
+#include "mesh/element-split-convert.h"
+
+#include <cassert>
+#include <qlc3d.h>
+#include <spamtrix_matrixmaker.hpp>
+
 #include "util/exception.h"
 #include "util/logging.h"
 #include <unordered_set>
@@ -236,3 +241,162 @@ bool recombineLinearisedMeshToQuadratic(RawMeshData &meshData) {
   meshData.triNodes = std::move(triNodesOut);
   return true;
 }
+
+//<editor-fold convertLinearMeshDataToQuadratic>
+
+/**
+ * Calculate node indices for new nodes that are added when converting linear tetrahedra to quadratic.
+ */
+SpaMtrix::IRCMatrix createNewNodeNumbersMapping(std::vector<unsigned int> &tetNodes, unsigned int maxNodeNumber) {
+  const unsigned int nodesPerTet = 4;
+  const unsigned int numTetrahedra = tetNodes.size() / nodesPerTet;
+  SpaMtrix::MatrixMaker tetNodeMaker(maxNodeNumber + 1, maxNodeNumber + 1);
+  unsigned int newNodeIndex = maxNodeNumber;
+  for (unsigned int tetCounter = 0; tetCounter < numTetrahedra; tetCounter++) {
+    const unsigned int iBegin = tetCounter * nodesPerTet;
+    const unsigned int A = tetNodes[iBegin + 0];
+    const unsigned int B = tetNodes[iBegin + 1];
+    const unsigned int C = tetNodes[iBegin + 2];
+    const unsigned int D = tetNodes[iBegin + 3];
+    newNodeIndex++;
+    tetNodeMaker.addNonZero(A, B, newNodeIndex);
+    tetNodeMaker.addNonZero(B, A, newNodeIndex);
+
+    newNodeIndex++;
+    tetNodeMaker.addNonZero(B, C, newNodeIndex);
+    tetNodeMaker.addNonZero(C, B, newNodeIndex);
+
+    newNodeIndex++;
+    tetNodeMaker.addNonZero(A, C, newNodeIndex);
+    tetNodeMaker.addNonZero(C, A, newNodeIndex);
+
+    newNodeIndex++;
+    tetNodeMaker.addNonZero(A, D, newNodeIndex);
+    tetNodeMaker.addNonZero(D, A, newNodeIndex);
+
+    newNodeIndex++;
+    tetNodeMaker.addNonZero(B, D, newNodeIndex);
+    tetNodeMaker.addNonZero(D, B, newNodeIndex);
+
+    newNodeIndex++;
+    tetNodeMaker.addNonZero(C, D, newNodeIndex);
+    tetNodeMaker.addNonZero(D, C, newNodeIndex);
+  }
+
+  return tetNodeMaker.getIRCMatrix();
+}
+
+/**
+ * Calculate the locations of new nodes and appends them to the coordinates vector.
+ */
+void appendNewNodeCoordinates(std::vector<Vec3> &coordinates,
+                              const SpaMtrix::IRCMatrix &newNodeNumbers,
+                              const std::vector<unsigned int> &tetNodes,
+                              unsigned int numTetrahedra) {
+  const unsigned int nodesPerTet = 4;
+  assert(tetNodes.size() == numTetrahedra * nodesPerTet);
+
+  coordinates.resize(numTetrahedra * 10, Vec3(0, 0, 0));
+
+  for (unsigned int tetCounter = 0; tetCounter < numTetrahedra; tetCounter++) {
+    const unsigned int A = tetNodes[tetCounter * nodesPerTet + 0];
+    const unsigned int B = tetNodes[tetCounter * nodesPerTet + 1];
+    const unsigned int C = tetNodes[tetCounter * nodesPerTet + 2];
+    const unsigned int D = tetNodes[tetCounter * nodesPerTet + 3];
+
+    const unsigned int ab = (unsigned int) newNodeNumbers.getValue(A, B);
+    const unsigned int bc = (unsigned int) newNodeNumbers.getValue(B, C);
+    const unsigned int ac = (unsigned int) newNodeNumbers.getValue(A, C);
+    const unsigned int ad = (unsigned int) newNodeNumbers.getValue(A, D);
+    const unsigned int bd = (unsigned int) newNodeNumbers.getValue(B, D);
+    const unsigned int cd = (unsigned int) newNodeNumbers.getValue(C, D);
+
+    coordinates[ab] = (coordinates[A] + coordinates[B]) / 2;
+    coordinates[bc] = (coordinates[B] + coordinates[C]) / 2;
+    coordinates[ac] = (coordinates[A] + coordinates[C]) / 2;
+    coordinates[ad] = (coordinates[A] + coordinates[D]) / 2;
+    coordinates[bd] = (coordinates[B] + coordinates[D]) / 2;
+    coordinates[cd] = (coordinates[C] + coordinates[D]) / 2;
+  }
+}
+
+std::vector<unsigned int> createNewTetElementNodes(const std::vector<unsigned int> &tetNodes,
+                                                   const SpaMtrix::IRCMatrix &newNodeNumbers,
+                                                   unsigned int numTetrahedra) {
+  const unsigned int nodesPerTet = 4;
+  assert(tetNodes.size() == nodesPerTet * numTetrahedra);
+
+  std::vector<unsigned int> newTets;
+  newTets.reserve(numTetrahedra * 10);
+
+  for (unsigned int tetCounter = 0; tetCounter < numTetrahedra; tetCounter ++) {
+    const unsigned int A = tetNodes[tetCounter * nodesPerTet + 0];
+    const unsigned int B = tetNodes[tetCounter * nodesPerTet + 1];
+    const unsigned int C = tetNodes[tetCounter * nodesPerTet + 2];
+    const unsigned int D = tetNodes[tetCounter * nodesPerTet + 3];
+
+    newTets.push_back(A);
+    newTets.push_back(B);
+    newTets.push_back(C);
+    newTets.push_back(D);
+    newTets.push_back((unsigned int) newNodeNumbers.getValue(A, B));
+    newTets.push_back((unsigned int) newNodeNumbers.getValue(B, C));
+    newTets.push_back((unsigned int) newNodeNumbers.getValue(A, C));
+    newTets.push_back((unsigned int) newNodeNumbers.getValue(A, D));
+    newTets.push_back((unsigned int) newNodeNumbers.getValue(B, D));
+    newTets.push_back((unsigned int) newNodeNumbers.getValue(C, D));
+  }
+
+  return newTets;
+}
+
+std::vector<unsigned int> createNewTriElementNodes(const std::vector<unsigned int> &triNodes,
+                                                   const SpaMtrix::IRCMatrix &newNodeNumbers,
+                                                   unsigned int numTriangles) {
+  const unsigned int nodesPerTri = 3;
+  assert(triNodes.size() == nodesPerTri * numTriangles);
+
+  std::vector<unsigned int> newTris;
+  newTris.reserve(numTriangles * 6);
+
+  for (unsigned int triCounter = 0; triCounter < numTriangles; triCounter ++) {
+    const unsigned int A = triNodes[triCounter * nodesPerTri + 0];
+    const unsigned int B = triNodes[triCounter * nodesPerTri + 1];
+    const unsigned int C = triNodes[triCounter * nodesPerTri + 2];
+
+    newTris.push_back(A);
+    newTris.push_back(B);
+    newTris.push_back(C);
+    newTris.push_back((unsigned int) newNodeNumbers.getValue(A, B));
+    newTris.push_back((unsigned int) newNodeNumbers.getValue(B, C));
+    newTris.push_back((unsigned int) newNodeNumbers.getValue(A, C));
+  }
+
+  return newTris;
+}
+
+void convertLinearMeshDataToQuadratic(RawMeshData &meshData) {
+  assert(meshData.getElementOrder() == 1);
+  const unsigned int nodesPerTet = 4;
+  const unsigned int nodesPerTri = 3;
+  const unsigned int numTetrahedra = meshData.tetNodes.size() / nodesPerTet;
+  const unsigned int numTriangles = meshData.triNodes.size() / nodesPerTri;;
+
+  // find largest current node index in tetrahedra. New nodes will be added after this index
+  const unsigned int maxNodeIndex = *std::max_element(meshData.tetNodes.begin(), meshData.tetNodes.end());
+
+  SpaMtrix::IRCMatrix newNodesMap = createNewNodeNumbersMapping(meshData.tetNodes, maxNodeIndex);
+
+  appendNewNodeCoordinates(meshData.points, newNodesMap, meshData.tetNodes, numTetrahedra);
+  assert(meshData.points.size() == numTetrahedra * 10);
+
+  meshData.tetNodes = createNewTetElementNodes(meshData.tetNodes, newNodesMap, numTetrahedra);
+  assert(meshData.tetNodes.size() == numTetrahedra * 10);
+
+  meshData.triNodes = createNewTriElementNodes(meshData.triNodes, newNodesMap, numTriangles);
+  assert(meshData.triNodes.size() == numTriangles * 6);
+
+  meshData.setElementOrder(2);
+}
+
+//</editor-fold>

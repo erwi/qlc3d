@@ -1,5 +1,5 @@
 #include "catch.h"
-#include "mesh/element-split.h"
+#include "mesh/element-split-convert.h"
 
 TEST_CASE("Split and recombine tets") {
   // Tet node numbering as in fig 6.1 (b) in Eero's thesis
@@ -96,4 +96,27 @@ TEST_CASE("Split and recombine triangles") {
     REQUIRE(recombinedTri[4] == bc);
     REQUIRE(recombinedTri[5] == ac);
   }
+}
+
+TEST_CASE("Convert single linear tet mesh to quadratic tet mesh") {
+  // create raw mesh data for a single linear tetrahedron and triangle
+  std::vector<Vec3> points = {
+    Vec3(0, 0, 0),
+    Vec3(1, 0, 0),
+    Vec3(0, 1, 0),
+    Vec3(0, 0, 1)
+  };
+
+  RawMeshData meshData(1, points, {0, 1, 2, 3}, {99}, {0, 1, 2}, {100});
+
+  // ACT
+  convertLinearMeshDataToQuadratic(meshData);
+
+  // ASSERT
+  REQUIRE(meshData.getElementOrder() == 2);
+  REQUIRE(meshData.points.size() == 10);
+  REQUIRE(meshData.tetNodes.size() == 10);
+  REQUIRE(meshData.tetMaterials.size() == 1);
+  REQUIRE(meshData.triNodes.size() == 6);
+  REQUIRE(meshData.triMaterials.size() == 1);
 }
