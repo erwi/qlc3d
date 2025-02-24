@@ -10,10 +10,8 @@
 #include <lc-representation.h>
 #include <solutionvector.h>
 #include <simulation-state.h>
-#include <spamtrix_ircmatrix.hpp>
 #include <qlc3d.h>
 #include <util/logging.h>
-#include <spamtrix_matrixmaker.hpp>
 #include <spamtrix_vector.hpp>
 #include <geom/coordinates.h>
 #include <geom/periodicity.h>
@@ -510,7 +508,7 @@ void switchingDynamicsTest(const std::string meshName, unsigned int expectedIter
   alignment.addSurface(Surface::ofStrongAnchoring(1, bottomTilt, twistDegrees));
   alignment.addSurface(Surface::ofStrongAnchoring(2, bottomTilt, twistDegrees));
 
-  prepareGeometry(geom, meshName, electrodes, alignment); //TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment);
+  prepareGeometry(geom, meshName, electrodes, alignment);
 
   const double topPotential = 2;
   SolutionVector v(geom.getnp(), 1);
