@@ -1,10 +1,14 @@
 #ifndef MESH_H
 #define MESH_H
 #include <cstdlib>
+#include <cstdio>
 #include <vector>
 #include <list>
 #include <set>
+#include <algorithm>
 #include <memory>
+#include <cstring>
+#include <cmath>
 #include <globals.h>
 #include <functional>
 #include <unordered_set>

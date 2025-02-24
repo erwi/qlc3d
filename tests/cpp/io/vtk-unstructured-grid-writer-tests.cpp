@@ -2,11 +2,10 @@
 #include <io/vtkiofun.h>
 #include <mesh/mesh.h>
 #include <test-util.h>
-#include <util/stringutil.h>
 #include <solutionvector.h>
 #include <lc-representation.h>
 #include <geom/coordinates.h>
-#include <geom/vec3.h>
+#include "util/stringutil.h"
 
 TEST_CASE("write VTK unstructured ascii grid - linear 4 node tetrahedra") {
     using namespace vtkIOFun;
