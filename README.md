@@ -1,5 +1,6 @@
 # Building qlc3d
 
+> **For developers**: See [DEVELOPMENT.md](DEVELOPMENT.md) for development environment setup, including how to configure GitHub Copilot in IntelliJ IDEA.
 
 To compile qlc3d from source code, you will required at least a c++ compiler (with support for c++17) and cmake and Git installed on your computer. To optionally also run all tests, you will need python 3.x installed.
 
