@@ -13,10 +13,10 @@ flowchart TD
     A([main]) --> B[Parse CLI arguments]
     B --> C[Read settings file]
     C --> D[Initialise simulation]
-    D --> E{Has next\niteration?}
+    D --> E{Has next<br/>iteration?}
     E -- yes --> F[Run iteration]
     F --> E
-    E -- no --> G[Post-simulation tasks\nwrite final results]
+    E -- no --> G[Post-simulation tasks<br/>write final results]
     G --> H([End])
 ```
 
@@ -48,11 +48,11 @@ file via `SettingsReader`.  The following objects are populated:
 flowchart TD
     A[Create output directory] --> B[Load mesh file]
     B --> C[Validate mesh materials]
-    C --> D[Build Geometry\ntets · tris · node normals · regular grid]
-    D --> E[Set initial electrode potentials\ninitialise V solution vector]
-    E --> F[Set initial Q-tensor\nbox volumes + load file + surface anchoring]
-    F --> G[Create event queue\nelectrode switching · mesh refinement · save events]
-    G --> H[Handle pre-refinement events\nif defined at t=0]
+    C --> D[Build Geometry<br/>tets · tris · node normals · regular grid]
+    D --> E[Set initial electrode potentials<br/>initialise V solution vector]
+    E --> F[Set initial Q-tensor<br/>box volumes + load file + surface anchoring]
+    F --> G[Create event queue<br/>electrode switching · mesh refinement · save events]
+    G --> H[Handle pre-refinement events<br/>if defined at t=0]
     H --> I[Solve initial potential]
     I --> J[Write initial result file]
 ```
@@ -78,13 +78,13 @@ flowchart TD
     A[Calculate adaptive time step] --> B{Output free energy?}
     B -- yes --> C[Compute free energy]
     B -- no --> D
-    C --> D[Solve potential V\npotential-solver]
-    D --> E[Solve LC Q-tensor\nlc-solver]
+    C --> D[Solve potential V<br/>potential-solver]
+    D --> E[Solve LC Q-tensor<br/>lc-solver]
     E --> F[Record dQ as convergence measure]
     F --> G[Increment simulation time]
     G --> H[Handle events]
     H --> I[Increment iteration counter]
-    I --> J{End criterion \n met?}
+    I --> J{End criterion<br/>met?}
     J -- no --> A
     J -- yes --> K[Write final results]
 ```
@@ -121,10 +121,10 @@ on electrode surfaces.
 
 ```mermaid
 flowchart TD
-    A{Potential solution\nrequired?} -- no --> B[Set V=0 or uniform E-field]
-    A -- yes --> C[Assemble sparse FEM matrix\nover all tetrahedra]
-    C --> D[Apply Neumann boundaries\ndielectric interfaces]
-    D --> E[Solve K·V = L\nwith ILU-preconditioned GMRES]
+    A{Potential solution<br/>required?} -- no --> B[Set V=0 or uniform E-field]
+    A -- yes --> C[Assemble sparse FEM matrix<br/>over all tetrahedra]
+    C --> D[Apply Neumann boundaries<br/>dielectric interfaces]
+    D --> E[Solve K·V = L<br/>with ILU-preconditioned GMRES]
     E --> F[Store result in V solution vector]
 ```
 
@@ -146,7 +146,7 @@ Each call performs a single Newton step:
 
 ```mermaid
 flowchart TD
-    A[Assemble global FEM matrix K and RHS L] --> B[Solve K·ΔQ = L\nPCG if symmetric\nGMRES if asymmetric]
+    A[Assemble global FEM matrix K and RHS L] --> B[Solve K·ΔQ = L<br/>PCG if symmetric<br/>GMRES if asymmetric]
     B --> C[Update Q ← Q − ΔQ]
 ```
 
@@ -162,10 +162,10 @@ each time step:
 flowchart TD
     A[Predict Q using dQ/dt from previous step] --> B[Newton iteration loop]
     B --> C[Assemble K and L from current Q]
-    C --> D[Modify system for time stepping\nadd M·ΔQ/Δt term]
+    C --> D[Modify system for time stepping<br/>add M·ΔQ/Δt term]
     D --> E[Solve modified K·ΔQ = r]
     E --> F[Update Q ← Q − ΔQ]
-    F --> G{ΔQ < tolerance\nor max iters?}
+    F --> G{ΔQ < tolerance<br/>or max iters?}
     G -- no --> B
     G -- yes --> H[Save dQ/dt and f for next step]
 ```
@@ -195,14 +195,14 @@ defined priority:
 
 ```mermaid
 flowchart TD
-    A[Pop all events due now] --> B{Electrode\nswitching?}
-    B -- yes --> C[Update boundary potentials\nset dt to mindt]
+    A[Pop all events due now] --> B{Electrode<br/>switching?}
+    B -- yes --> C[Update boundary potentials<br/>set dt to mindt]
     C --> D
-    B -- no --> D{Mesh\nrefinement?}
-    D -- yes --> E[Run adaptive mesh refinement\ninterpolate Q and V to new mesh\nrebuild potential matrix]
+    B -- no --> D{Mesh<br/>refinement?}
+    D -- yes --> E[Run adaptive mesh refinement<br/>interpolate Q and V to new mesh<br/>rebuild potential matrix]
     E --> F
-    D -- no --> F{Save\nresult?}
-    F -- yes --> G[Write result files\nVTK / CSV / regular grid]
+    D -- no --> F{Save<br/>result?}
+    F -- yes --> G[Write result files<br/>VTK / CSV / regular grid]
     F -- no --> H[Re-queue periodic events]
     G --> H
 ```
@@ -217,14 +217,14 @@ When a refinement event fires, `autoref()` (`autorefinement.cpp`) is called:
 
 ```mermaid
 flowchart TD
-    A[Start from original unrefined mesh] --> B[Select tetrahedra for splitting\nbased on RefInfo criteria]
-    B --> C{Any tets\nto refine?}
+    A[Start from original unrefined mesh] --> B[Select tetrahedra for splitting<br/>based on RefInfo criteria]
+    B --> C{Any tets<br/>to refine?}
     C -- no --> D[No change]
-    C -- yes --> E[Split tetrahedra\nRed-Green refinement]
-    E --> F[Rebuild geometry structures\nnode normals · regular grid]
-    F --> G[Resize and re-initialise\nV solution vector]
+    C -- yes --> E[Split tetrahedra<br/>Red-Green refinement]
+    E --> F[Rebuild geometry structures<br/>node normals · regular grid]
+    F --> G[Resize and re-initialise<br/>V solution vector]
     G --> H[Interpolate Q onto new mesh]
-    H --> I[Invalidate potential solver\ncache]
+    H --> I[Invalidate potential solver<br/>cache]
 ```
 
 Pre-refinement (at iteration 0) permanently modifies the *original* mesh so
