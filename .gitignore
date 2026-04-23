@@ -1,3 +1,43 @@
 .idea/
-cmake-build-*/
+
+# Build trees and generated CMake files
+/build/
+/build-cli/
+/cmake-build-*/
+**/CMakeFiles/
+**/CMakeCache.txt
+**/cmake_install.cmake
+**/CTestTestfile.cmake
+**/build.ninja
+**/Makefile
+**/Makefile2
+**/compile_commands.json
+**/install_manifest.txt
+**/Testing/
+
+# Project-specific generated test artifacts
+/tests/cpp-test
+/tests/resources/two-dielectric-regions.msh
+/examples/*/res/
+
+# Compiler and linker outputs
+**/*.o
+**/*.o.d
+**/*.obj
+**/*.a
+**/*.so
+**/*.so.*
+**/*.dylib
+**/*.dll
+**/*.exe
+**/*.pdb
+**/*.lib
+**/*.log
+**/*.ninja_deps
+**/*.ninja_log
+**/*.gcda
+**/*.gcno
+**/*.profraw
+**/*.profdata
+
 /qlc3d/doc/.~lock.SettingsFileManual.odt#
