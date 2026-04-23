@@ -36,7 +36,7 @@ bool ImplicitLCSolver::solveMatrixSystem(const SpaMtrix::IRCMatrix &Kmatrix, con
     RUNTIME_ERROR("Matrix and vector sizes do not match");
   }
 
-  idx maxiter 	=  solverSettings.getQ_GMRES_Maxiter();
+  idx maxiter 	=  solverSettings.getQ_GMRES_Maxiter() == 0 ? Kmatrix.getNumCols() : solverSettings.getQ_GMRES_Maxiter();
   idx restart 	=  solverSettings.getQ_GMRES_Restart();
   real toler    =  solverSettings.getQ_GMRES_Toler();
   SpaMtrix::IterativeSolvers solver(maxiter, restart, toler);

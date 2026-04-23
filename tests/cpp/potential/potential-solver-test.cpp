@@ -32,7 +32,8 @@ TEST_CASE("Solve potential 1D mesh - Expect v = z") {
   auto alignment = Alignment();
   alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
   alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment);
+  //prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment); TODO
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_QUADRATIC_GMSH_MESH, electrodes, alignment);
 
   SolutionVector v(geom.getnp(), 1);
   v.initialisePotentialBoundaries(electrodes.getCurrentPotentials(0), geom);
@@ -46,6 +47,7 @@ TEST_CASE("Solve potential 1D mesh - Expect v = z") {
 
   auto lc = std::shared_ptr<LC>(LCBuilder().build());
   auto solverSettings = std::make_shared<SolverSettings>();
+  solverSettings->setV_GMRES_Maxiter(v.getnFreeNodes());
   solverSettings->setV_GMRES_Toler(1e-9);
   solverSettings->setnThreads(10); // result should not depend on number of threads
   PotentialSolver solver(electrodes, lc, solverSettings);

@@ -144,14 +144,16 @@ void prepareGeometry(Geometry &geom,
   validateTriangleMaterials(rawMeshData.triMaterials, electrodes, alignment);
   validateTetrahedralMaterials(rawMeshData.tetMaterials);
 
-  auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
-
-
   if (rawMeshData.getElementOrder() == 1 && recombineLinearisedMeshToQuadratic(rawMeshData)) {
     Log::info("Recombined first order mesh to second order. New element counts: tetrahedra = {}, triangles = {}",
               rawMeshData.tetMaterials.size(), rawMeshData.triMaterials.size());
   }
 
+  if (rawMeshData.getElementOrder() == 1) {
+    convertLinearMeshDataToQuadratic(rawMeshData);
+  }
+
+  auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
   if (rawMeshData.getElementOrder() == 2) {
     reorderQuadraticTetNodeOrder(rawMeshData.tetNodes, *coordinates);
   }

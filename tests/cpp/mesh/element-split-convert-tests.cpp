@@ -1,3 +1,6 @@
+#include <test-util.h>
+#include <io/gmsh-read.h>
+
 #include "catch.h"
 #include "mesh/element-split-convert.h"
 
@@ -119,4 +122,62 @@ TEST_CASE("Convert single linear tet mesh to quadratic tet mesh") {
   REQUIRE(meshData.tetMaterials.size() == 1);
   REQUIRE(meshData.triNodes.size() == 6);
   REQUIRE(meshData.triMaterials.size() == 1);
+}
+
+TEST_CASE("Convert mesh with two linear tets sharing a face into quadratic mesh") {
+  // create raw mesh data for two linear tets sharing a face
+  std::vector<Vec3> points = {
+    Vec3(0, 0, 0), // tet 1 and 2
+    Vec3(1, 0, 0), // tet 1 and 2
+    Vec3(0, 1, 0), // tet 1 and 2
+    Vec3(0, 0, 1), // tet 1
+    Vec3(0, 0, -1) // tet 2
+  };
+
+  RawMeshData meshData(1, points, {0, 1, 2, 3, 0, 1, 2, 4}, {99, 99}, {0, 1, 2}, {100});
+
+  // ACT
+  convertLinearMeshDataToQuadratic(meshData);
+
+  // ASSERT
+  REQUIRE(meshData.getElementOrder() == 2);
+  REQUIRE(meshData.points.size() == 14);
+
+  auto expectedTetNodes = std::vector<unsigned int>(
+    {
+      0, 1, 2, 3, 5, 6, 7, 8, 9, 10,
+      0, 1, 2, 4, 5, 6, 7, 11, 12, 13
+    });
+
+  REQUIRE(meshData.tetNodes == expectedTetNodes); // two 2nd order tets that share a face
+
+  auto expectedTriNodes = std::vector<unsigned int>({0, 1, 2, 5, 6, 7});
+  REQUIRE(meshData.triNodes == expectedTriNodes); // single 2nd order triangle
+
+  REQUIRE(meshData.tetMaterials.size() == 2); // unchanged
+  REQUIRE(meshData.triMaterials.size() == 1); // unchanged
+}
+
+
+TEST_CASE("Convert linear Gmsh mesh to quadratic mesh") {
+  auto meshData = MeshReader::readMesh(TestUtil::RESOURCE_UNIT_CUBE_NEUMANN_GMSH_MESH);
+
+  auto numTetsOld = meshData.tetMaterials.size();
+  auto numTrisOld = meshData.triMaterials.size();
+  auto numPointsOld = meshData.points.size();
+
+  // ACT
+  convertLinearMeshDataToQuadratic(meshData);
+
+  // ASSERT
+  REQUIRE(meshData.getElementOrder() == 2);
+  REQUIRE(meshData.tetMaterials.size() == numTetsOld);
+  REQUIRE(meshData.triMaterials.size() == numTrisOld);
+
+  REQUIRE(meshData.tetNodes.size() == numTetsOld * 10);
+
+}
+
+TEST_CASE("") {
+
 }

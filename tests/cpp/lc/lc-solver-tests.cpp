@@ -28,7 +28,8 @@ struct TestData {
 TestData setUp1DGeometry(Alignment &alignmentIn, const LC &lc, double easyTopTilt, double easyBottomTilt) {
   auto *geom = new Geometry();
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {0, 0});
-  prepareGeometry(*geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignmentIn);
+  //prepareGeometry(*geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignmentIn);
+  prepareGeometry(*geom, TestUtil::RESOURCE_THIN_QUADRATIC_GMSH_MESH, electrodes, alignmentIn);
 
   auto *v = new SolutionVector(geom->getnp(), 1);
   v->initialisePotentialBoundaries(electrodes.getCurrentPotentials(0), *geom);
@@ -357,6 +358,9 @@ TEST_CASE("[SteadyState] Relax elastic distortions with chirality") {
 
   auto solverSettings = std::make_shared<SolverSettings>();
   solverSettings->setV_GMRES_Toler(1e-9);
+  solverSettings->setQ_GMRES_Maxiter(0); // same as number of degrees of freedom
+  solverSettings->setQ_GMRES_Restart(1000);
+  solverSettings->setQ_GMRES_Preconditioner(0);
   SteadyStateLCSolver ssSolver(*lc, *solverSettings, alignment);
 
   // ACT
@@ -586,7 +590,8 @@ TEST_CASE("[Dynamic] Abort Newton iterations if convergence is not reached") {
   alignment.addSurface(Surface::ofStrongAnchoring(1, bottomTilt, twistDegrees));
   alignment.addSurface(Surface::ofStrongAnchoring(2, bottomTilt, twistDegrees));
 
-  prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment);
+  //prepareGeometry(geom, TestUtil::RESOURCE_THIN_GID_MESH, electrodes, alignment);
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_QUADRATIC_GMSH_MESH, electrodes, alignment);
 
   const double topPotential = 2;
   SolutionVector v(geom.getnp(), 1);
