@@ -452,18 +452,16 @@ eps_dielectric = [1.0,5.0]
 Mesh adaptation is optional, and is controlled by specifying `REFINEMENT` objects (see section **REFINEMENT Objects** below), and the instances in time and/or iterations (see section **Periodically Repeating Mesh Adaptation**) when mesh adaptation occurs.
 
 ### Periodically Repeating Mesh Adaptation ###
-The frequency of repeated mesh adaptation is specified by assigning a value to either variable `RefRefIter` or `RepRefTime`:
+The frequency of repeated mesh adaptation by iteration count is specified by assigning a value to `RepRefIter`:
 ```
 	RepRefIter = iteration number
 ```
-or
-```
-	RepRefTime = time period [milliseconds]. # not working!!
-```
 
-If `RepRefIter` or `RepRefTime` are not specified, or if they are both set to a zero value, the mesh is not adapted periodically. However, it is still possible to specify explicit iteration/time instances to do this in the individual REFINEMENT objects.
+If `RepRefIter` is not specified or is set to zero, the mesh is not adapted periodically. However, it is still possible to specify explicit iteration/time instances to do this in the individual REFINEMENT objects.
 
-Note that if a REFINEMENT object specifies iteration numbers or instances in time, these will take precedence over RepRefIter/RepRefTime for the corresponding REFINMENT object.
+Note that if a REFINEMENT object specifies iteration numbers or instances in time, these will take precedence over `RepRefIter` for the corresponding REFINEMENT object.
+
+> **Note**: `RepRefTime` (time-based periodic refinement) is not supported. Specifying a non-zero value for `RepRefTime` in the settings file will cause an error.
 
 ### REFINEMENT Objects ###
 

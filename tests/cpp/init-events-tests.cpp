@@ -3,6 +3,7 @@
 #include <eventlist.h>
 #include <meshrefinement.h>
 #include "simulation-state.h"
+#include <refinement/refinement-spec.h>
 
 using namespace std;
 
@@ -17,7 +18,6 @@ TEST_CASE("Initialise mesh refinement events") {
     SECTION("periodically occurring mesh refinement") {
         // ARRANGE
         refinement.setRepRefIter(13);
-        refinement.setRepRefTime(2e-9);
         vector<RefinementConfig> refConfig = {
             RefinementConfig("Sphere", {}, {}, {1}, {0}, {0}, {0})
         };
@@ -29,7 +29,6 @@ TEST_CASE("Initialise mesh refinement events") {
 
         // ASSERT
         REQUIRE(eventList.getPeriodicRefinementIteration() == 13);
-        REQUIRE(eventList.getPeriodicRefinementTime() == 2e-9);
 
         // no events with explicit time or iteration should exist
         REQUIRE(eventList.getNumTimeEvents() == 0);
@@ -50,7 +49,6 @@ TEST_CASE("Initialise mesh refinement events") {
         // ASSERT
         // no periodically occurring event should exist
         REQUIRE(eventList.getPeriodicRefinementIteration() == 0);
-        REQUIRE(eventList.getPeriodicRefinementTime() == 0.);
 
         // two iteration events and one time event should exist
         REQUIRE(eventList.getNumIterationEvents() == 2);
@@ -103,3 +101,62 @@ TEST_CASE("Initialise mesh refinement events") {
     }
 }
 
+TEST_CASE("createMeshRefinementEvents inserts typed RefinementSpec events") {
+
+    SECTION("Change config at iteration 7 -> iteration event carries RefinementSpec with getIteration()==7 and type Change") {
+        EventList eventList;
+        MeshRefinement refinement;
+        vector<RefinementConfig> refConfig = {
+            RefinementConfig("Change", {7}, {}, {0.1}, {}, {}, {})
+        };
+        refinement.setRefinementConfig(std::move(refConfig));
+
+        createMeshRefinementEvents(refinement, eventList);
+
+        REQUIRE(eventList.getNumIterationEvents() == 1);
+
+        SimulationState state;
+        state.currentIteration(7);
+        Event* e = eventList.getCurrentEvent(state);
+        REQUIRE(e->getEventType() == EVENT_REFINEMENT);
+        REQUIRE(e->getRefinementSpec() != nullptr);
+        REQUIRE(e->getRefinementSpec()->getIteration() == 7);
+        REQUIRE(e->getRefinementSpec()->getType() == RefinementSpec::Type::Change);
+        delete e;
+    }
+
+    SECTION("Sphere config at time 2e-9 -> time event carries RefinementSpec with getTime()==2e-9 and isPeriodic()==false") {
+        EventList eventList;
+        MeshRefinement refinement;
+        vector<RefinementConfig> refConfig = {
+            RefinementConfig("Sphere", {}, {2e-9}, {0.5}, {0.0}, {0.0}, {0.0})
+        };
+        refinement.setRefinementConfig(std::move(refConfig));
+
+        createMeshRefinementEvents(refinement, eventList);
+
+        REQUIRE(eventList.getNumTimeEvents() == 1);
+
+        SimulationState state;
+        state.setCurrentTime(2e-9);
+        Event* e = eventList.getCurrentEvent(state);
+        REQUIRE(e->getEventType() == EVENT_REFINEMENT);
+        REQUIRE(e->getRefinementSpec() != nullptr);
+        REQUIRE(e->getRefinementSpec()->getTime() == Approx(2e-9));
+        REQUIRE_FALSE(e->getRefinementSpec()->isPeriodic());
+        delete e;
+    }
+
+    SECTION("Invalid RefinementConfig (empty values for Change type) throws before any event is inserted") {
+        EventList eventList;
+        MeshRefinement refinement;
+        vector<RefinementConfig> refConfig;
+        // Constructing an invalid RefinementConfig should throw at construction time
+        REQUIRE_THROWS_AS(
+            refConfig.push_back(RefinementConfig("Change", {1}, {}, {}, {}, {}, {})),
+            std::invalid_argument
+        );
+        // No events should have been inserted
+        REQUIRE(eventList.getNumIterationEvents() == 0);
+    }
+}

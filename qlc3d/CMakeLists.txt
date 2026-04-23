@@ -25,6 +25,13 @@ add_library(lib-qlc3d STATIC
         src/simulation-container.cpp
         src/eventhandler.cpp
         src/resultio.cpp
+        src/refinement/midpoint-node-lookup.cpp
+        src/refinement/tet-splitter.cpp
+        src/refinement/tet-classifier.cpp
+        src/refinement/periodic-edge-expander.cpp
+        src/refinement/refinement-spec.cpp
+        src/refinement/q-tensor-interpolator.cpp
+        src/refinement/element-selector.cpp
         includes/lc-representation.h
         src/lc-representation.cpp
         includes/io/gmsh-read.h

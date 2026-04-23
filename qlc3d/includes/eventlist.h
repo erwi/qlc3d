@@ -2,16 +2,17 @@
 #define EVENTLIST_H
 
 #include <stdio.h>
+#include <memory>
 #include <vector>
 #include <list>
 #include <electrodes.h>
 #include <limits>
+#include <refinement/refinement-spec.h>
 
 class Simu;
 class SimulationState;
 class SimulationTime;
 class Reader;
-class RefInfo;
 using namespace std;
 
 enum EventType {
@@ -34,7 +35,8 @@ public:
     const double time;
     const unsigned int iteration;
 private:
-    void *eventData_;    // EVENT DATA IS AN OPTIONAL CUSTOM STRUCT/OBJECT WITH ADDITIONAL DATA ABOUT THE EVENT
+    void *eventData_;    // EVENT DATA IS AN OPTIONAL CUSTOM STRUCT/OBJECT WITH ADDITIONAL DATA ABOUT THE EVENT (used for switching)
+    std::unique_ptr<RefinementSpec> refinementSpec_; // typed payload for refinement events
 public:
     Event(const EventType &et, const double &time, void *const ed = NULL):
         eventType_(et),
@@ -50,10 +52,35 @@ public:
         iteration(iter),
         eventData_(ed) {
     }
+
+    // Move constructor to allow moving the unique_ptr payload
+    Event(Event &&other) noexcept :
+        eventType_(other.eventType_),
+        eventOccurrence_(other.eventOccurrence_),
+        time(other.time),
+        iteration(other.iteration),
+        eventData_(other.eventData_),
+        refinementSpec_(std::move(other.refinementSpec_)) {
+        other.eventData_ = nullptr;
+    }
+
     ~Event() noexcept(false);
 
-    /** Create new unmanaged periodic mesh refinement event. It will need to be manually deleted!*/
-    static Event* ofPeriodicMeshRefinement(RefInfo *refInfo);
+    /**
+     * Create a typed refinement event that fires at the given iteration.
+     * @param spec  Owned RefinementSpec payload.
+     * @param iteration Iteration at which to fire.
+     * @return New Event owning the spec.
+     */
+    static Event makeRefinement(std::unique_ptr<RefinementSpec> spec, unsigned int iteration);
+
+    /**
+     * Create a typed refinement event that fires at the given simulation time.
+     * @param spec  Owned RefinementSpec payload.
+     * @param time  Simulation time at which to fire.
+     * @return New Event owning the spec.
+     */
+    static Event makeRefinement(std::unique_ptr<RefinementSpec> spec, double time);
 
     EventType getEventType()const {
         return eventType_;
@@ -68,6 +95,11 @@ public:
     void setEventDataPtr(void *ed) {
         eventData_ = ed;
     }
+
+    /**
+     * @return Pointer to the owned RefinementSpec, or nullptr if not a typed refinement event.
+     */
+    [[nodiscard]] const RefinementSpec* getRefinementSpec() const { return refinementSpec_.get(); }
 
     std::string toString() const;
     static const char *getEventString(const EventType);     // DEBUG, RETURN EVENT TYPE STRING
@@ -84,15 +116,13 @@ private:
     list <Event *> timeEvents_;     // Collection od time/iteration events
     list <Event *> iterationEvents_;
 
-    /** periodically (by iteration and/or time) occurring mesh refinement events */
+    /** periodically (by iteration) occurring mesh refinement events */
     list <Event *> repRefinements_;
     size_t saveIter_;               // SAVE PERIOD IN ITERATIONS
     double saveTime_;               // SAVE PERIOD IN SECONDS
     size_t saveTimeCount_;          // KEEPS COUNT OF PROCESSED REOCCURRING SAVE ITERS SO FAR
-    // REPEATED REFINMENT EVENTS
+    // REPEATED REFINEMENT EVENTS
     size_t repRefIter_ = 0;             // REFINEMENT PERIOD IN ITERATIONS 0 -> NEVER
-    double repRefTime_ = 0;             // REFINEMENT PERIOD IN SECONDS    0 -> NEVER
-    size_t repRefTimeCount_;        // KEEPS COUNT OF PROCESSED ROCCURRING REFINEMENT EVENT SO FAR
     void prependReoccurringIterEvent(Event *iEvent); // ADDS REOCCURRING TIME EVENT TO FRONT OF QUEUE
 
 
@@ -115,10 +145,8 @@ public:
     size_t getSaveIter() const { return saveIter_; }
     double getSaveTime() const { return saveTime_; }
     void setRepRefIter(const size_t rri) { repRefIter_ = rri; }
-    void setRepRefTime(const double rrt) { repRefTime_ = rrt; }
 
     [[nodiscard]] size_t getPeriodicRefinementIteration() const { return repRefIter_; }
-    [[nodiscard]] double getPeriodicRefinementTime() const { return repRefTime_; }
     [[nodiscard]] size_t getNumPeriodicRefinementObjects() const { return repRefinements_.size(); }
 
     /** total number of time events queued up */

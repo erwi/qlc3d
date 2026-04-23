@@ -13,6 +13,15 @@ add_executable(cpp-test
         cpp/configuration-tests.cpp
         cpp/math-tests.cpp
         cpp/meshrefinement-test.cpp
+        cpp/meshrefinement-config-tests.cpp
+        cpp/refinement/midpoint-node-lookup-tests.cpp
+        cpp/refinement/tet-splitter-tests.cpp
+        cpp/refinement/tet-classifier-tests.cpp
+        cpp/refinement/periodic-edge-expander-tests.cpp
+        cpp/refinement/q-tensor-interpolator-tests.cpp
+        cpp/refinement/refinement-spec-tests.cpp
+        cpp/refinement/refinement-event-tests.cpp
+        cpp/refinement/element-selector-tests.cpp
         cpp/initial-lc-orientation-tests.cpp
         cpp/init-events-tests.cpp
         cpp/io/meshio-tests.cpp

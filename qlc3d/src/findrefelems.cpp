@@ -1,4 +1,5 @@
 #include <refinement.h>
+#include <refinement/refinement-spec.h>
 #include <algorithm>
 #include <globals.h>
 #include "geom/coordinates.h"
@@ -34,7 +35,7 @@ double get_elem_maxdQ(const idx elem,        // index to element
 
 
 
-void findTets_Change( const RefInfo& refinfo,
+void findTets_Change( const RefinementSpec& refinfo,
                       vector <idx>& i_tet,
                       const int refiter,
                       const Geometry& geom,
@@ -82,7 +83,7 @@ void selectTetsByCoordIndex(const std::vector<idx>& indp,
     }
 }
 
-void findTets_Sphere(const RefInfo& refinfo,
+void findTets_Sphere(const RefinementSpec& refinfo,
                      vector <idx>& i_tet,
                      const int refiter,
                      const Geometry& geom
@@ -112,7 +113,7 @@ void findTets_Sphere(const RefInfo& refinfo,
     selectTetsByCoordIndex(p_close, geom, i_tet);
 }
 
-void findTets_Box(const RefInfo& refinfo,
+void findTets_Box(const RefinementSpec& refinfo,
                   vector<idx>& i_tet,
                   const int refiter,
                   const Geometry& geom)

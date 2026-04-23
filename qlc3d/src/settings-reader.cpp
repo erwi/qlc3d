@@ -210,7 +210,13 @@ void SettingsReader::readRefinement(Reader &reader) {
 
     // read periodically repeating refinement times/iterations
     meshRefinement_->setRepRefIter(reader.getOptional<unsigned int>("RepRefIter").value_or(0));
-    meshRefinement_->setRepRefTime(reader.getOptional<double>("RepRefTime").value_or(0));
+
+    // RepRefTime is not supported - emit a descriptive error if specified
+    auto repRefTime = reader.getOptional<double>("RepRefTime");
+    if (repRefTime.has_value() && repRefTime.value() != 0.0) {
+        throw std::invalid_argument(
+            "RepRefTime is not supported. Use RepRefIter for periodic mesh refinement by iteration count.");
+    }
 
     // read all refinement objects
     vector<RefinementConfig> refinement;

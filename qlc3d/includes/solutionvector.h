@@ -63,6 +63,8 @@ public:
     SolutionVector(idx np, idx dim);
 
     SolutionVector& operator=(const SolutionVector&);
+    SolutionVector(SolutionVector&&) = default;
+    SolutionVector& operator=(SolutionVector&&) = default;
 
     /** Number of degrees of freedom per dimension, including fixed and periodic nodes. a.k.a npLC */
     [[nodiscard]] inline idx getnDoF()const {return nDoF;} // npLC

@@ -22,29 +22,33 @@ const char *Event::getEventString(const EventType e) {
 }
 
 Event::~Event() noexcept(false) {
-    // IF THIS EVENT CONTAINS A DATA POINTER, DELETE IT
+    // IF THIS EVENT CONTAINS A (legacy void*) DATA POINTER, DELETE IT
     if (eventData_) {
         switch (eventType_) {
-        case (EVENT_REFINEMENT): {
-            RefInfo *ri = static_cast<RefInfo *>(eventData_);
-            delete ri;
-            eventData_ = NULL;
-            break;
-        }
         case (EVENT_SWITCHING): {
             SwitchingInstance *si = static_cast<SwitchingInstance *>(eventData_);
             delete si;
             eventData_ = NULL;
             break;
         }
-        default:    // THIS SHOULD NEVER HAPPEN
-            RUNTIME_ERROR("Unhandled event type.");
+        default:
+            // EVENT_REFINEMENT no longer uses void* - ignore
+            break;
         }
     }
+    // refinementSpec_ is automatically cleaned up by unique_ptr
 }
 
-Event * Event::ofPeriodicMeshRefinement(RefInfo *refInfo) {
-    return new Event(EVENT_REFINEMENT, 0., (void*) refInfo);
+Event Event::makeRefinement(std::unique_ptr<RefinementSpec> spec, unsigned int iteration) {
+    Event e(EVENT_REFINEMENT, iteration);
+    e.refinementSpec_ = std::move(spec);
+    return e;
+}
+
+Event Event::makeRefinement(std::unique_ptr<RefinementSpec> spec, double time) {
+    Event e(EVENT_REFINEMENT, time);
+    e.refinementSpec_ = std::move(spec);
+    return e;
 }
 
 bool compare_timeptr(const Event *first, const Event *second) {
@@ -73,9 +77,7 @@ EventList::EventList():
     saveIter_(0),
     saveTime_(0),
     saveTimeCount_(0),
-    repRefIter_(0),
-    repRefTime_(0),
-    repRefTimeCount_(0) {
+    repRefIter_(0) {
 }
 
 EventList::~EventList() {
@@ -240,20 +242,16 @@ void EventList::manageReoccurringEvents(int currentIteration, const SimulationTi
         // ALL REPEATING REFINEMENT DEFINITIONS NEED TO BE COPIED TO FRONT OF
         // EVENT QUEUE TO BE PROCESSED NEXT TIME STEP
         //
-        std::list<Event *> ::iterator itr = repRefinements_.begin();
-        for (; itr != repRefinements_.end() ; ++itr) {
-            // GET PTR TO REPEATING REFINFO OBJECT
-            RefInfo *repref = static_cast<RefInfo *>((*itr)->getEventDataPtr());
-            // CREATE COPY OF REPEATING REFINFO OBJECT
-            RefInfo *cpy_repref = new RefInfo(*repref);
-            Event *ev = new Event(EVENT_REFINEMENT, nextIter);          // EVENT FOR NEXT ITERATOR
-            ev->setEventDataPtr(cpy_repref);
-            this->prependReoccurringIterEvent(ev);   // ADD TO FRONT OF QUEUE
+        for (Event* repEvent : repRefinements_) {
+            const RefinementSpec* repSpec = repEvent->getRefinementSpec();
+            if (repSpec == nullptr) {
+                RUNTIME_ERROR("Periodic refinement event has no RefinementSpec.");
+            }
+            // Create a clone of the spec for this new event
+            auto specCopy = repSpec->clone();
+            Event *ev = new Event(Event::makeRefinement(std::move(specCopy), nextIter));
+            this->prependReoccurringIterEvent(ev);
         }
-    }
-    // REOCCURRING REFINEMENT TIME
-    if (repRefTime_ > 0) {
-        RUNTIME_ERROR("\"RepRefTime\" has not been implemented yet.");
     }
 }
 
@@ -310,7 +308,7 @@ std::string EventList::toString() const {
   }
   // add periodically occurring events' periods
   eventString += "], saveIter_=" + std::to_string(saveIter_) + ", saveTime_=" + std::to_string(saveTime_) + ", saveTimeCount_=" + std::to_string(saveTimeCount_) + ",";
-  eventString += "repRefIter_=" + std::to_string(repRefIter_) + ", repRefTime_=" + std::to_string(repRefTime_) + ", repRefTimeCount_=" + std::to_string(repRefTimeCount_);
+  eventString += "repRefIter_=" + std::to_string(repRefIter_);
 
   eventString += "}}";
   return eventString;

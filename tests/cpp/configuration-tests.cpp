@@ -159,7 +159,6 @@ TEST_CASE("read REFINEMENT from settings file") {
     contents += "REFINEMENT1.Values = [0.12]\n";
 
     contents += "RepRefIter=10 \n";
-    contents += "RepRefTime = 2e-9\n";
 
     auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
 
@@ -169,7 +168,6 @@ TEST_CASE("read REFINEMENT from settings file") {
 
 
     REQUIRE(refinement->getRepRefIter() == 10);
-    REQUIRE(refinement->getRepRefTime() == 2e-9);
 
     REQUIRE(refs.size() == 1);
 
@@ -185,6 +183,31 @@ TEST_CASE("read REFINEMENT from settings file") {
     REQUIRE((ref.times_.size() == 2 && ref.times_[0] == 1 && ref.times_[1] == 2));
     REQUIRE((ref.iterations_.size() == 1 && ref.iterations_[0] == 3));
     REQUIRE((ref.values_.size() == 1 && ref.values_[0] == 0.12));
+}
+
+TEST_CASE("RepRefTime in settings file throws descriptive error") {
+    // RepRefTime is not supported; using it should throw at parse time with a clear message.
+    std::string contents;
+    contents += "MeshName = test.msh\n";
+    contents += "REFINEMENT1.TYPE = Sphere\n";
+    contents += "REFINEMENT1.X=[0.0]\n";
+    contents += "REFINEMENT1.Y=[0.0]\n";
+    contents += "REFINEMENT1.Z=[0.0]\n";
+    contents += "REFINEMENT1.Values=[0.5]\n";
+    contents += "RepRefTime = 5e-9\n";
+
+    auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+    REQUIRE_THROWS_AS(SettingsReader(settingsFile.name()).refinement(), std::invalid_argument);
+}
+
+TEST_CASE("RepRefTime = 0 in settings file does not throw") {
+    // Explicitly setting RepRefTime to 0 (the default) should be accepted silently.
+    std::string contents;
+    contents += "MeshName = test.msh\n";
+    contents += "RepRefTime = 0\n";
+
+    auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+    REQUIRE_NOTHROW(SettingsReader(settingsFile.name()).refinement());
 }
 
 TEST_CASE("read electrodes from settings file") {

@@ -133,11 +133,9 @@ void initialiseLcSolutionVector(SolutionVector &q,
 void createMeshRefinementEvents(const MeshRefinement &meshRefinement,
                                 EventList &eventListOut) {
     const unsigned int repRefIter = meshRefinement.getRepRefIter();
-    const double repRefTime = meshRefinement.getRepRefTime();
-    bool hasPeriodicRefinement = repRefIter > 0 || repRefTime > 0;
-    Log::info("Creating periodic mesh refinement events at every {} iterations, {} seconds", repRefIter, repRefTime);
+    bool hasPeriodicRefinement = repRefIter > 0;
+    Log::info("Creating periodic mesh refinement events at every {} iterations", repRefIter);
     eventListOut.setRepRefIter(repRefIter);
-    eventListOut.setRepRefTime(repRefTime);
 
     if (hasPeriodicRefinement) {
         // create refinement event for periodically occurring mesh refinement.
@@ -146,12 +144,14 @@ void createMeshRefinementEvents(const MeshRefinement &meshRefinement,
             if (!ref.occursPeriodically()) {
                 continue;
             }
-            RefInfo *info = RefInfo::ofPeriodicMeshRefinement(ref.type_, ref.values_, ref.x_, ref.y_, ref.z_);
-            Event *event = Event::ofPeriodicMeshRefinement(info);
-            eventListOut.addRepRefInfo(event);
+            auto specs = ref.toSpecs();
+            for (auto &spec : specs) {
+                Event* event = new Event(Event::makeRefinement(std::move(spec), 0.0));
+                eventListOut.addRepRefInfo(event);
+            }
         }
 
-        // e.g. if user has defined RepRefIter > 0 or RepRefTime > 0, but no refinement objects with
+        // e.g. if user has defined RepRefIter > 0, but no refinement objects with
         // empty explicit times/iterations lists
         if (eventListOut.getNumPeriodicRefinementObjects() == 0) {
             RUNTIME_ERROR("No refinement objects defined for periodic mesh refinement");
@@ -164,20 +164,17 @@ void createMeshRefinementEvents(const MeshRefinement &meshRefinement,
             continue;
         }
 
-        // convert each explicitly defined refinement iteration to an *Event and add to event list
-        for (unsigned int iter : ref.iterations_) {
-            RefInfo * refInfo = RefInfo::make(ref.type_, iter, -1,
-                                              ref.values_, ref.x_, ref.y_, ref.z_);
-            auto *event = new Event(EVENT_REFINEMENT, iter, (void*) refInfo);
-            eventListOut.insertIterEvent(event);
-        }
-
-        // convert each explicitly defined refinement time to an *Event adn add to event list
-        for (double time : ref.times_) {
-            RefInfo *refInfo = RefInfo::make(ref.type_, -1, time,
-                                             ref.values_, ref.x_, ref.y_, ref.z_);
-            auto *event = new Event(EVENT_REFINEMENT, time, (void*) refInfo);
-            eventListOut.insertTimeEvent(event);
+        auto specs = ref.toSpecs();
+        for (auto &spec : specs) {
+            if (spec->getIteration() > 0) {
+                unsigned int iter = static_cast<unsigned int>(spec->getIteration());
+                Event* event = new Event(Event::makeRefinement(std::move(spec), iter));
+                eventListOut.insertIterEvent(event);
+            } else {
+                double time = spec->getTime();
+                Event* event = new Event(Event::makeRefinement(std::move(spec), time));
+                eventListOut.insertTimeEvent(event);
+            }
         }
     }
 }

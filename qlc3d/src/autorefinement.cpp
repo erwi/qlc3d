@@ -1,96 +1,27 @@
 #include <refinement.h>
 #include <meshrefinement.h>
+#include <refinement/refinement-spec.h>
+#include <refinement/q-tensor-interpolator.h>
 #include <geometry.h>
 #include <solutionvector.h>
 #include <algorithm>
 #include <alignment.h>
 #include <simulation-state.h>
 #include <util/logging.h>
-#include <geom/vec3.h>
-#include <geom/coordinates.h>
 #include <inits.h>
-#include "geom/periodicity.h"
 
-double intepolate_scalar(double *loc , double *S) {
-    /*! Interpolates scalar value S[4] to a single value using four local coordinates in loc[4]*/
-    double val = 0;
-    for (size_t i = 0 ; i < 4 ; i++) {
-        val += loc[i] * S[i];
-    }
-    return val;
-}
 
-void interpolate(SolutionVector &qnew,
-                 Geometry &geom_new,
-                 SolutionVector &qold,
-                 Geometry &geom_old) {
-    // Interpolates Q-tensor qold from ye olde geometry geom_old to new geometry geom_new
-    // MAKE COORDINATE TO CONTAINING ELEMENT IDEX pint
-    vector <idx> pInTet; // index from point to containing tet
-    geom_old.genIndToTetsByCoords(pInTet,
-                                  geom_new.getCoordinates(),
-                                  true,    // ERROR IF COORDINATE IS NOT FOUND
-                                  true     // ONLY CONSIDER LC ELEMENTS
-                                 );
-    //unsigned int npLC_old = (unsigned int) geom_old.getnpLC();
-    //double *dir = tensortovector(qold.Values , npLC_old);   // director on old mesh
-    // Loop over all new nodes and set Q-tensor
-    qnew.Resize(geom_new.getnpLC(), 5);
-    auto &oldTets = geom_old.getTetrahedra();
-    for (size_t ind = 0 ; ind < (size_t) geom_new.getnpLC() ; ind++) { // for all new nodes
-        // only LC volumes are interpolated
-        assert(geom_old.getTetrahedra().getMaterialNumber(pInTet[ind]) == MAT_DOMAIN1);
 
-        double loc[4]; // LOCAL ELEMENT COORDS
-
-        Vec3 targetPoint = geom_new.getCoordinates().getPoint(ind);
-        // calculate local element coordinates loc of global coordinate coord.
-        oldTets.calcLocCoords(pInTet[ind], geom_old.getCoordinates(), targetPoint, loc);
-        size_t n[4];
-        n[0] = oldTets.getNode(pInTet[ind], 0);
-        n[1] = oldTets.getNode(pInTet[ind], 1);
-        n[2] = oldTets.getNode(pInTet[ind], 2);
-        n[3] = oldTets.getNode(pInTet[ind], 3);
-
-        // IF MAXIMUM LOCAL COORDINATE VALUE is more or less 1 -> the node is an exsiting one
-        size_t ind_max = max_element(loc, loc + 4) - loc ;
-        if (loc[ ind_max ] >= 0.99999) {// EXISTING CORNER NODE, STRAIGHT COPY OF OLD VALUES
-            qnew.setValue(ind, 0 , qold.getValue(n[ind_max] , 0));
-            qnew.setValue(ind, 1 , qold.getValue(n[ind_max] , 1));
-            qnew.setValue(ind, 2 , qold.getValue(n[ind_max] , 2));
-            qnew.setValue(ind, 3 , qold.getValue(n[ind_max] , 3));
-            qnew.setValue(ind, 4 , qold.getValue(n[ind_max] , 4));
-        } else {
-            // INTERPOLATE USING Q-TENSOR COMPONENTS AS SCALARS
-            for (int i = 0 ; i  < 5 ; i++) { // loop over each tensor component
-                double qo[4] = { qold.getValue(n[0], i) ,  // q tensor at four corner nodes of old tet
-                                 qold.getValue(n[1], i) ,
-                                 qold.getValue(n[2], i) ,
-                                 qold.getValue(n[3], i)
-                               };
-                double qn = intepolate_scalar(loc , qo);
-                qnew.setValue(ind , i , qn);   // set i'th dimension of value at node ind to qn
-            }// end for i
-        }
-    }// end for all new coords
-    //if (dir) delete [] dir;
-}
-
-bool needsInterpolatedQ(const list<RefInfo> &refInfos,
+bool needsInterpolatedQ(const std::vector<const RefinementSpec*> &specs,
                         const unsigned int refiter) {
 // CHECKS WHETHER IT IS NECESSARY TO INTERPOLATE Q-TENSOR ONTO A DIFFERENT MESH.
 // SOME REFINEMENT TYPES NEED THIS WHILE OTHERS DON'T. INTERPOLATION CAN BE
 // SLOW, SO AVOIDING IT CAN SPEED UP THINGS
-    list<RefInfo>::const_iterator ritr = refInfos.begin();
-    for (; ritr != refInfos.end() ; ++ritr) {
-        // IF THIS REFITER IS NOT DEFINED FOR THIS REFINFO OBJECT, SKIP IT
-        if (refiter > (*ritr).getRefIter())
+    for (const RefinementSpec* spec : specs) {
+        if (refiter > spec->getRefIter())
             continue;
-        switch ((*ritr).getType()) {
-        case (RefInfo::Change):
+        if (spec->getType() == RefinementSpec::Type::Change)
             return true;
-        default: {} // DO NOTHING
-        }
     }
     return false;
 }
@@ -99,7 +30,7 @@ void get_index_to_tred(Geometry &geom_curr, // CURRENT CALCULATION GEOMETRY
                        Geometry &geom_work, // REFINED WORKING GEOMETRY
                        SolutionVector &q,   // Q_TENSOR CORRESPONDING TO geom_curr
                        vector <idx> &i_tet,
-                       const list<RefInfo> &refInfos,
+                       const std::vector<const RefinementSpec*> &specs,
                        const unsigned int refiter,
                        bool isEndRefinement = false
                       ) {
@@ -109,31 +40,27 @@ void get_index_to_tred(Geometry &geom_curr, // CURRENT CALCULATION GEOMETRY
     i_tet.assign(geom_work.getTetrahedra().getnElements() , 0);
     SolutionVector q_temp;
     // IF INTERPOLATION NEEDED. DO IT
-    if (needsInterpolatedQ(refInfos, refiter)) {
-        interpolate(q_temp, geom_work, q, geom_curr);
+    if (needsInterpolatedQ(specs, refiter)) {
+        q_temp = interpolateQTensor(geom_work, geom_curr, q);
     }
-    // LOOP OVER EACH REFINFO OBJECT AND PROCESS IT
-    list<RefInfo>::const_iterator ritr = refInfos.begin();
-    for (ritr = refInfos.begin() ; ritr != refInfos.end() ; ++ritr) {
-        // CHECK WHETHER THIS RefInfo OBJECT IS DEFINED FOR THIS REFINEMENT ITERATION
-        if (refiter > (*ritr).getRefIter())
+    // LOOP OVER EACH SPEC AND PROCESS IT
+    for (const RefinementSpec* spec : specs) {
+        if (refiter > spec->getRefIter())
             continue;
-        // DIFERENT REFINFO TYPES REQUIRE DIFFERENT ELEMENT SEARCHES
-        // ELEMENT SEARCH FUCNTIONS DEFINED IN findrefelems.cpp
-        switch ((*ritr).getType()) {
-            case (RefInfo::Change): {
+        switch (spec->getType()) {
+            case (RefinementSpec::Type::Change): {
                 Log::info("Searching for tetrahedra by refinement type = CHANGE");
-                findTets_Change((*ritr) , i_tet, refiter, geom_work , q_temp);
+                findTets_Change(*spec, i_tet, refiter, geom_work, q_temp);
                 break;
             }
-            case (RefInfo::Sphere): {
+            case (RefinementSpec::Type::Sphere): {
                 Log::info("Searching for tetrahedra by refinement type = SPHERE");
-                findTets_Sphere((*ritr) , i_tet, refiter, geom_work);
+                findTets_Sphere(*spec, i_tet, refiter, geom_work);
                 break;
             }
-            case (RefInfo::Box): {
+            case (RefinementSpec::Type::Box): {
                 Log::info("Searching for tetrahedra by refinement type = BOX");
-                findTets_Box((*ritr), i_tet, refiter, geom_work);
+                findTets_Box(*spec, i_tet, refiter, geom_work);
                 break;
             }
             default: {
@@ -143,12 +70,11 @@ void get_index_to_tred(Geometry &geom_curr, // CURRENT CALCULATION GEOMETRY
     }
 }
 
-idx getMaxRefiterCount(const list<RefInfo> &refInfos) {
+idx getMaxRefiterCount(const std::vector<const RefinementSpec*> &specs) {
 // DETERMINES MAXIMUM NUMBER OF REFINEMENT ITERATIONS THAT MAY BE PERFORMED
-    list<RefInfo>::const_iterator ri_itr = refInfos.begin();
     idx maxRefIter(0);
-    for (; ri_itr != refInfos.end() ; ++ri_itr) {
-        maxRefIter = maxRefIter > (*ri_itr).getRefIter() ? maxRefIter : (*ri_itr).getRefIter();
+    for (const RefinementSpec* spec : specs) {
+        maxRefIter = maxRefIter > spec->getRefIter() ? maxRefIter : spec->getRefIter();
     }
     return maxRefIter;
 }
@@ -157,7 +83,7 @@ bool autoref(Geometry &geom_orig,
              Geometry &geom,
              SolutionVector &q,
              SolutionVector &v,
-             const list<RefInfo> &refInfos,
+             const std::vector<const RefinementSpec*> &specs,
              Simu &simu,
              SimulationState &simulationState,
              Alignment &alignment,
@@ -165,7 +91,7 @@ bool autoref(Geometry &geom_orig,
              double S0) {
     bool bRefined{false};   // indicates whether mesh is changed or not
     unsigned int refiter{0};         // refinement iteration counter
-    unsigned int maxrefiter = getMaxRefiterCount(refInfos);
+    unsigned int maxrefiter = getMaxRefiterCount(specs);
 
     if (maxrefiter == 0) {   // IF NO REFINEMENT
         simulationState.meshModified(false);
@@ -188,9 +114,9 @@ bool autoref(Geometry &geom_orig,
                           geom_temp,
                           q,
                           i_tet,
-                          refInfos,
+                          specs,
                           refiter,
-                          false);//IsEndRefinement);
+                          false);
         // LEAVE REF LOOP IF NO REFINABLE TETS FOUND
         if (*max_element(i_tet.begin() , i_tet.end()) < RED_TET) {
             Log::info("No tetrahedra requiring refinement found during iteration {}.", refiter + 1);
@@ -220,8 +146,7 @@ bool autoref(Geometry &geom_orig,
     // REALLOCATE Q-TENSOR
     SolutionVector qTemp(q.getnDoF(), 5);
     qTemp = q; // temp swap
-    q.Resize(geom_temp.getnpLC(), 5);       // ALLOCATE FOR NEW MESH SIZE
-    interpolate(q, geom_temp, qTemp, geom);    // INTERPOLATE FROM PREVIOUS MESH
+    q = interpolateQTensor(geom_temp, geom, qTemp);    // INTERPOLATE FROM PREVIOUS MESH
     // SET BOUNDARY CONDITIONS
     setStrongSurfacesQ(q, alignment, S0, geom_temp);
     q.initialiseLcBoundaries(geom_temp, alignment);

@@ -1,7 +1,9 @@
 #include <eventlist.h>
 #include <eventhandler.h>
 #include <refinement.h> // declares autorefinement etc.
+#include <refinement/refinement-spec.h>
 #include <list>
+#include <vector>
 #include <qlc3d.h>
 #include <util/logging.h>
 
@@ -17,22 +19,22 @@ bool handleMeshRefinement(std::list<Event*>& refEvents,
                           double S0) {
     Log::info("Doing {} mesh refinements.", refEvents.size());
 
-    // MAKE LIST OF ALL REFINFO OBJECTS THAT ARE HANDLES NOW
-    std::list<RefInfo> refInfos;
-    std::list<Event*>::iterator evitr = refEvents.begin();
-    for ( ; evitr!= refEvents.end() ; ++evitr){
-        RefInfo* ref = static_cast<RefInfo*>( (*evitr)->getEventDataPtr() );
-        refInfos.push_back( *ref );
+    // COLLECT ALL REFINEMENTSPEC POINTERS
+    std::vector<const RefinementSpec*> specs;
+    for (Event* ev : refEvents) {
+        const RefinementSpec* spec = ev->getRefinementSpec();
+        if (spec != nullptr) {
+            specs.push_back(spec);
+        }
     }
-    Log::info("{} Refinement objects.", refInfos.size());
+    Log::info("{} Refinement objects.", specs.size());
 
     // TRY TO DO REFINEMENT
-    bool isRefined(false);
-    isRefined = autoref(*geometries.geom_orig,
+    bool isRefined = autoref(*geometries.geom_orig,
             *geometries.geom,
             *solutionvectors.q,
             *solutionvectors.v,
-            refInfos,
+            specs,
             simu,
             simulationState,
             alignment,
@@ -40,8 +42,8 @@ bool handleMeshRefinement(std::list<Event*>& refEvents,
             S0);
 
     // DELETE ALL REFINEMENT EVENTS. ALWAYS
-    for (evitr = refEvents.begin() ; evitr != refEvents.end() ; ++evitr){
-        delete (*evitr);
+    for (Event* ev : refEvents) {
+        delete ev;
     }
     return isRefined;
 }
