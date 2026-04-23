@@ -1,48 +1,41 @@
 # Building qlc3d
 
+To compile qlc3d from source, you need a C++17-capable compiler, CMake, and Git. To run the full test suite, you also need Python 3.x.
 
-To compile qlc3d from source code, you will required at least a c++ compiler (with support for c++17) and cmake and Git installed on your computer. To optionally also run all tests, you will need python 3.x installed.
+The general steps are:
 
-The general steps are
-
-1. Get the code: Clone the repository and initialise its submodules.
-2. Compile the code: Use CMake to configure the project for your environemnt which may depend on operating system, compiler used, and any optional build options (RELEASE/DEBUG build etc.)
+1. Get the code: clone the repository and initialise its submodules.
+2. Configure and build: use CMake for your platform, compiler, and build type.
 
 ## Building on Linux (Command Line)
 
 **Getting the Code**
 
-First clone the main code and then dependencies.
+First clone the repository, including its submodules.
 ```
-git clone https://github.com/erwi/qlc3d.git
+git clone --recursive https://github.com/erwi/qlc3d.git
 cd qlc3d
-git submodule update --init --remote
 ```
 
-Then, compile the code using CMake. This will apply the default configuration for the project.
+Then configure and build the project with CMake.
 ```
-mkdir build && cd build
-cmake ..
-make
+cmake -S . -B build
+cmake --build build
 ```
-The executable `qlc3d` file should now exist in the subdirectory `build/qlc3d`. You can then manually copy the file to where you want it to be installed (and possibly add it to the PATH environment variable?).
+The executable should now be available at `build/qlc3d/qlc3d` on Linux.
 
 **Running Tests From the Command Line (Optional)**
 
-While in the build directory created as above, all tests can be executed:
+Run the tests from the repository root with:
 ```
-ctest ..
+ctest --test-dir build --output-on-failure
 ```
-This starts the tests, and you can expect them to take some minutes to complete.
+The test suite includes native C++ tests and Python integration tests, so it can take a few minutes to finish.
 
 ## Creating a Distributable Release Build in Windows
-Following the steps below creates a single executable that should be runnable on any Windows computer. It includes all dependency libraries
-statically compiled using Mingw, so there is no need to worry about missing dll files. The executable is compiled in release mode, so has various optimisations and multi-threading
-turned on.
+Following the steps below creates a single executable that should run on any Windows computer. It statically links the dependency libraries with MinGW, so there is no need to worry about missing DLL files. The executable is compiled in release mode, so it includes optimisations and multi-threading.
 
-This assumes you have installed CMake, Mingw-w64, Git and a version of Bash (e.g. Git Bash) on your build machine. 
-It is assumed you have the qlc3d code in directory `c:\qlc3d`. It's likely that creating a Release build in Linux is a very
-similar process (not currently tested).
+This assumes you have installed CMake, MinGW-w64, Git, and a version of Bash such as Git Bash. It also assumes the qlc3d source is in `c:\qlc3d`. A Release build on Linux should follow the same CMake workflow.
 
 
 First, check your Mingw version by running `g++ --version` in Bash, and you should see something like below.
@@ -70,11 +63,14 @@ This should set the code optimisation switch `-O3`. It may be possible to improv
 
 Then compile and link the code to produce the executable:
 ```
-$ mingw32-make.exe -j10
+$ cmake --build .
 ```
 
-This should result in the `qlc3d.exe` being created in a subdirectory `qlc3d`. For a quick sanity test, you can run it by 
-typing `./qlc3d/qlc3d.exe` in bash and should see something like below:
+This should result in `qlc3d.exe` being created in the `qlc3d` subdirectory. For a quick sanity check, run it with:
+```
+$ ./qlc3d/qlc3d.exe
+```
+You should see output similar to the following:
 ```
 [INFO] qlc3d. Build date=Aug 19 2023, build time=15:47:51, git commit SHA=6c2cfce, build type=RELEASE.
 [INFO] Current directory: C:\qlc3d\build-release
@@ -82,10 +78,10 @@ Error in file :./meshes/test.txt
 Settings file does not exist: ./meshes/test.txt
 [ERROR] An error has occurred
 ```
-It's safe to ignore the errors, these are printed because no settings file was provided.  
+It is safe to ignore the errors; they are printed because no settings file was provided.
 
 ## Building on a Mac
-This will probably not currently work as there are some Windows/Linux file system specific code, but it ***should*** be simple to replace these with standard c++17 code (TODO).
+This is not currently guaranteed to work because some code is still specific to Windows/Linux file systems, but it should be straightforward to replace those parts with standard C++17 code.
 
 # Running Qlc3d
 For instructions on running and configuring qlc3d, see [this document](qlc3d/doc/README.md)
@@ -94,5 +90,5 @@ For instructions on running and configuring qlc3d, see [this document](qlc3d/doc
 For instructions on creating meshes and geometry, see [this document](qlc3d/doc/mesh.md)
 
 # Examples
-Some example projects are included int the [examples](examples/README.md) subdirectory of this project. 
+Some example projects are included in the [examples](examples/README.md) subdirectory of this project.
 
