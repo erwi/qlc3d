@@ -1,7 +1,8 @@
 #include <catch.h>
 #include <test-util.h>
 #include <geometry.h>
-#include <inits.h>
+#include <geom/coordinates.h>
+#include <io/meshreader.h>
 #include <simu.h>
 #include <electrodes.h>
 #include <refinement.h>
@@ -12,6 +13,11 @@
 #include <list>
 
 namespace {
+
+std::filesystem::path meshResourcePath(const char* filename) {
+    return std::filesystem::absolute(std::filesystem::path(__FILE__))
+        .parent_path().parent_path() / "resources" / filename;
+}
 
 template <typename MeshType>
 double sumDeterminants(const MeshType &mesh) {
@@ -35,13 +41,18 @@ Alignment makeAlignment() {
 
 Electrodes makeElectrodes() {
     std::vector<std::shared_ptr<Electrode>> electrodesVec;
-    electrodesVec.emplace_back(std::shared_ptr<Electrode>(new Electrode(1, {0}, {0})));
-    electrodesVec.emplace_back(std::shared_ptr<Electrode>(new Electrode(2, {0}, {0})));
+    electrodesVec.emplace_back(std::make_shared<Electrode>(1, std::vector<double>{0}, std::vector<double>{0}));
+    electrodesVec.emplace_back(std::make_shared<Electrode>(2, std::vector<double>{0}, std::vector<double>{0}));
     return Electrodes::withElectrodePotentials(electrodesVec);
 }
 
-void prepareGeometryPair(Geometry &originalGeometry, Geometry &workingGeometry, Electrodes &electrodes, Alignment &alignment) {
-    prepareGeometry(originalGeometry, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+void prepareGeometryPair(Geometry &originalGeometry, Geometry &workingGeometry) {
+    auto rawMeshData = MeshReader::readMesh(meshResourcePath("gmsh-small-cube.msh"));
+    REQUIRE(rawMeshData.getElementOrder() == 1);
+    auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
+    originalGeometry.setMeshData(rawMeshData.getElementOrder(), coordinates,
+                                 std::move(rawMeshData.tetNodes), std::move(rawMeshData.tetMaterials),
+                                 std::move(rawMeshData.triNodes), std::move(rawMeshData.triMaterials));
     workingGeometry.setTo(&originalGeometry);
 }
 
@@ -67,7 +78,7 @@ TEST_CASE("mesh refinement") {
     Electrodes electrodes = makeElectrodes();
 
     // reads and prepares test-mesh from resource file
-    prepareGeometryPair(originalGeometry, workingGeometry, electrodes, alignment);
+    prepareGeometryPair(originalGeometry, workingGeometry);
 
     unsigned int npLC = originalGeometry.getnpLC();
     SolutionVector qCurrent(npLC, 5);
@@ -123,7 +134,7 @@ TEST_CASE("box refinement end-to-end") {
     Alignment alignment = makeAlignment();
     Electrodes electrodes = makeElectrodes();
 
-    prepareGeometryPair(originalGeometry, workingGeometry, electrodes, alignment);
+    prepareGeometryPair(originalGeometry, workingGeometry);
 
     unsigned int npLC = originalGeometry.getnpLC();
     SolutionVector qCurrent(npLC, 5);
@@ -156,7 +167,7 @@ TEST_CASE("change refinement end-to-end") {
     Alignment alignment = makeAlignment();
     Electrodes electrodes = makeElectrodes();
 
-    prepareGeometryPair(originalGeometry, workingGeometry, electrodes, alignment);
+    prepareGeometryPair(originalGeometry, workingGeometry);
 
     unsigned int npLC = originalGeometry.getnpLC();
     SolutionVector qCurrent(npLC, 5);
@@ -191,7 +202,7 @@ TEST_CASE("handleMeshRefinement smoke test with RefinementSpec") {
     Alignment alignment = makeAlignment();
     Electrodes electrodes = makeElectrodes();
 
-    prepareGeometryPair(originalGeometry, workingGeometry, electrodes, alignment);
+    prepareGeometryPair(originalGeometry, workingGeometry);
 
     unsigned int npLC = originalGeometry.getnpLC();
     SolutionVector qCurrent(npLC, 5);
@@ -199,7 +210,7 @@ TEST_CASE("handleMeshRefinement smoke test with RefinementSpec") {
 
     // Build a typed refinement event using makeRefinement (the new path)
     auto spec = RefinementSpec::makePeriodic("Sphere", {0.15}, {0.5}, {0.5}, {0.5});
-    Event* refEvent = new Event(Event::makeRefinement(std::move(spec), 1u));
+    auto refEvent = new Event(Event::makeRefinement(std::move(spec), 1u));
     REQUIRE(refEvent->getRefinementSpec() != nullptr);
 
     std::list<Event*> refEvents = {refEvent};

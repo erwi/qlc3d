@@ -41,12 +41,12 @@ double maxDeltaQ(idx elem, const Geometry& geom, const SolutionVector& q)
     const idx numNodes = t.getnNodes();
     double maxdq = 0.0;
     for (idx dim = 0; dim < 5; ++dim) {
-        double qe[4] = {0, 0, 0, 0};
+        std::vector<double> qe(numNodes, 0.0);
         for (idx j = 0; j < numNodes; ++j) {
             qe[j] = q.getValue(t.getNode(elem, j), dim);
         }
-        double mxq = *std::max_element(qe, qe + 4);
-        double mnq = *std::min_element(qe, qe + 4);
+        double mxq = *std::max_element(qe.begin(), qe.end());
+        double mnq = *std::min_element(qe.begin(), qe.end());
         if ((mxq - mnq) > maxdq) maxdq = mxq - mnq;
     }
     return maxdq;

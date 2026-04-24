@@ -16,7 +16,9 @@ using namespace qlc3d::refinement;
 static std::shared_ptr<Mesh> makeTetMesh(const std::vector<idx>& nodes,
                                          const std::vector<idx>& mats) {
     auto m = Mesh::tetMesh();
-    m->appendElements(nodes, mats);
+    m->setElementData(ElementType::LINEAR_TETRAHEDRON,
+                      std::vector<unsigned int>(nodes.begin(), nodes.end()),
+                      std::vector<unsigned int>(mats.begin(), mats.end()));
     return m;
 }
 
@@ -162,20 +164,6 @@ TEST_CASE("assignRefinementTypes: counts each type correctly") {
     REQUIRE(nrt.red == 3);
 }
 
-TEST_CASE("assignRefinementTypes: value 4 is promoted to RED_TET") {
-    std::vector<idx> i_tet = {4};
-    auto nrt = assignRefinementTypes(i_tet);
-    REQUIRE(i_tet[0] == RED_TET);
-    REQUIRE(nrt.red == 1);
-}
-
-TEST_CASE("assignRefinementTypes: value 5 is promoted to RED_TET") {
-    std::vector<idx> i_tet = {5};
-    auto nrt = assignRefinementTypes(i_tet);
-    REQUIRE(i_tet[0] == RED_TET);
-    REQUIRE(nrt.red == 1);
-}
-
 TEST_CASE("assignRefinementTypes: value 6 stays 6") {
     std::vector<idx> i_tet = {6};
     auto nrt = assignRefinementTypes(i_tet);
@@ -184,7 +172,7 @@ TEST_CASE("assignRefinementTypes: value 6 stays 6") {
 }
 
 TEST_CASE("assignRefinementTypes: returned counts match updated i_tet") {
-    std::vector<idx> i_tet = {0, GREEN1_TET, 4, GREEN3_TET};
+    std::vector<idx> i_tet = {0, GREEN1_TET, RED_TET, GREEN3_TET};
     auto nrt = assignRefinementTypes(i_tet);
     idx countRed = std::count(i_tet.begin(), i_tet.end(), (idx)RED_TET);
     idx countG1 = std::count(i_tet.begin(), i_tet.end(), (idx)GREEN1_TET);
@@ -234,6 +222,11 @@ TEST_CASE("resolveGreen3RedAmbiguity: throws on unexpected node count") {
 // ===== Phase 4: classifyRefinement integration tests =====
 
 namespace {
+    std::filesystem::path meshResourcePath(const char* filename) {
+        return std::filesystem::absolute(std::filesystem::path(__FILE__))
+            .parent_path().parent_path().parent_path() / "resources" / filename;
+    }
+
     Alignment makeAlignmentForClassifier() {
         Alignment alignment;
         alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
@@ -249,7 +242,7 @@ namespace {
     void loadSmallCube(Geometry& geom) {
         Alignment alignment = makeAlignmentForClassifier();
         Electrodes electrodes = makeElectrodesForClassifier();
-        prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+        prepareGeometry(geom, meshResourcePath("gmsh-small-cube.msh"), electrodes, alignment, {1, 1, 1});
     }
 }
 

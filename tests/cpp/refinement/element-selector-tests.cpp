@@ -3,9 +3,7 @@
 #include <refinement/refinement-spec.h>
 #include <geometry.h>
 #include <solutionvector.h>
-#include <inits.h>
-#include <electrodes.h>
-#include <alignment.h>
+#include <io/meshreader.h>
 #include <refinement.h>
 #include <test-util.h>
 #include <geom/coordinates.h>
@@ -16,24 +14,18 @@ using namespace qlc3d::refinement;
 
 namespace {
 
-Alignment makeAlignment() {
-    Alignment alignment;
-    alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
-    alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-    return alignment;
-}
-
-Electrodes makeElectrodes() {
-    std::vector<std::shared_ptr<Electrode>> ev;
-    ev.emplace_back(std::make_shared<Electrode>(1, std::vector<double>{0}, std::vector<double>{0}));
-    ev.emplace_back(std::make_shared<Electrode>(2, std::vector<double>{0}, std::vector<double>{0}));
-    return Electrodes::withElectrodePotentials(ev);
+std::filesystem::path meshResourcePath(const char* filename) {
+    return std::filesystem::absolute(std::filesystem::path(__FILE__))
+        .parent_path().parent_path().parent_path() / "resources" / filename;
 }
 
 void loadSmallCube(Geometry& geom) {
-    Alignment alignment = makeAlignment();
-    Electrodes electrodes = makeElectrodes();
-    prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    auto rawMeshData = MeshReader::readMesh(meshResourcePath("gmsh-small-cube.msh"));
+    REQUIRE(rawMeshData.getElementOrder() == 1);
+    auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
+    geom.setMeshData(rawMeshData.getElementOrder(), coordinates,
+                     std::move(rawMeshData.tetNodes), std::move(rawMeshData.tetMaterials),
+                     std::move(rawMeshData.triNodes), std::move(rawMeshData.triMaterials));
 }
 
 } // namespace

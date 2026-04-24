@@ -3,7 +3,7 @@
 #include <test-util.h>
 #include <geometry.h>
 #include <geom/coordinates.h>
-#include <inits.h>
+#include <io/meshreader.h>
 #include <simu.h>
 #include <simulation-state.h>
 #include <electrodes.h>
@@ -52,18 +52,9 @@ TEST_CASE("interpolateScalar_uniformField") {
 
 namespace {
 
-Alignment makeAlignment() {
-    Alignment alignment;
-    alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
-    alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
-    return alignment;
-}
-
-Alignment makeAlignmentWithoutOverride() {
-    Alignment alignment;
-    alignment.addSurface(Surface::ofFreeze(1));
-    alignment.addSurface(Surface::ofFreeze(2));
-    return alignment;
+std::filesystem::path meshResourcePath(const char* filename) {
+    return std::filesystem::absolute(std::filesystem::path(__FILE__))
+        .parent_path().parent_path().parent_path() / "resources" / filename;
 }
 
 std::unique_ptr<Simu> makeSimu() {
@@ -72,17 +63,20 @@ std::unique_ptr<Simu> makeSimu() {
 
 Electrodes makeElectrodes() {
     std::vector<std::shared_ptr<Electrode>> electrodesVec;
-    electrodesVec.emplace_back(std::shared_ptr<Electrode>(new Electrode(1, {0}, {0})));
-    electrodesVec.emplace_back(std::shared_ptr<Electrode>(new Electrode(2, {0}, {0})));
+    electrodesVec.emplace_back(std::make_shared<Electrode>(1, std::vector<double>{0}, std::vector<double>{0}));
+    electrodesVec.emplace_back(std::make_shared<Electrode>(2, std::vector<double>{0}, std::vector<double>{0}));
     return Electrodes::withElectrodePotentials(electrodesVec);
 }
 
 /** Load the small cube mesh into geomOld and copy it to geomNew (same mesh, no refinement).
  *  This gives us a trivially valid pair for testing the corner-node fast path. */
 void loadMeshPair(Geometry &geomOld, Geometry &geomNew) {
-    Alignment alignment = makeAlignment();
-    Electrodes electrodes = makeElectrodes();
-    prepareGeometry(geomOld, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    auto rawMeshData = MeshReader::readMesh(meshResourcePath("gmsh-small-cube.msh"));
+    REQUIRE(rawMeshData.getElementOrder() == 1);
+    auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
+    geomOld.setMeshData(rawMeshData.getElementOrder(), coordinates,
+                        std::move(rawMeshData.tetNodes), std::move(rawMeshData.tetMaterials),
+                        std::move(rawMeshData.triNodes), std::move(rawMeshData.triMaterials));
     geomNew.setTo(&geomOld);
 }
 
@@ -128,19 +122,19 @@ TEST_CASE("interpolateQTensor_preservedNodeRetainsValue") {
     Geometry geomOld, geomNew;
     loadMeshPair(geomOld, geomNew);
 
-    const int npLC = geomOld.getnpLC();
+    const idx npLC = geomOld.getnpLC();
     SolutionVector qOld(npLC, 5);
     // Set a uniform non-trivial Q field
-    for (int n = 0; n < npLC; n++) {
-        for (int d = 0; d < 5; d++) {
+    for (idx n = 0; n < npLC; n++) {
+        for (idx d = 0; d < 5; d++) {
             qOld.setValue(n, d, 1.0 + 0.1 * d);
         }
     }
 
     SolutionVector result = interpolateQTensor(geomNew, geomOld, qOld);
 
-    for (int n = 0; n < npLC; n++) {
-        for (int d = 0; d < 5; d++) {
+    for (idx n = 0; n < npLC; n++) {
+        for (idx d = 0; d < 5; d++) {
             REQUIRE(result.getValue(n, d) == Approx(qOld.getValue(n, d)).epsilon(1e-12));
         }
     }
@@ -149,15 +143,23 @@ TEST_CASE("interpolateQTensor_preservedNodeRetainsValue") {
 TEST_CASE("interpolateQTensor_linearFieldSurvivesRefinement") {
     Geometry geomOld, geomNew;
     std::unique_ptr<Simu> simu = makeSimu();
-    Alignment alignment = makeAlignmentWithoutOverride();
-    Electrodes electrodes = makeElectrodes();
-    prepareGeometry(geomOld, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, electrodes, alignment, {1, 1, 1});
+    auto rawMeshData = MeshReader::readMesh(meshResourcePath("gmsh-small-cube.msh"));
+    REQUIRE(rawMeshData.getElementOrder() == 1);
+    auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
+    geomOld.setMeshData(rawMeshData.getElementOrder(), coordinates,
+                        std::move(rawMeshData.tetNodes), std::move(rawMeshData.tetMaterials),
+                        std::move(rawMeshData.triNodes), std::move(rawMeshData.triMaterials));
     geomNew.setTo(&geomOld);
 
     SolutionVector qCurrent(geomOld.getnpLC(), 5);
     setLinearQField(qCurrent, geomOld);
     SolutionVector potential(geomOld.getnpLC(), 1);
     SimulationState simulationState;
+
+    Alignment alignment;
+    alignment.addSurface(Surface::ofFreeze(1));
+    alignment.addSurface(Surface::ofFreeze(2));
+    Electrodes electrodes = makeElectrodes();
 
     auto spec = RefinementSpec::makePeriodic("Sphere", {0.1}, {0}, {0}, {0});
     std::vector<const RefinementSpec*> specs = {spec.get()};
