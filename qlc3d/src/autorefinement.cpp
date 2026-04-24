@@ -9,7 +9,7 @@
 #include <simulation-state.h>
 #include <util/logging.h>
 #include <inits.h>
-
+#include <util/exception.h>
 
 
 bool needsInterpolatedQ(const std::vector<const RefinementSpec*> &specs,

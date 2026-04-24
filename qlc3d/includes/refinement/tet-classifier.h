@@ -3,12 +3,10 @@
 
 #include <globals.h>
 #include <line.h>
-#include <mesh.h>
 #include <geometry.h>
 #include <refinement.h>
 #include <vector>
 #include <set>
-#include <string>
 
 namespace qlc3d::refinement {
 

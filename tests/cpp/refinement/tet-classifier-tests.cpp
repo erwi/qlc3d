@@ -1,6 +1,5 @@
 #include <catch.h>
 #include <refinement/tet-classifier.h>
-#include <mesh.h>
 #include <geometry.h>
 #include <inits.h>
 #include <electrodes.h>

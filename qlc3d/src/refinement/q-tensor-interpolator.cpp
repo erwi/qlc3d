@@ -2,6 +2,7 @@
 #include <geometry.h>
 #include <geom/coordinates.h>
 #include <solutionvector.h>
+#include <material_numbers.h>
 #include <algorithm>
 #include <cassert>
 
