@@ -389,8 +389,6 @@ void PotentialSolver::localKLNeumann(
   coordinates.loadCoordinates(&tetNodes[0], &tetNodes[nodesPerTet], &tetCoords[0]);
   for (auto &tetCoord : tetCoords) { tetCoord *= 1e-6; }
 
-  shapes.initialiseElement(&tetCoords[0], tetDet);
-
   vector<qlc3d::TTensor> qNodal(nodesPerTet, qlc3d::TTensor());
   q.loadQtensorValues(&tetNodes[0], &tetNodes[nodesPerTet], &qNodal[0]);
 
@@ -400,6 +398,7 @@ void PotentialSolver::localKLNeumann(
   }
 
   for (;shapes.hasNextPoint(); shapes.nextPoint()) {
+    shapes.initialiseElement(&tetCoords[0], tetDet); // TODO: for linear elements this can be done only once outside the loop. move this inside nextPoint??
     double mul = shapes.getWeight() * triDet;
 
     if (isFlexoelectric) {
@@ -497,11 +496,6 @@ void PotentialSolver::solvePotential(SolutionVector &vOut,
       setUniformEField(vOut, geom.getCoordinates());
     }
     return;
-  }
-
-  auto elementType = geom.getTetrahedra().getElementType();
-  if (elementType != ElementType::LINEAR_TETRAHEDRON) {
-    throw NotYetImplementedException("Potential solver only supports linear tetrahedral elements, got elementType " + toString(elementType));
   }
 
   initialiseMatrixSystem(vOut, geom);
