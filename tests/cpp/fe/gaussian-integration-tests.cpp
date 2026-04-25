@@ -237,6 +237,46 @@ TEST_CASE("Tet 3D shape function - quadratic tet") {
     REQUIRE(totalIntegral == Approx(expected).margin(1e-12));
   }
 
+  SECTION("Global derivatives of x^2 are correct at every Gauss point (regression: Jacobian caching)") {
+    // For a quadratic field f = x^2, the gradient df/dx = 2x must be evaluated correctly
+    // at EACH Gauss point, not just at the first one. This test exposes the bug where
+    // global derivatives were computed only once (using the first Gauss point's reference
+    // derivatives) and reused for all subsequent Gauss points.
+    //
+    // Units convention: matches the other sections - node coordinates in µm,
+    // determinant in µm³ (getDeterminant()*1e18). shX is therefore in 1/µm, and
+    // both dfdx and 2*x_gp are in µm (consistent).
+    std::vector<double> nodalX(npe, 0);
+    std::vector<double> nodalX2(npe, 0);
+    for (int iTet = 0; iTet < tets.getnElements(); iTet++) {
+      tets.loadNodes(iTet, elemNodes.data());
+      coords.loadCoordinates(elemNodes.data(), elemNodes.data() + npe, elemCoords.data());
+
+      for (int i = 0; i < npe; i++) {
+        double xi = elemCoords[i].x(); // µm
+        nodalX[i] = xi;
+        nodalX2[i] = xi * xi; // µm² - nodal values of f = x²
+      }
+
+      double determinant = tets.getDeterminant(iTet) * 1e18; // µm³
+
+      for (; shape.hasNextPoint(); shape.nextPoint()) {
+        shape.initialiseElement(elemCoords.data(), determinant);
+
+        double x_gp = shape.sample(nodalX.data()); // µm
+
+        // df/dx = sum_i x_i² * Nx_i where Nx_i is in 1/µm → result in µm
+        double dfdx = shape.sampleX(nodalX2.data());
+        double dfdy = shape.sampleY(nodalX2.data());
+        double dfdz = shape.sampleZ(nodalX2.data());
+
+        REQUIRE(dfdx == Approx(2.0 * x_gp).margin(1e-8));
+        REQUIRE(dfdy == Approx(0.0).margin(1e-8));
+        REQUIRE(dfdz == Approx(0.0).margin(1e-8));
+      }
+    }
+  }
+
   SECTION("Sampling 6 nodal values (permittivity tensor)") {
     double nodalValues[10][6] = {
             {1, 2, 3, 4, 5, 6}, // values at node 1

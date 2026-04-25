@@ -316,7 +316,7 @@ void PotentialSolver::localKL(const Geometry &geom,
 
   // for each Gauss integration point
   for (; s.hasNextPoint(); s.nextPoint()) {
-    s.initialiseElement(&elemCoords[0], determinant); // TODO: for linear elements this can be done only once outside the loop. move this inside nextPoint??
+    s.initialiseElement(&elemCoords[0], determinant);
     double mul = s.getWeight() * determinant;
 
     double exx = 0, eyy = 0, ezz = 0, exy = 0, exz = 0, eyz = 0;
@@ -398,7 +398,7 @@ void PotentialSolver::localKLNeumann(
   }
 
   for (;shapes.hasNextPoint(); shapes.nextPoint()) {
-    shapes.initialiseElement(&tetCoords[0], tetDet); // TODO: for linear elements this can be done only once outside the loop. move this inside nextPoint??
+    shapes.initialiseElement(&tetCoords[0], tetDet);
     double mul = shapes.getWeight() * triDet;
 
     if (isFlexoelectric) {

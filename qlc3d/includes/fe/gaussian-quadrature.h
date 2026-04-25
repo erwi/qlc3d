@@ -177,6 +177,13 @@ public:
   }
 };
 
+/**
+ * Shape function for quadratic or linear tetrahedral elements (TET10 or TET4).
+ *
+ * Stores pre-computed shape function values and their reference-space derivatives at all Gauss
+ * points.  The global (x,y,z) derivatives are recomputed each time @c initialiseElement is
+ * called by evaluating the isoparametric Jacobian at the current Gauss point.
+ */
 class TetShapeFunction : public ShapeFunction {
 protected:
   std::vector<double> shR;
@@ -362,6 +369,24 @@ public:
 
   [[nodiscard]] unsigned int getNumGaussPoints() const { return numGaussPoints; }
 
+  /**
+   * Prepare shape-function state for the current Gauss point within an element.
+   *
+   * Computes the element inverse Jacobian via the standard isoparametric summation over all
+   * @c nodesPerElement nodes at the current quadrature location, then transforms reference-space
+   * derivatives into global (x,y,z) derivatives.
+   *
+   * Although the Jacobian is mathematically constant for straight-sided elements, the quadratic
+   * shape-function contributions produce slightly different floating-point sums at different Gauss
+   * points (difference ≈ 2×10⁻¹⁵ relative).  Recomputing at every point avoids introducing a
+   * systematic bias into the assembled stiffness matrix that would otherwise accumulate across
+   * the mesh and degrade solution accuracy.
+   *
+   * @param nodes        Pointer to the nodal coordinates for the active element.
+   *                     Must have at least @c nodesPerElement valid entries.
+   * @param determinant  Pre-computed element determinant (scalar triple product of edge vectors,
+   *                     equal to 6 × signed volume) in the same coordinate units as @p nodes.
+   */
   void initialiseElement(Vec3 *nodes, double determinant) {
     double xr, xs, xt, yr, ys, yt, zr, zs, zt;
     xr = xs = xt = yr = ys = yt = zr = zs = zt = 0.0;

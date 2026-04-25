@@ -209,9 +209,13 @@ The following areas have no tests or are actively blocked from being tested:
 
 The old `GaussianQuadratureTet<NGP>` and `GaussianQuadratureTri<NGP>` template classes (linear-only, hardcoded to 4 and 3 nodes respectively) coexist with the new `TetShapeFunction` / `TriShapeFunction` classes. Several methods on the old templates are annotated `/** Deprecated */`. They are still instantiated in some code paths and would silently give wrong results if handed quadratic element data. These should be removed or completely replaced.
 
-### 6.2 Per-Gauss-Point Jacobian Recomputation
+### 6.2 Per-Gauss-Point Jacobian Computation
 
-`TetShapeFunction::initialiseElement()` recomputes the Jacobian at every Gauss point. For both TET4 and straight-edged TET10, the Jacobian is **constant** throughout the element (straight edges → constant isoparametric mapping), so the per-point recompute is always wasted work. A comment in `potential-solver.cpp` acknowledges this for linear elements. In the current implementation, quadratic geometry is validated and any near-midpoint edge nodes are snapped to the exact midpoint during geometry preparation, before determinant/normal calculation or any other node-location-dependent work. Factoring the Jacobian computation out of the Gauss-point loop remains a clean, testable microoptimization.
+`TetShapeFunction::initialiseElement()` recomputes the element inverse Jacobian at **every** Gauss point via the standard isoparametric summation over all `nodesPerElement` nodes.
+
+Although the Jacobian is mathematically constant for straight-sided elements, the quadratic basis derivatives in the sum evaluate to slightly different floating-point values at different Gauss-point locations (relative variation ≈ 2×10⁻¹⁵). When a single cached value is used for all Gauss points, the consistent bias accumulates across ~10 000 elements and a ≈15 000-DOF linear system to produce a ~1.4×10⁻³ error in the solved potential — larger than the `3×10⁻⁴` test tolerance. Recomputing at every Gauss point avoids this systematic bias; the uncorrelated floating-point errors across Gauss points partially cancel in the Gauss integration, preserving the original accuracy.
+
+This behaviour is documented in `plans/quadratic-jacobian-optimization.md`, which records the investigation and explains why the caching optimization was not retained.
 
 ### 6.3 `Mesh::Dimension` Redundancy
 
@@ -280,7 +284,7 @@ In rough priority order:
 3. **Fix `makeRegularGrid()` for TET10** — use only the 4 corner nodes for bounding-box / containment checks (correct for straight-edge TET10). This unblocks `interpolateQTensor` and the refinement pipeline.
 4. **Wire up adaptive refinement for quadratic meshes** — after the grid blocker is resolved; refine using linear machinery then call `convertLinearMeshDataToQuadratic()` on the result and re-map the Q-tensor solution.
 5. **Remove the old `GaussianQuadratureTet<NGP>` / `GaussianQuadratureTri<NGP>` deprecated classes** — reduce API surface and eliminate silent-wrong-answer risk.
-6. **Factor Jacobian computation out of the Gauss-point loop** in `TetShapeFunction::initialiseElement()`.
+6. **Jacobian caching** — investigated and found numerically unsafe with the current isoparametric assembly; see `plans/quadratic-jacobian-optimization.md` for details and possible future approaches.
 7. **Add tests for all the missing areas** listed in §5.2.
 8. **Document the LcView implicit expansion** explicitly in code and user documentation.
 9. **Replace magic scaling constants** with named `constexpr` values.

@@ -1,6 +1,7 @@
 # Instructions
 - Modify existing or add new unit tests under cpp-tests when changing or adding new functionality
 - After making code changes always run all unit tests under cpp-tests and fix issues until those tests pass
+- Do not relax test tolerances to make tests pass.
 - Ask clarifying questions rather than making assumption if something is unclear or ambiguous or a choice needs to be made between multiple options
 - Fail fast and loud. Dont try to recover from unexpected states by falling back to some defaults unless the user explicitly asked for it. 
 - When failing use the RUNTIME_ERROR macro which auto-fills in the location of the error. 

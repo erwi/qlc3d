@@ -251,16 +251,14 @@ TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries")
     solver.solvePotential(v, q, geom);
 
     // ASSERT
-    // check that potential value is 0.5 * z for every point, since mesh ranges from 0 to 2 along z-axis
+    // Piecewise-linear analytical solution for a 2:1 permittivity jump at z=1.
     for (unsigned int i = 0; i < geom.getCoordinates().size(); i++) {
       double z = geom.getCoordinates().getPoint(i).z();
       double pot = v.getValue(i);
-      if (z < 1) { // dielectric region
-        // about double the gradient so ranging from 0 to 0.333
+      if (z < 1) { // dielectric region: gradient is doubled
         double expected = 2 * z / 3.;
         REQUIRE(pot == Approx(expected).margin(3e-4));
-      } else if (z > 1) {
-        // about half the gradient, so ranging from 0.666 to 1.0;
+      } else if (z > 1) { // LC region: gradient is halved
         double expected = 2./ 3 + (z - 1) / 3;
         REQUIRE(pot == Approx(expected).margin(3e-4));
       }
@@ -325,16 +323,14 @@ TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries u
     solver.solvePotential(v, q, geom);
 
     // ASSERT
-    // check that potential value is 0.5 * z for every point, since mesh ranges from 0 to 2 along z-axis
+    // Piecewise-linear analytical solution for a 2:1 permittivity jump at z=1.
     for (unsigned int i = 0; i < geom.getCoordinates().size(); i++) {
       double z = geom.getCoordinates().getPoint(i).z();
       double pot = v.getValue(i);
-      if (z < 1) { // dielectric region
-        // about double the gradient so ranging from 0 to 0.333
+      if (z < 1) { // dielectric region: gradient is doubled
         double expected = 2 * z / 3.;
         REQUIRE(pot == Approx(expected).margin(3e-4));
-      } else if (z > 1) {
-        // about half the gradient, so ranging from 0.666 to 1.0;
+      } else if (z > 1) { // LC region: gradient is halved
         double expected = 2./ 3 + (z - 1) / 3;
         REQUIRE(pot == Approx(expected).margin(3e-4));
       }
