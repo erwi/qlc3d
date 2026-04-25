@@ -179,7 +179,6 @@ TEST_CASE("[SteadyState] Relax elastic distortion with strong anchoring - quadra
   }
 
   //writer.write("/home/eero/Desktop/after.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
-  // ASSERT
   // Converge in 6 iterations
   REQUIRE(iter <= 6);
 
@@ -389,6 +388,86 @@ TEST_CASE("[SteadyState] Relax elastic distortions with chirality") {
     auto expectedDirector = qlc3d::Director::fromRadianAngles(expectedTiltDegrees, expectedTwistRadians, lc->S0());
     double dot = expectedDirector.vector().dot(q.getDirector(i).vector());
     REQUIRE(std::abs(dot) == Approx(1).margin(1e-6));
+  }
+}
+
+TEST_CASE("[SteadyState] Relax elastic distortions with chirality - quadratic elements") {
+  // ARRANGE
+  // Same chiral setup as the linear-mesh regression test, but run on the native quadratic Gmsh mesh.
+
+  auto lc = std::shared_ptr<LC>(LCBuilder()
+                                        .K11(1e-11)
+                                        .K22(1e-11)
+                                        .K33(1e-11)
+                                        .p0(1e-6)
+                                        .build());
+
+  Alignment alignment;
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofPlanarDegenerate(2, 0, false));
+
+  Geometry geom;
+  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {0, 0});
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_QUADRATIC_GMSH_MESH, electrodes, alignment);
+
+  // No potential applied
+  auto v = SolutionVector(geom.getnp(), 1);
+  v.initialisePotentialBoundaries(electrodes.getCurrentPotentials(0), geom);
+
+  // Set up initial q-tensor configuration with 2 * PI twist over 1 micron pitch
+  auto q = SolutionVector(geom.getnpLC(), 5);
+
+  auto b = BoxBuilder(1)
+          .setX({0, 1})
+          .setY({0, 1})
+          .setZ({0, 1})
+          .setTiltExpression("0")
+          .setTwistExpression("-360 * z")
+          .build();
+  b->setVolumeQ(q, lc->S0(), geom.getCoordinates());
+
+  setSurfacesQ(q, alignment, lc->S0(), geom);
+  q.initialiseLcBoundaries(geom, alignment);
+
+  SimulationState simulationState;
+
+  auto solverSettings = std::make_shared<SolverSettings>();
+  solverSettings->setV_GMRES_Toler(1e-9);
+  solverSettings->setQ_GMRES_Maxiter(0); // same as number of degrees of freedom
+  solverSettings->setQ_GMRES_Restart(1000);
+  solverSettings->setQ_GMRES_Preconditioner(0);
+  SteadyStateLCSolver ssSolver(*lc, *solverSettings, alignment);
+
+  // ACT
+  // Run 3 iterations of steady-state solver. Each iteration should reduce the error.
+  int iter = 0;
+  double dqPrev = 1;
+  do {
+    auto solverResult = ssSolver.solve(q, v, geom, simulationState);
+    Log::info("iter {}, dq={}", iter, solverResult.dq);
+    //REQUIRE(solverResult.dq < dqPrev);
+    REQUIRE(solverResult.converged);
+
+    dqPrev = solverResult.dq;
+
+    iter ++;
+  } while (dqPrev > 1e-10 && iter < 15);
+
+  REQUIRE(dqPrev < 1e-10);
+
+  //vtkIOFun::UnstructuredGridWriter writer;
+  //writer.write("/home/eero/Desktop/chiral.vtk", geom.getnpLC(), geom.getCoordinates(), geom.getTetrahedra(), v, q);
+
+
+  // ASSERT
+  // LC director orientation should be unchanged for original
+  double expectedTiltDegrees = 0;
+  for (idx i = 0; i < geom.getnpLC(); i++) {
+    Vec3 p = geom.getCoordinates().getPoint(i);
+    double expectedTwistRadians = -p.z() * 2 * M_PI;
+    auto expectedDirector = qlc3d::Director::fromRadianAngles(expectedTiltDegrees, expectedTwistRadians, lc->S0());
+    double dot = expectedDirector.vector().dot(q.getDirector(i).vector());
+    REQUIRE(std::abs(dot) == Approx(1).margin(2e-3));
   }
 }
 
