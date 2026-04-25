@@ -484,6 +484,98 @@ TEST_CASE("[SteadyState] Electric switching with applied potential and three ela
   REQUIRE(maxTilt == Approx(expectedMidTilt).margin(1e-2));
 }
 
+TEST_CASE("[SteadyState] Electric switching with applied potential and three elastic constants - quadratic elements") {
+  // ARRANGE
+  // Solve for steady state switching with uniform e-field. The expected mid-plane tilt angle is
+  // assumed to be correct, determined at a time when the "examples/steady-state-switching-1d" example
+  // is giving good agreement between qlc3d and lc3k results.
+  auto lc = std::shared_ptr<LC>(LCBuilder()
+          .K11(6.2e-12)
+          .K22(3.9e-12)
+          .K33(8.2e-12)
+          .A(-0.0867e5)
+          .B(-2.133e6)
+          .C(1.733e6)
+          .eps_par(18.5)
+          .eps_per(7.0)
+          .build());
+
+  Geometry geom;
+  auto electrodes = Electrodes::withInitialPotentials({1, 2}, {0, 0});
+  // Set LC director to uniform vertical direction
+  const double expectedMidTilt = 84.44998;// TODO: verify this in dedicated 1D solver lc3k 84.470529;
+  const double bottomTilt = 5;
+  const double midTilt = expectedMidTilt - bottomTilt;
+  const double twistDegrees = 0;
+
+  Alignment alignment;
+  alignment.addSurface(Surface::ofStrongAnchoring(1, bottomTilt, twistDegrees));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, bottomTilt, twistDegrees));
+
+  prepareGeometry(geom, TestUtil::RESOURCE_THIN_QUADRATIC_GMSH_MESH, electrodes, alignment);
+
+  const double topPotential = 2.0;
+  SolutionVector v(geom.getnp(), 1);
+  v.initialisePotentialBoundaries(electrodes.getCurrentPotentials(0), geom);
+
+  SolutionVector q(geom.getnpLC(), 5);
+
+  auto b = BoxBuilder(1)
+          .setX({0, 1})
+          .setY({0, 1})
+          .setZ({0, 1})
+          .setTiltExpression(fmt::format("{} + {} * z * (1 - z) * 4", bottomTilt, midTilt))
+          .setTwistExpression("0")
+          .build();
+  b->setVolumeQ(q, lc->S0(), geom.getCoordinates());
+
+  // set potential to a uniform e-field
+  for (idx i =0; i < geom.getnpLC(); i++) {
+    Vec3 p = geom.getCoordinates().getPoint(i);
+    double pot = p.z() * topPotential;
+    v.setValue(i, 0, pot);
+  }
+
+  setSurfacesQ(q, alignment, lc->S0(), geom);
+
+  q.initialiseLcBoundaries(geom, alignment);
+
+  SimulationState simulationState;
+  simulationState.dt(0);
+
+  auto solverSettings = std::make_shared<SolverSettings>();
+  solverSettings->setV_GMRES_Toler(1e-9);
+  SteadyStateLCSolver solver(*lc, *solverSettings, alignment);
+
+  // ACT
+  // solve to tolerance of 1e-9
+  int iter = 0;
+  for (iter = 0; iter < 10; iter++) {
+    auto solverResult = solver.solve(q, v, geom, simulationState);
+    Log::info("iter={}, dq={}", iter, solverResult.dq);
+
+    REQUIRE(solverResult.solverType == LCSolverType::STEADY_STATE);
+    REQUIRE(solverResult.converged == true);
+    REQUIRE(solverResult.iterations == 1);
+
+    if (solverResult.dq < 1e-9) {
+      REQUIRE(solverResult.converged);
+      Log::info("converged at iter={}", iter);
+      break;
+    }
+  }
+
+  // ASSERT
+  // Mid-plane tilt angle (= maximum tilt angle) should match the expected value
+  double maxTilt = 0;
+  for (int i = 0; i < geom.getnpLC(); i++) {
+    auto director = q.getDirector(i);
+    maxTilt = std::max(director.tiltDegrees(), maxTilt);
+  }
+  Log::info("max tilt: {}", maxTilt);
+  REQUIRE(maxTilt == Approx(expectedMidTilt).margin(1e-2));
+}
+
 
 
 void switchingDynamicsTest(const std::string meshName, unsigned int expectedIterations) {
