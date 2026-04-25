@@ -30,6 +30,12 @@ std::vector<unsigned int> recombineLinearTrianglesToQuadratic(const std::vector<
  */
 bool recombineLinearisedMeshToQuadratic(RawMeshData &meshData);
 
+/**
+ * Validate that quadratic tetrahedron mid-edge nodes are located at the exact midpoint of their corner edge,
+ * and snap them to the midpoint when the deviation is within tolerance.
+ */
+void validateAndSnapQuadraticTetrahedra(RawMeshData &meshData);
+
 void convertLinearMeshDataToQuadratic(RawMeshData &meshData);
 
 #endif //PROJECT_QLC3D_ELEMENT_SPLIT_H

@@ -211,7 +211,7 @@ The old `GaussianQuadratureTet<NGP>` and `GaussianQuadratureTri<NGP>` template c
 
 ### 6.2 Per-Gauss-Point Jacobian Recomputation
 
-`TetShapeFunction::initialiseElement()` recomputes the Jacobian at every Gauss point. For both TET4 and straight-edged TET10, the Jacobian is **constant** throughout the element (straight edges → constant isoparametric mapping), so the per-point recompute is always wasted work. A comment in `potential-solver.cpp` acknowledges this for linear elements. Factoring the Jacobian computation out of the Gauss-point loop would be a clean, testable microoptimization.
+`TetShapeFunction::initialiseElement()` recomputes the Jacobian at every Gauss point. For both TET4 and straight-edged TET10, the Jacobian is **constant** throughout the element (straight edges → constant isoparametric mapping), so the per-point recompute is always wasted work. A comment in `potential-solver.cpp` acknowledges this for linear elements. In the current implementation, quadratic geometry is validated and any near-midpoint edge nodes are snapped to the exact midpoint during geometry preparation, before determinant/normal calculation or any other node-location-dependent work. Factoring the Jacobian computation out of the Gauss-point loop remains a clean, testable microoptimization.
 
 ### 6.3 `Mesh::Dimension` Redundancy
 

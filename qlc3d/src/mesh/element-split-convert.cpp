@@ -8,6 +8,53 @@
 #include "util/logging.h"
 #include <unordered_set>
 
+namespace {
+constexpr double MIDPOINT_TOLERANCE_RATIO = 1e-3;
+
+void validateAndSnapQuadraticTetrahedron(std::vector<Vec3> &points, const unsigned int *tetNodes, size_t tetIndex) {
+  const auto validateEdge = [&](unsigned int cornerA, unsigned int cornerB, unsigned int midNode, const char *edgeName) {
+    const Vec3 &a = points[cornerA];
+    const Vec3 &b = points[cornerB];
+    const Vec3 expected = (a + b) * 0.5;
+    Vec3 &actual = points[midNode];
+
+    const double edgeLength = a.distance(b);
+    if (edgeLength <= 0.0) {
+      RUNTIME_ERROR(fmt::format("Quadratic tetrahedron {} has zero-length edge {} (nodes {} and {}).", tetIndex, edgeName, cornerA, cornerB));
+    }
+
+    const double deviation = actual.distance(expected);
+    const double tolerance = edgeLength * MIDPOINT_TOLERANCE_RATIO;
+    if (deviation > tolerance) {
+      RUNTIME_ERROR(fmt::format("Quadratic tetrahedron {} mid-edge node {} on edge {} is too far from midpoint: deviation = {}, tolerance = {}, actual = {}, expected = {}.",
+                                tetIndex, midNode, edgeName, deviation, tolerance, actual, expected));
+    }
+
+    actual = expected;
+  };
+
+  // internal node ordering: 0-3 are corners, 4-9 are mid-edge nodes
+  validateEdge(tetNodes[0], tetNodes[1], tetNodes[4], "(0,1)");
+  validateEdge(tetNodes[1], tetNodes[2], tetNodes[5], "(1,2)");
+  validateEdge(tetNodes[2], tetNodes[0], tetNodes[6], "(2,0)");
+  validateEdge(tetNodes[0], tetNodes[3], tetNodes[7], "(0,3)");
+  validateEdge(tetNodes[1], tetNodes[3], tetNodes[8], "(1,3)");
+  validateEdge(tetNodes[2], tetNodes[3], tetNodes[9], "(2,3)");
+}
+} // namespace
+
+void validateAndSnapQuadraticTetrahedra(RawMeshData &meshData) {
+  if (meshData.getElementOrder() != 2) {
+    return;
+  }
+
+  const unsigned int nodesPerTetQuadratic = 10;
+  const size_t numTetrahedra = meshData.tetNodes.size() / nodesPerTetQuadratic;
+  for (size_t tetCounter = 0; tetCounter < numTetrahedra; tetCounter++) {
+    validateAndSnapQuadraticTetrahedron(meshData.points, &meshData.tetNodes[tetCounter * nodesPerTetQuadratic], tetCounter);
+  }
+}
+
 std::vector<std::vector<unsigned int>> splitQuadraticTetrahedronToLinear(const std::vector<unsigned int> &quadraticTetrahedron) {
   if (quadraticTetrahedron.size() != 10) {
     RUNTIME_ERROR("Quadratic tetrahedron must have 10 nodes, got " + std::to_string(quadraticTetrahedron.size()));
@@ -135,7 +182,7 @@ std::vector<unsigned int> recombineLinearTrianglesToQuadratic(const std::vector<
 
 bool recombineLinearisedMeshToQuadratic(RawMeshData &meshData) {
 
-  const int elementOrder = meshData.getElementOrder();
+  const unsigned int elementOrder = meshData.getElementOrder();
   if (elementOrder != 1) {
     RUNTIME_ERROR("Can only recombine linearised mesh to quadratic if the mesh is linearised. Got mesh with elementOrder=" + std::to_string(elementOrder));
   }
@@ -239,6 +286,11 @@ bool recombineLinearisedMeshToQuadratic(RawMeshData &meshData) {
   meshData.tetNodes = std::move(tetNodesOut);
   meshData.triMaterials = std::move(triMaterialsOut);
   meshData.triNodes = std::move(triNodesOut);
+
+  const unsigned int nodesPerTetQuadratic = 10;
+  for (size_t tetCounter = 0; tetCounter < numTetsOut; tetCounter++) {
+    validateAndSnapQuadraticTetrahedron(meshData.points, &meshData.tetNodes[tetCounter * nodesPerTetQuadratic], tetCounter);
+  }
   return true;
 }
 
@@ -473,6 +525,7 @@ void convertLinearMeshDataToQuadratic(RawMeshData &meshData) {
   assert(meshData.triNodes.size() == numTriangles * 6);
 
   meshData.setElementOrder(2);
+  validateAndSnapQuadraticTetrahedra(meshData);
 }
 
 //</editor-fold>

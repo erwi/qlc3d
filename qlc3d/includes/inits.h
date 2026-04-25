@@ -1,6 +1,5 @@
 #ifndef PROJECT_QLC3D_INITS_H
 #define PROJECT_QLC3D_INITS_H
-#include <vector>
 #include <filesystem>
 #include <geom/vec3.h>
 
@@ -15,6 +14,16 @@ class SolutionVector;
 class LC;
 class InitialVolumeOrientation;
 class Vec3;
+class RawMeshData;
+
+void prepareGeometry(Geometry& geom,
+                     RawMeshData& rawMeshData,
+                     Electrodes& electrodes,
+                     const Alignment& alignment,
+                     const Vec3& stretchVector = {1, 1, 1},
+                     unsigned int regularGridCountX = 0,
+                     unsigned int regularGridCountY = 0,
+                     unsigned int regularGridCountZ = 0);
 
 void prepareGeometry(Geometry& geom,
                     const std::filesystem::path &meshFileName,

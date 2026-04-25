@@ -1,10 +1,38 @@
 #include <catch.h>
 #include <inits.h>
 #include <geometry.h>
+#include <io/meshreader.h>
 #include <geom/coordinates.h>
 #include <electrodes.h>
 #include <alignment.h>
 #include <test-util.h>
+
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+
+namespace {
+
+std::string readTextFile(const std::filesystem::path &path) {
+  std::ifstream fin(path);
+  REQUIRE(fin.is_open());
+  std::ostringstream buffer;
+  buffer << fin.rdbuf();
+  return buffer.str();
+}
+
+std::string replaceOnce(std::string text, const std::string &from, const std::string &to) {
+  const auto pos = text.find(from);
+  REQUIRE(pos != std::string::npos);
+  text.replace(pos, from.size(), to);
+  return text;
+}
+
+std::filesystem::path quadraticMeshResource() {
+  return std::filesystem::path(TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH);
+}
+
+} // namespace
 
 
 TEST_CASE("Reorder quadratic element node order") {
@@ -64,3 +92,41 @@ TEST_CASE("Reorder quadratic element node order") {
     REQUIRE(coordNodes[9].equals(expectedPos, 1e-9));
   }
 }
+
+TEST_CASE("Quadratic tetra mid-edge nodes are snapped when within tolerance") {
+  Geometry geom;
+  Electrodes electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
+  Alignment alignment;
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+
+  auto meshText = readTextFile(quadraticMeshResource());
+  meshText = replaceOnce(meshText, "0.4999999999986718 0 0", "0.5004 0 0");
+
+  auto meshFile = TestUtil::TemporaryFile::withContents(meshText);
+  RawMeshData meshData = MeshReader::readMesh(meshFile.name());
+  const unsigned int midNodeIndex = meshData.tetNodes[4];
+  const unsigned int cornerAIndex = meshData.tetNodes[0];
+  const unsigned int cornerBIndex = meshData.tetNodes[1];
+  const Vec3 expectedMidpoint = (meshData.points[cornerAIndex] + meshData.points[cornerBIndex]) * 0.5;
+
+  prepareGeometry(geom, meshFile.name(), electrodes, alignment);
+
+  REQUIRE(geom.getCoordinates().getPoint(midNodeIndex).equals(expectedMidpoint, 1e-12));
+}
+
+TEST_CASE("Quadratic tetra mid-edge nodes beyond tolerance fail validation") {
+  Geometry geom;
+  Electrodes electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
+  Alignment alignment;
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+
+  auto meshText = readTextFile(quadraticMeshResource());
+  meshText = replaceOnce(meshText, "0.4999999999986718 0 0", "0.503 0 0");
+
+  auto meshFile = TestUtil::TemporaryFile::withContents(meshText);
+
+  REQUIRE_THROWS_AS(prepareGeometry(geom, meshFile.name(), electrodes, alignment), std::runtime_error);
+}
+

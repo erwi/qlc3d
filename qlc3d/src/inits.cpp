@@ -58,7 +58,7 @@ void validateTriangleMaterials(const std::vector<idx> &triMaterials, const Elect
 /**
  * Goes through each material number for tetrahedra. Throws runtime_exception if invalid ones are found.
  */
-void validateTetrahedralMaterials(const std::vector<idx> matt) {
+void validateTetrahedralMaterials(const std::vector<idx> &matt) {
     for (idx i = 0; i < matt.size(); ++i) {
         const idx m = matt[i];
         if ((m == MAT_DOMAIN1) ||
@@ -77,9 +77,9 @@ void validateTetrahedralMaterials(const std::vector<idx> matt) {
 /**
  * Find the index of the node in the nodes vector that is nearest to the target point.
  */
-int findNearestNodeIndex(const Vec3 &target, const std::vector<Vec3> &nodes) {
+size_t findNearestNodeIndex(const Vec3 &target, const std::vector<Vec3> &nodes) {
   double minDist = std::numeric_limits<double>::max();
-  int nearestIndex = -1;
+  size_t nearestIndex = std::numeric_limits<size_t>::max();
   for (size_t i = 0; i < nodes.size(); i++) {
     double dist = target.distanceSquared(nodes[i]);
     if (dist < minDist) {
@@ -93,7 +93,7 @@ int findNearestNodeIndex(const Vec3 &target, const std::vector<Vec3> &nodes) {
 /**
  * Reorder the tetrahedral element node indices if the current ordering is the GMSH ordering.
  */
-void reorderQuadraticTetNodeOrder(vector<idx> &tetNodes, const Coordinates &coords) {
+void reorderQuadraticTetNodeOrder(vector<idx> &tetNodes, const std::vector<Vec3> &coords) {
 
   size_t numTets = tetNodes.size() / 10;
   Log::info("Checking quadratic tetrahedron element node oder for {} elements.", numTets);
@@ -103,7 +103,9 @@ void reorderQuadraticTetNodeOrder(vector<idx> &tetNodes, const Coordinates &coor
   for (size_t i = 0; i < numTets; i++) {
     idx ind0 = i * 10;
 
-    coords.loadCoordinates(&tetNodes[ind0], &tetNodes[ind0 + 10], &elemCoords[0]);
+    for (size_t j = 0; j < elemCoords.size(); ++j) {
+      elemCoords[j] = coords[tetNodes[ind0 + j]];
+    }
 
     // swap the two last node indices in tet element if current ordering is the GMSH ordering.
     // The expected mid-edge node positions are:
@@ -114,8 +116,8 @@ void reorderQuadraticTetNodeOrder(vector<idx> &tetNodes, const Coordinates &coor
 
     // find indices to the actual nearest ones. This avoids comparison tolerance complications
     // but may not detect if the nodes are really far from expected positions.
-    int indNearest8 = findNearestNodeIndex(p8, elemCoords);
-    int indNearest9 = findNearestNodeIndex(p9, elemCoords);
+    size_t indNearest8 = findNearestNodeIndex(p8, elemCoords);
+    size_t indNearest9 = findNearestNodeIndex(p9, elemCoords);
 
     bool isExpectedOrder = indNearest8 == 8 && indNearest9 == 9;
     bool isGmsOrder = indNearest8 == 9 && indNearest9 == 8;
@@ -153,10 +155,12 @@ void prepareGeometry(Geometry &geom,
     convertLinearMeshDataToQuadratic(rawMeshData);
   }
 
-  auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
   if (rawMeshData.getElementOrder() == 2) {
-    reorderQuadraticTetNodeOrder(rawMeshData.tetNodes, *coordinates);
+    reorderQuadraticTetNodeOrder(rawMeshData.tetNodes, rawMeshData.points);
+    validateAndSnapQuadraticTetrahedra(rawMeshData);
   }
+
+  auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
 
   coordinates->scale(stretchVector);
 
