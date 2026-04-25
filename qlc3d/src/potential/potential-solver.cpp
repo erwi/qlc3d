@@ -298,7 +298,7 @@ void PotentialSolver::localKL(const Geometry &geom,
   std::vector<Vec3> elemCoords(nodesPerTet, Vec3());
   geom.getTetrahedra().loadNodes(elementIndex, &elemNodeInds[0]);
   geom.getCoordinates().loadCoordinates(&elemNodeInds[0], &elemNodeInds[nodesPerTet], &elemCoords[0]);
-  for (auto &elemCoord : elemCoords) { elemCoord *= 1e-6; }
+  for (auto &elemCoord : elemCoords) { elemCoord *= qlc3d::units::MICROMETER_TO_METER; }
 
   const double determinant = geom.getTetrahedra().getDeterminant(elementIndex);
 
@@ -387,7 +387,7 @@ void PotentialSolver::localKLNeumann(
 
   vector<Vec3> tetCoords(nodesPerTet, Vec3());
   coordinates.loadCoordinates(&tetNodes[0], &tetNodes[nodesPerTet], &tetCoords[0]);
-  for (auto &tetCoord : tetCoords) { tetCoord *= 1e-6; }
+  for (auto &tetCoord : tetCoords) { tetCoord *= qlc3d::units::MICROMETER_TO_METER; }
 
   vector<qlc3d::TTensor> qNodal(nodesPerTet, qlc3d::TTensor());
   q.loadQtensorValues(&tetNodes[0], &tetNodes[nodesPerTet], &qNodal[0]);

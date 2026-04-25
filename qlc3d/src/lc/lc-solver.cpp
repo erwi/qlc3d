@@ -81,7 +81,7 @@ void ImplicitLCSolver::assembleLocalVolumeMatrix(const unsigned int indTet,
   std::vector<Vec3> tetCoords(npe, Vec3());
   geom.getCoordinates().loadCoordinates(tetNodes.data(), tetNodes.data() + npe, tetCoords.data());
   for (auto &coord : tetCoords) {
-    coord *= 1e-6;
+    coord *= qlc3d::units::MICROMETER_TO_METER;
   }
 
   const double tetDeterminant = geom.getTetrahedra().getDeterminant(indTet);
@@ -178,7 +178,7 @@ void ImplicitLCSolver::assembleLocalWeakAnchoringMatrix(unsigned int indTri, Spa
   std::vector<Vec3> triCoords(npe, Vec3());
   geom.getCoordinates().loadCoordinates(triNodes.data(), triNodes.data() + npe, triCoords.data());
   for(auto &coord : triCoords) {
-    coord *= 1e-6;
+    coord *= qlc3d::units::MICROMETER_TO_METER;
   }
 
   const double triDeterminant = geom.getTriangles().getDeterminant(indTri);
@@ -446,7 +446,7 @@ void assembleElementMassMatrix(SpaMtrix::DenseMatrix &lK, const std::vector<idx>
   std::vector<Vec3> coordinates(npt, Vec3());
   geom.getCoordinates().loadCoordinates(tetNodes.data(), tetNodes.data() + npt, coordinates.data());
   for (auto &coord : coordinates) {
-    coord *= 1e-6;
+    coord *= qlc3d::units::MICROMETER_TO_METER;
   }
 
   for (; shapes.hasNextPoint(); shapes.nextPoint()) {

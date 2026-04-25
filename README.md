@@ -89,6 +89,8 @@ For instructions on running and configuring qlc3d, see [this document](qlc3d/doc
 # Meshing and Geometry
 For instructions on creating meshes and geometry, see [this document](qlc3d/doc/mesh.md)
 
+For implementation details of quadratic element support, see [this document](doc-impl/quadratic-elements.md).
+
 For implementation details of adaptive mesh refinement see [this document](doc-impl/mesh-refinement.md).
 
 # Examples

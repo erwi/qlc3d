@@ -13,4 +13,17 @@ namespace qlc3d_GLOBALS {
     static const double GLOBAL_COORD_EPS = 1e-10;
     static const int ERROR_CODE_BAD_SETTINGS_FILE = 1;
 }
+
+/**
+ * @brief Shared conversion factors between micron-based mesh data and SI units.
+ */
+namespace qlc3d::units {
+  inline constexpr double MICROMETER_TO_METER = 1e-6;
+  inline constexpr double SQUARE_MICROMETER_TO_SQUARE_METER = MICROMETER_TO_METER * MICROMETER_TO_METER;
+  inline constexpr double CUBIC_MICROMETER_TO_CUBIC_METER = SQUARE_MICROMETER_TO_SQUARE_METER * MICROMETER_TO_METER;
+
+  inline constexpr double METER_TO_MICROMETER = 1.0 / MICROMETER_TO_METER;
+  inline constexpr double SQUARE_METER_TO_SQUARE_MICROMETER = 1.0 / SQUARE_MICROMETER_TO_SQUARE_METER;
+  inline constexpr double CUBIC_METER_TO_CUBIC_MICROMETER = 1.0 / CUBIC_MICROMETER_TO_CUBIC_METER;
+}
 #endif // GLOBALS_H

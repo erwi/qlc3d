@@ -228,7 +228,7 @@ Resolved: `Mesh` now derives the element count directly from `nodes.size() / get
 
 ### 6.5 `setAllNodes()` Deprecated Call Sites
 
-`setAllNodes()` is marked deprecated but is still called in old code paths.
+Resolved: the remaining internal `setAllNodes()` call sites were removed from `Geometry::ReorderDielectricNodes()`. That path now rebuilds the reordered coordinate and element arrays through `setElementData()`, so the deprecated raw setter is no longer used by the quadratic geometry pipeline.
 
 ### 6.6 LcView Implicit Mesh Expansion
 
@@ -240,7 +240,7 @@ Uses heuristics (multiples-of-8/4 element counts, matching materials) to detect 
 
 ### 6.8 Magic Scaling Constants
 
-`1e-18` (tet volume, µm³→m³), `1e-12` (tri area, µm²→m²), and `1e-6` (per-coordinate scale) appear in multiple assembly locations without named constants. This makes unit analysis fragile and the constants are easy to miss during a review.
+Resolved: the micron-to-SI conversion factors are now named constants in `qlc3d::units`, and the geometry, refinement, potential, LC, energy, and local-coordinate code paths use those symbols instead of raw `1e-18`, `1e-12`, and `1e-6` literals. This makes the unit conversions explicit and keeps the scale factors consistent across the codebase.
 
 ### 6.9 Stateful `setIntegrationPoints()` Lazy Initialiser
 

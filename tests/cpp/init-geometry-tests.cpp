@@ -5,11 +5,13 @@
 #include <geom/coordinates.h>
 #include <electrodes.h>
 #include <alignment.h>
+#include <material_numbers.h>
 #include <test-util.h>
 
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <unordered_set>
 
 namespace {
 
@@ -29,7 +31,7 @@ std::string replaceOnce(std::string text, const std::string &from, const std::st
 }
 
 std::filesystem::path quadraticMeshResource() {
-  return std::filesystem::path(TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH);
+  return {TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH};
 }
 
 } // namespace
@@ -128,5 +130,63 @@ TEST_CASE("Quadratic tetra mid-edge nodes beyond tolerance fail validation") {
   auto meshFile = TestUtil::TemporaryFile::withContents(meshText);
 
   REQUIRE_THROWS_AS(prepareGeometry(geom, meshFile.name(), electrodes, alignment), std::runtime_error);
+}
+
+TEST_CASE("Dielectric node reordering keeps LC nodes first") {
+  Geometry geom;
+  Electrodes electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
+  Alignment alignment;
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+
+  prepareGeometry(geom,
+                  TestUtil::RESOURCE_UNIT_CUBE_DIELECTRIC_NEUMAN_QUADRATIC_GMSH_MESH,
+                  electrodes,
+                  alignment);
+
+  const Mesh &tets = geom.getTetrahedra();
+  REQUIRE(tets.getElementType() == ElementType::QUADRATIC_TETRAHEDRON);
+  REQUIRE(geom.getnpLC() > 0);
+  REQUIRE(geom.getnpLC() < geom.getnp());
+
+  std::unordered_set<idx> lcNodes;
+  std::unordered_set<idx> dielectricOnlyNodes;
+
+  for (idx i = 0; i < tets.getnElements(); ++i) {
+    idx nodeIndices[10] = {};
+    tets.loadNodes(i, nodeIndices);
+
+    if (tets.getMaterialNumber(i) <= MAT_DOMAIN7) {
+      for (idx node : nodeIndices) {
+        lcNodes.insert(node);
+      }
+    }
+  }
+
+  for (idx i = 0; i < tets.getnElements(); ++i) {
+    if (tets.getMaterialNumber(i) <= MAT_DOMAIN7) {
+      continue;
+    }
+
+    idx nodeIndices[10] = {};
+    tets.loadNodes(i, nodeIndices);
+    for (idx node : nodeIndices) {
+      if (lcNodes.find(node) == lcNodes.end()) {
+        dielectricOnlyNodes.insert(node);
+      }
+    }
+  }
+
+  REQUIRE_FALSE(lcNodes.empty());
+  REQUIRE_FALSE(dielectricOnlyNodes.empty());
+  REQUIRE(geom.getnpLC() == lcNodes.size());
+
+  for (idx node : lcNodes) {
+    REQUIRE(node < geom.getnpLC());
+  }
+
+  for (idx node : dielectricOnlyNodes) {
+    REQUIRE(node >= geom.getnpLC());
+  }
 }
 

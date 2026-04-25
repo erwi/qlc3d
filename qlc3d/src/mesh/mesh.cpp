@@ -389,7 +389,7 @@ void Mesh::calculateSurfaceNormals(const Coordinates &coords, Mesh* tets) {
 void Mesh::calcLocCoords(const idx elem, const Coordinates &coordinates, const Vec3 &targetPoint, double localCoordinates[4]) const {
   unsigned int elemNodes[4];
   loadNodes(elem, elemNodes);
-  const double determinant = getDeterminant(elem) * 1e18;
+  const double determinant = getDeterminant(elem) * qlc3d::units::CUBIC_METER_TO_CUBIC_MICROMETER;
 
   // node 0 - opposite to [1, 2, 3]
   Vec3 nodes[4] = {targetPoint,
@@ -423,10 +423,10 @@ void Mesh::calcLocCoords(const idx elem, const Coordinates &coordinates, const V
   // debug sanity check - sum of sub-tet determinants should equal total determinant
 #ifndef NDEBUG
   double sum = det1 + det2 + det3 + det4;
-  double error = std::fabs(sum - getDeterminant(elem) * 1e18);
+  double error = std::fabs(sum - getDeterminant(elem) * qlc3d::units::CUBIC_METER_TO_CUBIC_MICROMETER);
   if (error > 1e-9) {
     RUNTIME_ERROR(format("Error in local coordinates calculation for element {}. Sum of sub-determinants ({}) does not equal total determinant ({}).",
-                         elem, sum, getDeterminant(elem) * 1e18));
+                         elem, sum, getDeterminant(elem) * qlc3d::units::CUBIC_METER_TO_CUBIC_MICROMETER));
   }
 #endif
 }

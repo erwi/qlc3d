@@ -94,10 +94,10 @@ void Geometry::setMeshData(unsigned int elementOrder, const std::shared_ptr<Coor
   ReorderDielectricNodes();
   e->setConnectedVolume(t.get()); // neighbour index tri -> tet
   t->calculateDeterminants3D(getCoordinates()); // calculate tetrahedral determinants
-  t->ScaleDeterminants(1e-18); // scale to microns
+  t->ScaleDeterminants(qlc3d::units::CUBIC_MICROMETER_TO_CUBIC_METER);
 
   e->calculateSurfaceNormals(getCoordinates(), t.get()); // calculate triangle determinants and surface normal vectors
-  e->ScaleDeterminants(1e-12); // scale to microns
+  e->ScaleDeterminants(qlc3d::units::SQUARE_MICROMETER_TO_SQUARE_METER);
 
   calculateNodeNormals();
 }
@@ -171,62 +171,80 @@ void Geometry::ReorderDielectricNodes() {
         this->updateMaxNodeNumbers();
         return;
     }
-    //
-    //GENERATE LIST OF MATERIAL NUMBERS FOR NODES. IN CASE OF DUAL VALUE LC PRECEDES
-    //
-    // mark all LC nodes as 1 and others as 0
-    idx *lcde = (idx *) malloc(getnp() * sizeof(idx));
-    memset(lcde , 0 , getnp() * sizeof(int));  // start with everything 0
+
+    // Generate a new node order where LC nodes come first and dielectric-only nodes follow.
+    std::vector<idx> isLcNode(getnp(), 0);
     for (idx i = 0 ; i < t->getnElements() ; i ++) {
         if (t->getMaterialNumber(i) == MAT_DOMAIN1) {
-            for (idx j = 0 ; j < t->getnNodes() ; j ++)  // loop over all nodes
-                lcde[t->getNode(i , j)] = 1; // LC --> 1
+            for (idx j = 0 ; j < t->getnNodes() ; j ++) {
+                isLcNode[t->getNode(i, j)] = 1;
+            }
         }
     }
+
     npLC = 0;
-    vector <int> v_mat_index;
-    for (size_t i = 0; i < getnp() ; i++) // first add all nodes marked as LC
-        if (lcde[i] == 1) {
-            v_mat_index.push_back(i);
+    std::vector<idx> reorderedNodeIndices;
+    reorderedNodeIndices.reserve(getnp());
+    for (idx i = 0; i < getnp(); i++) {
+        if (isLcNode[i] == 1) {
+            reorderedNodeIndices.push_back(i);
             npLC++;
         }
-    for (size_t i = 0; i < getnp() ; i++) // then add all non-LC nodes
-        if (lcde[i] == 0)
-            v_mat_index.push_back(i);
-
-    free(lcde);
-    //make inverse map
-    vector <int> v_invmap;
-    v_invmap.resize(v_mat_index.size() , -1);
-    for (size_t i = 0 ; i < getnp() ; i ++)
-        v_invmap[v_mat_index[i]] = i; //v_mat_index[i];//= i;
-
-    // Reordered coordinates
-    std::vector<Vec3> vecs;
-    vecs.reserve(coordinates_->size());
-
-    for (size_t i = 0; i < coordinates_->size(); i++) {
-        vecs.push_back(coordinates_->getPoint(v_mat_index[i]));
     }
-    coordinates_ = std::make_shared<Coordinates>(std::move(vecs));
+    for (idx i = 0; i < getnp(); i++) {
+        if (isLcNode[i] == 0) {
+            reorderedNodeIndices.push_back(i);
+        }
+    }
 
-    //REORDER TETRAHEDRA
-    idx *newt = (idx *)malloc(t->getnElements() * t->getnNodes() * sizeof(idx));
+    if (reorderedNodeIndices.size() != getnp()) {
+        RUNTIME_ERROR(fmt::format("Failed to reorder dielectric nodes: expected {} nodes, built {}.", getnp(), reorderedNodeIndices.size()));
+    }
+
+    std::vector<idx> inverseNodeMap(getnp(), NOT_AN_INDEX);
+    for (idx i = 0; i < getnp(); i++) {
+        inverseNodeMap[reorderedNodeIndices[i]] = i;
+    }
+
+    std::vector<Vec3> reorderedCoords;
+    reorderedCoords.reserve(coordinates_->size());
+    for (idx i = 0; i < getnp(); i++) {
+        reorderedCoords.push_back(coordinates_->getPoint(reorderedNodeIndices[i]));
+    }
+    coordinates_ = std::make_shared<Coordinates>(std::move(reorderedCoords));
+
+    std::vector<idx> reorderedTetNodes(t->getnElements() * t->getnNodes());
+    std::vector<idx> tetMaterials(t->getnElements());
+    std::vector<idx> oldTetNodes(t->getnNodes());
     for (idx i = 0 ; i < t->getnElements() ; i++) {
-        for (idx j = 0 ; j < t->getnNodes() ; j ++)  // loop over all nodes of element i
-            newt[i * t->getnNodes() + j ] = v_invmap[ t->getNode(i , j) ];
+        t->loadNodes(i, oldTetNodes.data());
+        tetMaterials[i] = t->getMaterialNumber(i);
+        for (idx j = 0 ; j < t->getnNodes() ; j++) {
+            const idx mappedNode = inverseNodeMap[oldTetNodes[j]];
+            if (mappedNode == NOT_AN_INDEX) {
+                RUNTIME_ERROR(fmt::format("Encountered unmapped tetrahedral node {} while reordering dielectric nodes.", oldTetNodes[j]));
+            }
+            reorderedTetNodes[i * t->getnNodes() + j] = mappedNode;
+        }
     }
-    t->setAllNodes(newt);  // copy node numbers
-    free(newt);
+    t->setElementData(t->getElementType(), std::move(reorderedTetNodes), std::move(tetMaterials));
 
-    //REORDER TRIANGLES
-    idx *newe = (idx *)malloc(e->getnElements() * e->getnNodes() * sizeof(idx));
+    std::vector<idx> reorderedTriNodes(e->getnElements() * e->getnNodes());
+    std::vector<idx> triMaterials(e->getnElements());
+    std::vector<idx> oldTriNodes(e->getnNodes());
     for (idx i = 0 ; i < e->getnElements() ; i++) {
-        for (idx j = 0 ; j < e->getnNodes() ; j++)
-            newe[i * e->getnNodes() + j ] = v_invmap[ e->getNode(i, j) ];
+        e->loadNodes(i, oldTriNodes.data());
+        triMaterials[i] = e->getMaterialNumber(i);
+        for (idx j = 0 ; j < e->getnNodes() ; j++) {
+            const idx mappedNode = inverseNodeMap[oldTriNodes[j]];
+            if (mappedNode == NOT_AN_INDEX) {
+                RUNTIME_ERROR(fmt::format("Encountered unmapped triangle node {} while reordering dielectric nodes.", oldTriNodes[j]));
+            }
+            reorderedTriNodes[i * e->getnNodes() + j] = mappedNode;
+        }
     }
-    e->setAllNodes(newe);  // copy node numbers
-    free(newe);
+    e->setElementData(e->getElementType(), std::move(reorderedTriNodes), std::move(triMaterials));
+
     this->updateMaxNodeNumbers();
 }
 

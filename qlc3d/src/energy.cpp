@@ -96,7 +96,7 @@ void CalculateFreeEnergy(FILE *fid,
     //
     using namespace Energy;
     init_shape();
-    double e0 = 8.8541878176 * 1e-12;
+    constexpr double e0 = 8.8541878176e-12;
     double S0 = lc.S0();
     double epsav = lc.eps_per() / S0;
     double deleps = (lc.eps_par() - lc.eps_per()) / S0 ;
@@ -141,9 +141,9 @@ void CalculateFreeEnergy(FILE *fid,
                 xr = xs = xt = yr = ys = yt = zr = zs = zt = 0.0;
                 for (int i = 0; i < 4 ; i++) {
                   const Vec3 &p = coordinates.getPoint(tt[i]);
-                  double px = p.x() * 1e-6;
-                  double py = p.y() * 1e-6;
-                  double pz = p.z() * 1e-6;
+                  double px = p.x() * qlc3d::units::MICROMETER_TO_METER;
+                  double py = p.y() * qlc3d::units::MICROMETER_TO_METER;
+                  double pz = p.z() * qlc3d::units::MICROMETER_TO_METER;
 
                     xr += px * sh1r[igp][i];
                     xs += px * sh1s[igp][i];

@@ -138,7 +138,7 @@ bool autoref(Geometry &geom_orig,
     //  DO CLEANUP AND INTERPOLATE RESULT ON NEW MESH.
     //=============================================================
     //geom_temp.t->CalculateDeterminants3D( geom_temp.getPtrTop() );
-    //geom_temp.t->ScaleDeterminants( 1e-18);// scale to microns cubed
+    //geom_temp.t->ScaleDeterminants(qlc3d::units::CUBIC_MICROMETER_TO_CUBIC_METER);
     geom_temp.calculateNodeNormals();
     //geom_temp.genIndWeakSurfaces(alignment);
     geom_temp.makeRegularGrid(simu.getRegularGridXCount(),

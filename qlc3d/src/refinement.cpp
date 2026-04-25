@@ -55,9 +55,9 @@ void modify_geometry(Geometry& geom,
     //geom.t->setMaxNodeNumber( (unsigned int) geom.getnp() );
     tris.setConnectedVolume(&tets);
     tets.calculateDeterminants3D(geom.getCoordinates());
-    tets.ScaleDeterminants( 1e-18);// scale to microns cubed
+    tets.ScaleDeterminants(qlc3d::units::CUBIC_MICROMETER_TO_CUBIC_METER);
     tris.calculateSurfaceNormals(geom.getCoordinates(), &tets);
-    tris.ScaleDeterminants( 1e-12); // scale to microns squared
+    tris.ScaleDeterminants(qlc3d::units::SQUARE_MICROMETER_TO_SQUARE_METER);
  }
 
 void Refine(Geometry& geom,                 // SOURCE (OLD) GEOMETRY
