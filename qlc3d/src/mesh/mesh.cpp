@@ -12,9 +12,17 @@
 
 using fmt::format;
 
-// TODO: dimension is not needed, it can be deduced from elementType
 Mesh::Mesh(unsigned int dimension, ElementType elementType) :
-        Dimension{dimension}, elementType_{elementType}, nElements{0}, TotalSize{0} {}
+        elementType_{elementType}, nElements{0}, TotalSize{0} {
+  const idx elementDimension = getElementDimension(elementType_);
+  if (elementDimension == 0) {
+    RUNTIME_ERROR(format("Mesh element type {} does not define a valid dimension.", elementType_));
+  }
+  if (dimension != static_cast<unsigned int>(elementDimension)) {
+    RUNTIME_ERROR(format("Mesh dimension {} does not match element type {} (dimension {}).",
+                         dimension, elementType_, elementDimension));
+  }
+}
 
 Mesh::~Mesh() { }
 
@@ -265,7 +273,7 @@ void Mesh::CompleteNodesSet(const idx elem, std::vector <idx>& nodes) const
 
 
 void Mesh::calculateDeterminants3D(const Coordinates &coords) {
-  if (Dimension != 3) {
+  if (getDimension() != 3) {
     RUNTIME_ERROR("3D determinants can only be calculated for 3D meshes.");
   }
   if (getnElements() == 0) {
@@ -301,9 +309,9 @@ void Mesh::calculateDeterminants3D(const Coordinates &coords) {
 
 void Mesh::calculateSurfaceNormals(const Coordinates &coords, Mesh* tets) {
   // CALCULATES THE SURFACE NORMAL FOR A TRIANGULAR MESH
-  if ((Dimension != 2) ||  (getnElements() < 1) || (getnNodes() < 1)) {
+  if ((getDimension() != 2) ||  (getnElements() < 1) || (getnNodes() < 1)) {
     RUNTIME_ERROR(fmt::format("Can not calculate surface normals. Dimension={}, nElements={}, nNodes={}",
-                              Dimension, getnElements(), getnNodes()));
+                              getDimension(), getnElements(), getnNodes()));
   }
   if (connectedVolumes.empty()) {
     RUNTIME_ERROR("Can not calculate surface normals, connectedVolumes vector is not initialised.");

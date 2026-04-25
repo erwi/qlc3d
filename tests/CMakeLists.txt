@@ -42,6 +42,7 @@ add_executable(cpp-test
         cpp/geom/periodicity-tests.cpp
         cpp/dofmap-tests.cpp
         cpp/init-geometry-tests.cpp
+        cpp/mesh/mesh-tests.cpp
         cpp/sparsematrix-tests.cpp
         cpp/mesh/element-split-convert-tests.cpp)
 

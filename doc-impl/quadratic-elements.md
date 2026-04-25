@@ -174,6 +174,7 @@ The linear variant `reorderBoundaryTetNodes()` in `fe/fe-util.h` explicitly thro
 |---|---|
 | `tests/cpp/fe/gaussian-integration-tests.cpp` | `TetShapeFunction(2)` — volume integrals (identity Jacobian, x⁴ polynomial, Q-tensor sampling, permittivity sampling); TET10 boundary integral with a real mesh; `TriShapeFunction(2)` — weight sums and area integrals |
 | `tests/cpp/mesh/element-split-convert-tests.cpp` | TET10 ↔ 8×TET4 split/recombine; TRI6 ↔ 4×TRI3 split/recombine; `convertLinearMeshDataToQuadratic` for single tet, two-tet shared-face, and full Gmsh mesh |
+| `tests/cpp/mesh/mesh-tests.cpp` | `Mesh::triangleMesh()` / `Mesh::tetMesh()` dimensions, and dimension stability after `setElementData()` / `ClearMesh()` |
 | `tests/cpp/io/meshio-tests.cpp` | Loading a quadratic Gmsh mesh yields `ElementType::QUADRATIC_TETRAHEDRON` |
 
 There is an explicit `TODO` comment in `gaussian-integration-tests.cpp` (near line 13): *"repeat this with quadratic element"* for the linear tet integration test case.
@@ -217,9 +218,9 @@ Although the Jacobian is mathematically constant for straight-sided elements, th
 
 This behaviour is documented in `plans/quadratic-jacobian-optimization.md`, which records the investigation and explains why the caching optimization was not retained.
 
-### 6.3 `Mesh::Dimension` Redundancy
+### 6.3 `Mesh` Dimension Source of Truth
 
-The `Mesh` constructor comment notes that the `dimension` field is redundant since it can be deduced from `elementType`. The field and its setter/getter remain, creating an inconsistency risk.
+The mesh dimension is now derived from `elementType_` via `getDimension()`, so there is no separate stored `Dimension` field to drift out of sync. The empty-mesh helpers `Mesh::triangleMesh()` and `Mesh::tetMesh()` now construct concrete linear mesh types so the dimension remains defined even before element data is populated.
 
 ### 6.4 `Mesh::nElements` Double-Accounting
 

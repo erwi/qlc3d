@@ -75,10 +75,27 @@ public:
   }
 }
 
+/**
+ * Return the topological dimension implied by an element type.
+ *
+ * @param elementType The mesh element type.
+ * @return 2 for triangle elements, 3 for tetrahedral elements, or 0 for unknown types.
+ */
+[[nodiscard]] inline idx getElementDimension(ElementType elementType) {
+  switch (elementType) {
+    case ElementType::LINEAR_TRIANGLE:
+    case ElementType::QUADRATIC_TRIANGLE:
+      return 2;
+    case ElementType::LINEAR_TETRAHEDRON:
+    case ElementType::QUADRATIC_TETRAHEDRON:
+      return 3;
+    default:
+      return 0;
+  }
+}
+
 class Mesh {
 private:
-  const idx Dimension;  // number of dimensions of mesh - 2 for tris and 3 for tets
-
   ElementType elementType_;
 
   idx nElements;  //total number of elements
@@ -90,16 +107,22 @@ private:
   double TotalSize;   // Total volume/area of the mesh
 
 public:
+  /**
+   * Construct a mesh container with the expected topological dimension and element type.
+   *
+   * @param dimension Topological dimension of the mesh (2 for triangles, 3 for tetrahedra).
+   * @param elementType Element type stored in the mesh.
+   */
   Mesh(unsigned int dimension, ElementType elementType);
 
   ~Mesh();
 
   static std::shared_ptr<Mesh> triangleMesh() {
-    return std::make_shared<Mesh>(2, ElementType::UNKNOWN);
+    return std::make_shared<Mesh>(2, ElementType::LINEAR_TRIANGLE);
   }
 
   static std::shared_ptr<Mesh> tetMesh() {
-    return std::make_shared<Mesh>(3, ElementType::UNKNOWN);
+    return std::make_shared<Mesh>(3, ElementType::LINEAR_TETRAHEDRON);
   }
 
     inline idx getnElements() const {
@@ -110,8 +133,8 @@ public:
     [[nodiscard]] inline ElementType getElementType() const { return elementType_; }
     /** number of nodes per element */
     [[nodiscard]] inline unsigned int getnNodes() const { return getNodesPerElement(elementType_); }
-    /** number of dimensions of mesh - 2 for tris and 3 for tets */
-    [[nodiscard]] inline idx getDimension() const { return Dimension; }
+    /** number of dimensions of mesh - 2 for triangles and 3 for tetrahedra */
+    [[nodiscard]] inline idx getDimension() const { return getElementDimension(elementType_); }
     idx getConnectedVolume(const idx e) const;  // returns index to connected volume element, or -1 if not connected to LC1
     inline idx getNode(const idx e, const idx n) const { // returns node n of element e
 #ifdef DEBUG
