@@ -53,10 +53,6 @@ void ResultOutput::writeResults(const Geometry &geom,
                                 const SolutionVector &qtensor,
                                 const SimulationState &simulationState) {
 
-  auto elementType = geom.getTetrahedra().getElementType();
-  if (elementType != ElementType::LINEAR_TETRAHEDRON) {
-    throw NotYetImplementedException("Result output only supports linear tetrahedral elements, got elementType=" + toString(elementType));
-  }
 
   // if any of current output format writers requires director, calculate director
   std::vector<qlc3d::Director> directors;

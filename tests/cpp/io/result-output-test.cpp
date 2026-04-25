@@ -1,5 +1,9 @@
 #include <catch.h>
+#include <algorithm>
+#include <fstream>
 #include <memory>
+#include <inits.h>
+#include <io/result-output.h>
 #include <io/lcview-result-output.h>
 #include <resultio.h>
 #include <util/stringutil.h>
@@ -327,3 +331,45 @@ TEST_CASE("Write and read back Q-tensor as LCView format - Quadratic elements") 
   }
 
 }
+
+TEST_CASE("Write VTK result via ResultOutput::writeResults() - quadratic mesh") {
+  Geometry geom;
+  prepareGeometryWithDefaultBoundaries(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH);
+
+  SolutionVector potential(geom.getnpLC(), 1);
+  SolutionVector qTensor(geom.getnpLC(), 5);
+
+  const auto director = qlc3d::Director::fromDegreeAngles(45, 0, 0.5);
+  for (unsigned int i = 0; i < geom.getnpLC(); ++i) {
+    potential.setValue(i, 0, geom.getCoordinates().getPoint(i).z());
+    qTensor.setValue(i, director);
+  }
+
+  SimulationState simulationState;
+  simulationState.state(RunningState::RUNNING);
+  simulationState.currentIteration(0);
+
+  TestUtil::TemporaryDirectory resDir;
+  ResultOutput resultOutput({Simu::SaveFormats::VTKUnstructuredAsciiGrid}, "mesh.msh", 0.5, resDir.path());
+
+  REQUIRE_NOTHROW(resultOutput.writeResults(geom, potential, qTensor, simulationState));
+
+  const auto resultFile = resDir.path() / "unstructured00000000.vtk";
+  REQUIRE(fs::exists(resultFile));
+
+  std::ifstream input(resultFile);
+  REQUIRE(input.is_open());
+
+  std::vector<std::string> lines;
+  for (std::string line; std::getline(input, line);) {
+    lines.push_back(line);
+  }
+
+  auto cellTypesIt = std::find(lines.begin(), lines.end(), "CELL_TYPES 24");
+  REQUIRE(cellTypesIt != lines.end());
+  REQUIRE(std::distance(cellTypesIt, lines.end()) >= 25);
+  for (int i = 1; i <= 24; ++i) {
+    REQUIRE(*(cellTypesIt + i) == "24");
+  }
+}
+
