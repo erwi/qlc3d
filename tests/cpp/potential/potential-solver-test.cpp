@@ -14,6 +14,9 @@
 #include <qlc3d.h>
 #include "geom/periodicity.h"
 
+// TEST: Smoke test - ensure potential solver can be constructed
+// ARRANGE: create default electrodes, LC and solver settings
+// ACT / ASSERT: construction should not throw
 TEST_CASE("Create solver") {
   Electrodes electrodes;
   auto lc = std::shared_ptr<LC>(LCBuilder().build());
@@ -21,12 +24,13 @@ TEST_CASE("Create solver") {
   PotentialSolver solver(electrodes, lc, settings);
 }
 
+// TEST: Solve potential on thin 1D-like mesh
+// Purpose: With electrodes fixed to potentials 1 and 0 and uniform vertical director,
+// the potential should vary linearly with the z-coordinate: v(z) = z
+// ARRANGE
+// - thin mesh, electrodes with potentials {1,0}
+// - uniform LC director vertical so dielectric anisotropy does not affect solution
 TEST_CASE("Solve potential 1D mesh - Expect v = z") {
-  // ARRANGE
-  // Read thin "1D" mesh with bottom Electrode1 at z=0 and Electrode2 at z=1
-  // Set the fixed potential of Electrode1 to 1 and Electrode2 to 0.
-  // The LC material is set to uniform director in the vertical direction so that dielectric anisotropy
-  // has no effect on the potential solution and the potential should vary linearly from 0 to 1 w.r.t. the mesh z-coordinate
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
   auto alignment = Alignment();
@@ -69,6 +73,9 @@ TEST_CASE("Solve potential 1D mesh - Expect v = z") {
   REQUIRE(maxDiff < 1e-6);
 }
 
+// TEST: Solve potential on pseudo-2D mesh with Neumann boundaries
+// Purpose: Verify solution respects Neumann boundaries and yields expected z-dependence
+// ARRANGE
 TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
@@ -100,9 +107,6 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
   // ACT
   solver.solvePotential(v, q, geom);
 
-  //vtkIOFun::UnstructuredGridWriter writer;
-  //writer.write("/home/eero/Desktop/pseudo2d.vtk", geom.getnpLC(), geom.getCoordinates(), *geom.t, v, q);
-
   // ASSERT
   // Check that potential values equal the z-coordinate value everywhere
   for (unsigned int i = 0; i < geom.getnp(); i++) {
@@ -112,6 +116,9 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries") {
   }
 }
 
+// TEST: Solve pseudo 2D mesh with Neumann boundaries using quadratic elements
+// Purpose: Same as previous test but using quadratic elements to ensure consistency
+// ARRANGE
 TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries - quadratic elements") {
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
@@ -143,9 +150,6 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries - quadratic elements") {
   // ACT
   solver.solvePotential(v, q, geom);
 
-  //vtkIOFun::UnstructuredGridWriter writer;
-  //writer.write("/home/eero/Desktop/pseudo2d.vtk", geom.getnpLC(), geom.getCoordinates(), geom.getTetrahedra(), v, q);
-
   // ASSERT
   // Check that potential values equal the z-coordinate value everywhere
   for (unsigned int i = 0; i < geom.getnp(); i++) {
@@ -155,8 +159,11 @@ TEST_CASE("Solve pseudo 2D mesh with Neumann boundaries - quadratic elements") {
   }
 }
 
+// TEST: Set uniform Electric field along z-axis
+// Purpose: Using electrodes configured with a constant E-field, verify the computed potential
+// equals the expected linear profile (offset so centre is zero)
+// ARRANGE: minimal set-up required. Presence of electric field in electrodes is sufficient.
 TEST_CASE("Set uniform Electric field along z-axis") {
-  // ARRANGE: minimal set-up required. Presence of electric field in electrodes is sufficient.
   Geometry geom;
   Electrodes electrodes = Electrodes::withConstantElectricField({0, 0, 1});
   Alignment alignment;
@@ -188,8 +195,10 @@ TEST_CASE("Set uniform Electric field along z-axis") {
   }
 }
 
+// TEST: Solve potential on mesh containing a dielectric layer with Neumann boundaries
+// Purpose: Verify potential distribution when dielectric permittivity changes in a layered mesh.
+// ARRANGE
 TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries") {
-  // ARRANGE:
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
   electrodes.setDielectricPermittivities({1});
@@ -259,8 +268,10 @@ TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries")
   }
 }
 
+// TEST: Solve potential with dielectric layer and Neumann boundaries using quadratic elements
+// Purpose: Same validation as previous dielectric-layer test but run with quadratic elements
+// ARRANGE
 TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries using quadratic elements") {
-  // ARRANGE:
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
   electrodes.setDielectricPermittivities({1});
@@ -331,9 +342,11 @@ TEST_CASE("Solve potential - mesh with dielectric layer and Neumann boundaries u
   }
 }
 
+// TEST: Solve potential on cube with quadratic elements and periodic boundaries
+// Purpose: Verify potential respects periodic boundaries and matches expected z-profile
+// ARRANGE
 TEST_CASE("Solve potential - cube with quadratic elements and periodic boundaries") {
   //return;
-  // ARRANGE
   Geometry geom;
   auto electrodes = Electrodes::withInitialPotentials({1, 2}, {0, 1});
 
@@ -374,6 +387,8 @@ TEST_CASE("Solve potential - cube with quadratic elements and periodic boundarie
   }
 }
 
+// DEBUG-ONLY convenience set-up (not executed as a test)
+// Purpose: helper for local interactive debugging; intentionally returns immediately
 TEST_CASE("Convenience debugging set-up, not a test!") {
   return;
 
