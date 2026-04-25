@@ -97,8 +97,6 @@ public:
 class Mesh {
 private:
   ElementType elementType_;
-
-  idx nElements;  //total number of elements
   std::vector<idx> nodes;
   std::vector<idx> materials;
   std::vector<double> determinants;
@@ -125,7 +123,12 @@ public:
     return std::make_shared<Mesh>(3, ElementType::LINEAR_TETRAHEDRON);
   }
 
-    inline idx getnElements() const {
+    /**
+     * Return the number of elements currently stored in the mesh.
+     *
+     * @return Number of elements derived from the node array size.
+     */
+    [[nodiscard]] inline idx getnElements() const {
       return nodes.size() / getnNodes();
     }
     /** Element order - 1 for linear elements, 2 for quadratic elements */
@@ -138,7 +141,7 @@ public:
     idx getConnectedVolume(const idx e) const;  // returns index to connected volume element, or -1 if not connected to LC1
     inline idx getNode(const idx e, const idx n) const { // returns node n of element e
 #ifdef DEBUG
-        if ((e >= nElements) || (n >= nNodes)) {
+        if ((e >= getnElements()) || (n >= getnNodes())) {
             printf("error - Mesh::getNode(int,int) - index to node out of bounds, bye! ");
             printf("requested elem %u, node %u\n", e, n);
             exit(1);
@@ -163,7 +166,6 @@ public:
     /** copy all node values to the mesh */
     void setAllNodes(idx *nodes);
     void setSurfaceNormal(idx i, const Vec3 &normal);
-    void setnElements(idx nnelem);                  // set numbero of elements TODO: should only depend on nodes vectors size
 
     /** writes all nodes of given element to nodesOut */
     void loadNodes(idx elementIndex, idx *nodesOut) const;

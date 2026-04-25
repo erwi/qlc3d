@@ -224,7 +224,7 @@ The mesh dimension is now derived from `elementType_` via `getDimension()`, so t
 
 ### 6.4 `Mesh::nElements` Double-Accounting
 
-`nElements` is stored as both a field and implicitly via `nodes.size() / getnNodes()`. `getnElements()` computes from the latter. The two can become inconsistent. `setnElements()` exists solely to maintain the field. This should be unified.
+Resolved: `Mesh` now derives the element count directly from `nodes.size() / getnNodes()` and no longer stores a separate mutable `nElements` field. This removes the drift risk between the cached count and the actual node storage. `getNode()` and the mutation paths (`setElementData()`, `appendElements()`, `ClearMesh()`, `CopyMesh()`) now all use the derived count path, and the mesh regression tests cover set/append/copy/clear flows for both linear and quadratic meshes.
 
 ### 6.5 `setAllNodes()` Deprecated Call Sites
 

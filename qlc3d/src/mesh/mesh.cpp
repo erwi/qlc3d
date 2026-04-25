@@ -13,7 +13,7 @@
 using fmt::format;
 
 Mesh::Mesh(unsigned int dimension, ElementType elementType) :
-        elementType_{elementType}, nElements{0}, TotalSize{0} {
+        elementType_{elementType}, TotalSize{0} {
   const idx elementDimension = getElementDimension(elementType_);
   if (elementDimension == 0) {
     RUNTIME_ERROR(format("Mesh element type {} does not define a valid dimension.", elementType_));
@@ -40,7 +40,7 @@ idx Mesh::getDielectricNumber(const idx e) const {
 
 double Mesh::getDeterminant(const idx i) const {
 #ifdef DEBUG
-  assert(i < nElements);
+  assert(i < getnElements());
 #endif
   return determinants[i];
 }
@@ -77,9 +77,16 @@ void Mesh::setElementData(ElementType elementType, std::vector<unsigned int> &&n
   }
 
   this->elementType_ = elementType;
-  // check that the provided data dimensions match the current mesh element type
-
   unsigned int nodesPerElement = getnNodes();
+  if (nodesPerElement == 0) {
+    RUNTIME_ERROR(format("Element type {} does not define a valid node count.", getElementType()));
+  }
+
+  if (nodes.size() % nodesPerElement != 0) {
+    RUNTIME_ERROR(format("Number of nodes ({}) is not compatible with element type {} ({} nodes per element).",
+                         nodes.size(), getElementType(), nodesPerElement));
+  }
+
   unsigned int numMaterials = materials.size();
   unsigned int numElements = nodes.size() / nodesPerElement;
 
@@ -87,14 +94,8 @@ void Mesh::setElementData(ElementType elementType, std::vector<unsigned int> &&n
     RUNTIME_ERROR(format("Number of elements ({}) does not match number of materials ({}).", numElements, materials.size()));
   }
 
-  unsigned int numNodesIn = nodes.size() / numElements != nodesPerElement;
-  if (nodes.size() / numElements != nodesPerElement) {
-    RUNTIME_ERROR(format("Number of nodes per element ({}) is not compatible with element type {}.", numNodesIn, getElementType()));
-  }
-
   this->nodes = nodes;
   this->materials = materials;
-  this->nElements = numElements;
 }
 
 /**
@@ -104,16 +105,11 @@ void Mesh::setElementData(ElementType elementType, std::vector<unsigned int> &&n
  */
 void Mesh::setAllNodes(idx *nodes) {
 #ifdef DEBUG
-    assert(nElements > 0);
-    assert(this->nodes.size() == nElements * nNodes); // only used in init. TODO fix this
+    assert(this->nodes.size() == getnElements() * getnNodes()); // only used in init. TODO fix this
 #endif
     for (unsigned int i = 0; i < this->nodes.size(); i++) { // assumes already correct size TODO: don't assume
         this->nodes[i] = nodes[i];
     }
-}
-
-void Mesh::setnElements(idx nelem) {
-    nElements = nelem;
 }
 
 void Mesh::setConnectedVolume(Mesh* vol) {
@@ -621,7 +617,6 @@ void Mesh::removeElements(std::set<idx>& index) {
 }
 
 void Mesh::ClearMesh(){
-  nElements	= 0;
   nodes.clear();
   materials.clear();
   determinants.clear();
@@ -632,6 +627,15 @@ void Mesh::ClearMesh(){
 void Mesh::appendElements(const vector<idx> &nodeValues, const vector<idx> &materialValues) {
     // CHECK THAT EQUAL SIZE OF MATERIAL NUMBERS AND ELEMENT NODES
     idx nodesPerElem = (unsigned int) this->getnNodes();
+    if (nodesPerElem == 0) {
+      RUNTIME_ERROR(format("Element type {} does not define a valid node count.", getElementType()));
+    }
+
+    if (nodeValues.size() % nodesPerElem != 0) {
+      RUNTIME_ERROR(format("Number of node values ({}) is not compatible with element type {} ({} nodes per element).",
+                              nodeValues.size(), getElementType(), nodesPerElem));
+    }
+
     idx numNewElements = nodeValues.size() / nodesPerElem;
 
     if (numNewElements != materialValues.size() ) {
@@ -646,13 +650,10 @@ void Mesh::appendElements(const vector<idx> &nodeValues, const vector<idx> &mate
     for (auto m : materialValues) {
       materials.push_back(m);
     }
-
-    this->nElements = materials.size();
 }
 
 void Mesh::CopyMesh(Mesh* rhs) {
     this->elementType_ = rhs->getElementType();
-    setnElements(rhs->getnElements() );		// set number of elements
     TotalSize = rhs->TotalSize;
 
     nodes = rhs->nodes;
