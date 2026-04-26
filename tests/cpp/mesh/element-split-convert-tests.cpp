@@ -9,19 +9,26 @@
 
 namespace {
 
+  // Return labeled coordinates for the quadratic tetrahedron used in the tests.
+  // Labels follow the convention used in the tests: A, B, C, D, ab, bc, ac, ad, bd, cd
+  static std::vector<Vec3> makeQuadraticTestCoordinates() {
+    return std::vector<Vec3> {
+      Vec3(0, 0, 0), // A
+      Vec3(1, 0, 0), // B
+      Vec3(0, 1, 0), // C
+      Vec3(0, 0, 1), // D
+      Vec3(0.5, 0, 0), // ab
+      Vec3(0.5, 0.5, 0), // bc
+      Vec3(0, 0.5, 0), // ac
+      Vec3(0, 0, 0.5), // ad
+      Vec3(0.5, 0, 0.5), // bd
+      Vec3(0, 0.5, 0.5) // cd
+    };
+  }
+
+
 RawMeshData makeQuadraticTestRawMeshData() {
-  std::vector<Vec3> points = {
-      Vec3(0, 0, 0),
-      Vec3(1, 0, 0),
-      Vec3(0, 1, 0),
-      Vec3(0, 0, 1),
-      Vec3(0.5, 0, 0),
-      Vec3(0.5, 0.5, 0),
-      Vec3(0, 0.5, 0),
-      Vec3(0, 0, 0.5),
-      Vec3(0.5, 0, 0.5),
-      Vec3(0, 0.5, 0.5),
-  };
+  std::vector<Vec3> points = makeQuadraticTestCoordinates();
 
   return RawMeshData(2, std::move(points),
                      {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, {MAT_DOMAIN1},
@@ -37,6 +44,8 @@ Geometry makeQuadraticTestGeometry() {
 }
 
 } // namespace
+
+
 
 TEST_CASE("Split and recombine tets") {
   // Tet node numbering as in fig 6.1 (b) in Eero's thesis
@@ -55,6 +64,7 @@ TEST_CASE("Split and recombine tets") {
   SECTION("Split quadratic tetrahedron to 8 linear tets") {
     std::vector<unsigned int> quadraticTetrahedron = {A, B, C, D, ab, bc, ac, ad, bd, cd};
 
+    // ACT
     std::vector<std::vector<unsigned int>> linearTets = splitQuadraticTetrahedronToLinear(quadraticTetrahedron);
     REQUIRE(linearTets.size() == 8);
     // corner tets
@@ -81,8 +91,8 @@ TEST_CASE("Split and recombine tets") {
       {bd, cd, ac, bc},
       {ac, cd, bd, ad}
     };
-
-    std::vector<unsigned int> recombinedTet = recombineLinearTetsToQuadratic(linearTets);
+    auto coords = makeQuadraticTestCoordinates();
+    std::vector<unsigned int> recombinedTet = recombineLinearTetsToQuadratic(linearTets, coords);
     REQUIRE(recombinedTet.size() == 10);
     REQUIRE(recombinedTet[0] == A);
     REQUIRE(recombinedTet[1] == B);
@@ -94,6 +104,30 @@ TEST_CASE("Split and recombine tets") {
     REQUIRE(recombinedTet[7] == ad);
     REQUIRE(recombinedTet[8] == bd);
     REQUIRE(recombinedTet[9] == cd);
+
+    // the determinant of the tet defined by the corners should be positive
+    double jDet = det3D(coords[recombinedTet[0]], coords[recombinedTet[1]], coords[recombinedTet[2]], coords[recombinedTet[3]]);
+    REQUIRE(jDet == Approx(1.0).epsilon(1e-9));
+  }
+
+  SECTION("Recombine 8 linear tets to quadratic tetrahedron when node order is swapped") {
+    std::vector<std::vector<unsigned int>> linearTets = {
+      {A, ab, ac, ad},
+      {B, bc, ab, bd},
+      {D, cd, bd, ad}, // <--- C and D order is swapped = negative jacobian determinant
+      {C, cd, ac, bc}, // <---
+      {bd, ab, ac, ad},
+      {ac, bc, ab, bd},
+      {bd, cd, ac, bc},
+      {ac, cd, bd, ad}
+    };
+    auto coords = makeQuadraticTestCoordinates();
+    std::vector<unsigned int> recombinedTet = recombineLinearTetsToQuadratic(linearTets, coords);
+
+
+    // the determinant of the tet defined by the corners should be positive
+    double jDet = det3D(coords[recombinedTet[0]], coords[recombinedTet[1]], coords[recombinedTet[2]], coords[recombinedTet[3]]);
+    REQUIRE(jDet == Approx(1.0).epsilon(1e-9));
   }
 }
 
@@ -247,4 +281,63 @@ TEST_CASE("Split quadratic geometry and re-promote it to quadratic mesh data") {
   REQUIRE(linearMeshData.tetMaterials.size() == 8);
   REQUIRE(linearMeshData.triNodes.size() == 16 * 6);
   REQUIRE(linearMeshData.triMaterials.size() == 16);
+}
+
+TEST_CASE("split and recombine quadratic gmsh mesh") {
+  auto rawMeshData = MeshReader::readMesh(TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH);
+
+  auto geom = Geometry::fromRawMeshData(rawMeshData);
+  RawMeshData linearMeshData(1, {}, {}, {}, {}, {});
+
+  splitQuadraticGeometryToLinear(geom, linearMeshData);
+
+  REQUIRE(recombineLinearisedMeshToQuadratic(linearMeshData) == true);
+
+  // ASSERT: linearMeshData should match the original quadratic mesh data
+  // ARRANGE/ACT above: rawMeshData -> Geometry -> split -> recombine
+
+  // element order
+  REQUIRE(linearMeshData.getElementOrder() == rawMeshData.getElementOrder());
+
+  // points: same count and coordinates (compare via distance to avoid relying on Vec3 internals)
+  REQUIRE(linearMeshData.points.size() == rawMeshData.points.size());
+  for (size_t i = 0; i < rawMeshData.points.size(); ++i) {
+    REQUIRE(linearMeshData.points[i].distance(rawMeshData.points[i]) == Approx(0.0).margin(1e-9));
+  }
+
+  // tetrahedral elements and materials
+  REQUIRE(linearMeshData.tetNodes.size() == rawMeshData.tetNodes.size());
+  if (linearMeshData.tetNodes != rawMeshData.tetNodes) {
+    // Log detailed mismatch information to help debug swapped node ordering.
+    Log::info("Tet nodes differ: linearMeshData.tetNodes.size()={}, rawMeshData.tetNodes.size()={}", linearMeshData.tetNodes.size(), rawMeshData.tetNodes.size());
+    const size_t nodesPerTet = 10;
+    const size_t nTets = rawMeshData.tetNodes.size() / nodesPerTet;
+    for (size_t t = 0; t < nTets; ++t) {
+      size_t base = t * nodesPerTet;
+      bool equal = true;
+      for (size_t k = 0; k < nodesPerTet; ++k) {
+        if (linearMeshData.tetNodes[base + k] != rawMeshData.tetNodes[base + k]) { equal = false; break; }
+      }
+      if (!equal) {
+        std::string lstr;
+        std::string rstr;
+        for (size_t k = 0; k < nodesPerTet; ++k) {
+          lstr += std::to_string(linearMeshData.tetNodes[base + k]);
+          rstr += std::to_string(rawMeshData.tetNodes[base + k]);
+          if (k + 1 < nodesPerTet) { lstr += ", "; rstr += ", "; }
+        }
+        Log::info("Tet {}: linear = [{}]", t, lstr);
+        Log::info("Tet {}: raw    = [{}]", t, rstr);
+      }
+    }
+  }
+  REQUIRE(linearMeshData.tetNodes == rawMeshData.tetNodes);
+  REQUIRE(linearMeshData.tetMaterials.size() == rawMeshData.tetMaterials.size());
+  REQUIRE(linearMeshData.tetMaterials == rawMeshData.tetMaterials);
+
+  // triangular elements and materials
+  REQUIRE(linearMeshData.triNodes.size() == rawMeshData.triNodes.size());
+  REQUIRE(linearMeshData.triNodes == rawMeshData.triNodes);
+  REQUIRE(linearMeshData.triMaterials.size() == rawMeshData.triMaterials.size());
+  REQUIRE(linearMeshData.triMaterials == rawMeshData.triMaterials);
 }
