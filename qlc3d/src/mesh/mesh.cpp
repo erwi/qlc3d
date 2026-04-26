@@ -387,8 +387,13 @@ void Mesh::calculateSurfaceNormals(const Coordinates &coords, Mesh* tets) {
 }
 
 void Mesh::calcLocCoords(const idx elem, const Coordinates &coordinates, const Vec3 &targetPoint, double localCoordinates[4]) const {
+  // Only the 4 corner nodes (local positions 0–3) define the element geometry
+  // for both TET4 and straight-edged TET10.  Use getNode() directly to avoid
+  // writing all getnNodes() values through loadNodes() into a fixed-size array.
   unsigned int elemNodes[4];
-  loadNodes(elem, elemNodes);
+  for (unsigned int i = 0; i < 4; i++) {
+    elemNodes[i] = getNode(elem, i);
+  }
   const double determinant = getDeterminant(elem) * qlc3d::units::CUBIC_METER_TO_CUBIC_MICROMETER;
 
   // node 0 - opposite to [1, 2, 3]
