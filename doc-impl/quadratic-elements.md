@@ -1,299 +1,263 @@
-# Quadratic Element Support — State of the Codebase
+# Quadratic Element Support — Current Snapshot
 
 > Last updated: April 2026
 
-This document assesses the current state of support for quadratic finite elements (10-node tetrahedra `TET10`, 6-node triangles `TRI6`) compared to the fully-supported linear baseline (4-node tetrahedra `TET4`, 3-node triangles `TRI3`).
+This document describes the current state of quadratic finite-element support in qlc3d for 10-node tetrahedra (`TET10`) and 6-node triangles (`TRI6`). It is a snapshot of what works now, what is still limited, and what work would unlock additional functionality.
 
 ---
 
 ## Table of Contents
 
-1. [Background and Design Intent](#1-background-and-design-intent)
-2. [Linear Element Baseline](#2-linear-element-baseline)
-3. [What Is Implemented for Quadratic Elements](#3-what-is-implemented-for-quadratic-elements)
-4. [Incomplete or Blocked Work](#4-incomplete-or-blocked-work)
-5. [Test Coverage](#5-test-coverage)
-6. [Technical Debt](#6-technical-debt)
-7. [Modularity and Coupling Concerns](#7-modularity-and-coupling-concerns)
-8. [Recommended Next Steps](#8-recommended-next-steps)
+1. [Current Scope](#1-current-scope)
+2. [Implemented Quadratic Support](#2-implemented-quadratic-support)
+3. [Current Limitations](#3-current-limitations)
+4. [Test Coverage Snapshot](#4-test-coverage-snapshot)
+5. [Current Caveats and Technical Debt](#5-current-caveats-and-technical-debt)
+6. [Recommended Milestones](#6-recommended-milestones)
 
 ---
 
-## 1. Background and Design Intent
+## 1. Current Scope
 
-The codebase was originally written for linear tetrahedral finite elements. Work to introduce quadratic (serendipity/Lagrange) TET10 and TRI6 elements has been partially completed. The core shape-function machinery and mesh conversion utilities are done; the principal remaining work is removing explicit `NotYetImplementedException` guards in the solver entry points and fixing a dependency-chain block in the regular-grid / spatial-lookup subsystem.
+Quadratic support is active across the main geometry, assembly, search, and output paths.
 
-A critical architectural decision was made in `prepareGeometry()` in `inits.cpp`: **the mesh is always converted to quadratic (TET10/TRI6) in memory at geometry preparation time**, regardless of what was loaded from disk. A linear input mesh is automatically promoted via `convertLinearMeshDataToQuadratic()`. This means all downstream code only ever sees TET10/TRI6, but the solver entry points that sit between `prepareGeometry()` and the already-quadratic-aware assembly routines still throw before those routines are reached.
+The key project-wide behavior is in `prepareGeometry()` in `inits.cpp`:
+
+- linear meshes are promoted in memory to quadratic meshes through `convertLinearMeshDataToQuadratic()`;
+- native quadratic Gmsh meshes are accepted directly;
+- downstream simulation code normally operates on quadratic tetrahedra and triangles.
+
+For straight-edged elements, the codebase treats quadratic geometry as the same physical volume and surface geometry defined by the corner nodes, with mid-edge nodes carrying the higher-order field representation.
 
 ---
 
-## 2. Linear Element Baseline
+## 2. Implemented Quadratic Support
 
-Linear elements (`ElementType::LINEAR_TETRAHEDRON`, `ElementType::LINEAR_TRIANGLE`) are fully supported end-to-end.
+### 2.1 Mesh model and element metadata
 
-| Area | Status |
+- `ElementType::QUADRATIC_TRIANGLE` and `ElementType::QUADRATIC_TETRAHEDRON` are defined.
+- `getNodesPerElement()` and `getElementOrder()` return the correct values for quadratic elements.
+- `Mesh::setElementData()` validates node-count consistency for quadratic connectivity.
+- Mesh traversal code that uses `getnNodes()` includes mid-edge nodes.
+- `calculateDeterminants3D()` and `calculateSurfaceNormals()` use corner nodes, which is exact for straight-edged quadratic elements.
+
+### 2.2 Shape functions and quadrature
+
+- `TetShapeFunction(2)` implements the full 10-node basis and derivatives.
+- `TriShapeFunction(2)` implements the full 6-node basis and derivatives.
+- Sampling helpers such as `N(i)`, `Nx(i)`, `Ny(i)`, `Nz(i)`, `sample()`, `sampleQ()`, and derivative samplers work with quadratic element sizes.
+- Quadratic LC assembly uses `Keast8` for volume terms and `Tri4thOrder` for surface terms.
+- Quadratic potential assembly uses `Keast4` for volume terms and `Tri4thOrder` for Neumann surface terms.
+
+### 2.3 Mesh I/O and geometry preparation
+
+- The Gmsh reader accepts element type `9` (`TRI6`) and `11` (`TET10`).
+- `RawMeshData` carries element order through the read/prepare pipeline.
+- `prepareGeometry()`:
+  - recombines previously linearised quadratic meshes when the split pattern is detected,
+  - promotes first-order meshes to second order when needed,
+  - reorders Gmsh TET10 mid-edge nodes into qlc3d's internal convention,
+  - validates and snaps quadratic mid-edge nodes when they are within tolerance of the expected midpoint.
+
+### 2.4 Conversion and split/recombine utilities
+
+The following utilities exist and are in active use:
+
+- `convertLinearMeshDataToQuadratic()`
+- `reorderQuadraticTetNodeOrder()`
+- `recombineLinearisedMeshToQuadratic()`
+- `splitQuadraticTetrahedronToLinear()`
+- `splitQuadraticTriangleToLinear()`
+- `recombineLinearTetsToQuadratic()`
+- `recombineLinearTrianglesToQuadratic()`
+
+### 2.5 Solvers and boundary handling
+
+- LC volume assembly and weak-anchoring assembly accept quadratic elements.
+- `PotentialSolver::solvePotential()` accepts quadratic meshes and reaches quadratic-aware assembly code.
+- Neumann assembly in the potential solver branches correctly between `reorderQuadraticBoundaryTetNodes()` and `reorderBoundaryTetNodes()` based on element type.
+
+### 2.6 Spatial lookup and result output
+
+- `RegularGrid` can be built for quadratic tetrahedral meshes.
+- Spatial lookup for straight-edged TET10 remains geometrically exact because containment and barycentric coordinates use the corner-node geometry.
+- The VTK writer emits VTK cell type `24` for quadratic tetrahedra.
+- LcView mesh output supports quadratic input meshes by splitting each quadratic element into linear sub-elements during export.
+
+---
+
+## 3. Current Limitations
+
+### 3.1 Adaptive refinement is still linear-only
+
+`autoref()` in `autorefinement.cpp` rejects any tetrahedral mesh whose element type is not `ElementType::LINEAR_TETRAHEDRON`.
+
+Current consequence:
+
+- adaptive refinement cannot be run on the quadratic meshes produced by `prepareGeometry()`;
+- a full quadratic simulation can solve on a prepared mesh, but it cannot continue through the refinement path.
+
+### 3.2 Q-tensor transfer after mesh changes is only first-order on TET10
+
+`interpolateQTensor()` uses only the four corner nodes of the containing tetrahedron:
+
+- geometry lookup is still exact for straight-edged TET10;
+- field transfer is linear within each element even when the source solution is quadratic.
+
+Current consequence:
+
+- any workflow that depends on carrying a quadratic solution between meshes loses the higher-order field representation.
+
+### 3.3 Native quadratic GiD input is not supported
+
+`ReadGiDMesh3D()` reads only 4-node tetrahedra and 3-node triangles.
+
+Current consequence:
+
+- GiD input always enters the system as linear data and is then promoted by `prepareGeometry()`;
+- there is no direct path for loading native quadratic GiD connectivity.
+
+### 3.4 Generic boundary-node reordering is not higher-order-safe
+
+`reorderBoundaryTetNodes()` throws for anything other than a 4-node tetrahedron. Quadratic Neumann assembly works today because it explicitly calls `reorderQuadraticBoundaryTetNodes()`, but the generic helper is still linear-only.
+
+Current consequence:
+
+- higher-order callers must know to bypass the generic helper and call the quadratic-specific function.
+
+---
+
+## 4. Test Coverage Snapshot
+
+### 4.1 Existing quadratic coverage
+
+| Test file | Current coverage |
 |---|---|
-| `ElementType` enum, `getNodesPerElement()`, `getElementOrder()` | ✅ Complete |
-| `Mesh` data model, node storage, determinants, surface normals | ✅ Complete |
-| GiD mesh reader (4-node tet, 3-node tri) | ✅ Complete |
-| Gmsh reader — element types 2 (TRI3), 4 (TET4) | ✅ Complete |
-| `TetShapeFunction(1)`, `TriShapeFunction(1)` shape functions | ✅ Complete |
-| Gauss quadrature points (`Keast0`, `Keast4`, `Keast8`, `Tri4thOrder`) | ✅ Complete |
-| Q-tensor (LC) solver assembly | ✅ Complete |
-| Potential solver assembly | ✅ Complete |
-| Adaptive mesh refinement (red-green tet splitting) | ✅ Complete |
-| Regular spatial grid (`RegularGrid` + `buildRegularGrid`) | ✅ Complete |
-| Q-tensor interpolation (`interpolateQTensor`) | ✅ Complete |
-| Result output — VTK, LcView, result files | ✅ Complete |
+| `tests/cpp/fe/gaussian-integration-tests.cpp` | TET10 and TRI6 shape functions, volume/surface integration, and quadratic sampling helpers |
+| `tests/cpp/mesh/element-split-convert-tests.cpp` | TET10/TRI6 split-recombine utilities and linear→quadratic conversion |
+| `tests/cpp/io/meshio-tests.cpp` | Quadratic Gmsh mesh loading |
+| `tests/cpp/init-geometry-tests.cpp` | `prepareGeometry()`, quadratic node-order correction, midpoint snapping/validation, and standalone regular-grid creation |
+| `tests/cpp/potential/potential-solver-test.cpp` | Quadratic potential solves, including Neumann-boundary cases |
+| `tests/cpp/lc/lc-solver-tests.cpp` | Steady-state LC solve on quadratic meshes |
+| `tests/cpp/geom/geom-tests.cpp` | TET10 containment, barycentric coordinates, centroid behavior, and regular-grid interaction |
+| `tests/cpp/io/result-output-test.cpp` | Quadratic LCView result I/O and quadratic VTK cell-type output |
+| `tests/cpp/refinement/q-tensor-interpolator-tests.cpp` | Q-tensor interpolation size/copy behavior and exact preservation of linear fields through refinement |
+
+### 4.2 Coverage gaps that still matter
+
+- No test currently exercises adaptive refinement on an in-memory quadratic mesh, because `autoref()` rejects it.
+- `interpolateQTensor()` is tested for linear fields, but there is no regression test that documents the expected loss of quadratic field order on TET10.
+- LcView export is tested through result read/write behavior, but there is no explicit regression test that documents the 1 `TET10` → 8 `TET4` mesh expansion.
+- `recombineLinearisedMeshToQuadratic()` does not have a regression test focused on failure behavior and node-index stability across save/reload-style workflows.
 
 ---
 
-## 3. What Is Implemented for Quadratic Elements
+## 5. Current Caveats and Technical Debt
 
-### 3.1 Data Model (`mesh/mesh.h`)
+### 5.1 `prepareGeometry()` is implicitly "always quadratic"
 
-- `ElementType::QUADRATIC_TRIANGLE = 3` (6 nodes) and `ElementType::QUADRATIC_TETRAHEDRON = 4` (10 nodes) are defined.
-- `getNodesPerElement()` returns 6 / 10 correctly.
-- `getElementOrder()` returns 2 for both types.
-- `Mesh::setElementData()` validates node-count consistency for quadratic types.
-- Per-element loops throughout `Mesh` use `getnNodes()` dynamically, so they correctly include mid-edge nodes for TET10/TRI6.
-- `calculateDeterminants3D()` and `calculateSurfaceNormals()` correctly use only the 4 (or 3) corner nodes, which is exact for straight-edged elements.
-- `gen_p_to_elem()`, `listFixLCSurfaceNodes()`, `findElectrodeSurfaceNodes()`, `findNodesWhere()` all iterate `getnNodes()` and therefore include mid-edge nodes.
+`prepareGeometry()` performs the mesh-order promotion policy internally. There is no explicit switch for keeping the simulation in first-order mode.
 
-### 3.2 Shape Functions (`fe/gaussian-quadrature.h`)
+Current consequence:
 
-Both quadratic shape-function families are fully implemented:
+- linear-vs-quadratic comparisons, debugging, and performance studies require code changes or alternate setup paths instead of a documented runtime choice.
 
-- **`TetShapeFunction(2)`** — `initialiseQuadraticTet()`: standard TET10 serendipity basis; computes all 10 `sh`, `shR`, `shS`, `shT` values; `initialiseElement()` maps natural → global coordinates via the full 10-node Jacobian.
-- **`TriShapeFunction(2)`** — `setQuadraticTrianglePoints()`: standard TRI6 basis; computes all 6 `sh`, `shR`, `shS` values.
-- Public accessors `N(i)`, `Nx(i)`, `Ny(i)`, `Nz(i)`, `sample()`, `sampleQ()`, `sampleQX/Y/Z()` etc. loop over `nodesPerElement` and work for both 4 and 10 nodes.
+### 5.2 `recombineLinearisedMeshToQuadratic()` is heuristic and non-authoritative
 
-### 3.3 Gmsh Mesh I/O
+`recombineLinearisedMeshToQuadratic()` infers whether a first-order mesh is really a split quadratic mesh from element-count divisibility and connectivity/material consistency checks.
 
-- The Gmsh reader (`io/gmsh-read.cpp`) reads element types `9` (TRI6) and `11` (TET10).
-- `RawMeshData` carries `elementOrder_` (1 or 2) from the file.
-- Node count arithmetic is computed from `elementOrder_` throughout the reader.
+Current consequence:
 
-### 3.4 Geometry Preparation and Mesh Conversion (`inits.cpp`, `mesh/element-split-convert.h`)
+- a workflow that depends on stable quadratic node identity across write/read cycles is sensitive to whether the heuristic succeeds;
+- if recombination does not trigger, `prepareGeometry()` falls back to fresh linear→quadratic promotion, which produces a different quadratic node set.
 
-The full conversion pipeline is implemented:
+### 5.3 LcView export changes mesh topology representation
 
-| Function | Purpose |
-|---|---|
-| `convertLinearMeshDataToQuadratic()` | TET4→TET10 and TRI3→TRI6; mid-edge nodes at edge midpoints; respects shared edges between elements. Uses sparse IRC matrix for edge→node-index map. |
-| `reorderQuadraticTetNodeOrder()` | Fixes Gmsh's TET10 node ordering to match qlc3d's internal convention (Gmsh swaps nodes 8 and 9). Detected at load time by proximity of actual coordinates to expected mid-edge positions. |
-| `recombineLinearisedMeshToQuadratic()` | Heuristically re-constitutes TET10 from a mesh that was previously split 1 TET10 → 8 TET4. |
-| `splitQuadraticTetrahedronToLinear()` | TET10 → 8 × TET4 (used for LcView output). |
-| `splitQuadraticTriangleToLinear()` | TRI6 → 4 × TRI3. |
-| `recombineLinearTetsToQuadratic()` / `recombineLinearTrianglesToQuadratic()` | Inverse of the two split functions above. |
+`writeQuadraticTetrahedra()` and `writeQuadraticTriangles()` export quadratic meshes by splitting them into linear sub-elements because the target format does not store quadratic cells.
 
-`prepareGeometry()` always converts the in-memory mesh to quadratic before returning, so all downstream simulation code only ever sees TET10/TRI6.
+Current consequence:
 
-### 3.5 Boundary-Tet Node Reordering (`fe/fe-util.h`)
+- exported mesh connectivity does not match the in-memory quadratic element count;
+- post-processing workflows must treat LcView mesh files as linearised representations of the quadratic mesh.
 
-`reorderQuadraticBoundaryTetNodes()` reorders the 10 nodes of a TET10 so that the triangle face nodes (3 corners + 3 mid-edge) come first — required for Neumann surface integrals. This exists alongside the linear-only `reorderBoundaryTetNodes()`.
+### 5.4 Per-Gauss-point Jacobian recomputation is required for current numerical accuracy
 
-### 3.6 LC Solver (Q-Tensor) Assembly (`lc/lc-solver.cpp`)
+`TetShapeFunction::initialiseElement()` recomputes the inverse Jacobian at every Gauss point. For the current straight-sided quadratic implementation, caching a single Jacobian for the whole element introduces a measurable bias in solved results.
 
-**Functionally ready for quadratic elements.** The assembly is fully parameterised by `npe = shapes.getNumPointsPerElement()`:
+Current consequence:
 
-- `assembleLocalVolumeMatrix()` works for both 4 and 10 nodes.
-- `assembleMatrixSystemVolumeTerms()` detects element order, creates `TetShapeFunction(elementOrder)`, and uses `Keast8` (8th-order integration, appropriate for quadratic basis products).
-- `assembleMatrixSystemWeakAnchoring()` detects element order, creates `TriShapeFunction(elementOrder)` with `Tri4thOrder`.
-- A `#ifndef NDEBUG` block in `assembleLocalVolumeMatrix()` verifies TET10 mid-edge node positions at runtime.
+- Jacobian caching is not currently a safe optimization path without further numerical work.
 
-### 3.7 Potential Solver Assembly (`potential/potential-solver.cpp`)
+### 5.5 `setIntegrationPoints()` remains stateful
 
-The assembly routines are quadratic-aware:
+`TetShapeFunction::setIntegrationPoints()` mutates the shape-function object and silently returns if the points are already initialised.
 
-- `assembleVolume()` creates `TetShapeFunction(elementOrder)` with `Keast4`.
-- `assembleNeumann()` branches on `elementType` to call `reorderQuadraticBoundaryTetNodes` vs `reorderBoundaryTetNodes`.
+Current consequence:
 
-However, the public entry point `solvePotential()` throws a `NotYetImplementedException` **before** reaching this code. See §4.
-
-### 3.8 VTK Output (`io/vtkiofun.cpp`)
-
-The VTK writer correctly outputs VTK cell type 24 (quadratic tet, 10 nodes) vs cell type 10 (linear tet, 4 nodes).
-
-### 3.9 LcView Output (`io/lcview-result-output.cpp`)
-
-`writeQuadraticTetrahedra()` is implemented; it splits each TET10 into 8 TET4 for the LcView binary format (which does not support TET10 natively).
+- parallel assembly relies on thread-local copies rather than a clearly immutable quadrature object design.
 
 ---
 
-## 4. Incomplete or Blocked Work
+## 6. Recommended Milestones
 
-### 4.1 `NotYetImplementedException` Guards
+### Milestone 1 — Quadratic adaptive refinement
 
-The main remaining explicit runtime-throw sites blocking quadratic elements in the full simulation pipeline are:
+**Work required**
 
-| File | Entry point | What it prevents |
-|---|---|---|
-| `potential/potential-solver.cpp` | `PotentialSolver::solvePotential()` | All electrode potential solves. The assembly code **directly below this guard** already supports quadratic. |
-| `autorefinement.cpp` | `autoref()` | All adaptive mesh refinement on quadratic meshes. |
+- remove the linear-only guard in `autoref()`;
+- define the refinement path for quadratic meshes, including how refined meshes are re-promoted to TET10/TRI6;
+- preserve boundary conditions, regular-grid rebuilds, and solution-vector remapping through that path.
 
-The old `ResultOutput::writeResults()` and `Geometry::makeRegularGrid()` / `getRegularGrid()` blockers have been removed.
+**Unlocked functionality**
 
-### 4.2 Regular Grid and Spatial Lookup Chain
+- adaptive LC and electrostatic simulations on quadratic meshes;
+- end-to-end quadratic workflows that include mesh refinement instead of stopping at the initial solve.
 
-This blocker has now been removed.
+### Milestone 2 — Higher-order Q-tensor transfer between meshes
 
-- `TetMeshSearch` provides the spatial lookup implementation independently of `Geometry`.
-- `RegularGrid` no longer depends on `Geometry`; it is constructed from `Mesh`, `Coordinates`, and `AABox` directly.
-- `buildRegularGrid()` is the canonical factory for callers that do have a `Geometry` object.
-- `SimulationContainer` owns the regular grid explicitly and `autoref()` rebuilds it after mesh changes.
+**Work required**
 
-For straight-edged TET10 meshes, spatial lookup remains geometrically exact because only the 4 corner nodes are needed for containment and barycentric-coordinate calculations.
+- extend `interpolateQTensor()` so that field transfer uses the quadratic representation instead of only the four corner nodes;
+- add regression tests that distinguish exact linear preservation from expected quadratic-field behavior.
 
-### 4.3 Adaptive Mesh Refinement
+**Unlocked functionality**
 
-The entire refinement module (`src/refinement/`, `tet-splitter`, `tet-classifier`, `midpoint-node-lookup`) operates on linear (4-node) elements. Red-green splitting produces 4-node child tets. After refinement there is no re-promotion to quadratic.
+- refinement and remeshing workflows that preserve quadratic solution quality;
+- more accurate restart and mesh-adaptation cycles for quadratic LC simulations.
 
-One practical approach for adaptive quadratic refinement: refine using the linear machinery, then call `convertLinearMeshDataToQuadratic()` on the result. This would need to be wired up after the regular-grid blocker is resolved (since the Q-tensor interpolation needed to map old solution values onto the new mesh also depends on the regular grid).
+### Milestone 3 — Explicit mesh-order input policy
 
-### 4.4 Q-Tensor Interpolation (`refinement/q-tensor-interpolator.cpp`)
+**Work required**
 
-`interpolateQTensor()` uses only corner nodes (indices 0–3) for both barycentric coordinate calculation and Q-tensor value sampling. For straight-edged TET10 this is **geometrically exact** (the same geometry as TET4), but it discards the higher-order field representation — interpolated Q values will be linear within each element even though the original field is quadratic. This is not documented in the source.
+- add a documented policy for mesh-order handling at input time;
+- either support native quadratic GiD meshes or make first-order GiD ingestion plus promotion an explicit, inspectable step;
+- expose whether a mesh was loaded as quadratic, recombined to quadratic, or promoted from linear input.
 
-### 4.5 GiD Mesh Reader
+**Unlocked functionality**
 
-`ReadGiDMesh3D()` reads only 4-node tets and 3-node tris. GiD meshes are always loaded as linear, then converted by `prepareGeometry()`. No path exists to load a native quadratic GiD mesh.
+- direct quadratic GiD workflows, if native support is added;
+- reproducible debugging and benchmarking across linear and quadratic input paths.
 
-### 4.6 `reorderBoundaryTetNodes()` Incomplete (Linear Version)
+### Milestone 4 — Stable and explicit quadratic export/save-reload semantics
 
-The linear variant `reorderBoundaryTetNodes()` in `fe/fe-util.h` explicitly throws `NotYetImplementedException("Reordering only 4-node tetrahedra is supported")` for any input with more than 4 nodes. A `TODO` comment notes the generalised ordering for higher-order elements. The quadratic counterpart `reorderQuadraticBoundaryTetNodes()` exists and must be called explicitly; `assembleNeumann()` already branches correctly.
+**Work required**
 
----
+- document and test the linearisation semantics of LcView export;
+- harden the split/recombine workflow around `recombineLinearisedMeshToQuadratic()` so failures are explicit and node-identity-sensitive workflows are protected.
 
-## 5. Test Coverage
+**Unlocked functionality**
 
-### 5.1 Tests That Exist and Pass
+- predictable quadratic post-processing;
+- safer save/reload pipelines for workflows that depend on stable quadratic connectivity and node numbering.
 
-| Test file | What is tested |
-|---|---|
-| `tests/cpp/fe/gaussian-integration-tests.cpp` | `TetShapeFunction(2)` — volume integrals (identity Jacobian, x⁴ polynomial, Q-tensor sampling, permittivity sampling); TET10 boundary integral with a real mesh; `TriShapeFunction(2)` — weight sums and area integrals |
-| `tests/cpp/mesh/element-split-convert-tests.cpp` | TET10 ↔ 8×TET4 split/recombine; TRI6 ↔ 4×TRI3 split/recombine; `convertLinearMeshDataToQuadratic` for single tet, two-tet shared-face, and full Gmsh mesh |
-| `tests/cpp/mesh/mesh-tests.cpp` | `Mesh::triangleMesh()` / `Mesh::tetMesh()` dimensions, and dimension stability after `setElementData()` / `ClearMesh()` |
-| `tests/cpp/io/meshio-tests.cpp` | Loading a quadratic Gmsh mesh yields `ElementType::QUADRATIC_TETRAHEDRON` |
+### Milestone 5 — Higher-order-safe helper APIs
 
-There is an explicit `TODO` comment in `gaussian-integration-tests.cpp` (near line 13): *"repeat this with quadratic element"* for the linear tet integration test case.
+**Work required**
 
-### 5.2 Missing Tests
+- remove or generalise linear-only helper assumptions such as `reorderBoundaryTetNodes()`;
+- reduce the number of call sites that must know special-case quadratic helper functions by name.
 
-The following areas have no tests or are actively blocked from being tested:
+**Unlocked functionality**
 
-| Untested area | Notes |
-|---|---|
-| `PotentialSolver` with quadratic mesh | A test resource `RESOURCE_THIN_QUADRATIC_GMSH_MESH` is referenced in the potential solver test file, but the test hits the `NotYetImplementedException` guard immediately. The test exists but cannot pass. |
-| LC solver (Q-tensor) end-to-end with quadratic mesh | No integration test runs the full LC solve loop with TET10. The unit tests for assembly are adequate, but there is no solve-to-convergence smoke test. |
-| `reorderQuadraticTetNodeOrder()` | The Gmsh node-order fix in `inits.cpp` has no dedicated test. |
-| `recombineLinearisedMeshToQuadratic()` round-trip | No test verifies the split→recombine cycle preserves connectivity. |
-| Result output with quadratic mesh | No test exercises VTK or LcView output paths with a TET10 mesh. |
-| `interpolateQTensor()` with quadratic mesh | Not tested. Corner-node-only interpolation should still be tested explicitly to document the approximation order. |
-| Geometry preparation pipeline (`prepareGeometry`) | No standalone test; covered implicitly only via integration tests that load a Gmsh mesh. |
-
-### 5.3 Suggested New Tests
-
-1. **Potential solver smoke test** — once the `NotYetImplementedException` is removed, use `RESOURCE_THIN_QUADRATIC_GMSH_MESH` and verify that the solve produces the same voltage distribution (to within numerical tolerance) as the linear version of the same mesh.
-2. **LC solve convergence test** — run the LC solver to convergence on a small TET10 mesh; check that the Q-tensor norms are finite and energy is decreasing.
-3. **`reorderQuadraticTetNodeOrder()`** — load a Gmsh-exported TET10 mesh and verify that mid-edge node positions match expected midpoints after reordering.
-4. **`recombineLinearisedMeshToQuadratic()` round-trip** — split a TET10 mesh to linear, run the recombine function, and verify the result matches the original connectivity.
-5. **VTK output round-trip** — write a TET10 mesh to VTK and verify cell type 24 is emitted.
-6. **`interpolateQTensor()` quadratic vs linear** — interpolate a known quadratic field; document/assert the expected (linear) accuracy.
-
----
-
-## 6. Technical Debt
-
-### 6.1 Dual Shape-Function API Coexistence
-
-The old `GaussianQuadratureTet<NGP>` and `GaussianQuadratureTri<NGP>` template classes (linear-only, hardcoded to 4 and 3 nodes respectively) coexist with the new `TetShapeFunction` / `TriShapeFunction` classes. Several methods on the old templates are annotated `/** Deprecated */`. They are still instantiated in some code paths and would silently give wrong results if handed quadratic element data. These should be removed or completely replaced.
-
-### 6.2 Per-Gauss-Point Jacobian Computation
-
-`TetShapeFunction::initialiseElement()` recomputes the element inverse Jacobian at **every** Gauss point via the standard isoparametric summation over all `nodesPerElement` nodes.
-
-Although the Jacobian is mathematically constant for straight-sided elements, the quadratic basis derivatives in the sum evaluate to slightly different floating-point values at different Gauss-point locations (relative variation ≈ 2×10⁻¹⁵). When a single cached value is used for all Gauss points, the consistent bias accumulates across ~10 000 elements and a ≈15 000-DOF linear system to produce a ~1.4×10⁻³ error in the solved potential — larger than the `3×10⁻⁴` test tolerance. Recomputing at every Gauss point avoids this systematic bias; the uncorrelated floating-point errors across Gauss points partially cancel in the Gauss integration, preserving the original accuracy.
-
-This behaviour is documented in `plans/quadratic-jacobian-optimization.md`, which records the investigation and explains why the caching optimization was not retained.
-
-### 6.3 `Mesh` Dimension Source of Truth
-
-The mesh dimension is now derived from `elementType_` via `getDimension()`, so there is no separate stored `Dimension` field to drift out of sync. The empty-mesh helpers `Mesh::triangleMesh()` and `Mesh::tetMesh()` now construct concrete linear mesh types so the dimension remains defined even before element data is populated.
-
-### 6.4 `Mesh::nElements` Double-Accounting
-
-Resolved: `Mesh` now derives the element count directly from `nodes.size() / getnNodes()` and no longer stores a separate mutable `nElements` field. This removes the drift risk between the cached count and the actual node storage. `getNode()` and the mutation paths (`setElementData()`, `appendElements()`, `ClearMesh()`, `CopyMesh()`) now all use the derived count path, and the mesh regression tests cover set/append/copy/clear flows for both linear and quadratic meshes.
-
-### 6.5 `setAllNodes()` Deprecated Call Sites
-
-Resolved: the remaining internal `setAllNodes()` call sites were removed from `Geometry::ReorderDielectricNodes()`. That path now rebuilds the reordered coordinate and element arrays through `setElementData()`, so the deprecated raw setter is no longer used by the quadratic geometry pipeline.
-
-### 6.6 LcView Implicit Mesh Expansion
-
-`writeQuadraticTetrahedra()` silently expands 1 TET10 → 8 TET4 in the output file. Result files for quadratic meshes therefore contain 8× more connectivity entries than the mesh in memory. This is undocumented in comments or user-facing documentation and could cause confusion during postprocessing.
-
-### 6.7 `recombineLinearisedMeshToQuadratic()` Fragility
-
-Uses heuristics (multiples-of-8/4 element counts, matching materials) to detect a pre-split quadratic mesh. On failure it silently falls back to `convertLinearMeshDataToQuadratic()`, which creates a different set of nodes. This silent fallback can corrupt a workflow that depends on stable node indices across a save/reload cycle.
-
-### 6.8 Magic Scaling Constants
-
-Resolved: the micron-to-SI conversion factors are now named constants in `qlc3d::units`, and the geometry, refinement, potential, LC, energy, and local-coordinate code paths use those symbols instead of raw `1e-18`, `1e-12`, and `1e-6` literals. This makes the unit conversions explicit and keeps the scale factors consistent across the codebase.
-
-### 6.9 Stateful `setIntegrationPoints()` Lazy Initialiser
-
-`TetShapeFunction::setIntegrationPoints()` returns silently if already called, making the object stateful in a non-obvious way. The current workaround in parallel assembly loops is to make `firstprivate` copies for each OpenMP thread. A cleaner design would be to make this purely functional (immutable after construction, or factory pattern) and avoid mutable lazy-init state.
-
----
-
-## 7. Modularity and Coupling Concerns
-
-### 7.1 `prepareGeometry()` Is the Implicit "Always Quadratic" Gateway
-
-The decision to always convert to TET10/TRI6 is buried inside a general geometry-preparation function with no configuration switch. There is currently no way to run in strictly linear mode for debugging or performance comparison without modifying `prepareGeometry()` itself. Converting this to an explicit policy parameter would make the intent visible and testable.
-
-### 7.2 Remaining Entry-Point Guards Disconnected from Assembly Readiness
-
-`solvePotential()` still throws at its public entry point even though the assembly code immediately below it is quadratic-aware. This creates the false impression that quadratic is unsupported throughout the potential subsystem. The remaining guard is coarse-grained; any solver-specific limitations should live inside the individual solver paths, not at the top level.
-
-### 7.3 Regular-Grid and Spatial Search Decoupling
-
-The old cascade `makeRegularGrid` → `genIndToTetsByCoords` → `interpolateQTensor` → `autoref` has been untangled:
-
-- `TetMeshSearch` isolates the tetrahedral spatial-search logic.
-- `RegularGrid` is now a mesh-primitive consumer instead of a `Geometry` consumer.
-- `Geometry` no longer owns `RegularGrid`.
-- `SimulationContainer` is the canonical owner of the grid via `std::unique_ptr<RegularGrid>`.
-
-This makes the spatial lookup path directly testable without requiring `Geometry` to own output/interpolation infrastructure.
-
-### 7.4 Result Output Is No Longer Coupled to `Geometry` Ownership
-
-`ResultOutput::writeResults()` now accepts a `RegularGrid*` explicitly and forwards it only to the format writers that require regular-grid interpolation. This removes the old hidden coupling where writers had to reach back into `Geometry` just to obtain output infrastructure.
-
-### 7.5 `interpolateQTensor()` Implicit Linear-Only Contract
-
-`interpolateQTensor` uses only corner nodes and linear barycentric coordinates. For straight-edged TET10 this is exact for geometry but linear-order for field values. This implicit contract is not expressed in the function signature or documentation, making it a hidden coupling between the interpolator and the assumption that elements are geometrically linear (straight edges, no curved isoparametric mapping).
-
-### 7.6 GiD Reader Always Forces Conversion
-
-Every GiD mesh loaded goes through `convertLinearMeshDataToQuadratic()` unconditionally. The original linear mesh is discarded, the conversion cost is always paid, and there is no signalling to the caller that this happened. A cleaner design would have the GiD reader produce `RawMeshData` with `elementOrder_ == 1` and document that `prepareGeometry()` will promote it, or alternatively expose a GiD mesh upgrade utility.
-
----
-
-## 8. Recommended Next Steps
-
-In rough priority order:
-
-1. **Remove the `solvePotential()` guard** — this immediately enables quadratic potential solves. The assembly code is ready. Add a smoke test using the existing quadratic test mesh resource.
-2. **Wire up adaptive refinement for quadratic meshes** — the regular-grid blocker is resolved, but refinement still has its own quadratic guard and still refines linear elements only.
-3. **Document and improve `interpolateQTensor()` accuracy for TET10** — geometry lookup is exact, but the field interpolation remains first-order because it uses only the four corner-node Q values.
-4. **Expand result-output coverage** — the top-level guard is gone, so regular-grid writer tests should explicitly cover `RegularVTK`, `RegularVecMat`, and `DirStackZ` with the explicit `RegularGrid*` API.
-5. **Remove the old `GaussianQuadratureTet<NGP>` / `GaussianQuadratureTri<NGP>` deprecated classes** — reduce API surface and eliminate silent-wrong-answer risk.
-6. **Jacobian caching** — investigated and found numerically unsafe with the current isoparametric assembly; see `plans/quadratic-jacobian-optimization.md` for details and possible future approaches.
-7. **Add tests for all the missing areas** listed in §5.2.
-8. **Document the LcView implicit expansion** explicitly in code and user documentation.
-9. **Replace magic scaling constants** with named `constexpr` values.
-10. **Redesign `setIntegrationPoints()` lazy-init** to be stateless / construction-time initialised.
-
+- easier extension of boundary-integral code paths to additional higher-order element workflows;
+- less element-order-specific coupling in future solver and post-processing code.
