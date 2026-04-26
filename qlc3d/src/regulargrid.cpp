@@ -1,5 +1,6 @@
 
 #include <regulargrid.h>
+#include <geom/tet-mesh-search.h>
 #include <util/logging.h>
 #include <util/exception.h>
 #include <geom/coordinates.h>
@@ -8,6 +9,7 @@
 #include <lc-representation.h>
 #include <filesystem>
 #include <material_numbers.h>
+#include <io/matlabiofun.h>
 
 
 const idx RegularGrid::NOT_AN_INDEX = std::numeric_limits<idx>::max();
@@ -106,14 +108,15 @@ idx RegularGrid::gridToLinearIndex(const idx xi, const idx yi, const idx zi)
 }
 
 
-bool RegularGrid::createFromTetMesh(const unsigned int &nx,
-                                    const unsigned int &ny,
-                                    const unsigned int &nz,
-                                    Geometry *geom)
+bool RegularGrid::createFromTetMesh(unsigned int nx,
+                                     unsigned int ny,
+                                     unsigned int nz,
+                                     const Mesh& tets,
+                                     const Coordinates& coords,
+                                     const AABox& bounds)
 {
-    // CREATES INTEPOLATION TABLE FROM A TETRAHEDRAL MESH DESCRIBED BY geom
-    // SO THAT FAST INTEPOLATION CAN BE PERFORMED LATER ON
-    auto &bounds = geom->getBoundingBox();
+    // CREATES INTERPOLATION TABLE FROM A TETRAHEDRAL MESH
+    // SO THAT FAST INTERPOLATION CAN BE PERFORMED LATER ON
     xLimits_[0] = bounds.getXMin(); xLimits_[1] = bounds.getXMax();
     yLimits_[0] = bounds.getYMin(); yLimits_[1] = bounds.getYMax();
     zLimits_[0] = bounds.getZMin(); zLimits_[1] = bounds.getZMax();
@@ -135,13 +138,14 @@ bool RegularGrid::createFromTetMesh(const unsigned int &nx,
     if ( ny_ == 1 ) dy_ = yLimits_[1] - yLimits_[0];
     if ( nz_ == 1 ) dz_ = zLimits_[1] - zLimits_[0];
 
-    generateLookupList(geom);
-    //validateLookupVector();
+    generateLookupList(tets, coords, bounds);
     return true;
 }
 
 
-bool RegularGrid::generateLookupList(Geometry *geom) {
+bool RegularGrid::generateLookupList(const Mesh& tets,
+                                      const Coordinates& coords,
+                                      const AABox& bounds) {
   size_t cc = 0;    // coordinate counter
   std::vector<Vec3> gridPoints;
   for (unsigned int k = 0; k < nz_; k++) {// loop over z
@@ -157,44 +161,41 @@ bool RegularGrid::generateLookupList(Geometry *geom) {
   }// end loop over z
   Coordinates gridCoordinates(std::move(gridPoints));
 
-  // GENERATE INDEX TO TETS THAT CONTAIN EARCH REGULAR GRID POINT
-  // INDEX WILL HAVE SPECIAL VALUE Geom::NOT_AN_INDEX, IF POITN WAS NOT FOUND
-  // THIS MAY HAPPEN WHEN THE UNDERLYING TET MESH IS NOT A CUBE
-  std::vector<unsigned int> indT; // index to tet containing a regular coordinate
-  geom->genIndToTetsByCoords(indT,
-                             gridCoordinates,
-                             false, // do NOT terminate app if a coord is not found
-                             false);//do NOT require LC element (although it should be preferred, add this option later)
+  // Use TetMeshSearch to find which tet contains each regular grid point.
+  // Works for both LINEAR_TETRAHEDRON and QUADRATIC_TETRAHEDRON meshes.
+  TetMeshSearch search(tets, coords, bounds);
+  std::vector<unsigned int> indT;
+  search.genIndToTetsByCoords(indT,
+                               gridCoordinates,
+                               false,  // do NOT terminate if a coord is not found
+                               false); // do NOT require LC element
 
-  // NOW CALCULATE WEIGHTS AND NODE INDEXES FOR EACH REGULAR GRID POINT
+  // Calculate weights and node indices for each regular grid point
   lookupList.clear();
   lookupList.reserve(numRegularPoints_);
-  const Mesh &t = geom->getTetrahedra();
-  //double* p = geom->getPtrTop();
   for (idx i = 0; i < numRegularPoints_; i++) {
 
-    lookup lu;                  // NEW LOOKUP TABLE ENTRY
-    lu.type = RegularGrid::OK;  // INITIALISE TO GOOD
+    lookup lu;
+    lu.type = RegularGrid::OK;
 
-    if (indT[i] != Geometry::NOT_AN_INDEX) { // IF CONTAINING TET ELEMENT WAS FOUND
+    if (indT[i] != TetMeshSearch::NOT_AN_INDEX) {
       Vec3 targetPoint = gridCoordinates.getPoint(i);
 
-      // SET INDEXES TO NEIGHBOURING VERTEXES
-      lu.ind[0] = t.getNode(indT[i], 0);
-      lu.ind[1] = t.getNode(indT[i], 1);
-      lu.ind[2] = t.getNode(indT[i], 2);
-      lu.ind[3] = t.getNode(indT[i], 3);
+      // Store corner-node indices (indices 0..3 are always the corner nodes)
+      lu.ind[0] = tets.getNode(indT[i], 0);
+      lu.ind[1] = tets.getNode(indT[i], 1);
+      lu.ind[2] = tets.getNode(indT[i], 2);
+      lu.ind[3] = tets.getNode(indT[i], 3);
 
-      // CALCULATE NEIGHBOUR NODE WEIGHTS - THESE ARE THE LOCAL COORDINATES
-      // OF THE VERTEXES OF THE TET CONTAINING THE REGULAR POINT
-      t.calcLocCoords(indT[i], geom->getCoordinates(), targetPoint, &lu.weight[0]);
+      // Barycentric weights from local coordinates
+      tets.calcLocCoords(indT[i], coords, targetPoint, &lu.weight[0]);
 
-      if (t.getMaterialNumber(indT[i]) > MAT_DOMAIN7) {
+      if (tets.getMaterialNumber(indT[i]) > MAT_DOMAIN7) {
         lu.type = RegularGrid::NOT_LC;
       }
 
-    } else {// CONTAINING TET ELEMENT WAS NOT FOUND
-      lu.type = RegularGrid::NOT_FOUND;   // containing element not found
+    } else {
+      lu.type = RegularGrid::NOT_FOUND;
 
       lu.ind[0] = NOT_AN_INDEX;
       lu.ind[1] = NOT_AN_INDEX;
@@ -471,6 +472,7 @@ bool RegularGrid::writeVecMat(const std::filesystem::path &fileName,
     ny.push_back(d.ny());
     nz.push_back(d.nz());
   }
+
 
   MatlabIOFun::writeNumberColumns(fid, "V", regPot, nx_, ny_, nz_);
   MatlabIOFun::writeNumberColumns(fid, "nx", nx,nx_, ny_, nz_ );

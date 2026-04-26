@@ -163,8 +163,9 @@ TEST_CASE("interpolateQTensor_linearFieldSurvivesRefinement") {
 
     auto spec = RefinementSpec::makePeriodic("Sphere", {0.1}, {0}, {0}, {0});
     std::vector<const RefinementSpec*> specs = {spec.get()};
+    std::unique_ptr<RegularGrid> regGrid;
 
-    REQUIRE(autoref(geomOld, geomNew, qCurrent, potential, specs, *simu, simulationState, alignment, electrodes, 0.5));
+    REQUIRE(autoref(geomOld, geomNew, qCurrent, potential, specs, *simu, simulationState, alignment, electrodes, 0.5, regGrid));
 
     REQUIRE(qCurrent.getnDoF() == geomNew.getnpLC());
     REQUIRE(qCurrent.getnDimensions() == 5);

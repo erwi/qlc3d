@@ -127,7 +127,7 @@ autoref(geom_orig, geom, q, v, specs, ...)
   │
   ├─ Post-refinement cleanup:
   │    ├─ calculateNodeNormals
-  │    ├─ makeRegularGrid
+  │    ├─ rebuild regular grid via `buildRegularGrid(...)`
   │    ├─ Resize & re-initialise potential SolutionVector v
     │    ├─ interpolate Q-tensor q onto new mesh via `interpolateQTensor`
   │    └─ re-apply strong surface BC (setStrongSurfacesQ)

@@ -6,13 +6,13 @@
 #include <meshrefinement.h>
 #include <solutionvector.h>
 #include <alignment.h>
-#include <lc.h>
 #include <simu.h>
-#include <box.h>
 #include <vector>
 #include <globals.h>
 #include <geometry.h>
 #include <refinement/refinement-spec.h>
+#include <regulargrid.h>
+#include <memory>
 #define MIN(X,Y) ((X) < (Y) ? : (X) : (Y))
 
 
@@ -74,7 +74,8 @@ bool autoref(Geometry& geom_orig,
              SimulationState &simulationState,
              Alignment& alignment,
              const Electrodes& electrodes,
-             double S0);
+             double S0,
+             std::unique_ptr<RegularGrid>& regGridOut);
 
 // Checks for maximum dq within an element, as specified in meshrefinement.
 // returns true is dq within any element is too large.

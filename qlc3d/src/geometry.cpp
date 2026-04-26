@@ -1,4 +1,5 @@
 #include <geometry.h>
+#include <geom/tet-mesh-search.h>
 #include <material_numbers.h>
 #include <util/logging.h>
 #include <util/exception.h>
@@ -6,11 +7,11 @@
 #include <geom/vec3.h>
 #include <geom/periodicity.h>
 #include <mesh/mesh.h>
+#include <cassert>
 
 const idx Geometry::NOT_AN_INDEX = std::numeric_limits<idx>::max();
 
-Geometry::Geometry():
-    regularGrid(nullptr) {
+Geometry::Geometry() {
   npLC = 0;
   t = Mesh::tetMesh();
   e = Mesh::triangleMesh();
@@ -18,13 +19,11 @@ Geometry::Geometry():
   periodicNodesMapping.reset();
 }
 
-Geometry::~Geometry() {
-    delete regularGrid;
-}
+Geometry::~Geometry() = default;
 
 void Geometry::setTo(Geometry *geom) {
     this->ClearGeometry();
-    npLC    = geom->getnpLC();                  // number of LC nodes
+    npLC    = geom->getnpLC();
     boundingBox = geom->boundingBox;
     t->CopyMesh(geom->t.get());
     e->CopyMesh(geom->e.get());
@@ -32,9 +31,6 @@ void Geometry::setTo(Geometry *geom) {
     nodeNormals = geom->nodeNormals;
     coordinates_ = geom->getCoordinates().clone();
 
-    if (this->regularGrid) delete regularGrid;
-    if (geom->regularGrid)
-        regularGrid = new RegularGrid(*geom->regularGrid);
 
     periodicNodesMapping.reset();
 }
@@ -248,179 +244,12 @@ void Geometry::ReorderDielectricNodes() {
     this->updateMaxNodeNumbers();
 }
 
-void Geometry::makeRegularGrid(const size_t &nx,
-                               const size_t &ny,
-                               const size_t &nz) {
-    // CREATES REUGLAR GRID OBJECT USED FOR INTERPOLATING VALUES FROM
-    // TETRAHEDRAL MESH ONTO REGULARLY SPACED GRID
-    if (nx == 0 || ny == 0 || nz == 0) {
-      Log::info("Regular grid generation disabled, nx={}, ny={}, nz={}", nx, ny, nz);
-      return;
-    }
-    Log::info("Generating regular grid lookup with grid size nx={}, ny={}, nz={}", nx, ny, nz);
-
-    auto elementType = getTetrahedra().getElementType();
-    if (elementType != ElementType::LINEAR_TETRAHEDRON) {
-      throw NotYetImplementedException("Regular grid generation is only implemented for first order elements, got elementType=" +
-                                               toString(elementType));
-    }
-
-    if (regularGrid) {
-        delete regularGrid;
-    }
-    regularGrid = new RegularGrid();
-
-    regularGrid->createFromTetMesh(nx, ny, nz, this);
-}
-
-bool Geometry::brute_force_search(unsigned int &ind,             // return index
-                                  const Vec3 &crd,              // search coordinate
-                                  const bool &terminateOnError, // terminate if not found>
-                                  const bool &requireLCEelement // only LC element index may be returned
-                                 ) {
-    // BRUTE FORCE DEBUG SEARCH FOR TETRAHEFRON THAN CONTAINS POINT WITH COORDINATES IN coord
-    // coord IS ASSUMED TO BE OF LENGTH 3, FOR x, y, z
-    // loop over each element
-    for (idx i = 0 ; i < t->getnElements() ; i++) {
-      bool found = t->containsCoordinate(i, getCoordinates(), crd);
-      if (found) {    // If coord is in tet i
-            if (requireLCEelement) { // WANT LC
-                if (t->getMaterialNumber(i) <= MAT_DOMAIN7) {  // IF LC
-                    ind = i;
-                    return true;
-                }
-            } else { // DON'T CARE WHETHER LC OR DE
-                ind = i ;
-                return true; // exit function when found
-            }
-        }
-    }// end for loop over all elems
-    // IF COORDINATE WAS NOT FOUND APPLICATION MAY NEED TO BE TERMINATED
-    if (terminateOnError) {
-      RUNTIME_ERROR(fmt::format("Brute force search could not find coordinate at ({})", crd));
-    }
-    // SIGNAL A NON-FOUND COORDINATE BY RETURNING FALSE
-    return false;
-}
-
-size_t Geometry::recursive_neighbour_search(
-        const Vec3 &targetPoint,
-        const vector<set<unsigned int> > &p_to_t,
-        const size_t &currentTetIndex,
-        std::set<size_t> &tetHistory,
-        const bool &requireLCElement) {
-  // Recursive search for tetrahedron that contains targetPoint, move to tet whose centroid is closest to targetPoint
-  bool found = t->containsCoordinate(currentTetIndex, getCoordinates(), targetPoint);
-  if (found) {
-    if (!requireLCElement) { // if not worried about whether LC or DE element
-      return currentTetIndex;
-    } else { // LC element is required
-      if (this->t->getMaterialNumber(currentTetIndex) <= MAT_DOMAIN7) {  // if LC element
-        return currentTetIndex;
-      }
-    }
-  }
-
-  tetHistory.insert(currentTetIndex);   // history should be used to avoid visiting same element multiple times (this isn't implemented yet)
-  // RECURSION LIMIT. UGLY SOLUTION TO STOP OUT OF MEMORY (?) CRASH FOR LARGE GRIDS AND/OR MESHES
-  idx RECURSION_LIMIT = 1000;
-  if ((idx) tetHistory.size() > RECURSION_LIMIT) return NOT_AN_INDEX;
-
-  // CREATE LIST OF NEIGHBOURING ELEMENTS
-  std::vector <unsigned int> neighs;
-  for (idx i = 0 ; i < t->getnNodes() ; i++) {
-    int n = t->getNode(currentTetIndex, i);
-    neighs.insert(neighs.end(), p_to_t[n].begin(), p_to_t[n].end());
-  }
-  sort(neighs.begin(), neighs.end());
-  auto itr = unique(neighs.begin(),neighs.end());
-  neighs.erase(itr, neighs.end());
-  // REMOVE REFERENCE TO SELF TOO....
-  vector <double> dists;
-  for (size_t i = 0 ; i < neighs.size() ; i++) {
-    Vec3 centroid = getTetrahedra().elementCentroid(neighs[i], getCoordinates());
-    dists.push_back(centroid.distanceSquared(targetPoint));
-  }
-  // FIND INDEX TO NEIGHBOUR THAT IS NEAREST
-  size_t indn = min_element(dists.begin(), dists.end()) - dists.begin();
-
-  while (dists[indn] < DBL_MAX) {
-    size_t indt = neighs[indn]; // actual element number
-    size_t indexFound = NOT_AN_INDEX;
-    if (tetHistory.find(indt) == tetHistory.end()) {
-      indexFound =  recursive_neighbour_search(targetPoint,
-                                               p_to_t,
-                                               indt,
-                                               tetHistory,
-                                               requireLCElement);
-      if (indexFound != NOT_AN_INDEX) {
-        return indexFound;
-      }
-    }
-
-    // Mark this element as visited
-    dists[indn] = DBL_MAX;
-    indn = min_element(dists.begin() , dists.end()) - dists.begin();
-  }
-  // IF ALL NEIGHBOURS FAIL
-  return NOT_AN_INDEX;
-}
-
-void Geometry::genIndToTetsByCoords(vector<unsigned int> &returnIndex,   // return index
-                                    const Coordinates &targetCoordinates, // coordinates, but not necessarily from this same geometry
-                                    const bool &terminateOnError,// whther to terminate app. if coordinate not found. default = true;
-                                    const bool &requireLCElement) { // only LC element can be re returned
-    /*!
-    Generates index to tetrahedron that contain coordinate coord.
-
-    The 'terminateOnError' flag is used to spcify whether to terminate app. if a coord
-    is not found, or to mark it as NOT_AN_INDEX. This may occur e.g. when
-    interpolating between two different meshes.
-
-    'requireLCElement' determines whether only LC elements can be considered. if this is false,
-    also dielectrinc elements indexes may be returned. This is often problematic when searching
-    for an LC node on the boundary between LC and DE regions, i.e. it exists in both regions, but
-    is only properly defined in the LC element.
-    */
-    if (t == nullptr || getTetrahedra().getnElements() == 0) {
-      RUNTIME_ERROR("No tetrahedra elements defined");
-    }
-
-  returnIndex.clear();
-  unsigned int nt = (unsigned int) this->t->getnElements();
-  returnIndex.assign(targetCoordinates.size(), nt);   // assing with a value that is one too much initially
-  vector <set<unsigned int>> p_to_t;
-  t->gen_p_to_elem(p_to_t);
-
-  // find most central tet, this is used as starting tet in other searches
-  Vec3 structureCentroid = boundingBox.centre();
-
-  std::set<size_t> tetHistory;
-  unsigned int midTet = recursive_neighbour_search(structureCentroid, p_to_t,0,tetHistory);
-  if (midTet == NOT_AN_INDEX) { // starting index at centre of structure not found (probably a hole or concave mesh)
-    midTet = 0;
-  }
-
-  // for each target coordinate, find which tet contains it, starting each search from midTet
-  for (unsigned int n = 0; n < targetCoordinates.size(); n++) { // for each coord
-    std::set<size_t> searchHistory; // keeps track of tested tets to avoid repeating work
-    Vec3 targetPoint = targetCoordinates.getPoint(n);
-
-    // nearest neighbour search
-    size_t t0 = recursive_neighbour_search(targetPoint, p_to_t,midTet,searchHistory, requireLCElement);
-    if (t0 != NOT_AN_INDEX) {
-      returnIndex[n] = t0;
-    } else { // recursive search failed, try brute force
-      unsigned int tetIndex = 0;
-      if (brute_force_search(tetIndex, targetPoint, terminateOnError, requireLCElement)) {
-        returnIndex[n] = tetIndex;
-      } else { // BRUTE FORCE FAIL IS ALLOWED (NODE MAY BE OUTSIDE MESH)
-        returnIndex[n] = Geometry::NOT_AN_INDEX; // MARK INDEX AS INVALID
-        Log::info("Could not find regular grid point {} at ({}) in volume mesh. Assuming it is outside the mesh and continuing.",
-                  n, targetPoint);
-      }
-    }
-  }// end for each target coordinate
+void Geometry::genIndToTetsByCoords(vector<unsigned int> &returnIndex,
+                                     const Coordinates &targetCoordinates,
+                                     const bool &terminateOnError,
+                                     const bool &requireLCElement) {
+    TetMeshSearch search(getTetrahedra(), getCoordinates(), getBoundingBox());
+    search.genIndToTetsByCoords(returnIndex, targetCoordinates, terminateOnError, requireLCElement);
 }
 
 const Coordinates& Geometry::getCoordinates() const {

@@ -8,6 +8,7 @@
 #include <util/exception.h>
 #include <geom/coordinates.h>
 #include <geom/vec3.h>
+#include <box.h>
 #include <resultio.h>
 #include <lc-representation.h>
 #include <mesh/element-split-convert.h>
@@ -137,10 +138,7 @@ void prepareGeometry(Geometry &geom,
                      RawMeshData &rawMeshData,
                      Electrodes &electrodes,
                      const Alignment &alignment,
-                     const Vec3 &stretchVector,
-                     unsigned int regularGridCountX,
-                     unsigned int regularGridCountY,
-                     unsigned int regularGridCountZ) {
+                     const Vec3 &stretchVector) {
   Log::info("mesh element order = {}, triangles count = {}, tetrahedra count = {}, nodes count = {}",
             rawMeshData.getElementOrder(), rawMeshData.triMaterials.size(), rawMeshData.tetMaterials.size(), rawMeshData.points.size());
   validateTriangleMaterials(rawMeshData.triMaterials, electrodes, alignment);
@@ -167,8 +165,6 @@ void prepareGeometry(Geometry &geom,
   geom.setMeshData(rawMeshData.getElementOrder(), coordinates,
                    std::move(rawMeshData.tetNodes), std::move(rawMeshData.tetMaterials),
                    std::move(rawMeshData.triNodes), std::move(rawMeshData.triMaterials));
-
-  geom.makeRegularGrid(regularGridCountX, regularGridCountY, regularGridCountZ);
 }
 
 void prepareGeometryWithDefaultBoundaries(Geometry& geom,
@@ -187,21 +183,18 @@ void prepareGeometryWithDefaultBoundaries(Geometry& geom,
     alignment.addSurface(Surface::ofStrongAnchoring(fixLcNumber, 0, 0));
   }
 
-  prepareGeometry(geom, rawMeshData, electrodes, alignment, {1, 1, 1}, 0, 0, 0);
+  prepareGeometry(geom, rawMeshData, electrodes, alignment, {1, 1, 1});
 }
 
 void prepareGeometry(Geometry& geom,
                      const std::filesystem::path &meshFileName,
                      Electrodes& electrodes,
                      const Alignment& alignment,
-                     const Vec3 &stretchVector,
-                     unsigned int regularGridCountX,
-                     unsigned int regularGridCountY,
-                     unsigned int regularGridCountZ) {
+                     const Vec3 &stretchVector) {
 
     // read mesh data from file. Allocates the data arrays.
     RawMeshData rawMeshData = MeshReader::readMesh(meshFileName);
-    prepareGeometry(geom, rawMeshData, electrodes, alignment, stretchVector, regularGridCountX, regularGridCountY, regularGridCountZ);
+    prepareGeometry(geom, rawMeshData, electrodes, alignment, stretchVector);
 }
 
 FILE* createOutputEnergyFile(Simu& simu) {

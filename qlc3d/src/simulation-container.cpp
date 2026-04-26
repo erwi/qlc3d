@@ -7,6 +7,7 @@
 #include <alignment.h>
 #include <meshrefinement.h>
 #include <regulargrid.h>
+#include <regulargrid-factory.h>
 #include <resultio.h>
 #include <qlc3d.h>
 #include <inits.h>
@@ -18,6 +19,7 @@
 #include <potential/potential-solver.h>
 #include <lc/lc-solver.h>
 #include <simulation-adaptive-time-step.h>
+#include <simulation-state.h>
 #include <spamtrix_ircmatrix.hpp>
 #include "util/stopwatch.h"
 #include "geom/periodicity.h"
@@ -38,7 +40,7 @@ SimulationContainer::SimulationContainer(Configuration &config,
         electrodes(nullptr),
         boxes(config.getInitialVolumeOrientation()),
         alignment(*config.getAlignment()),
-        regGrid(new RegularGrid()),
+        regGrid(nullptr),
         eventList(eventList),
         simulationState(simulationState),
         adaptiveTimeStep(adaptiveTimeStep) {
@@ -112,10 +114,11 @@ void SimulationContainer::initialise() {
                     meshName,
                     *electrodes,
                     alignment,
-                    simu->getStretchVector(),
-                    simu->getRegularGridXCount(),
-                    simu->getRegularGridYCount(),
-                    simu->getRegularGridZCount());
+                    simu->getStretchVector());
+    regGrid = buildRegularGrid(simu->getRegularGridXCount(),
+                               simu->getRegularGridYCount(),
+                               simu->getRegularGridZCount(),
+                               geom_orig);
     geom1.setTo(&geom_orig);            // in the beginning working geometry is original
 
     // SET CONVENIENCE STRUCT OF POINTERS
@@ -166,7 +169,8 @@ void SimulationContainer::initialise() {
                         *lc,
                         resultOutput,
                         *potentialSolver,
-                        adaptiveTimeStep);
+                        adaptiveTimeStep,
+                        regGrid);
 
     simulationState.currentIteration(1);
     simulationState.setCurrentTime(0);
@@ -250,7 +254,8 @@ void SimulationContainer::runIteration() {
                *lc,
                resultOutput,
                *potentialSolver,
-               adaptiveTimeStep);
+               adaptiveTimeStep,
+               regGrid);
 
   simulationState.currentIteration(simulationState.currentIteration() + 1);
 
@@ -260,7 +265,7 @@ void SimulationContainer::runIteration() {
 
 void SimulationContainer::postSimulationTasks() {
     simulationState.state(RunningState::COMPLETED);
-    resultOutput.writeResults(*geometries.geom, v, q, simulationState);
+    resultOutput.writeResults(*geometries.geom, v, q, regGrid.get(), simulationState);
 }
 
 const SimulationState &SimulationContainer::currentState() const {

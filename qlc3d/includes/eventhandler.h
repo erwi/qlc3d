@@ -4,11 +4,11 @@
 #include <electrodes.h>
 #include <geometry.h>
 #include <eventlist.h>
-#include <simu.h>
 #include <meshrefinement.h>
 #include <lc.h>
-#include <solver-settings.h>
 #include <resultio.h>
+#include <regulargrid.h>
+#include <memory>
 
 
 namespace SpaMtrix {
@@ -43,7 +43,8 @@ void handleInitialEvents(SimulationState &simulationState,
                          const LC &lc,
                          ResultOutput &resultOutput,
                          PotentialSolver &potentialSolver,
-                         SimulationAdaptiveTimeStep &simulationAdaptiveTimeStep);
+                         SimulationAdaptiveTimeStep &simulationAdaptiveTimeStep,
+                         std::unique_ptr<RegularGrid> &regGrid);
 
 void handleEvents(EventList &evel,
                   Electrodes &electr,
@@ -55,7 +56,8 @@ void handleEvents(EventList &evel,
                   const LC &lc,
                   ResultOutput &resultOutput,
                   PotentialSolver &potentialSolver,
-                  SimulationAdaptiveTimeStep &adaptiveTimeStep);
+                  SimulationAdaptiveTimeStep &adaptiveTimeStep,
+                  std::unique_ptr<RegularGrid> &regGrid);
 
 /** return true/false depending on whether mesh was refined or not */
 bool handleMeshRefinement(std::list<Event *> &refEvents,
@@ -65,7 +67,8 @@ bool handleMeshRefinement(std::list<Event *> &refEvents,
                           SimulationState &simulationState,
                           Alignment &alignment,
                           Electrodes &electrodes,
-                          double S0);
+                          double S0,
+                          std::unique_ptr<RegularGrid> &regGrid);
 
 void handlePreRefinement(std::list<Event *> &refEvents,
                          Geometries &geometries,
@@ -74,5 +77,6 @@ void handlePreRefinement(std::list<Event *> &refEvents,
                          SimulationState &simulationState,
                          Alignment &alignment,
                          Electrodes &electrodes,
-                         double S0);
+                         double S0,
+                         std::unique_ptr<RegularGrid> &regGrid);
 #endif // EVENTHANDLER_H

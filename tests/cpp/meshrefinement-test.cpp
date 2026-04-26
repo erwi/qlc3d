@@ -9,6 +9,7 @@
 #include <refinement/refinement-spec.h>
 #include <eventhandler.h>
 #include <simulation-state.h>
+#include <regulargrid.h>
 #include <memory>
 #include <list>
 
@@ -92,7 +93,8 @@ TEST_CASE("mesh refinement") {
     double S0 = 0.5;
 
     // ACT - run mesh refinement
-    REQUIRE(autoref(originalGeometry, workingGeometry, qCurrent, potential, specs, *simu, simulationState, alignment, electrodes, S0));
+    std::unique_ptr<RegularGrid> regGrid;
+    REQUIRE(autoref(originalGeometry, workingGeometry, qCurrent, potential, specs, *simu, simulationState, alignment, electrodes, S0, regGrid));
 
     // ASSERT
     // check new refined mesh size
@@ -145,8 +147,9 @@ TEST_CASE("box refinement end-to-end") {
     SimulationState simulationState;
 
     double S0 = 0.5;
+    std::unique_ptr<RegularGrid> regGrid;
 
-    REQUIRE(autoref(originalGeometry, workingGeometry, qCurrent, potential, specs, *simu, simulationState, alignment, electrodes, S0));
+    REQUIRE(autoref(originalGeometry, workingGeometry, qCurrent, potential, specs, *simu, simulationState, alignment, electrodes, S0, regGrid));
 
     REQUIRE(workingGeometry.getnpLC() > originalGeometry.getnpLC());
     REQUIRE(workingGeometry.getTetrahedra().getnElements() > originalGeometry.getTetrahedra().getnElements());
@@ -179,8 +182,9 @@ TEST_CASE("change refinement end-to-end") {
     SimulationState simulationState;
 
     double S0 = 0.5;
+    std::unique_ptr<RegularGrid> regGrid;
 
-    REQUIRE(autoref(originalGeometry, workingGeometry, qCurrent, potential, specs, *simu, simulationState, alignment, electrodes, S0));
+    REQUIRE(autoref(originalGeometry, workingGeometry, qCurrent, potential, specs, *simu, simulationState, alignment, electrodes, S0, regGrid));
 
     REQUIRE(workingGeometry.getnpLC() > originalGeometry.getnpLC());
     REQUIRE(workingGeometry.getTetrahedra().getnElements() > originalGeometry.getTetrahedra().getnElements());
@@ -224,10 +228,11 @@ TEST_CASE("handleMeshRefinement smoke test with RefinementSpec") {
     solutionVectors.v = &potential;
 
     SimulationState simulationState;
+    std::unique_ptr<RegularGrid> regGrid;
 
     // ACT - should not crash; may or may not refine depending on geometry
     bool refined = handleMeshRefinement(refEvents, geometries, solutionVectors,
-                                        *simu, simulationState, alignment, electrodes, 0.5);
+                                        *simu, simulationState, alignment, electrodes, 0.5, regGrid);
 
     // refEvents ownership was transferred to handleMeshRefinement, which deletes them
     // The important thing is no crash and no memory corruption

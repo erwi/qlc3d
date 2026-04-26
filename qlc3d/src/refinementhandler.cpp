@@ -16,7 +16,8 @@ bool handleMeshRefinement(std::list<Event*>& refEvents,
                           SimulationState &simulationState,
                           Alignment& alignment,
                           Electrodes& electrodes,
-                          double S0) {
+                          double S0,
+                          std::unique_ptr<RegularGrid>& regGrid) {
     Log::info("Doing {} mesh refinements.", refEvents.size());
 
     // COLLECT ALL REFINEMENTSPEC POINTERS
@@ -39,7 +40,8 @@ bool handleMeshRefinement(std::list<Event*>& refEvents,
             simulationState,
             alignment,
             electrodes,
-            S0);
+            S0,
+            regGrid);
 
     // DELETE ALL REFINEMENT EVENTS. ALWAYS
     for (Event* ev : refEvents) {
@@ -56,7 +58,8 @@ void handlePreRefinement(std::list<Event*>& refEvents,
                          SimulationState &simulationState,
                          Alignment& alignment,
                          Electrodes& electrodes,
-                         double S0)
+                         double S0,
+                         std::unique_ptr<RegularGrid>& regGrid)
 {
 // PRE REFINMENT MODIFICATIONS TO THE MESH CARRY THROUGH THE
 // REST OF THE SIMULATION. THAT IS, THE INITIAL GEOMETRY IS
@@ -71,7 +74,8 @@ void handlePreRefinement(std::list<Event*>& refEvents,
                          simulationState,
                          alignment,
                          electrodes,
-                         S0);
+                         S0,
+                         regGrid);
     // "ORIGINAL" MESH IS MODIFIED
     geometries.geom_orig->setTo( geometries.geom );
 

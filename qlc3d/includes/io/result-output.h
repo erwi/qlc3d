@@ -12,6 +12,7 @@
 class SolutionVector;
 class Geometry;
 class SimulationState;
+class RegularGrid;
 namespace qlc3d {
   struct Director;
 }
@@ -24,6 +25,7 @@ protected:
   const std::vector<qlc3d::Director> *directors = nullptr;
   const SolutionVector *qTensor = nullptr;
   const SolutionVector *potential = nullptr;
+  RegularGrid *regularGrid_ = nullptr;
   const std::filesystem::path outputDirectory;
 
   std::string static iterationAsString(const SimulationState &simulationState);
@@ -37,6 +39,8 @@ public:
   void setDirector(const std::vector<qlc3d::Director> *dir) { this->directors = dir; };
   void setQTensor(const SolutionVector &q) {this->qTensor = &q; };
   void setPotential(const SolutionVector &pot) {this->potential = &pot; }
+  /** @param grid  May be nullptr if this writer does not use the regular grid. */
+  void setRegularGrid(RegularGrid *grid) { this->regularGrid_ = grid; }
 
   /**
    * write the result to the output format.
@@ -50,7 +54,19 @@ public:
 class ResultOutput {
 public:
   ResultOutput(const std::set<Simu::SaveFormats> &saveFormats, const std::string &meshName, double S0, const std::filesystem::path &outputDir);
-  void writeResults(const Geometry &geom, const SolutionVector &potential, const SolutionVector &qtensor, const SimulationState &simulationState);
+  /**
+   * Write results using all registered output format writers.
+   * @param geom           Current geometry.
+   * @param potential      Electric potential solution vector.
+   * @param qtensor        Q-tensor solution vector.
+   * @param regularGrid    Regular grid for interpolation (may be nullptr if no regular-grid output is requested).
+   * @param simulationState Current simulation state.
+   */
+  void writeResults(const Geometry &geom,
+                    const SolutionVector &potential,
+                    const SolutionVector &qtensor,
+                    RegularGrid *regularGrid,
+                    const SimulationState &simulationState);
   [[nodiscard]] bool isRegularGridRequired() const;
 
 private:

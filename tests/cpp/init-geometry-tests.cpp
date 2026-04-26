@@ -6,6 +6,8 @@
 #include <electrodes.h>
 #include <alignment.h>
 #include <material_numbers.h>
+#include <regulargrid.h>
+#include <regulargrid-factory.h>
 #include <test-util.h>
 
 #include <filesystem>
@@ -188,5 +190,26 @@ TEST_CASE("Dielectric node reordering keeps LC nodes first") {
   for (idx node : dielectricOnlyNodes) {
     REQUIRE(node >= geom.getnpLC());
   }
+}
+
+TEST_CASE("prepareGeometry works without regular-grid parameters and grid can be built separately") {
+  Geometry geom;
+  Electrodes electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
+  Alignment alignment;
+  alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+  alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+
+  const auto meshPath = std::filesystem::absolute(std::filesystem::path(__FILE__))
+      .parent_path().parent_path() / "resources" / "gmsh-small-cube-quadratic.msh";
+
+  REQUIRE_NOTHROW(prepareGeometry(geom,
+                                  meshPath,
+                                  electrodes,
+                                  alignment));
+  REQUIRE(geom.getnp() > 0);
+  REQUIRE(geom.getTetrahedra().getnElements() > 0);
+
+  auto regularGrid = buildRegularGrid(1, 1, 1, geom);
+  REQUIRE(regularGrid != nullptr);
 }
 

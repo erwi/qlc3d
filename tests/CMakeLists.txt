@@ -31,6 +31,7 @@ add_executable(cpp-test
         cpp/io/meshreader-test.cpp
         cpp/io/result-output-test.cpp
         cpp/geom/geom-tests.cpp
+        cpp/geom/tet-mesh-search-tests.cpp
         cpp/potential/potential-solver-test.cpp
         cpp/fe/gaussian-integration-tests.cpp
         cpp/lc/lc-solver-tests.cpp

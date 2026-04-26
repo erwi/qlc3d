@@ -44,7 +44,7 @@ void handleElectrodeSwitching(Event *currentEvent,
  *     CALCULATING INITIAL POTENTIALS
  *     OUTPUT result_initial FILE
  */
-void handleInitialEvents(SimulationState &simulationState, // non-const since dt may change_
+void handleInitialEvents(SimulationState &simulationState,
                          EventList &evel,
                          Electrodes &electrodes,
                          Alignment &alignment,
@@ -54,7 +54,8 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
                          const LC &lc,
                          ResultOutput &resultOutput,
                          PotentialSolver &potentialSolver,
-                         SimulationAdaptiveTimeStep &adaptiveTimeStep) {
+                         SimulationAdaptiveTimeStep &adaptiveTimeStep,
+                         std::unique_ptr<RegularGrid> &regGrid) {
 
     int currentIteration = simulationState.currentIteration();
     double timeStep = simulationState.dt();
@@ -95,14 +96,15 @@ void handleInitialEvents(SimulationState &simulationState, // non-const since dt
                             simulationState,
                             alignment,
                             electrodes,
-                            lc.S0()); // defined in refinementhandler.cpp
+                            lc.S0(),
+                            regGrid); // defined in refinementhandler.cpp
     }
 
     // ALWAYS CALCULATE INITIAL POTENTIAL
     potentialSolver.solvePotential(*solutionvectors.v, *solutionvectors.q, *geometries.geom);
 
     Log::info("Writing initial results");
-    resultOutput.writeResults(*geometries.geom, *solutionvectors.v, *solutionvectors.q, simulationState);
+    resultOutput.writeResults(*geometries.geom, *solutionvectors.v, *solutionvectors.q, regGrid.get(), simulationState);
 
     // ADD REOCCURRING EVENTS
     evel.manageReoccurringEvents(currentIteration, simulationState.currentTime(), timeStep);
@@ -120,7 +122,8 @@ void handleEvents(EventList &evel,
                   const LC &lc,
                   ResultOutput &resultOutput,
                   PotentialSolver &potentialSolver,
-                  SimulationAdaptiveTimeStep &adaptiveTimeStep) {
+                  SimulationAdaptiveTimeStep &adaptiveTimeStep,
+                  std::unique_ptr<RegularGrid> &regGrid) {
 
   SimulationTime nextEventTime = evel.nextEventTime();
   if (simulationState.currentTime().greaterThan(nextEventTime)) {
@@ -186,7 +189,8 @@ void handleEvents(EventList &evel,
                              simulationState,
                              alignment,
                              electrodes,
-                             lc.S0()); // defined in refinementhandler.cpp
+                             lc.S0(),
+                             regGrid); // defined in refinementhandler.cpp
       if (didRefineMesh) {
         potentialSolver.onGeometryChanged();
         simulationState.restrictedTimeStep(true);
@@ -198,7 +202,7 @@ void handleEvents(EventList &evel,
     }
 
     if (saveResult) {
-      resultOutput.writeResults(*geometries.geom, *solutionvectors.v, *solutionvectors.q, simulationState);
+      resultOutput.writeResults(*geometries.geom, *solutionvectors.v, *solutionvectors.q, regGrid.get(), simulationState);
     }
 
     adaptiveTimeStep.setNextEventTime(evel.nextEventTime());

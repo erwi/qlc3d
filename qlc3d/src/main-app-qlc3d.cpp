@@ -2,6 +2,7 @@
 #include <configuration.h>
 #include <simulation-container.h>
 #include <simulation-adaptive-time-step.h>
+#include <simulation-state.h>
 #include <util/logging.h>
 #include <util/exception.h>
 #include <filesystem>

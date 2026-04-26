@@ -1,20 +1,14 @@
 
 #ifndef REGULARGRID_H
 #define REGULARGRID_H
-#include <geometry.h>
+#include <mesh/mesh.h>
+#include <geom/coordinates.h>
 #include <vector>
-#include <limits>
-#include <stdio.h>
-#include <stdlib.h>
-#include <fstream>
 #include <iostream>
 #include <filesystem>
 #include <io/vtkiofun.h>
-#include <io/matlabiofun.h>
 #include <globals.h>
-#include <assert.h>
 
-class Geometry; // FORWARD DECLARATION
 class SolutionVector;
 namespace qlc3d {
   class Director;
@@ -55,7 +49,9 @@ private:
     double getGridY(const idx& yi)const;// const {return yLimits_[0] + yi*dy_;}
     double getGridZ(const idx& zi)const;// const {return zLimits_[0] + zi*dz_;}
 
-    bool generateLookupList(Geometry* geom);
+    bool generateLookupList(const Mesh& tets,
+                            const Coordinates& coords,
+                            const AABox& bounds);
 
     double interpolateNode(const double* valueIn,
                             const lookup& L) const;
@@ -80,11 +76,21 @@ public:
     RegularGrid();
     RegularGrid(const RegularGrid& rg);
 
-    // CREATES A TET MESH -> REGULAR GRID LOOKUP
-    bool createFromTetMesh(const unsigned int& nx,   //number of points in each direction
-                           const unsigned int& ny,
-                           const unsigned int& nz,
-                           Geometry* geom); // underlying tet mesh
+    /**
+     * Build the tet-mesh -> regular-grid lookup table.
+     *
+     * @param nx,ny,nz  Number of regular grid points in each direction.
+     * @param tets      The tetrahedral mesh.
+     * @param coords    Node coordinates.
+     * @param bounds    Axis-aligned bounding box of the mesh.
+     * @return true on success.
+     */
+    bool createFromTetMesh(unsigned int nx,
+                           unsigned int ny,
+                           unsigned int nz,
+                           const Mesh& tets,
+                           const Coordinates& coords,
+                           const AABox& bounds);
 
 
     // INTERPOLATES A VALUE

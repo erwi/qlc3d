@@ -80,6 +80,10 @@ add_library(lib-qlc3d STATIC
         src/fixednodes.cpp
         includes/geom/periodicity.h
         src/geom/periodicity.cpp
+        includes/geom/tet-mesh-search.h
+        src/geom/tet-mesh-search.cpp
+        includes/regulargrid-factory.h
+        src/regulargrid-factory.cpp
         includes/dofmap.h
         src/dofmap.cpp
         includes/util/containerutil.h

@@ -42,7 +42,7 @@ Linear elements (`ElementType::LINEAR_TETRAHEDRON`, `ElementType::LINEAR_TRIANGL
 | Q-tensor (LC) solver assembly | ✅ Complete |
 | Potential solver assembly | ✅ Complete |
 | Adaptive mesh refinement (red-green tet splitting) | ✅ Complete |
-| Regular spatial grid (`makeRegularGrid`) | ✅ Complete |
+| Regular spatial grid (`RegularGrid` + `buildRegularGrid`) | ✅ Complete |
 | Q-tensor interpolation (`interpolateQTensor`) | ✅ Complete |
 | Result output — VTK, LcView, result files | ✅ Complete |
 
@@ -113,11 +113,11 @@ However, the public entry point `solvePotential()` throws a `NotYetImplementedEx
 
 ### 3.8 VTK Output (`io/vtkiofun.cpp`)
 
-The VTK writer correctly outputs VTK cell type 24 (quadratic tet, 10 nodes) vs cell type 10 (linear tet, 4 nodes). It is gated upstream by the `ResultOutput::writeResults()` check (see §4).
+The VTK writer correctly outputs VTK cell type 24 (quadratic tet, 10 nodes) vs cell type 10 (linear tet, 4 nodes).
 
 ### 3.9 LcView Output (`io/lcview-result-output.cpp`)
 
-`writeQuadraticTetrahedra()` is implemented; it splits each TET10 into 8 TET4 for the LcView binary format (which does not support TET10 natively). Gated upstream by the same check described in §4.
+`writeQuadraticTetrahedra()` is implemented; it splits each TET10 into 8 TET4 for the LcView binary format (which does not support TET10 natively).
 
 ---
 
@@ -125,26 +125,25 @@ The VTK writer correctly outputs VTK cell type 24 (quadratic tet, 10 nodes) vs c
 
 ### 4.1 `NotYetImplementedException` Guards
 
-Four explicit runtime-throw sites block use of quadratic elements in the full simulation pipeline:
+The main remaining explicit runtime-throw sites blocking quadratic elements in the full simulation pipeline are:
 
 | File | Entry point | What it prevents |
 |---|---|---|
 | `potential/potential-solver.cpp` | `PotentialSolver::solvePotential()` | All electrode potential solves. The assembly code **directly below this guard** already supports quadratic. |
-| `io/result-output.cpp` | `ResultOutput::writeResults()` | All result output — VTK, LcView, and result files — even though both underlying writers already support TET10. |
-| `geometry.cpp` | `Geometry::makeRegularGrid()` | Regular spatial grid construction. This cascades (see §4.2). |
-| `autorefinement.cpp` | `autoref()` | All adaptive mesh refinement. |
+| `autorefinement.cpp` | `autoref()` | All adaptive mesh refinement on quadratic meshes. |
 
-Removing the first two guards (potential solver and result output) would immediately enable quadratic end-to-end runs on non-adaptive problems without electrodes.
+The old `ResultOutput::writeResults()` and `Geometry::makeRegularGrid()` / `getRegularGrid()` blockers have been removed.
 
 ### 4.2 Regular Grid and Spatial Lookup Chain
 
-`Geometry::makeRegularGrid()` is blocked, which cascades to:
+This blocker has now been removed.
 
-- `Geometry::genIndToTetsByCoords()` — unavailable
-- `interpolateQTensor()` — cannot run (needs `genIndToTetsByCoords` for nearest-tet lookup)
-- `autoref()` — cannot complete even if its own guard is removed
+- `TetMeshSearch` provides the spatial lookup implementation independently of `Geometry`.
+- `RegularGrid` no longer depends on `Geometry`; it is constructed from `Mesh`, `Coordinates`, and `AABox` directly.
+- `buildRegularGrid()` is the canonical factory for callers that do have a `Geometry` object.
+- `SimulationContainer` owns the regular grid explicitly and `autoref()` rebuilds it after mesh changes.
 
-The fix for `makeRegularGrid()` itself is likely small: the regular grid only needs the 4 corner nodes of each TET10 to determine bounding boxes and containment (which is exact for straight-edged elements). The mid-edge nodes are not needed for spatial indexing.
+For straight-edged TET10 meshes, spatial lookup remains geometrically exact because only the 4 corner nodes are needed for containment and barycentric-coordinate calculations.
 
 ### 4.3 Adaptive Mesh Refinement
 
@@ -254,17 +253,24 @@ Resolved: the micron-to-SI conversion factors are now named constants in `qlc3d:
 
 The decision to always convert to TET10/TRI6 is buried inside a general geometry-preparation function with no configuration switch. There is currently no way to run in strictly linear mode for debugging or performance comparison without modifying `prepareGeometry()` itself. Converting this to an explicit policy parameter would make the intent visible and testable.
 
-### 7.2 Entry-Point Guards Disconnected from Assembly Readiness
+### 7.2 Remaining Entry-Point Guards Disconnected from Assembly Readiness
 
-`solvePotential()` and `ResultOutput::writeResults()` throw at their public entry points, even though the assembly and output code immediately below them is quadratic-aware. This creates the false impression that quadratic is unsupported throughout those subsystems. The guards are coarse-grained; any format- or solver-specific limitations should live inside the individual format writers or solver paths, not at the top level.
+`solvePotential()` still throws at its public entry point even though the assembly code immediately below it is quadratic-aware. This creates the false impression that quadratic is unsupported throughout the potential subsystem. The remaining guard is coarse-grained; any solver-specific limitations should live inside the individual solver paths, not at the top level.
 
-### 7.3 `makeRegularGrid` Block Cascades Through Unrelated Features
+### 7.3 Regular-Grid and Spatial Search Decoupling
 
-The cascade `makeRegularGrid` → `genIndToTetsByCoords` → `interpolateQTensor` → `autoref` means that one unresolved guard blocks spatially unrelated features (interpolation, refinement). These dependencies should be documented explicitly, and ideally the spatial lookup interface should be injectable so that individual features can be tested in isolation without requiring the full regular-grid infrastructure.
+The old cascade `makeRegularGrid` → `genIndToTetsByCoords` → `interpolateQTensor` → `autoref` has been untangled:
 
-### 7.4 Result Output Format Limitations Should Live in Format Writers
+- `TetMeshSearch` isolates the tetrahedral spatial-search logic.
+- `RegularGrid` is now a mesh-primitive consumer instead of a `Geometry` consumer.
+- `Geometry` no longer owns `RegularGrid`.
+- `SimulationContainer` is the canonical owner of the grid via `std::unique_ptr<RegularGrid>`.
 
-The linear-only guard in `ResultOutput::writeResults()` prevents both `VtkResultFormatWriter` (which supports TET10 natively via VTK cell type 24) and `LcViewResultFormatWriter` (which supports TET10 by splitting) from being exercised. Moving the guard into the individual writers would allow the VTK path to work immediately, while the LcView path continues to document its implicit-expansion behaviour.
+This makes the spatial lookup path directly testable without requiring `Geometry` to own output/interpolation infrastructure.
+
+### 7.4 Result Output Is No Longer Coupled to `Geometry` Ownership
+
+`ResultOutput::writeResults()` now accepts a `RegularGrid*` explicitly and forwards it only to the format writers that require regular-grid interpolation. This removes the old hidden coupling where writers had to reach back into `Geometry` just to obtain output infrastructure.
 
 ### 7.5 `interpolateQTensor()` Implicit Linear-Only Contract
 
@@ -281,9 +287,9 @@ Every GiD mesh loaded goes through `convertLinearMeshDataToQuadratic()` uncondit
 In rough priority order:
 
 1. **Remove the `solvePotential()` guard** — this immediately enables quadratic potential solves. The assembly code is ready. Add a smoke test using the existing quadratic test mesh resource.
-2. **Remove the `ResultOutput::writeResults()` guard** — enables VTK output immediately. Move any format-specific guards into the individual writers.
-3. **Fix `makeRegularGrid()` for TET10** — use only the 4 corner nodes for bounding-box / containment checks (correct for straight-edge TET10). This unblocks `interpolateQTensor` and the refinement pipeline.
-4. **Wire up adaptive refinement for quadratic meshes** — after the grid blocker is resolved; refine using linear machinery then call `convertLinearMeshDataToQuadratic()` on the result and re-map the Q-tensor solution.
+2. **Wire up adaptive refinement for quadratic meshes** — the regular-grid blocker is resolved, but refinement still has its own quadratic guard and still refines linear elements only.
+3. **Document and improve `interpolateQTensor()` accuracy for TET10** — geometry lookup is exact, but the field interpolation remains first-order because it uses only the four corner-node Q values.
+4. **Expand result-output coverage** — the top-level guard is gone, so regular-grid writer tests should explicitly cover `RegularVTK`, `RegularVecMat`, and `DirStackZ` with the explicit `RegularGrid*` API.
 5. **Remove the old `GaussianQuadratureTet<NGP>` / `GaussianQuadratureTri<NGP>` deprecated classes** — reduce API surface and eliminate silent-wrong-answer risk.
 6. **Jacobian caching** — investigated and found numerically unsafe with the current isoparametric assembly; see `plans/quadratic-jacobian-optimization.md` for details and possible future approaches.
 7. **Add tests for all the missing areas** listed in §5.2.

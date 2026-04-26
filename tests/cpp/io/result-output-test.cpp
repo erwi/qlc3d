@@ -352,7 +352,7 @@ TEST_CASE("Write VTK result via ResultOutput::writeResults() - quadratic mesh") 
   TestUtil::TemporaryDirectory resDir;
   ResultOutput resultOutput({Simu::SaveFormats::VTKUnstructuredAsciiGrid}, "mesh.msh", 0.5, resDir.path());
 
-  REQUIRE_NOTHROW(resultOutput.writeResults(geom, potential, qTensor, simulationState));
+  REQUIRE_NOTHROW(resultOutput.writeResults(geom, potential, qTensor, nullptr, simulationState));
 
   const auto resultFile = resDir.path() / "unstructured00000000.vtk";
   REQUIRE(fs::exists(resultFile));

@@ -10,6 +10,7 @@
 #include <util/logging.h>
 #include <inits.h>
 #include <util/exception.h>
+#include <regulargrid-factory.h>
 
 
 bool needsInterpolatedQ(const std::vector<const RefinementSpec*> &specs,
@@ -88,7 +89,8 @@ bool autoref(Geometry &geom_orig,
              SimulationState &simulationState,
              Alignment &alignment,
              const Electrodes &electrodes,
-             double S0) {
+             double S0,
+             std::unique_ptr<RegularGrid>& regGridOut) {
 
   if (geom_orig.getTetrahedra().getElementType() != ElementType::LINEAR_TETRAHEDRON) {
     throw NotYetImplementedException("Only linear tetrahedra are supported in mesh refinement. Found element type " +
@@ -140,10 +142,11 @@ bool autoref(Geometry &geom_orig,
     //geom_temp.t->CalculateDeterminants3D( geom_temp.getPtrTop() );
     //geom_temp.t->ScaleDeterminants(qlc3d::units::CUBIC_MICROMETER_TO_CUBIC_METER);
     geom_temp.calculateNodeNormals();
-    //geom_temp.genIndWeakSurfaces(alignment);
-    geom_temp.makeRegularGrid(simu.getRegularGridXCount(),
-                              simu.getRegularGridYCount(),
-                              simu.getRegularGridZCount());
+    // Build regular grid for the refined geometry
+    regGridOut = buildRegularGrid(simu.getRegularGridXCount(),
+                                  simu.getRegularGridYCount(),
+                                  simu.getRegularGridZCount(),
+                                  geom_temp);
 
     // RECREATE POTENTIAL SOLUTIONVECTOR FROM SCRATCH FOR THE NEW GEOMETRY.
     v.Resize(geom_temp.getnp() , 1);

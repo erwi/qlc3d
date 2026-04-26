@@ -13,6 +13,7 @@
 #include <lc-representation.h>
 #include <qlc3d.h>
 #include "geom/periodicity.h"
+#include <io/vtkiofun.h>
 
 // TEST: Smoke test - ensure potential solver can be constructed
 // ARRANGE: create default electrodes, LC and solver settings

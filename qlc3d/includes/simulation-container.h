@@ -4,26 +4,17 @@
 #ifndef PROJECT_QLC3D_SIMULATION_CONTAINER_H
 #define PROJECT_QLC3D_SIMULATION_CONTAINER_H
 
-#include <simu.h> // TODO: remove all of these
-#include <electrodes.h>
-#include <lc.h>
 #include <simu.h>
 #include <electrodes.h>
 #include <lc.h>
-#include <solver-settings.h>
 #include <box.h>
 #include <alignment.h>
-#include <meshrefinement.h>
+#include <geometry.h>
 #include <regulargrid.h>
-
-#include <ctime>
 #include <memory>
-#include <spamtrix_ircmatrix.hpp>
 #include <eventhandler.h>
-
-#include <simulation-state.h>
 #include "lc/lc-solver.h"
-#include "simulation-adaptive-time-step.h"
+
 
 class Configuration;
 class SimulationState;

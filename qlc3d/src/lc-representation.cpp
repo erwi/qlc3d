@@ -1,3 +1,4 @@
+#include <cfloat>
 #include <lc-representation.h>
 #include <qlc3d.h> // TODO: deleteme
 #include <geom/vec3.h>
