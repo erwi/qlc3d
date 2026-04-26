@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include "io/meshreader.h"
 
+class Geometry;
+
 /**
  * Functions for splitting and recombining quadratic tetrahedra/triangles to linear tetrahedra/triangles and vice versa. Node numbering
  * is as in fig 6.1 (b) in Eero's thesis.
@@ -17,6 +19,14 @@ public:
 
 std::vector<std::vector<unsigned int>> splitQuadraticTetrahedronToLinear(const std::vector<unsigned int> &quadraticTetrahedron);
 std::vector<unsigned int> recombineLinearTetsToQuadratic(const std::vector<std::vector<unsigned int>> &linearTets);
+
+/**
+ * Split every quadratic tetrahedron and triangle in a geometry into the equivalent linear mesh representation.
+ *
+ * @param quadGeom Source geometry containing quadratic tetrahedra and triangles.
+ * @param outMeshData Output raw mesh data populated with linear connectivity and copied coordinates.
+ */
+void splitQuadraticGeometryToLinear(const Geometry &quadGeom, RawMeshData &outMeshData);
 
 std::vector<std::vector<unsigned int>> splitQuadraticTriangleToLinear(const std::vector<unsigned int> &quadraticTriangle);
 std::vector<unsigned int> recombineLinearTrianglesToQuadratic(const std::vector<std::vector<unsigned int>> &linearTriangles);

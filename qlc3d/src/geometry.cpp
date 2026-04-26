@@ -1,5 +1,6 @@
 #include <geometry.h>
 #include <geom/tet-mesh-search.h>
+#include <io/meshreader.h>
 #include <material_numbers.h>
 #include <util/logging.h>
 #include <util/exception.h>
@@ -96,6 +97,21 @@ void Geometry::setMeshData(unsigned int elementOrder, const std::shared_ptr<Coor
   e->ScaleDeterminants(qlc3d::units::SQUARE_MICROMETER_TO_SQUARE_METER);
 
   calculateNodeNormals();
+}
+
+Geometry Geometry::fromRawMeshData(const RawMeshData &raw) {
+  Geometry geom;
+
+  auto coordinates = std::make_shared<Coordinates>(std::vector<Vec3>(raw.points.begin(), raw.points.end()));
+  std::vector<unsigned int> tetNodes(raw.tetNodes.begin(), raw.tetNodes.end());
+  std::vector<unsigned int> tetMaterials(raw.tetMaterials.begin(), raw.tetMaterials.end());
+  std::vector<unsigned int> triNodes(raw.triNodes.begin(), raw.triNodes.end());
+  std::vector<unsigned int> triMaterials(raw.triMaterials.begin(), raw.triMaterials.end());
+
+  geom.setMeshData(raw.getElementOrder(), coordinates,
+                   std::move(tetNodes), std::move(tetMaterials),
+                   std::move(triNodes), std::move(triMaterials));
+  return geom;
 }
 
 

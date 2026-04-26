@@ -4,10 +4,12 @@
 #include <vector>
 #include <memory>
 #include <geom/aabox.h>
+#include <geom/periodicity.h>
 
 class Coordinates;
 class Vec3;
 class PeriodicNodesMapping;
+class RawMeshData;
 
 using namespace std;
 class Geometry {
@@ -31,6 +33,10 @@ public:
 
     Geometry();
     ~Geometry();
+    Geometry(const Geometry&) = delete;
+    Geometry& operator=(const Geometry&) = delete;
+    Geometry(Geometry&&) noexcept = default;
+    Geometry& operator=(Geometry&&) noexcept = default;
     /** for testing purposes */
     void setCoordinates(const std::shared_ptr<Coordinates>& coordinates);
 
@@ -43,6 +49,14 @@ public:
     void setMeshData(unsigned int elementOrder, const std::shared_ptr<Coordinates> &coordinates,
                      std::vector<unsigned int> &&tetNodes, std::vector<unsigned int> &&tetMaterials,
                      std::vector<unsigned int> &&triNodes, std::vector<unsigned int> &&triMaterials);
+
+    /**
+     * Create a fully initialised geometry from raw mesh data.
+     *
+     * @param raw Raw mesh data containing coordinates, node connectivity, and materials.
+     * @return Geometry initialised with the raw mesh contents.
+     */
+    static Geometry fromRawMeshData(const RawMeshData &raw);
 
     void addCoordinates(const vector<double> &coords);
     void calculateNodeNormals();

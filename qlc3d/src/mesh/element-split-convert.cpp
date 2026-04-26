@@ -1,6 +1,8 @@
 #include "mesh/element-split-convert.h"
 
 #include <cassert>
+#include <geometry.h>
+#include <geom/coordinates.h>
 #include <qlc3d.h>
 #include <spamtrix_matrixmaker.hpp>
 
@@ -42,6 +44,61 @@ void validateAndSnapQuadraticTetrahedron(std::vector<Vec3> &points, const unsign
   validateEdge(tetNodes[2], tetNodes[3], tetNodes[9], "(2,3)");
 }
 } // namespace
+
+void splitQuadraticGeometryToLinear(const Geometry &quadGeom, RawMeshData &outMeshData) {
+  const Mesh &tetrahedra = quadGeom.getTetrahedra();
+  const Mesh &triangles = quadGeom.getTriangles();
+
+  if (tetrahedra.getElementType() != ElementType::QUADRATIC_TETRAHEDRON) {
+    RUNTIME_ERROR(fmt::format("splitQuadraticGeometryToLinear expects quadratic tetrahedra, got {}.", tetrahedra.getElementType()));
+  }
+  if (triangles.getElementType() != ElementType::QUADRATIC_TRIANGLE) {
+    RUNTIME_ERROR(fmt::format("splitQuadraticGeometryToLinear expects quadratic triangles, got {}.", triangles.getElementType()));
+  }
+
+  std::vector<Vec3> points;
+  points.reserve(quadGeom.getnp());
+  for (idx i = 0; i < quadGeom.getnp(); ++i) {
+    points.push_back(quadGeom.getCoordinates().getPoint(i));
+  }
+
+  std::vector<idx> linearTetNodes;
+  std::vector<idx> linearTetMaterials;
+  linearTetNodes.reserve(tetrahedra.getnElements() * 8 * 4);
+  linearTetMaterials.reserve(tetrahedra.getnElements() * 8);
+  for (idx i = 0; i < tetrahedra.getnElements(); ++i) {
+    std::vector<unsigned int> quadraticTet(tetrahedra.getnNodes());
+    for (idx n = 0; n < tetrahedra.getnNodes(); ++n) {
+      quadraticTet[n] = tetrahedra.getNode(i, n);
+    }
+
+    const auto linearTets = splitQuadraticTetrahedronToLinear(quadraticTet);
+    for (const auto &linearTet : linearTets) {
+      linearTetNodes.insert(linearTetNodes.end(), linearTet.begin(), linearTet.end());
+      linearTetMaterials.push_back(tetrahedra.getMaterialNumber(i));
+    }
+  }
+
+  std::vector<idx> linearTriNodes;
+  std::vector<idx> linearTriMaterials;
+  linearTriNodes.reserve(triangles.getnElements() * 4 * 3);
+  linearTriMaterials.reserve(triangles.getnElements() * 4);
+  for (idx i = 0; i < triangles.getnElements(); ++i) {
+    std::vector<unsigned int> quadraticTri(triangles.getnNodes());
+    for (idx n = 0; n < triangles.getnNodes(); ++n) {
+      quadraticTri[n] = triangles.getNode(i, n);
+    }
+
+    const auto linearTris = splitQuadraticTriangleToLinear(quadraticTri);
+    for (const auto &linearTri : linearTris) {
+      linearTriNodes.insert(linearTriNodes.end(), linearTri.begin(), linearTri.end());
+      linearTriMaterials.push_back(triangles.getMaterialNumber(i));
+    }
+  }
+
+  outMeshData = RawMeshData(1, std::move(points), std::move(linearTetNodes), std::move(linearTetMaterials),
+                            std::move(linearTriNodes), std::move(linearTriMaterials));
+}
 
 void validateAndSnapQuadraticTetrahedra(RawMeshData &meshData) {
   if (meshData.getElementOrder() != 2) {

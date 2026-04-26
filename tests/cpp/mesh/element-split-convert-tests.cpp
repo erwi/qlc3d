@@ -1,8 +1,42 @@
 #include <test-util.h>
 #include <io/gmsh-read.h>
 
+#include <geometry.h>
+#include <material_numbers.h>
+
 #include "catch.h"
 #include "mesh/element-split-convert.h"
+
+namespace {
+
+RawMeshData makeQuadraticTestRawMeshData() {
+  std::vector<Vec3> points = {
+      Vec3(0, 0, 0),
+      Vec3(1, 0, 0),
+      Vec3(0, 1, 0),
+      Vec3(0, 0, 1),
+      Vec3(0.5, 0, 0),
+      Vec3(0.5, 0.5, 0),
+      Vec3(0, 0.5, 0),
+      Vec3(0, 0, 0.5),
+      Vec3(0.5, 0, 0.5),
+      Vec3(0, 0.5, 0.5),
+  };
+
+  return RawMeshData(2, std::move(points),
+                     {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, {MAT_DOMAIN1},
+                     {0, 1, 2, 4, 5, 6,
+                      0, 1, 3, 4, 8, 7,
+                      0, 2, 3, 6, 9, 7,
+                      1, 2, 3, 5, 9, 8},
+                     {MAT_FIXLC1, MAT_FIXLC1, MAT_FIXLC1, MAT_FIXLC1});
+}
+
+Geometry makeQuadraticTestGeometry() {
+  return Geometry::fromRawMeshData(makeQuadraticTestRawMeshData());
+}
+
+} // namespace
 
 TEST_CASE("Split and recombine tets") {
   // Tet node numbering as in fig 6.1 (b) in Eero's thesis
@@ -164,7 +198,6 @@ TEST_CASE("Convert linear Gmsh mesh to quadratic mesh") {
 
   auto numTetsOld = meshData.tetMaterials.size();
   auto numTrisOld = meshData.triMaterials.size();
-  auto numPointsOld = meshData.points.size();
 
   // ACT
   convertLinearMeshDataToQuadratic(meshData);
@@ -178,6 +211,40 @@ TEST_CASE("Convert linear Gmsh mesh to quadratic mesh") {
 
 }
 
-TEST_CASE("") {
+TEST_CASE("Split quadratic geometry to linear mesh data") {
+  Geometry geom = makeQuadraticTestGeometry();
+  RawMeshData linearMeshData(1, {}, {}, {}, {}, {});
 
+  splitQuadraticGeometryToLinear(geom, linearMeshData);
+
+  REQUIRE(linearMeshData.getElementOrder() == 1);
+  REQUIRE(linearMeshData.points.size() == geom.getnp());
+  REQUIRE(linearMeshData.tetNodes.size() == 8 * 4);
+  REQUIRE(linearMeshData.tetMaterials.size() == 8);
+  REQUIRE(linearMeshData.triNodes.size() == 4 * 4 * 3);
+  REQUIRE(linearMeshData.triMaterials.size() == 4 * 4);
+}
+
+TEST_CASE("Geometry::fromRawMeshData builds a quadratic geometry") {
+  Geometry geom = Geometry::fromRawMeshData(makeQuadraticTestRawMeshData());
+
+  REQUIRE(geom.getTetrahedra().getElementType() == ElementType::QUADRATIC_TETRAHEDRON);
+  REQUIRE(geom.getTriangles().getElementType() == ElementType::QUADRATIC_TRIANGLE);
+  REQUIRE(geom.getTetrahedra().getnElements() == 1);
+  REQUIRE(geom.getTriangles().getnElements() == 4);
+}
+
+TEST_CASE("Split quadratic geometry and re-promote it to quadratic mesh data") {
+  Geometry geom = makeQuadraticTestGeometry();
+  RawMeshData linearMeshData(1, {}, {}, {}, {}, {});
+
+  splitQuadraticGeometryToLinear(geom, linearMeshData);
+  convertLinearMeshDataToQuadratic(linearMeshData);
+
+  REQUIRE(linearMeshData.getElementOrder() == 2);
+  REQUIRE(linearMeshData.points.size() > geom.getnp());
+  REQUIRE(linearMeshData.tetNodes.size() == 8 * 10);
+  REQUIRE(linearMeshData.tetMaterials.size() == 8);
+  REQUIRE(linearMeshData.triNodes.size() == 16 * 6);
+  REQUIRE(linearMeshData.triMaterials.size() == 16);
 }
