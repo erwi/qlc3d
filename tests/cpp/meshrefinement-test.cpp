@@ -42,9 +42,20 @@ Electrodes makeElectrodes() {
     return Electrodes::withElectrodePotentials(electrodesVec);
 }
 
-void prepareGeometryPair(Geometry &originalGeometry, Geometry &workingGeometry) {
-    auto rawMeshData = MeshReader::readMesh(TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH);
-    REQUIRE(rawMeshData.getElementOrder() == 1);
+struct RefinementTestSetup {
+    Geometry originalGeometry;
+    Geometry workingGeometry;
+    std::unique_ptr<Simu> simu;
+    Alignment alignment;
+    Electrodes electrodes;
+    SimulationState simulationState;
+    std::unique_ptr<RegularGrid> regGrid;
+};
+
+void prepareGeometryPair(Geometry &originalGeometry, Geometry &workingGeometry, const std::string &meshPath,
+                         unsigned int expectedElementOrder) {
+    auto rawMeshData = MeshReader::readMesh(meshPath);
+    REQUIRE(rawMeshData.getElementOrder() == expectedElementOrder);
     const auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
     originalGeometry.setMeshData(rawMeshData.getElementOrder(), coordinates,
                                  std::move(rawMeshData.tetNodes), std::move(rawMeshData.tetMaterials),
@@ -52,14 +63,13 @@ void prepareGeometryPair(Geometry &originalGeometry, Geometry &workingGeometry) 
     workingGeometry.setTo(&originalGeometry);
 }
 
-void prepareQuadraticGeometryPair(Geometry &originalGeometry, Geometry &workingGeometry) {
-    auto rawMeshData = MeshReader::readMesh(TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH);
-    REQUIRE(rawMeshData.getElementOrder() == 2);
-    const auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
-    originalGeometry.setMeshData(rawMeshData.getElementOrder(), coordinates,
-                                 std::move(rawMeshData.tetNodes), std::move(rawMeshData.tetMaterials),
-                                 std::move(rawMeshData.triNodes), std::move(rawMeshData.triMaterials));
-    workingGeometry.setTo(&originalGeometry);
+RefinementTestSetup makeRefinementTestSetup(const std::string &meshPath, unsigned int expectedElementOrder) {
+    RefinementTestSetup setup;
+    setup.simu = makeSimu();
+    setup.alignment = makeAlignment();
+    setup.electrodes = makeElectrodes();
+    prepareGeometryPair(setup.originalGeometry, setup.workingGeometry, meshPath, expectedElementOrder);
+    return setup;
 }
 
 void populateChangeField(SolutionVector &qCurrent) {
@@ -74,48 +84,37 @@ void populateChangeField(SolutionVector &qCurrent) {
 
 TEST_CASE("mesh refinement") {
     // ARRANGE - create required two geometries that are identical
-    Geometry originalGeometry;
-    Geometry workingGeometry;
+    auto setup = makeRefinementTestSetup(TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, 1);
 
-    std::unique_ptr<Simu> simu = makeSimu();
-    Alignment alignment = makeAlignment();
-
-    // Mesh contains two electrodes. This fakes them being defined in the settings file
-    Electrodes electrodes = makeElectrodes();
-
-    // reads and prepares test-mesh from resource file
-    prepareGeometryPair(originalGeometry, workingGeometry);
-
-    unsigned int npLC = originalGeometry.getnpLC();
+    unsigned int npLC = setup.originalGeometry.getnpLC();
     SolutionVector qCurrent(npLC, 5);
     SolutionVector potential(npLC, 1);
 
     // refinement region is a single spherical volume
     auto spec = RefinementSpec::makePeriodic("Sphere", {0.1}, {0}, {0}, {0});
     std::vector<const RefinementSpec*> specs = {spec.get()};
-    SimulationState simulationState;
 
     double S0 = 0.5;
 
     // ACT - run mesh refinement
-    std::unique_ptr<RegularGrid> regGrid;
-    REQUIRE(autoref(originalGeometry, workingGeometry, qCurrent, potential, specs, *simu, simulationState, alignment, electrodes, S0, regGrid));
+    REQUIRE(autoref(setup.originalGeometry, setup.workingGeometry, qCurrent, potential, specs, *setup.simu,
+                    setup.simulationState, setup.alignment, setup.electrodes, S0, setup.regGrid));
 
     // ASSERT
     // check new refined mesh size
-    REQUIRE(workingGeometry.getnpLC() == 50);
-    REQUIRE(workingGeometry.getTetrahedra().getnElements() == 140);
-    REQUIRE(workingGeometry.getTriangles().getnElements() == 80);
+    REQUIRE(setup.workingGeometry.getnpLC() == 50);
+    REQUIRE(setup.workingGeometry.getTetrahedra().getnElements() == 140);
+    REQUIRE(setup.workingGeometry.getTriangles().getnElements() == 80);
 
     // check initialisations. Sum of element determinants should not change, as total mesh volume/surface areas do not change
-    auto &originalTets = originalGeometry.getTetrahedra();
-    auto &originalTris = originalGeometry.getTriangles();
+    auto &originalTets = setup.originalGeometry.getTetrahedra();
+    auto &originalTris = setup.originalGeometry.getTriangles();
 
     double sumDeterminantsOriginal = sumDeterminants(originalTets);
     double sumDeterminantsOriginalTris = sumDeterminants(originalTris);
 
-    auto &workingTets = workingGeometry.getTetrahedra();
-    auto &workingTris = workingGeometry.getTriangles();
+    auto &workingTets = setup.workingGeometry.getTetrahedra();
+    auto &workingTris = setup.workingGeometry.getTriangles();
 
     double sumDeterminantsWorking = sumDeterminants(workingTets);
     double sumDeterminantsWorkingTris = sumDeterminants(workingTris);
@@ -127,131 +126,174 @@ TEST_CASE("mesh refinement") {
     REQUIRE(sumDeterminantsOriginalTris == Approx(sumDeterminantsWorkingTris).margin(1e-18));
 
     // time step should be restricted to minimum after fine registration
-    REQUIRE(simulationState.restrictedTimeStep());
-    REQUIRE(simulationState.dt() == simu->getMindt());
-    REQUIRE(simulationState.meshModified());
+    REQUIRE(setup.simulationState.restrictedTimeStep());
+    REQUIRE(setup.simulationState.dt() == setup.simu->getMindt());
+    REQUIRE(setup.simulationState.meshModified());
 }
 
 TEST_CASE("quadratic mesh refinement") {
     // ARRANGE - create matching quadratic geometries and refinement inputs
-    Geometry originalGeometry;
-    Geometry workingGeometry;
+    auto setup = makeRefinementTestSetup(TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH, 2);
 
-    std::unique_ptr<Simu> simu = makeSimu();
-    Alignment alignment = makeAlignment();
-    Electrodes electrodes = makeElectrodes();
-
-    prepareQuadraticGeometryPair(originalGeometry, workingGeometry);
-
-    unsigned int npLC = originalGeometry.getnpLC();
+    unsigned int npLC = setup.originalGeometry.getnpLC();
     SolutionVector qCurrent(npLC, 5);
     SolutionVector potential(npLC, 1);
 
     auto spec = RefinementSpec::makePeriodic("Sphere", {0.1}, {0}, {0}, {0});
     std::vector<const RefinementSpec*> specs = {spec.get()};
-    SimulationState simulationState;
 
     double S0 = 0.5;
-    std::unique_ptr<RegularGrid> regGrid;
 
     // ACT - run mesh refinement on quadratic input
-    REQUIRE(autoref(originalGeometry, workingGeometry, qCurrent, potential, specs, *simu, simulationState, alignment, electrodes, S0, regGrid));
+    REQUIRE(autoref(setup.originalGeometry, setup.workingGeometry, qCurrent, potential, specs, *setup.simu,
+                    setup.simulationState, setup.alignment, setup.electrodes, S0, setup.regGrid));
 
     // ASSERT - the refined volume mesh must be quadratic and conserve total measures
-    REQUIRE(workingGeometry.getTetrahedra().getElementType() == ElementType::QUADRATIC_TETRAHEDRON);
-    REQUIRE(workingGeometry.getnpLC() > originalGeometry.getnpLC());
-    REQUIRE(workingGeometry.getTetrahedra().getnElements() > originalGeometry.getTetrahedra().getnElements());
-    REQUIRE(workingGeometry.getTriangles().getnElements() > originalGeometry.getTriangles().getnElements());
+    REQUIRE(setup.workingGeometry.getTetrahedra().getElementType() == ElementType::QUADRATIC_TETRAHEDRON);
+    REQUIRE(setup.workingGeometry.getnpLC() > setup.originalGeometry.getnpLC());
+    REQUIRE(setup.workingGeometry.getTetrahedra().getnElements() > setup.originalGeometry.getTetrahedra().getnElements());
+    REQUIRE(setup.workingGeometry.getTriangles().getnElements() > setup.originalGeometry.getTriangles().getnElements());
 
-    REQUIRE(sumDeterminants(originalGeometry.getTetrahedra()) > 0);
-    REQUIRE(sumDeterminants(originalGeometry.getTetrahedra()) == Approx(sumDeterminants(workingGeometry.getTetrahedra())).margin(1e-14));
-    REQUIRE(sumDeterminants(originalGeometry.getTriangles()) > 0);
-    REQUIRE(sumDeterminants(originalGeometry.getTriangles()) == Approx(sumDeterminants(workingGeometry.getTriangles())).margin(1e-14));
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTetrahedra()) > 0);
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTetrahedra()) ==
+            Approx(sumDeterminants(setup.workingGeometry.getTetrahedra())).margin(1e-14));
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTriangles()) > 0);
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTriangles()) ==
+            Approx(sumDeterminants(setup.workingGeometry.getTriangles())).margin(1e-14));
 
-    REQUIRE(simulationState.restrictedTimeStep());
-    REQUIRE(simulationState.dt() == simu->getMindt());
-    REQUIRE(simulationState.meshModified());
+    REQUIRE(setup.simulationState.restrictedTimeStep());
+    REQUIRE(setup.simulationState.dt() == setup.simu->getMindt());
+    REQUIRE(setup.simulationState.meshModified());
 }
 
 TEST_CASE("box refinement end-to-end") {
-    Geometry originalGeometry;
-    Geometry workingGeometry;
+    auto setup = makeRefinementTestSetup(TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, 1);
 
-    std::unique_ptr<Simu> simu = makeSimu();
-    Alignment alignment = makeAlignment();
-    Electrodes electrodes = makeElectrodes();
-
-    prepareGeometryPair(originalGeometry, workingGeometry);
-
-    unsigned int npLC = originalGeometry.getnpLC();
+    unsigned int npLC = setup.originalGeometry.getnpLC();
     SolutionVector qCurrent(npLC, 5);
     SolutionVector potential(npLC, 1);
 
     auto spec = RefinementSpec::makePeriodic("Box", {}, {0.0, 0.5}, {0.0, 1.0}, {0.0, 1.0});
     std::vector<const RefinementSpec*> specs = {spec.get()};
-    SimulationState simulationState;
 
     double S0 = 0.5;
-    std::unique_ptr<RegularGrid> regGrid;
 
-    REQUIRE(autoref(originalGeometry, workingGeometry, qCurrent, potential, specs, *simu, simulationState, alignment, electrodes, S0, regGrid));
+    REQUIRE(autoref(setup.originalGeometry, setup.workingGeometry, qCurrent, potential, specs, *setup.simu,
+                    setup.simulationState, setup.alignment, setup.electrodes, S0, setup.regGrid));
 
-    REQUIRE(workingGeometry.getnpLC() > originalGeometry.getnpLC());
-    REQUIRE(workingGeometry.getTetrahedra().getnElements() > originalGeometry.getTetrahedra().getnElements());
-    REQUIRE(workingGeometry.getTriangles().getnElements() > originalGeometry.getTriangles().getnElements());
+    REQUIRE(setup.workingGeometry.getnpLC() > setup.originalGeometry.getnpLC());
+    REQUIRE(setup.workingGeometry.getTetrahedra().getnElements() > setup.originalGeometry.getTetrahedra().getnElements());
+    REQUIRE(setup.workingGeometry.getTriangles().getnElements() > setup.originalGeometry.getTriangles().getnElements());
 
-    REQUIRE(sumDeterminants(originalGeometry.getTetrahedra()) > 0);
-    REQUIRE(sumDeterminants(originalGeometry.getTetrahedra()) == Approx(sumDeterminants(workingGeometry.getTetrahedra())).margin(1e-18));
-    REQUIRE(sumDeterminants(originalGeometry.getTriangles()) > 0);
-    REQUIRE(sumDeterminants(originalGeometry.getTriangles()) == Approx(sumDeterminants(workingGeometry.getTriangles())).margin(1e-18));
-    REQUIRE(simulationState.meshModified());
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTetrahedra()) > 0);
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTetrahedra()) ==
+            Approx(sumDeterminants(setup.workingGeometry.getTetrahedra())).margin(1e-18));
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTriangles()) > 0);
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTriangles()) ==
+            Approx(sumDeterminants(setup.workingGeometry.getTriangles())).margin(1e-18));
+    REQUIRE(setup.simulationState.meshModified());
 }
 
 TEST_CASE("change refinement end-to-end") {
-    Geometry originalGeometry;
-    Geometry workingGeometry;
+    auto setup = makeRefinementTestSetup(TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, 1);
 
-    std::unique_ptr<Simu> simu = makeSimu();
-    Alignment alignment = makeAlignment();
-    Electrodes electrodes = makeElectrodes();
-
-    prepareGeometryPair(originalGeometry, workingGeometry);
-
-    unsigned int npLC = originalGeometry.getnpLC();
+    unsigned int npLC = setup.originalGeometry.getnpLC();
     SolutionVector qCurrent(npLC, 5);
     populateChangeField(qCurrent);
     SolutionVector potential(npLC, 1);
 
     auto spec = RefinementSpec::makePeriodic("Change", {0.0}, {}, {}, {});
     std::vector<const RefinementSpec*> specs = {spec.get()};
-    SimulationState simulationState;
 
     double S0 = 0.5;
-    std::unique_ptr<RegularGrid> regGrid;
 
-    REQUIRE(autoref(originalGeometry, workingGeometry, qCurrent, potential, specs, *simu, simulationState, alignment, electrodes, S0, regGrid));
+    REQUIRE(autoref(setup.originalGeometry, setup.workingGeometry, qCurrent, potential, specs, *setup.simu,
+                    setup.simulationState, setup.alignment, setup.electrodes, S0, setup.regGrid));
 
-    REQUIRE(workingGeometry.getnpLC() > originalGeometry.getnpLC());
-    REQUIRE(workingGeometry.getTetrahedra().getnElements() > originalGeometry.getTetrahedra().getnElements());
-    REQUIRE(workingGeometry.getTriangles().getnElements() > originalGeometry.getTriangles().getnElements());
-    REQUIRE(sumDeterminants(originalGeometry.getTetrahedra()) == Approx(sumDeterminants(workingGeometry.getTetrahedra())).margin(1e-18));
-    REQUIRE(sumDeterminants(originalGeometry.getTriangles()) == Approx(sumDeterminants(workingGeometry.getTriangles())).margin(1e-18));
-    REQUIRE(simulationState.meshModified());
+    REQUIRE(setup.workingGeometry.getnpLC() > setup.originalGeometry.getnpLC());
+    REQUIRE(setup.workingGeometry.getTetrahedra().getnElements() > setup.originalGeometry.getTetrahedra().getnElements());
+    REQUIRE(setup.workingGeometry.getTriangles().getnElements() > setup.originalGeometry.getTriangles().getnElements());
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTetrahedra()) ==
+            Approx(sumDeterminants(setup.workingGeometry.getTetrahedra())).margin(1e-18));
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTriangles()) ==
+            Approx(sumDeterminants(setup.workingGeometry.getTriangles())).margin(1e-18));
+    REQUIRE(setup.simulationState.meshModified());
+}
+
+TEST_CASE("quadratic box refinement") {
+    // GIVEN a quadratic TET10 geometry and a box refinement spec covering the lower-x half
+    auto setup = makeRefinementTestSetup(TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH, 2);
+
+    unsigned int npLC = setup.originalGeometry.getnpLC();
+    SolutionVector qCurrent(npLC, 5);
+    SolutionVector potential(npLC, 1);
+
+    // Box covers lower half in x: [0, 0.5] × [0, 1] × [0, 1]
+    auto spec = RefinementSpec::makePeriodic("Box", {}, {0.0, 0.5}, {0.0, 1.0}, {0.0, 1.0});
+    std::vector<const RefinementSpec*> specs = {spec.get()};
+
+    double S0 = 0.5;
+
+    // WHEN autoref is called on a quadratic mesh
+    REQUIRE(autoref(setup.originalGeometry, setup.workingGeometry, qCurrent, potential, specs, *setup.simu,
+                    setup.simulationState, setup.alignment, setup.electrodes, S0, setup.regGrid));
+
+    // THEN the refined mesh is still quadratic, has more elements and nodes, and conserves volume
+    REQUIRE(setup.workingGeometry.getTetrahedra().getElementType() == ElementType::QUADRATIC_TETRAHEDRON);
+    REQUIRE(setup.workingGeometry.getnpLC() > setup.originalGeometry.getnpLC());
+    REQUIRE(setup.workingGeometry.getTetrahedra().getnElements() > setup.originalGeometry.getTetrahedra().getnElements());
+    REQUIRE(setup.workingGeometry.getTriangles().getnElements() > setup.originalGeometry.getTriangles().getnElements());
+
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTetrahedra()) > 0);
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTetrahedra()) ==
+            Approx(sumDeterminants(setup.workingGeometry.getTetrahedra())).margin(1e-14));
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTriangles()) > 0);
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTriangles()) ==
+            Approx(sumDeterminants(setup.workingGeometry.getTriangles())).margin(1e-14));
+
+    REQUIRE(setup.simulationState.meshModified());
+}
+
+TEST_CASE("quadratic change refinement") {
+    // GIVEN a quadratic TET10 geometry and a change-based refinement spec with a non-trivial Q-tensor field
+    auto setup = makeRefinementTestSetup(TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH, 2);
+
+    unsigned int npLC = setup.originalGeometry.getnpLC();
+    SolutionVector qCurrent(npLC, 5);
+    populateChangeField(qCurrent);   // give a non-uniform Q tensor so Change detection has data to work with
+    SolutionVector potential(npLC, 1);
+
+    auto spec = RefinementSpec::makePeriodic("Change", {0.0}, {}, {}, {});
+    std::vector<const RefinementSpec*> specs = {spec.get()};
+
+    double S0 = 0.5;
+
+    // WHEN autoref is called on a quadratic mesh
+    REQUIRE(autoref(setup.originalGeometry, setup.workingGeometry, qCurrent, potential, specs, *setup.simu,
+                    setup.simulationState, setup.alignment, setup.electrodes, S0, setup.regGrid));
+
+    // THEN the refined mesh is still quadratic, has more elements and nodes, and conserves volume
+    REQUIRE(setup.workingGeometry.getTetrahedra().getElementType() == ElementType::QUADRATIC_TETRAHEDRON);
+    REQUIRE(setup.workingGeometry.getnpLC() > setup.originalGeometry.getnpLC());
+    REQUIRE(setup.workingGeometry.getTetrahedra().getnElements() > setup.originalGeometry.getTetrahedra().getnElements());
+    REQUIRE(setup.workingGeometry.getTriangles().getnElements() > setup.originalGeometry.getTriangles().getnElements());
+
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTetrahedra()) > 0);
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTetrahedra()) ==
+            Approx(sumDeterminants(setup.workingGeometry.getTetrahedra())).margin(1e-14));
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTriangles()) > 0);
+    REQUIRE(sumDeterminants(setup.originalGeometry.getTriangles()) ==
+            Approx(sumDeterminants(setup.workingGeometry.getTriangles())).margin(1e-14));
+
+    REQUIRE(setup.simulationState.meshModified());
 }
 
 TEST_CASE("handleMeshRefinement smoke test with RefinementSpec") {
     // WP-5 smoke test: verify handleMeshRefinement works end-to-end using the new
     // typed RefinementSpec event path (no RefInfo, no void* cast).
-    Geometry originalGeometry;
-    Geometry workingGeometry;
+    auto setup = makeRefinementTestSetup(TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, 1);
 
-    std::unique_ptr<Simu> simu = makeSimu();
-    Alignment alignment = makeAlignment();
-    Electrodes electrodes = makeElectrodes();
-
-    prepareGeometryPair(originalGeometry, workingGeometry);
-
-    unsigned int npLC = originalGeometry.getnpLC();
+    unsigned int npLC = setup.originalGeometry.getnpLC();
     SolutionVector qCurrent(npLC, 5);
     SolutionVector potential(npLC, 1);
 
@@ -263,22 +305,19 @@ TEST_CASE("handleMeshRefinement smoke test with RefinementSpec") {
     std::list<Event*> refEvents = {refEvent};
 
     Geometries geometries;
-    geometries.geom_orig = &originalGeometry;
-    geometries.geom = &workingGeometry;
+    geometries.geom_orig = &setup.originalGeometry;
+    geometries.geom = &setup.workingGeometry;
 
     SolutionVectors solutionVectors;
     solutionVectors.q = &qCurrent;
     solutionVectors.v = &potential;
 
-    SimulationState simulationState;
-    std::unique_ptr<RegularGrid> regGrid;
-
     // ACT - should not crash; may or may not refine depending on geometry
-    bool refined = handleMeshRefinement(refEvents, geometries, solutionVectors,
-                                        *simu, simulationState, alignment, electrodes, 0.5, regGrid);
+    REQUIRE_NOTHROW(handleMeshRefinement(refEvents, geometries, solutionVectors,
+                                         *setup.simu, setup.simulationState, setup.alignment, setup.electrodes,
+                                         0.5, setup.regGrid));
 
     // refEvents ownership was transferred to handleMeshRefinement, which deletes them
     // The important thing is no crash and no memory corruption
-    REQUIRE_NOTHROW(refined);  // tautological, but documents intention
 }
 

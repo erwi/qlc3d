@@ -21,11 +21,11 @@ namespace {
     return std::vector<Vec3> {
       a, b, c, d,           // corners: A=0, B=1, C=2, D=3
       Vec3::mean(a, b),     // [4] = AB
-      Vec3::mean(b, c),     // [5] = BC
-      Vec3::mean(a, c),     // [6] = AC
-      Vec3::mean(a, d),     // [7] = AD
-      Vec3::mean(c, d),     // [8] = CD
-      Vec3::mean(b, d)      // [9] = BD
+      Vec3::mean(b, c), // [5] = BC
+      Vec3::mean(a, c),   // [6] = AC
+      Vec3::mean(a, d),   // [7] = AD
+      Vec3::mean(c, d), // [8] = CD
+      Vec3::mean(b, d)  // [9] = BD
     };
   }
 
@@ -54,6 +54,14 @@ Geometry makeQuadraticTestGeometry() {
 } // namespace
 
 
+double determinant(const Coordinates &coords, const vector<unsigned int> &tet) {
+  return det3D(
+    coords.getPoint(tet[0]),
+    coords.getPoint(tet[1]),
+    coords.getPoint(tet[2]),
+    coords.getPoint(tet[3]));
+}
+
 
 TEST_CASE("Split and recombine tets") {
   // Gmsh TET10 mid-edge node indices (assigned sequentially after corners 0-3):
@@ -70,13 +78,18 @@ TEST_CASE("Split and recombine tets") {
   unsigned int cd = 8;  // [8] = CD mid-edge
   unsigned int bd = 9;  // [9] = BD mid-edge
 
+  //const auto coords = makeQuadraticTestCoordinates();
+  Coordinates coords = Coordinates(makeQuadraticTestCoordinates());
   SECTION("Split quadratic tetrahedron to 8 linear tets") {
     // Input is in Gmsh TET10 ordering: A,B,C,D, AB,BC,AC,AD,CD,BD
     std::vector<unsigned int> quadraticTetrahedron = {A, B, C, D, ab, bc, ac, ad, cd, bd};
 
     // ACT
-    std::vector<std::vector<unsigned int>> linearTets = splitQuadraticTetrahedronToLinear(quadraticTetrahedron);
+    std::vector<std::vector<unsigned int>> linearTets = splitQuadraticTetrahedronToLinear(quadraticTetrahedron, coords);
+
+    // ASSERT
     REQUIRE(linearTets.size() == 8);
+
     // corner tets
     REQUIRE(linearTets[0] == std::vector<unsigned int>({A, ab, ac, ad}));
     REQUIRE(linearTets[1] == std::vector<unsigned int>({B, bc, ab, bd}));
@@ -84,10 +97,16 @@ TEST_CASE("Split and recombine tets") {
     REQUIRE(linearTets[3] == std::vector<unsigned int>({D, cd, bd, ad}));
 
     // face tets
-    REQUIRE(linearTets[4] == std::vector<unsigned int>({bd, ab, ac, ad})); // A-face
-    REQUIRE(linearTets[5] == std::vector<unsigned int>({ac, bc, ab, bd})); // B-face
-    REQUIRE(linearTets[6] == std::vector<unsigned int>({bd, cd, ac, bc})); // C-face
-    REQUIRE(linearTets[7] == std::vector<unsigned int>({ac, cd, bd, ad})); // D-face
+    REQUIRE(linearTets[4] == std::vector<unsigned int>({bd, ab, ad, ac})); // A-face
+    REQUIRE(linearTets[5] == std::vector<unsigned int>({ac, bc, bd, ab})); // B-face
+    REQUIRE(linearTets[6] == std::vector<unsigned int>({bd, cd, bc, ac})); // C-face
+    REQUIRE(linearTets[7] == std::vector<unsigned int>({ac, cd, ad, bd})); // D-face
+
+    // TODO: check that all the linear tets have a positive jacobian determinant. This is where negative tets may be introduced to the system
+    for (int i = 0; i < 8; i++) {
+      double jDet = determinant(coords, linearTets[i]);
+      REQUIRE(jDet > 0);
+    }
   }
 
   SECTION("Recombine 8 linear tets to quadratic tetrahedron") {

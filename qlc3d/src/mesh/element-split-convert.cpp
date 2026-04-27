@@ -73,7 +73,7 @@ void splitQuadraticGeometryToLinear(const Geometry &quadGeom, RawMeshData &outMe
       quadraticTet[n] = tetrahedra.getNode(i, n);
     }
 
-    const auto linearTets = splitQuadraticTetrahedronToLinear(quadraticTet);
+    const auto linearTets = splitQuadraticTetrahedronToLinear(quadraticTet, quadGeom.getCoordinates());
     for (const auto &linearTet : linearTets) {
       linearTetNodes.insert(linearTetNodes.end(), linearTet.begin(), linearTet.end());
       linearTetMaterials.push_back(tetrahedra.getMaterialNumber(i));
@@ -113,7 +113,29 @@ void validateAndSnapQuadraticTetrahedra(RawMeshData &meshData) {
   }
 }
 
-std::vector<std::vector<unsigned int>> splitQuadraticTetrahedronToLinear(const std::vector<unsigned int> &quadraticTetrahedron) {
+/**
+ * Swaps tets' last two node order if the tet jacobian determinant is negative
+ * @param tets vector of linear TET4 indices
+ * @param coords coordinates with tet vertex positions
+ */
+void repairNodeOrder(std::vector<std::vector<unsigned int>> &tets, const Coordinates &coords) {
+  size_t numTets = tets.size();
+  for (size_t i = 0; i < numTets; ++i) {
+    assert(tets[i].size() == 4); // linear tet
+
+    auto p0 = coords.getPoint(tets[i][0]);
+    auto p1 = coords.getPoint(tets[i][1]);
+    auto p2 = coords.getPoint(tets[i][2]);
+    auto p3 = coords.getPoint(tets[i][3]);
+    if (det3D(p0, p1, p2, p3) < 0) {
+      // swap last two nodes to change sign of determinant
+      std::swap(tets[i][2], tets[i][3]);
+    }
+  }
+}
+
+std::vector<std::vector<unsigned int>> splitQuadraticTetrahedronToLinear(const std::vector<unsigned int> &quadraticTetrahedron,
+  const Coordinates &coords) {
   if (quadraticTetrahedron.size() != 10) {
     RUNTIME_ERROR("Quadratic tetrahedron must have 10 nodes, got " + std::to_string(quadraticTetrahedron.size()));
   }
@@ -144,6 +166,7 @@ std::vector<std::vector<unsigned int>> splitQuadraticTetrahedronToLinear(const s
   linearTets.push_back({bd, cd, ac, bc}); // C-face
   linearTets.push_back({ac, cd, bd, ad}); // D-face
 
+  repairNodeOrder(linearTets, coords); // makes sure tet determinant is positive, swaps last nodes order if necessary
 
   return linearTets;
 }

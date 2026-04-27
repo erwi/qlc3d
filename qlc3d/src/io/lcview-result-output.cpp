@@ -52,7 +52,7 @@ void writeLinearTetrahedra(FILE *fid, const Mesh &t) {
   }
 }
 
-void writeQuadraticTetrahedra(FILE *fid, const Mesh &t) {
+void writeQuadraticTetrahedra(FILE *fid, const Mesh &t, const Coordinates &coords) {
   assert(t.getElementType() == ElementType::QUADRATIC_TETRAHEDRON);
 
   std::vector<unsigned int> tetNodes(t.getnNodes());
@@ -61,7 +61,7 @@ void writeQuadraticTetrahedra(FILE *fid, const Mesh &t) {
     // Split the quadratic element into 8 linear elements
     // This is essentially same as mesh refinement using red-green element splitting, but here only the red tet
     // is considered
-    std::vector<std::vector<unsigned int>> splitTets = splitQuadraticTetrahedronToLinear(tetNodes);
+    std::vector<std::vector<unsigned int>> splitTets = splitQuadraticTetrahedronToLinear(tetNodes, coords);
 
     unsigned int material = t.getMaterialNumber(i);
 
@@ -111,7 +111,7 @@ void LcViewResultFormatWriter::writeMeshFile(const Coordinates &coordinates, con
     if (elementType == ElementType::LINEAR_TETRAHEDRON) {
       writeLinearTetrahedra(fid, t);
     } else if (elementType == ElementType::QUADRATIC_TETRAHEDRON) {
-      writeQuadraticTetrahedra(fid, t);
+      writeQuadraticTetrahedra(fid, t, coordinates);
     } else {
       RUNTIME_ERROR("Only linear and quadratic tetrahedra are supported, got element with " + std::to_string(t.getnNodes()) + " nodes.");
     }
