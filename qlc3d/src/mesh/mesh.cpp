@@ -196,14 +196,6 @@ void Mesh::setConnectedVolume(Mesh* vol) {
     }
 }
 
-double det3D(Vec3 c[4]) {
-  Vec3 v1 = c[1] - c[0];
-  Vec3 v2 = c[2] - c[0];
-  Vec3 v3 = c[3] - c[0];
-
-  Vec3 cross = v2.cross(v3);
-  return v1.dot(cross);
-}
 
 bool Mesh::containsCoordinate(idx elem, const Coordinates &coordinates, const Vec3 p) const {
   Vec3 c[4] = {coordinates.getPoint(getNode(elem, 0)), coordinates.getPoint(getNode(elem, 1)),
@@ -373,9 +365,9 @@ void Mesh::calculateSurfaceNormals(const Coordinates &coords, Mesh* tets) {
       if (dot < 0.0) {
         // IF SURFACE NORMAL IS IN WRONG DIRECTION,
         // REVERSE NODE ORDER AND INVERT VECTOR DIRECTION
-        idx indexA = i * getnNodes() + 1; // 2nd node of triangle
-        idx indexB = i * getnNodes() + 2; // 3rd node of triangle
-        iter_swap(nodes.begin() + indexA, nodes.begin() + indexB); // swap 2nd and 3rd nodes
+        //idx indexA = i * getnNodes() + 1; // 2nd node of triangle
+        //idx indexB = i * getnNodes() + 2; // 3rd node of triangle
+        //iter_swap(nodes.begin() + indexA, nodes.begin() + indexB); // swap 2nd and 3rd nodes
 
         normalVec *= -1;
       }

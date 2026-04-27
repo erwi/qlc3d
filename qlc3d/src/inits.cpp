@@ -92,12 +92,14 @@ size_t findNearestNodeIndex(const Vec3 &target, const std::vector<Vec3> &nodes) 
 }
 
 /**
- * Reorder the tetrahedral element node indices if the current ordering is the GMSH ordering.
+ * Validate and if needed fix the tetrahedral element node order to the Gmsh TET10 convention.
+ * Gmsh TET10 mid-edge ordering: [4]=AB, [5]=BC, [6]=AC, [7]=AD, [8]=CD, [9]=BD.
+ * If an older internal ordering is detected where [8]=BD and [9]=CD, the two nodes are swapped.
  */
 void reorderQuadraticTetNodeOrder(vector<idx> &tetNodes, const std::vector<Vec3> &coords) {
 
   size_t numTets = tetNodes.size() / 10;
-  Log::info("Checking quadratic tetrahedron element node oder for {} elements.", numTets);
+  Log::info("Checking quadratic tetrahedron element node order for {} elements.", numTets);
 
   std::vector<Vec3> elemCoords;
   elemCoords.resize(10, Vec3());
@@ -108,26 +110,24 @@ void reorderQuadraticTetNodeOrder(vector<idx> &tetNodes, const std::vector<Vec3>
       elemCoords[j] = coords[tetNodes[ind0 + j]];
     }
 
-    // swap the two last node indices in tet element if current ordering is the GMSH ordering.
-    // The expected mid-edge node positions are:
-    // p8 = (p1 + p3) / 2
-    // p9 = (p2 + p3) / 2
-    Vec3 p8 = (elemCoords[1] + elemCoords[3]) * 0.5;
-    Vec3 p9 = (elemCoords[2] + elemCoords[3]) * 0.5;
+    // Gmsh TET10 convention: [8]=CD, [9]=BD
+    // p8_expected = midpoint of C (index 2) and D (index 3)
+    // p9_expected = midpoint of B (index 1) and D (index 3)
+    Vec3 p8 = (elemCoords[2] + elemCoords[3]) * 0.5;  // CD midpoint
+    Vec3 p9 = (elemCoords[1] + elemCoords[3]) * 0.5;  // BD midpoint
 
-    // find indices to the actual nearest ones. This avoids comparison tolerance complications
-    // but may not detect if the nodes are really far from expected positions.
+    // find indices to the actual nearest ones
     size_t indNearest8 = findNearestNodeIndex(p8, elemCoords);
     size_t indNearest9 = findNearestNodeIndex(p9, elemCoords);
 
-    bool isExpectedOrder = indNearest8 == 8 && indNearest9 == 9;
-    bool isGmsOrder = indNearest8 == 9 && indNearest9 == 8;
-    if (isExpectedOrder) {
+    bool isGmshOrder = indNearest8 == 8 && indNearest9 == 9;     // CD at [8], BD at [9] — correct Gmsh order
+    bool isOldOrder  = indNearest8 == 9 && indNearest9 == 8;     // BD at [8], CD at [9] — old pre-Gmsh order
+    if (isGmshOrder) {
       continue;
-    } else if (isGmsOrder) {
+    } else if (isOldOrder) {
       std::swap(tetNodes[ind0 + 8], tetNodes[ind0 + 9]);
     } else {
-      RUNTIME_ERROR(fmt::format("Tetrahedron {} has unexpected node ordering. Expected: 8, 9. Found: {}, {}.",
+      RUNTIME_ERROR(fmt::format("Tetrahedron {} has unexpected node ordering. Expected CD at [8] and BD at [9]. Found nearest-to-CD at index {}, nearest-to-BD at index {}.",
                                 i, indNearest8, indNearest9));
     }
   }

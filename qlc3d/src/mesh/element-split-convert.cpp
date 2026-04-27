@@ -5,6 +5,7 @@
 #include <geom/coordinates.h>
 #include <qlc3d.h>
 #include <spamtrix_matrixmaker.hpp>
+#include <array>
 
 #include "util/exception.h"
 #include "util/logging.h"
@@ -17,7 +18,7 @@ void validateAndSnapQuadraticTetrahedron(std::vector<Vec3> &points, const unsign
   const auto validateEdge = [&](unsigned int cornerA, unsigned int cornerB, unsigned int midNode, const char *edgeName) {
     const Vec3 &a = points[cornerA];
     const Vec3 &b = points[cornerB];
-    const Vec3 expected = (a + b) * 0.5;
+    const Vec3 expected = Vec3::mean(a, b);
     Vec3 &actual = points[midNode];
 
     const double edgeLength = a.distance(b);
@@ -35,13 +36,13 @@ void validateAndSnapQuadraticTetrahedron(std::vector<Vec3> &points, const unsign
     actual = expected;
   };
 
-  // internal node ordering: 0-3 are corners, 4-9 are mid-edge nodes
-  validateEdge(tetNodes[0], tetNodes[1], tetNodes[4], "(0,1)");
-  validateEdge(tetNodes[1], tetNodes[2], tetNodes[5], "(1,2)");
-  validateEdge(tetNodes[2], tetNodes[0], tetNodes[6], "(2,0)");
-  validateEdge(tetNodes[0], tetNodes[3], tetNodes[7], "(0,3)");
-  validateEdge(tetNodes[1], tetNodes[3], tetNodes[8], "(1,3)");
-  validateEdge(tetNodes[2], tetNodes[3], tetNodes[9], "(2,3)");
+  // Gmsh TET10 node ordering: [0-3]=corners A,B,C,D; [4]=AB, [5]=BC, [6]=AC, [7]=AD, [8]=CD, [9]=BD
+  validateEdge(tetNodes[0], tetNodes[1], tetNodes[4], "AB");
+  validateEdge(tetNodes[1], tetNodes[2], tetNodes[5], "BC");
+  validateEdge(tetNodes[0], tetNodes[2], tetNodes[6], "AC");
+  validateEdge(tetNodes[0], tetNodes[3], tetNodes[7], "AD");
+  validateEdge(tetNodes[2], tetNodes[3], tetNodes[8], "CD");
+  validateEdge(tetNodes[1], tetNodes[3], tetNodes[9], "BD");
 }
 } // namespace
 
@@ -120,18 +121,18 @@ std::vector<std::vector<unsigned int>> splitQuadraticTetrahedronToLinear(const s
   std::vector<std::vector<unsigned int>> linearTets;
   linearTets.reserve(8);
 
-  // node numbering w.r.t fig 6.1 (b) in Eero's thesis
+  // Gmsh TET10 ordering: [4]=AB, [5]=BC, [6]=AC, [7]=AD, [8]=CD, [9]=BD
   unsigned int A = quadraticTetrahedron[0];
   unsigned int B = quadraticTetrahedron[1];
   unsigned int C = quadraticTetrahedron[2];
   unsigned int D = quadraticTetrahedron[3];
 
-  unsigned int ab = quadraticTetrahedron[4];
-  unsigned int bc = quadraticTetrahedron[5];
-  unsigned int ac = quadraticTetrahedron[6];
-  unsigned int ad = quadraticTetrahedron[7];
-  unsigned int bd = quadraticTetrahedron[8];
-  unsigned int cd = quadraticTetrahedron[9];
+  unsigned int ab = quadraticTetrahedron[4];  // AB mid-edge
+  unsigned int bc = quadraticTetrahedron[5];  // BC mid-edge
+  unsigned int ac = quadraticTetrahedron[6];  // AC mid-edge
+  unsigned int ad = quadraticTetrahedron[7];  // AD mid-edge
+  unsigned int cd = quadraticTetrahedron[8];  // CD mid-edge
+  unsigned int bd = quadraticTetrahedron[9];  // BD mid-edge
 
   linearTets.push_back({A, ab, ac, ad}); // A-corner
   linearTets.push_back({B, bc, ab, bd}); // B-corner
@@ -147,7 +148,8 @@ std::vector<std::vector<unsigned int>> splitQuadraticTetrahedronToLinear(const s
   return linearTets;
 }
 
-std::vector<unsigned int> recombineLinearTetsToQuadratic(const std::vector<std::vector<unsigned int>> &linearTets) {
+std::vector<unsigned int> recombineLinearTetsToQuadratic(const std::vector<std::vector<unsigned int>> &linearTets,
+  const std::vector<Vec3> &points) {
   if (linearTets.size() != 8) {
     RUNTIME_ERROR("Expected 8 linear tets, got " + std::to_string(linearTets.size()));
   }
@@ -164,8 +166,56 @@ std::vector<unsigned int> recombineLinearTetsToQuadratic(const std::vector<std::
   unsigned int bd = linearTets[1][3];
   unsigned int cd = linearTets[2][1];
 
-#ifndef NDEBUG
-  // check that all 10 nodes are unique
+  // load coordinates for the 10 nodes and make sure the order is correct
+  const double eps = 1e-9;
+  auto pA = points[A];
+  auto pB = points[B];
+  auto pC = points[C];
+  auto pD = points[D];
+
+
+  double det = det3D(pA, pB, pC, pD);
+  if (det < 0) {
+    Log::info("swapping {} and {}", A, B);
+    std::swap(C, D);
+    pC = points[C];
+    pD = points[D];
+  }
+
+  std::vector<std::pair<unsigned int, Vec3>> midNodes = {
+    {ab, points[ab]},
+    {bc, points[bc]},
+    {ac, points[ac]},
+    {ad, points[ad]},
+    {bd, points[bd]},
+    {cd, points[cd]}
+  };
+
+  // lambda which extracts the point index of the pair whose point is closest to expected point. This ensures
+  auto findClosest = [](const std::vector<std::pair<unsigned int, Vec3>> &midNodes, const Vec3 &expected, double eps) {
+     unsigned int closestNode = 0;
+     double closestDistance = std::numeric_limits<double>::max();
+     for (const auto &pair : midNodes) {
+       double distance = pair.second.distance(expected);
+       if (distance < closestDistance) {
+         closestDistance = distance;
+         closestNode = pair.first;
+       }
+     }
+     if (closestDistance > eps) {
+       throw ElementSplitCombineException("No mid-edge node between A and B is close enough to expected position");
+     }
+     return closestNode;
+  };
+
+  ab = findClosest(midNodes, Vec3::mean(pA, pB), eps);
+  ac = findClosest(midNodes, Vec3::mean(pA, pC), eps);
+  ad = findClosest(midNodes, Vec3::mean(pA, pD), eps);
+  bc = findClosest(midNodes, Vec3::mean(pB, pC), eps);
+  bd = findClosest(midNodes, Vec3::mean(pB, pD), eps);
+  cd = findClosest(midNodes, Vec3::mean(pC, pD), eps);
+
+  // sanity check, check that all 10 nodes are unique
   std::unordered_set<unsigned int> nodes;
   nodes.insert(A);
   nodes.insert(B);
@@ -180,11 +230,9 @@ std::vector<unsigned int> recombineLinearTetsToQuadratic(const std::vector<std::
   if (nodes.size() != 10) {
     throw ElementSplitCombineException("Recombined tetrahedron has duplicate nodes");
   }
-  // could add additional checks here to verify every node value is as expected. Should it run also in
-  // release mode?
-#endif
 
-  return {A, B, C, D, ab, bc, ac, ad, bd, cd};
+  // Using Gmsh TET10 node ordering: A, B, C, D, AB, BC, AC, AD, CD, BD
+  return {A, B, C, D, ab, bc, ac, ad, cd, bd};
 }
 
 std::vector<std::vector<unsigned int>> splitQuadraticTriangleToLinear(const std::vector<unsigned int> &quadraticTriangle) {
@@ -294,7 +342,7 @@ bool recombineLinearisedMeshToQuadratic(RawMeshData &meshData) {
       linearTets.emplace_back(std::vector<unsigned int>({t[start + 24], t[start + 25], t[start + 26], t[start + 27]}));
       linearTets.emplace_back(std::vector<unsigned int>({t[start + 28], t[start + 29], t[start + 30], t[start + 31]}));
 
-      auto recombinedNodes = recombineLinearTetsToQuadratic(linearTets);
+      auto recombinedNodes = recombineLinearTetsToQuadratic(linearTets, meshData.points);
       tetNodesOut.insert(tetNodesOut.end(), recombinedNodes.begin(), recombinedNodes.end());
     }
   } catch (ElementSplitCombineException &e) {
@@ -404,12 +452,6 @@ std::pair<SpaMtrix::IRCMatrix, unsigned int> createNewNodeNumbersMapping(std::ve
       (*tetMap.getValuePtr(B, A)) = newNodeIndex;
     }
 
-    if (tetMap.isNonZero(B, C) && tetMap.getValue(B, C) == 0.) {
-      newNodeIndex++;
-      (*tetMap.getValuePtr(B, C)) = newNodeIndex;
-      (*tetMap.getValuePtr(C, B)) = newNodeIndex;
-    }
-
     if (tetMap.isNonZero(A, C) && tetMap.getValue(A, C) == 0.) {
       newNodeIndex++;
       (*tetMap.getValuePtr(A, C)) = newNodeIndex;
@@ -420,6 +462,12 @@ std::pair<SpaMtrix::IRCMatrix, unsigned int> createNewNodeNumbersMapping(std::ve
       newNodeIndex++;
       (*tetMap.getValuePtr(A, D)) = newNodeIndex;
       (*tetMap.getValuePtr(D, A)) = newNodeIndex;
+    }
+
+    if (tetMap.isNonZero(B, C) && tetMap.getValue(B, C) == 0.) {
+      newNodeIndex++;
+      (*tetMap.getValuePtr(B, C)) = newNodeIndex;
+      (*tetMap.getValuePtr(C, B)) = newNodeIndex;
     }
 
     if (tetMap.isNonZero(B, D) && tetMap.getValue(B, D) == 0.) {
@@ -453,7 +501,7 @@ void appendNewNodeCoordinates(std::vector<Vec3> &coordinates,
 
   auto addCoordinate = [&](unsigned int n1, unsigned int n2) {
     auto n12 = (unsigned int) newNodeNumbers.getValue(n1, n2);
-    coordinates[n12] = (coordinates[n1] + coordinates[n2]) / 2;
+    coordinates[n12] = Vec3::mean(coordinates[n1], coordinates[n2]);
   };
 
 
@@ -463,38 +511,13 @@ void appendNewNodeCoordinates(std::vector<Vec3> &coordinates,
     const unsigned int C = tetNodes[tetCounter * nodesPerTet + 2];
     const unsigned int D = tetNodes[tetCounter * nodesPerTet + 3];
 
+    // GMSH 10 node quadratic tet node ordering
     addCoordinate(A, B);
-    addCoordinate(B, C);
     addCoordinate(A, C);
     addCoordinate(A, D);
+    addCoordinate(B, C);
     addCoordinate(B, D);
     addCoordinate(C, D);
-    /*
-    const unsigned int ab = (unsigned int) newNodeNumbers.getValue(A, B);
-    assert(ab > oldNodeCount);
-
-    const unsigned int bc = (unsigned int) newNodeNumbers.getValue(B, C);
-    assert(bc > oldNodeCount);
-
-    const unsigned int ac = (unsigned int) newNodeNumbers.getValue(A, C);
-    assert(ac > oldNodeCount);
-
-    const unsigned int ad = (unsigned int) newNodeNumbers.getValue(A, D);
-    assert(ad > oldNodeCount);
-
-    const unsigned int bd = (unsigned int) newNodeNumbers.getValue(B, D);
-    assert(bd > oldNodeCount);
-
-    const unsigned int cd = (unsigned int) newNodeNumbers.getValue(C, D);
-    assert(cd > oldNodeCount);
-
-    coordinates[ab] = (coordinates[A] + coordinates[B]) / 2;
-    coordinates[bc] = (coordinates[B] + coordinates[C]) / 2;
-    coordinates[ac] = (coordinates[A] + coordinates[C]) / 2;
-    coordinates[ad] = (coordinates[A] + coordinates[D]) / 2;
-    coordinates[bd] = (coordinates[B] + coordinates[D]) / 2;
-    coordinates[cd] = (coordinates[C] + coordinates[D]) / 2;
-    */
   }
 }
 
@@ -513,16 +536,17 @@ std::vector<unsigned int> createNewTetElementNodes(const std::vector<unsigned in
     const unsigned int C = tetNodes[tetCounter * nodesPerTet + 2];
     const unsigned int D = tetNodes[tetCounter * nodesPerTet + 3];
 
+    // Gmsh TET10 node ordering: A, B, C, D, AB, BC, AC, AD, CD, BD
     newTets.push_back(A);
     newTets.push_back(B);
     newTets.push_back(C);
     newTets.push_back(D);
-    newTets.push_back((unsigned int) newNodeNumbers.getValue(A, B));
-    newTets.push_back((unsigned int) newNodeNumbers.getValue(B, C));
-    newTets.push_back((unsigned int) newNodeNumbers.getValue(A, C));
-    newTets.push_back((unsigned int) newNodeNumbers.getValue(A, D));
-    newTets.push_back((unsigned int) newNodeNumbers.getValue(B, D));
-    newTets.push_back((unsigned int) newNodeNumbers.getValue(C, D));
+    newTets.push_back((unsigned int) newNodeNumbers.getValue(A, B));  // [4] AB
+    newTets.push_back((unsigned int) newNodeNumbers.getValue(B, C));  // [5] BC
+    newTets.push_back((unsigned int) newNodeNumbers.getValue(A, C));  // [6] AC
+    newTets.push_back((unsigned int) newNodeNumbers.getValue(A, D));  // [7] AD
+    newTets.push_back((unsigned int) newNodeNumbers.getValue(C, D));  // [8] CD
+    newTets.push_back((unsigned int) newNodeNumbers.getValue(B, D));  // [9] BD
   }
 
   return newTets;
@@ -542,6 +566,7 @@ std::vector<unsigned int> createNewTriElementNodes(const std::vector<unsigned in
     const unsigned int B = triNodes[triCounter * nodesPerTri + 1];
     const unsigned int C = triNodes[triCounter * nodesPerTri + 2];
 
+    // Use GMSH 6 node quadratic triangle node order
     newTris.push_back(A);
     newTris.push_back(B);
     newTris.push_back(C);

@@ -58,7 +58,7 @@ void create_new_elements(   Geometry& geom,    // refinable geom
                             const vector <Line>& lines,        // bisectable lines
                             const vector < set<idx> >& t_to_l, // index from tet to its bisectable lines
                             const vector < set<idx> >& e_to_l, // index from tri to its bisectable lines
-                            vector <double>& new_p,            // return value, new coordinates created here
+                            vector <Vec3>& new_p,              // return value, new coordinates created here
                             vector <idx>& new_t,               // return value, new tet elements created here
                             vector <idx>& new_mat_t,           // return value, new material numbers created here
                             vector <idx>& new_e,               // return value, new tria elements

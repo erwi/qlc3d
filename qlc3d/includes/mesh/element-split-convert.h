@@ -2,9 +2,12 @@
 #define PROJECT_QLC3D_ELEMENT_SPLIT_H
 #include <vector>
 #include <stdexcept>
+#include <geom/coordinates.h>
+
 #include "io/meshreader.h"
 
 class Geometry;
+class Coordinates;
 
 /**
  * Functions for splitting and recombining quadratic tetrahedra/triangles to linear tetrahedra/triangles and vice versa. Node numbering
@@ -18,7 +21,8 @@ public:
 
 
 std::vector<std::vector<unsigned int>> splitQuadraticTetrahedronToLinear(const std::vector<unsigned int> &quadraticTetrahedron);
-std::vector<unsigned int> recombineLinearTetsToQuadratic(const std::vector<std::vector<unsigned int>> &linearTets);
+std::vector<unsigned int> recombineLinearTetsToQuadratic(const std::vector<std::vector<unsigned int>> &linearTets,
+  const std::vector<Vec3> &coords);
 
 /**
  * Split every quadratic tetrahedron and triangle in a geometry into the equivalent linear mesh representation.

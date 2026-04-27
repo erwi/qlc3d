@@ -73,7 +73,7 @@ unsigned int Geometry::getnp() const {
   return coordinates_ == nullptr ? 0 : coordinates_->size();
 }
 
-void Geometry::addCoordinates(const vector<double> &coords) {
+void Geometry::appendCoordinates(const vector<Vec3> &coords) {
   coordinates_->append(coords);
   setnpLC(coordinates_->size());
 }

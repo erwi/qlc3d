@@ -40,9 +40,10 @@ std::filesystem::path quadraticMeshResource() {
 
 
 TEST_CASE("Reorder quadratic element node order") {
-  // GMSH quadratic tet element node ordering is different from the usual used in literature.
-  // The difference is that the last two nodes are swapped. When reading the GMSH mesh and preparing
-  // the geometry, we should swap the last two nodes if they are in the GMSH order.
+  // After prepareGeometry() all TET10 elements must follow the Gmsh TET10 mid-edge
+  // node ordering: [4]=AB, [5]=BC, [6]=AC, [7]=AD, [8]=CD, [9]=BD.
+  // reorderQuadraticTetNodeOrder() ensures this, swapping [8] and [9] when the older
+  // internal ordering (BD at [8], CD at [9]) is detected.
 
   Geometry geom;
   Electrodes electrodes = Electrodes::withInitialPotentials({1, 2}, {1, 0});
@@ -67,32 +68,31 @@ TEST_CASE("Reorder quadratic element node order") {
     tets.loadNodes(i, tetNodes);
     coords.loadCoordinates(tetNodes, tetNodes + 10, coordNodes);
 
-    // assume that the first 4 nodes are the same as in linear tetrahedra, i.e. corner nodes
-    // Check the mid-point nodes positions are as expected w.r.t. to the corner nodes.
-    // Not GMSH node ordering.
+    // Verify Gmsh TET10 mid-edge node ordering:
+    // [4]=AB, [5]=BC, [6]=AC, [7]=AD, [8]=CD, [9]=BD
 
-    // Node 4 should be the mid-point of edge 0-1
+    // Node 4 should be the mid-point of edge 0-1 (AB)
     Vec3 expectedPos = (coordNodes[0] + coordNodes[1]) * 0.5;
     REQUIRE(coordNodes[4].equals(expectedPos, 1e-9));
 
-    // Node 5 should be the mid-point of edge 1-2
+    // Node 5 should be the mid-point of edge 1-2 (BC)
     expectedPos = (coordNodes[1] + coordNodes[2]) * 0.5;
     REQUIRE(coordNodes[5].equals(expectedPos, 1e-9));
 
-    // Node 6 should be the mid-point of edge 0-2
+    // Node 6 should be the mid-point of edge 0-2 (AC)
     expectedPos = (coordNodes[2] + coordNodes[0]) * 0.5;
     REQUIRE(coordNodes[6].equals(expectedPos, 1e-9));
 
-    // Node 7 should be the mid-point of edge 0-3
+    // Node 7 should be the mid-point of edge 0-3 (AD)
     expectedPos = (coordNodes[0] + coordNodes[3]) * 0.5;
     REQUIRE(coordNodes[7].equals(expectedPos, 1e-9));
 
-    // Node 8 should be the mid-point of edge 1-3
-    expectedPos = (coordNodes[1] + coordNodes[3]) * 0.5;
+    // Node 8 should be the mid-point of edge 2-3 (CD) — Gmsh [8]=CD
+    expectedPos = (coordNodes[2] + coordNodes[3]) * 0.5;
     REQUIRE(coordNodes[8].equals(expectedPos, 1e-9));
 
-    // Node 9 should be the mid-point of edge 2-3
-    expectedPos = (coordNodes[2] + coordNodes[3]) * 0.5;
+    // Node 9 should be the mid-point of edge 1-3 (BD) — Gmsh [9]=BD
+    expectedPos = (coordNodes[1] + coordNodes[3]) * 0.5;
     REQUIRE(coordNodes[9].equals(expectedPos, 1e-9));
   }
 }

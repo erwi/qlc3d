@@ -276,13 +276,13 @@ private:
       sh[i * nodesPerElement + 2] = N3 * (2 * N3 - 1);
       sh[i * nodesPerElement + 3] = N4 * (2 * N4 - 1);
 
-      // mid-edge nodes
-      sh[i * nodesPerElement + 4] = 4 * N1 * N2;
-      sh[i * nodesPerElement + 5] = 4 * N2 * N3;
-      sh[i * nodesPerElement + 6] = 4 * N3 * N1;
-      sh[i * nodesPerElement + 7] = 4 * N1 * N4;
-      sh[i * nodesPerElement + 8] = 4 * N2 * N4;
-      sh[i * nodesPerElement + 9] = 4 * N3 * N4;
+      // mid-edge nodes — Gmsh TET10 ordering: AB, BC, AC, AD, CD, BD
+      sh[i * nodesPerElement + 4] = 4 * N1 * N2;  // AB
+      sh[i * nodesPerElement + 5] = 4 * N2 * N3;  // BC
+      sh[i * nodesPerElement + 6] = 4 * N3 * N1;  // AC
+      sh[i * nodesPerElement + 7] = 4 * N1 * N4;  // AD
+      sh[i * nodesPerElement + 8] = 4 * N3 * N4;  // CD  (Gmsh [8])
+      sh[i * nodesPerElement + 9] = 4 * N2 * N4;  // BD  (Gmsh [9])
 
 
       shR[i * nodesPerElement + 0] = 4 * r + 4 * s + 4 * t - 3;
@@ -301,29 +301,35 @@ private:
       shS[i * nodesPerElement + 3] = 0;
       shT[i * nodesPerElement + 3] = 4 * t - 1;
 
+      // [4] = AB: 4*N1*N2 = 4*(1-r-s-t)*r
       shR[i * nodesPerElement + 4] = -8 * r - 4 * s - 4 * t + 4;
       shS[i * nodesPerElement + 4] = -4 * r;
       shT[i * nodesPerElement + 4] = -4 * r;
 
+      // [5] = BC: 4*N2*N3 = 4*r*s
       shR[i * nodesPerElement + 5] = 4 * s;
       shS[i * nodesPerElement + 5] = 4 * r;
       shT[i * nodesPerElement + 5] = 0;
 
+      // [6] = AC: 4*N3*N1 = 4*s*(1-r-s-t)
       shR[i * nodesPerElement + 6] = -4 * s;
       shS[i * nodesPerElement + 6] = -4 * r - 8 * s - 4 * t + 4;
       shT[i * nodesPerElement + 6] = -4 * s;
 
+      // [7] = AD: 4*N1*N4 = 4*(1-r-s-t)*t
       shR[i * nodesPerElement + 7] = -4 * t;
       shS[i * nodesPerElement + 7] = -4 * t;
       shT[i * nodesPerElement + 7] = -4 * r - 4 * s - 8 * t + 4;
 
-      shR[i * nodesPerElement + 8] = 4 * t;
-      shS[i * nodesPerElement + 8] = 0;
-      shT[i * nodesPerElement + 8] = 4 * r;
+      // [8] = CD: 4*N3*N4 = 4*s*t  (Gmsh [8])
+      shR[i * nodesPerElement + 8] = 0;
+      shS[i * nodesPerElement + 8] = 4 * t;
+      shT[i * nodesPerElement + 8] = 4 * s;
 
-      shR[i * nodesPerElement + 9] = 0;
-      shS[i * nodesPerElement + 9] = 4 * t;
-      shT[i * nodesPerElement + 9] = 4 * s;
+      // [9] = BD: 4*N2*N4 = 4*r*t  (Gmsh [9])
+      shR[i * nodesPerElement + 9] = 4 * t;
+      shS[i * nodesPerElement + 9] = 0;
+      shT[i * nodesPerElement + 9] = 4 * r;
     }
 
     shX.resize(nodesPerElement, 0);

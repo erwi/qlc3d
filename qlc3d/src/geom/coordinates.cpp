@@ -57,13 +57,8 @@ AABox Coordinates::findBoundingBox() const {
   return {xMin, xMax, yMin, yMax, zMin, zMax};
 }
 
-void Coordinates::append(const std::vector<double> &p) {
-  if (p.size() % 3 != 0) {
-    RUNTIME_ERROR("Coordinates::append: p.size() % 3 != 0");
-  }
-  for (unsigned int i = 0; i < p.size() / 3; ++i) {
-    points.emplace_back(p[3 * i], p[3 * i + 1], p[3 * i + 2]);
-  }
+void Coordinates::append(const std::vector<Vec3> &p) {
+  points.insert(points.end(), p.begin(), p.end());
 }
 
 void Coordinates::scale(const Vec3 &scale) {

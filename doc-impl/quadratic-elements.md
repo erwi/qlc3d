@@ -48,6 +48,10 @@ For straight-edged elements, the codebase treats quadratic geometry as the same 
 - Sampling helpers such as `N(i)`, `Nx(i)`, `Ny(i)`, `Nz(i)`, `sample()`, `sampleQ()`, and derivative samplers work with quadratic element sizes.
 - Quadratic LC assembly uses `Keast8` for volume terms and `Tri4thOrder` for surface terms.
 - Quadratic potential assembly uses `Keast4` for volume terms and `Tri4thOrder` for Neumann surface terms.
+- The nodal order user follows the Gmsh convention. 
+  - For TET10 we startrt with the four corner nodes A, B, C, D, followed by the six mid-edge nodes AB, BC, AC, AD, CD, BD.
+  - For TRI6 we start with the three corner nodes A, B, C, followed by the three mid-edge nodes AB, BC, AC.
+  - see https://gmsh.info/dev/doc/texinfo/gmsh.html#Node-ordering for more details.
 
 ### 2.3 Mesh I/O and geometry preparation
 

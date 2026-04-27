@@ -125,7 +125,7 @@ void appendSplitResult(Container &newNodes, std::vector<idx> &newMaterials, cons
 
 } // namespace
 
-void create_new_coordinates(Geometry& geom, const std::vector<Line>& lines, std::vector<double>& new_p) {
+void create_new_coordinates(Geometry& geom, const std::vector<Line>& lines, std::vector<Vec3>& new_p) {
     new_p.clear();
     new_p.reserve(lines.size() * 3); // reserve space for 3 coordinates per new node
     auto &coords = geom.getCoordinates();
@@ -133,10 +133,7 @@ void create_new_coordinates(Geometry& geom, const std::vector<Line>& lines, std:
     for (unsigned int i = 0; i < lines.size(); i++) {
         auto p1 = coords.getPoint(lines[i].L[0]);
         auto p2 = coords.getPoint(lines[i].L[1]);
-        auto pMid = (p1 + p2) / 2.0;
-        new_p.push_back(pMid.x());
-        new_p.push_back(pMid.y());
-        new_p.push_back(pMid.z());
+        new_p.push_back(Vec3::mean(p1, p2));
     }
 }
 
@@ -154,13 +151,34 @@ void count_refinement_types(int& nred, int& ngreen1, int& ngreen2, int& ngreen3,
     }
 }
 
+/**
+ * Makes sure the node ordering of tets in splitResult is such that the tet Jacobian determinant is positive
+ * @param coords
+ * @param splitResult
+ */
+void repairTetNodeOrder(const Coordinates &coords, SplitResult &splitResult) {
+    const size_t numTets = splitResult.materials.size();
+
+    for (size_t i = 0; i < numTets; i++) {
+        auto p0 = coords.getPoint(splitResult.nodes[i * 4]);
+        auto p1 = coords.getPoint(splitResult.nodes[i * 4 + 1]);
+        auto p2 = coords.getPoint(splitResult.nodes[i * 4 + 2]);
+        auto p3 = coords.getPoint(splitResult.nodes[i * 4 + 3]);
+        if (det3D(p0, p1, p2, p3) < 0) {
+            // swap last two nodes to change sign of determinant
+            std::swap(splitResult.nodes[i * 4 + 2], splitResult.nodes[i * 4 + 3]);
+        }
+    }
+
+}
+
 void create_new_elements(Geometry& geom,
                          std::vector<idx>& i_tet,
                          std::vector<idx>& i_tri,
                          const std::vector<Line>& lines,
                          const std::vector<std::set<idx> >& t_to_l,
                          const std::vector<std::set<idx> >& e_to_l,
-                         std::vector<double>& new_p,
+                         std::vector<Vec3>& new_p,
                          std::vector<idx>& new_t,
                          std::vector<idx>& new_mat_t,
                          std::vector<idx>& new_e,
@@ -169,6 +187,8 @@ void create_new_elements(Geometry& geom,
 
     MapMidpointNodeLookup nnumbers = createNodeNumbersMatrix(geom, lines);
     create_new_coordinates(geom, lines, new_p);
+    geom.appendCoordinates(new_p);
+    auto coords = geom.getCoordinates();
 
     auto &tets = geom.getTetrahedra();
     auto &tris = geom.getTriangles();
@@ -183,50 +203,54 @@ void create_new_elements(Geometry& geom,
             case GREEN1_TET: {
                 const auto lineIndex = *t_to_l[i].begin();
                 const idx nAB = nnumbers.lookup(lines[lineIndex].L[0], lines[lineIndex].L[1]);
-                appendSplitResult(new_t, new_mat_t,
-                                  splitGreen1Tet(tetNodes[0], tetNodes[1], tetNodes[2], tetNodes[3],
-                                                 nAB, material));
+                auto res = splitGreen1Tet(tetNodes[0], tetNodes[1], tetNodes[2], tetNodes[3], nAB, material);
+                repairTetNodeOrder(coords, res);
+                appendSplitResult(new_t, new_mat_t, res);
                 break;
             }
             case GREEN2_TET: {
                 const auto edgeNodes = collectLineNodes<2>(lines, t_to_l[i]);
                 const auto nodes = resolveGreen2Nodes(tetNodes, edgeNodes);
                 if (nodes.isSharedNode) {
-                    appendSplitResult(new_t, new_mat_t,
-                                      splitGreen2bTet(nodes.nA, nodes.nB, nodes.nC, nodes.nD,
-                                                      nnumbers.lookup(nodes.nA, nodes.nB),
-                                                      nnumbers.lookup(nodes.nA, nodes.nC),
-                                                      material));
+                    auto res = splitGreen2bTet(nodes.nA, nodes.nB, nodes.nC, nodes.nD,
+                                              nnumbers.lookup(nodes.nA, nodes.nB),
+                                              nnumbers.lookup(nodes.nA, nodes.nC),
+                                              material);
+                    repairTetNodeOrder(coords, res);
+                    appendSplitResult(new_t, new_mat_t,res);
                 } else {
-                    appendSplitResult(new_t, new_mat_t,
-                                      splitGreen2aTet(nodes.nA, nodes.nB, nodes.nC, nodes.nD,
-                                                      nnumbers.lookup(nodes.nA, nodes.nB),
-                                                      nnumbers.lookup(nodes.nC, nodes.nD),
-                                                      material));
+                    auto res = splitGreen2aTet(nodes.nA, nodes.nB, nodes.nC, nodes.nD,
+                                              nnumbers.lookup(nodes.nA, nodes.nB),
+                                              nnumbers.lookup(nodes.nC, nodes.nD),
+                                              material);
+                    repairTetNodeOrder(coords, res);
+                    appendSplitResult(new_t, new_mat_t, res);
                 }
                 break;
             }
             case GREEN3_TET: {
                 const auto edgeNodes = collectLineNodes<3>(lines, t_to_l[i]);
                 const auto nodes = resolveGreen3Nodes(tetNodes, edgeNodes);
-                appendSplitResult(new_t, new_mat_t,
-                                  splitGreen3Tet(nodes.nA, nodes.nB, nodes.nC, nodes.nD,
+                auto res = splitGreen3Tet(nodes.nA, nodes.nB, nodes.nC, nodes.nD,
                                                  nnumbers.lookup(nodes.nA, nodes.nB),
                                                  nnumbers.lookup(nodes.nA, nodes.nC),
                                                  nnumbers.lookup(nodes.nB, nodes.nC),
-                                                 material));
+                                                 material);
+                repairTetNodeOrder(coords, res);
+                appendSplitResult(new_t, new_mat_t, res);
                 break;
             }
             case RED_TET: {
-                appendSplitResult(new_t, new_mat_t,
-                                  splitRedTet(tetNodes[0], tetNodes[1], tetNodes[2], tetNodes[3],
+                auto res = splitRedTet(tetNodes[0], tetNodes[1], tetNodes[2], tetNodes[3],
                                               nnumbers.lookup(tetNodes[0], tetNodes[1]),
                                               nnumbers.lookup(tetNodes[0], tetNodes[2]),
                                               nnumbers.lookup(tetNodes[0], tetNodes[3]),
                                               nnumbers.lookup(tetNodes[1], tetNodes[2]),
                                               nnumbers.lookup(tetNodes[1], tetNodes[3]),
                                               nnumbers.lookup(tetNodes[2], tetNodes[3]),
-                                              material));
+                                              material);
+                repairTetNodeOrder(coords, res);
+                appendSplitResult(new_t, new_mat_t, res);
                 break;
             }
             default:

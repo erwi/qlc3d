@@ -2,7 +2,10 @@
 #include <meshrefinement.h>
 #include <refinement/refinement-spec.h>
 #include <refinement/q-tensor-interpolator.h>
+#include <mesh/element-split-convert.h>
 #include <geometry.h>
+#include <geom/coordinates.h>
+#include <geom/vec3.h>
 #include <solutionvector.h>
 #include <algorithm>
 #include <alignment.h>
@@ -11,6 +14,54 @@
 #include <inits.h>
 #include <util/exception.h>
 #include <regulargrid-factory.h>
+
+
+namespace {
+
+RawMeshData geometryToRawMeshData(const Geometry &geom) {
+    const Mesh &tets = geom.getTetrahedra();
+    const Mesh &tris = geom.getTriangles();
+
+    const auto tetOrder = getElementOrder(tets.getElementType());
+    const auto triOrder = getElementOrder(tris.getElementType());
+    if (tetOrder == 0 || triOrder == 0 || tetOrder != triOrder) {
+        RUNTIME_ERROR(fmt::format("Cannot convert geometry to raw mesh data: tetrahedra are {}, triangles are {}.",
+                                  tets.getElementType(), tris.getElementType()));
+    }
+
+    std::vector<Vec3> points;
+    points.reserve(geom.getnp());
+    for (idx i = 0; i < geom.getnp(); ++i) {
+        points.push_back(geom.getCoordinates().getPoint(i));
+    }
+
+    std::vector<idx> tetNodes;
+    std::vector<idx> tetMaterials;
+    tetNodes.reserve(tets.getnElements() * tets.getnNodes());
+    tetMaterials.reserve(tets.getnElements());
+    for (idx i = 0; i < tets.getnElements(); ++i) {
+        for (idx n = 0; n < tets.getnNodes(); ++n) {
+            tetNodes.push_back(tets.getNode(i, n));
+        }
+        tetMaterials.push_back(tets.getMaterialNumber(i));
+    }
+
+    std::vector<idx> triNodes;
+    std::vector<idx> triMaterials;
+    triNodes.reserve(tris.getnElements() * tris.getnNodes());
+    triMaterials.reserve(tris.getnElements());
+    for (idx i = 0; i < tris.getnElements(); ++i) {
+        for (idx n = 0; n < tris.getnNodes(); ++n) {
+            triNodes.push_back(tris.getNode(i, n));
+        }
+        triMaterials.push_back(tris.getMaterialNumber(i));
+    }
+
+    return {tetOrder, std::move(points), std::move(tetNodes), std::move(tetMaterials),
+            std::move(triNodes), std::move(triMaterials)};
+}
+
+} // namespace
 
 
 bool needsInterpolatedQ(const std::vector<const RefinementSpec*> &specs,
@@ -92,9 +143,18 @@ bool autoref(Geometry &geom_orig,
              double S0,
              std::unique_ptr<RegularGrid>& regGridOut) {
 
-  if (geom_orig.getTetrahedra().getElementType() != ElementType::LINEAR_TETRAHEDRON) {
-    throw NotYetImplementedException("Only linear tetrahedra are supported in mesh refinement. Found element type " +
-      toString(geom_orig.getTetrahedra().getElementType()));
+  const ElementType originalTetType = geom_orig.getTetrahedra().getElementType();
+  const ElementType originalTriType = geom_orig.getTriangles().getElementType();
+  const bool quadraticInput = originalTetType == ElementType::QUADRATIC_TETRAHEDRON;
+
+  if (quadraticInput) {
+    if (originalTriType != ElementType::QUADRATIC_TRIANGLE) {
+      RUNTIME_ERROR("Quadratic mesh refinement expects quadratic triangles alongside quadratic tetrahedra. Found triangle element type " +
+                    toString(originalTriType));
+    }
+  } else if (originalTetType != ElementType::LINEAR_TETRAHEDRON) {
+    RUNTIME_ERROR("Only linear or quadratic tetrahedra are supported in mesh refinement. Found element type " +
+                  toString(originalTetType));
   }
 
     bool bRefined{false};   // indicates whether mesh is changed or not
@@ -108,32 +168,69 @@ bool autoref(Geometry &geom_orig,
     // CREATE TEMPORARY WORKING COPY OF GEOMETRY
     // THIS WILL BE MODIFIED (REFINED/"DEREFINED")
     Geometry geom_temp;     // temporary "working" geometry
-    geom_temp.setTo(&geom_orig);
+    if (quadraticInput) {
+        RawMeshData rawLinear = geometryToRawMeshData(geom_orig);
+        splitQuadraticGeometryToLinear(geom_orig, rawLinear);
+        auto coordinates = std::make_shared<Coordinates>(std::move(rawLinear.points));
+        geom_temp.setCoordinates(coordinates);
+        geom_temp.getTetrahedra().setElementData(ElementType::LINEAR_TETRAHEDRON,
+                                                 std::move(rawLinear.tetNodes),
+                                                 std::move(rawLinear.tetMaterials));
+        geom_temp.getTriangles().setElementData(ElementType::LINEAR_TRIANGLE,
+                                                 std::move(rawLinear.triNodes),
+                                                 std::move(rawLinear.triMaterials));
+        geom_temp.getTetrahedra().calculateDeterminants3D(geom_temp.getCoordinates());
+        geom_temp.getTetrahedra().ScaleDeterminants(qlc3d::units::CUBIC_MICROMETER_TO_CUBIC_METER);
+        geom_temp.getTriangles().setConnectedVolume(&geom_temp.getTetrahedra());
+        geom_temp.getTriangles().calculateSurfaceNormals(geom_temp.getCoordinates(), &geom_temp.getTetrahedra());
+        geom_temp.getTriangles().ScaleDeterminants(qlc3d::units::SQUARE_MICROMETER_TO_SQUARE_METER);
+    } else {
+        geom_temp.setTo(&geom_orig);
+    }
     //=====================================
     // DO REFINEMENT ITERATIONS, SPLIT TETS
     //=====================================
-    Log::info("Doing a maximum of {} refinement iterations.", maxrefiter);
-    for (refiter = 0 ; refiter < maxrefiter ; refiter ++) { // for max refiter
-        Log::info("Refinement iteration {} of {}.", refiter + 1, maxrefiter);
-        // GET INDEX TO RED TETS IN geom
-        vector <idx> i_tet(geom_temp.getTetrahedra().getnElements(), 0);  // REFINEMENT TYPE INDICATOR
-        // SELECT RED TETS
-        get_index_to_tred(geom ,
-                          geom_temp,
-                          q,
-                          i_tet,
-                          specs,
-                          refiter,
-                          false);
-        // LEAVE REF LOOP IF NO REFINABLE TETS FOUND
-        if (*max_element(i_tet.begin() , i_tet.end()) < RED_TET) {
-            Log::info("No tetrahedra requiring refinement found during iteration {}.", refiter + 1);
-            continue;
+    if (!quadraticInput) {
+        Log::info("Doing a maximum of {} refinement iterations.", maxrefiter);
+        for (refiter = 0 ; refiter < maxrefiter ; refiter ++) { // for max refiter
+            Log::info("Refinement iteration {} of {}.", refiter + 1, maxrefiter);
+            // GET INDEX TO RED TETS IN geom
+            vector <idx> i_tet(geom_temp.getTetrahedra().getnElements(), 0);  // REFINEMENT TYPE INDICATOR
+            // SELECT RED TETS
+            get_index_to_tred(geom ,
+                              geom_temp,
+                              q,
+                              i_tet,
+                              specs,
+                              refiter,
+                              false);
+            // LEAVE REF LOOP IF NO REFINABLE TETS FOUND
+            if (*max_element(i_tet.begin() , i_tet.end()) < RED_TET) {
+                Log::info("No tetrahedra requiring refinement found during iteration {}.", refiter + 1);
+                continue;
+            }
+            Refine(geom_temp  , i_tet);
+            bRefined = true;                        // YES, MESH HAS BEEN CHANGED
+            Log::info("Completed refinement iteration {} of {}. New node count is {}",
+                      refiter + 1, maxrefiter, geom_temp.getnp());
         }
-        Refine(geom_temp  , i_tet);
-        bRefined = true;                        // YES, MESH HAS BEEN CHANGED
-        Log::info("Completed refinement iteration {} of {}. New node count is {}",
-                  refiter + 1, maxrefiter, geom_temp.getnp());
+    } else {
+        bRefined = true;
+        Log::info("Quadratic input: using split–promote path without invoking the linear refinement loop.");
+    }
+
+    Geometry *geom_work = &geom_temp;
+    if (quadraticInput) {
+        RawMeshData rawRefined = geometryToRawMeshData(geom_temp);
+        convertLinearMeshDataToQuadratic(rawRefined);
+        auto coordinates = std::make_shared<Coordinates>(std::move(rawRefined.points));
+        geom_temp.setCoordinates(coordinates);
+        geom_temp.getTetrahedra().setElementData(ElementType::QUADRATIC_TETRAHEDRON,
+                                                std::move(rawRefined.tetNodes),
+                                                std::move(rawRefined.tetMaterials));
+        geom_temp.getTriangles().setElementData(ElementType::QUADRATIC_TRIANGLE,
+                                                std::move(rawRefined.triNodes),
+                                                std::move(rawRefined.triMaterials));
     }
     //=============================================================
     //  DONE WITH REFINEMENT.
@@ -141,27 +238,27 @@ bool autoref(Geometry &geom_orig,
     //=============================================================
     //geom_temp.t->CalculateDeterminants3D( geom_temp.getPtrTop() );
     //geom_temp.t->ScaleDeterminants(qlc3d::units::CUBIC_MICROMETER_TO_CUBIC_METER);
-    geom_temp.calculateNodeNormals();
+    geom_work->calculateNodeNormals();
     // Build regular grid for the refined geometry
     regGridOut = buildRegularGrid(simu.getRegularGridXCount(),
                                   simu.getRegularGridYCount(),
                                   simu.getRegularGridZCount(),
-                                  geom_temp);
+                                  *geom_work);
 
     // RECREATE POTENTIAL SOLUTIONVECTOR FROM SCRATCH FOR THE NEW GEOMETRY.
-    v.Resize(geom_temp.getnp() , 1);
-    v.initialisePotentialBoundaries(electrodes.getCurrentPotentials(simulationState.currentTime().getTime()), geom_temp);
+    v.Resize(geom_work->getnp() , 1);
+    v.initialisePotentialBoundaries(electrodes.getCurrentPotentials(simulationState.currentTime().getTime()), *geom_work);
 
     // REALLOCATE Q-TENSOR
     SolutionVector qTemp(q.getnDoF(), 5);
     qTemp = q; // temp swap
-    q = interpolateQTensor(geom_temp, geom, qTemp);    // INTERPOLATE FROM PREVIOUS MESH
+    q = interpolateQTensor(*geom_work, geom, qTemp);    // INTERPOLATE FROM PREVIOUS MESH
     // SET BOUNDARY CONDITIONS
-    setStrongSurfacesQ(q, alignment, S0, geom_temp);
-    q.initialiseLcBoundaries(geom_temp, alignment);
-    geom_temp.clearPeriodicNodesMapping(); // release resources that are not needed anymore
+    setStrongSurfacesQ(q, alignment, S0, *geom_work);
+    q.initialiseLcBoundaries(*geom_work, alignment);
+    geom_work->clearPeriodicNodesMapping(); // release resources that are not needed anymore
 
-    geom.setTo(&geom_temp);
+    geom.setTo(geom_work);
     // NEW MESH FILE NEEDS TO BE WRITTEN WHEN RESULTS ARE OUTPUT
     // LET REST OF PROGRAM KNOW THAT GEOMETRY HAS BEEN MODIFIED
     Log::info("Completed mesh refinement. New node count = {}, tetrahedron count = {}, triangle count = {}",

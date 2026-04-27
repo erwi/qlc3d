@@ -16,7 +16,7 @@ using std::set;
 
 void modify_geometry(Geometry& geom,
                      vector <idx>& i_tet, vector <idx>& i_tri,
-                     vector <double>& new_p,
+                     vector <Vec3>& new_p,
                      vector <idx>& new_t, vector <idx>& new_e,
                      vector <idx> new_mat_t ,
                      vector <idx> new_mat_e
@@ -24,7 +24,7 @@ void modify_geometry(Geometry& geom,
 
     if ( i_tet.empty() ) return;
 
-    geom.addCoordinates( new_p ); // APPENDS NEW COORDINATE DATA
+    //geom.appendCoordinates( new_p ); // this is done asap after new coordinate calculation so that new tet node ordering can be calculated to ensure positive jdet
     // MAKE LIST OF TETS AND TRIS TO BE REMOVED. THESE ARE REPLACED BY THE NEWLY
     // CREATED ONES
     set <idx> ind_remove_tets;
@@ -73,7 +73,7 @@ void Refine(Geometry& geom,                 // SOURCE (OLD) GEOMETRY
 
     auto classResult = classifyRefinement(geom, i_tet);
 
-    vector <double> new_p;
+    vector<Vec3> new_p;
     vector <idx>  new_t;
     vector <idx>  new_e;
     vector <idx> new_mat_t;

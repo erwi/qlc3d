@@ -25,7 +25,7 @@ public:
   [[nodiscard]] AABox findBoundingBox() const;
 
   void clear();
-  void append(const std::vector<double> &p);
+  void append(const std::vector<Vec3> &p);
   void scale(const Vec3& scale);
   void loadCoordinates(const idx *start, const idx *end, Vec3 *coordinatesOut) const;
   /** create a deep copy of this object */

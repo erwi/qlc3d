@@ -49,13 +49,14 @@ inline void reorderQuadraticBoundaryTetNodes(std::vector<unsigned int> &tetNodes
   tetNodesSet.erase(tetNodesOut[6]);
   assert(tetNodesSet.size() == 3); // should contain the remaining mid-edge nodes, but we don't know the order
 
-  // tetNodesOut[7] should be between tetNodesOut[0] and tetNodesOut[3]
-  // tetNodesOut[8] should be between tetNodesOut[1] and tetNodesOut[3]
-  // tetNodesOut[9] should be between tetNodesOut[2] and tetNodesOut[3]
+  // Gmsh TET10 ordering: [7]=AD, [8]=CD, [9]=BD
+  // tetNodesOut[7] should be between tetNodesOut[0] (A) and tetNodesOut[3] (D) → AD
+  // tetNodesOut[8] should be between tetNodesOut[2] (C) and tetNodesOut[3] (D) → CD
+  // tetNodesOut[9] should be between tetNodesOut[1] (B) and tetNodesOut[3] (D) → BD
   auto p3 = coords.getPoint(tetNodesOut[3]);
   auto p7 = 0.5 * (coords.getPoint(tetNodesOut[0]) + p3);
-  auto p8 = 0.5 * (coords.getPoint(tetNodesOut[1]) + p3);
-  auto p9 = 0.5 * (coords.getPoint(tetNodesOut[2]) + p3);
+  auto p8 = 0.5 * (coords.getPoint(tetNodesOut[2]) + p3);
+  auto p9 = 0.5 * (coords.getPoint(tetNodesOut[1]) + p3);
 
   for (auto i : tetNodesSet) {
     auto p = coords.getPoint(i);

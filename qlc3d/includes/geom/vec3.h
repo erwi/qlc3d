@@ -177,10 +177,37 @@ public:
   friend Vec3 operator-(const Vec3 &lhs, const Vec3 &rhs) {
     return Vec3(lhs.x_ - rhs.x_, lhs.y_ - rhs.y_, lhs.z_ - rhs.z_);
   }
+
+  [[nodiscard]] static Vec3 mean(const Vec3 &a, const Vec3 &b) {
+    return (a + b) * 0.5;
+  }
 };
 
 inline Vec3 operator*(double lhs, const Vec3 &rhs) {
   return rhs * lhs;
+}
+
+/**
+ * Calculate the scalar triple product (signed volume * 6) of a tetrahedron
+ * defined by four corner points. This returns the determinant used in
+ * tetrahedral volume calculations: (b-a) . ((c-a) x (d-a)).
+ *
+ * @param a first corner
+ * @param b second corner
+ * @param c third corner
+ * @param d fourth corner
+ * @return scalar triple product (signed)
+ */
+inline double det3D(const Vec3 &a, const Vec3 &b, const Vec3 &c, const Vec3 &d) {
+  Vec3 v1 = b - a;
+  Vec3 v2 = c - a;
+  Vec3 v3 = d - a;
+  return v1.dot(v2.cross(v3));
+}
+
+/** Convenience overload taking an array of four Vec3 points. */
+inline double det3D(const Vec3 pts[4]) {
+  return det3D(pts[0], pts[1], pts[2], pts[3]);
 }
 
 template <>

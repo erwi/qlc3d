@@ -58,7 +58,7 @@ public:
      */
     static Geometry fromRawMeshData(const RawMeshData &raw);
 
-    void addCoordinates(const vector<double> &coords);
+    void appendCoordinates(const vector<Vec3> &coords);
     void calculateNodeNormals();
     void setnpLC(int n);
     void ReorderDielectricNodes();

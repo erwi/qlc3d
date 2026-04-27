@@ -89,22 +89,19 @@ void ImplicitLCSolver::assembleLocalVolumeMatrix(const unsigned int indTet,
 #ifndef NDEBUG
   if (npe == 10) {
     // sanity checks
-    // calculate the volume enclosed by the tetrahedron defined by the first 4 nodes in tetCoords
-    auto vec1 = tetCoords[3] - tetCoords[0];
-    auto vec2 = tetCoords[2] - tetCoords[0];
-    auto vec3 = tetCoords[1] - tetCoords[0];
-    const double volume = std::abs(vec1.dot(vec2.cross(vec3)));
 
+    const double volume = det3D(tetCoords[0], tetCoords[1], tetCoords[2], tetCoords[3]);
     double diff = std::abs(tetDeterminant - volume);
     double eps = 1e-12;
     assert(diff < eps);
 
-    auto p5 = 0.5 * (tetCoords[0] + tetCoords[1]);
-    auto p6 = 0.5 * (tetCoords[1] + tetCoords[2]);
-    auto p7 = 0.5 * (tetCoords[0] + tetCoords[2]);
-    auto p8 = 0.5 * (tetCoords[0] + tetCoords[3]);
-    auto p9 = 0.5 * (tetCoords[1] + tetCoords[3]);
-    auto p10 = 0.5 * (tetCoords[2] + tetCoords[3]);
+    // expected positions of mid-edge nodes, using Gmsh ordering for p10 tets
+    auto p5 = Vec3::mean(tetCoords[0], tetCoords[1]); // A-B
+    auto p6 = Vec3::mean(tetCoords[1], tetCoords[2]); // B-C
+    auto p7 = Vec3::mean(tetCoords[2], tetCoords[0]); // C-A
+    auto p8 = Vec3::mean(tetCoords[0], tetCoords[3]); // A-D
+    auto p9 = Vec3::mean(tetCoords[2], tetCoords[3]); // C-D
+    auto p10 = Vec3::mean(tetCoords[1], tetCoords[3]); // B-D
 
     assert(p5.equals(tetCoords[4], eps));
     assert(p6.equals(tetCoords[5], eps));
