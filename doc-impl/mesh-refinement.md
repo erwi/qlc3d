@@ -116,24 +116,45 @@ autoref(geom_orig, geom, q, v, specs, ...)
   │
   ├─ Determine maximum number of refinement passes (maxRefIter)
   │
-  ├─ Clone geom_orig → geom_temp (working copy)
+  ├─ [Quadratic branch] If geom_orig contains TET10/TRI6 elements:
+  │    ├─ splitQuadraticGeometryToLinear(geom_orig) → raw_linear (TET4/TRI3 RawMeshData)
+  │    └─ Construct linear Geometry geom_orig_linear from raw_linear
+  │    (geom_orig itself is left unchanged; the linear copy is used as the loop base)
+  │
+  ├─ Clone geom_orig [or geom_orig_linear for quadratic input] → geom_temp (working copy)
   │
   ├─ for refiter = 0 .. maxRefIter-1:
   │    ├─ get_index_to_tred(...)   ← select which tets to split
   │    │    ├─ interpolate q onto geom_temp if needed (Change type)
   │    │    └─ findTets_Change / findTets_Sphere / findTets_Box
   │    │
-  │    └─ Refine(geom_temp, i_tet)  ← split selected tets
+  │    └─ Refine(geom_temp, i_tet)  ← split selected tets (always TET4 inside loop)
   │
-  ├─ Post-refinement cleanup:
+  ├─ [Quadratic branch] Re-promote refined linear mesh to TET10/TRI6:
+  │    ├─ Extract RawMeshData raw_refined from geom_temp
+  │    ├─ convertLinearMeshDataToQuadratic(raw_refined)   (adds fresh mid-edge nodes)
+  │    └─ Reconstruct quadratic Geometry geom_temp from raw_refined
+  │
+  ├─ Post-refinement cleanup (runs on the quadratic geom_temp for TET10 input):
   │    ├─ calculateNodeNormals
   │    ├─ rebuild regular grid via `buildRegularGrid(...)`
   │    ├─ Resize & re-initialise potential SolutionVector v
-    │    ├─ interpolate Q-tensor q onto new mesh via `interpolateQTensor`
+  │    ├─ interpolate Q-tensor q onto new mesh via `interpolateQTensor`
+  │    │    (uses 10-node quadratic basis when source mesh is TET10)
   │    └─ re-apply strong surface BC (setStrongSurfacesQ)
   │
   └─ geom ← geom_temp  (replace current geometry)
 ```
+
+### Quadratic split–refine–recombine strategy
+
+When `geom_orig` holds TET10/TRI6 elements the high-level flow uses a three-phase approach:
+
+1. **Split** — `splitQuadraticGeometryToLinear` decomposes every TET10 into 8 TET4 children and every TRI6 into 4 TRI3 children, producing a linear `RawMeshData`. Coordinates are passed through unchanged; mid-edge nodes are discarded (they are recomputed after recombination).
+2. **Refine** — the complete existing red-green refinement pipeline (`classifyRefinement`, `Refine`, `modify_geometry`) runs on the TET4 mesh without any modification.
+3. **Recombine** — `convertLinearMeshDataToQuadratic` adds fresh mid-edge nodes at exact edge midpoints to produce a valid TET10/TRI6 mesh. Mid-edge node indices are not required to be stable across refinement cycles.
+
+The linear refinement path is entirely unchanged: when `geom_orig` is TET4 the split/recombine phases are skipped.
 
 ---
 
@@ -211,11 +232,13 @@ The Q-tensor interpolation logic lives in the dedicated module
 1. For each new LC node, finds the old tetrahedron containing it (`genIndToTetsByCoords`).
 2. Computes barycentric coordinates within that old tet (`calcLocCoords`).
 3. If the largest barycentric coordinate is ≈1 (i.e. the node coincides with an existing corner), copies the old value directly.
-4. Otherwise, linearly interpolates each of the 5 Q-tensor components using `interpolateScalar`.
+4. Otherwise, interpolates each of the 5 Q-tensor components:
+   - **TET4 source**: linearly interpolates using 4 barycentric weights and corner values (`interpolateScalar`).
+   - **TET10 source**: evaluates all 10 quadratic shape functions (`TetShapeFunction(2)`) at the reference point `(ξ, η, ζ) = (λ1, λ2, λ3)` derived from the 4 barycentric weights, then performs a 10-node weighted sum. This preserves quadratic field accuracy across mesh changes.
 
-The lower-level helper `interpolateScalar(loc, S)` computes Σ loc[i]·S[i] for four barycentric weights and corner values.
+The lower-level helper `interpolateScalar(loc, S)` computes Σ loc[i]·S[i] for four barycentric weights and corner values (used by the TET4 path only).
 
-Unit tests are in `tests/cpp/refinement/q-tensor-interpolator-tests.cpp`.
+Unit tests are in `tests/cpp/refinement/q-tensor-interpolator-tests.cpp`, including `interpolateQTensor_quadraticFieldOnTET10_isExact` which verifies exact interpolation of a quadratic field on a TET10 mesh.
 
 ---
 
@@ -235,3 +258,4 @@ When the mesh has periodic boundaries, bisecting an edge on one periodic face mu
 
 1. **The higher-level dispatcher (`refinement2.cpp`) lacks direct unit tests** — the midpoint lookup, splitter, and classifier layers all have dedicated unit tests, but the dispatcher itself is validated only through end-to-end integration tests.
 
+2. **Top/bottom periodicity not implemented** — `PeriodicEdgeExpander::expand` always throws `RUNTIME_ERROR("Top-bottom periodicity not implemented in mesh refinement yet.")` when the mesh has top/bottom periodic boundaries.

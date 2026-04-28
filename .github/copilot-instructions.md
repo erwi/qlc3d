@@ -7,9 +7,9 @@
 - When failing use the RUNTIME_ERROR macro which auto-fills in the location of the error. 
 
 ## Documentation
-- Update the README file and any other documentation so that they accurately describe the current state after any changes. Do not refer to old state or previous implementations.
+- Update the README file and any other documentation so that they accurately describe the current state after any changes. Do not refer to old state, previous implementations or resolved issues. Documentation is a snapshot of current state not a story.
 - Add Doxygen usage documentation to header files using /** ... */ and including tags like @param and @return. Implementation focused longer internal comments belong in the .cpp files.
-- Technical implementation documentation can be found in the doc-impl subdirectory organised by topic in separate markdown files. Keep this up to date.
+- Technical implementation documentation can be found in the doc-impl subdirectory organised by topic in separate markdown files. Keep this up to date as a snapshot of current state.
 
 ## Testing
 - Document tests you write using comments so its easy to understand what is being tested. 

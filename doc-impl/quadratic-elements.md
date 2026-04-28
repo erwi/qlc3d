@@ -48,8 +48,8 @@ For straight-edged elements, the codebase treats quadratic geometry as the same 
 - Sampling helpers such as `N(i)`, `Nx(i)`, `Ny(i)`, `Nz(i)`, `sample()`, `sampleQ()`, and derivative samplers work with quadratic element sizes.
 - Quadratic LC assembly uses `Keast8` for volume terms and `Tri4thOrder` for surface terms.
 - Quadratic potential assembly uses `Keast4` for volume terms and `Tri4thOrder` for Neumann surface terms.
-- The nodal order user follows the Gmsh convention. 
-  - For TET10 we startrt with the four corner nodes A, B, C, D, followed by the six mid-edge nodes AB, BC, AC, AD, CD, BD.
+- The nodal order follows the Gmsh convention.
+  - For TET10 we start with the four corner nodes A, B, C, D, followed by the six mid-edge nodes AB, BC, AC, AD, CD, BD.
   - For TRI6 we start with the three corner nodes A, B, C, followed by the three mid-edge nodes AB, BC, AC.
   - see https://gmsh.info/dev/doc/texinfo/gmsh.html#Node-ordering for more details.
 
@@ -74,6 +74,7 @@ The following utilities exist and are in active use:
 - `splitQuadraticTriangleToLinear()`
 - `recombineLinearTetsToQuadratic()`
 - `recombineLinearTrianglesToQuadratic()`
+- `splitQuadraticGeometryToLinear()` — converts a full `Geometry` holding TET10/TRI6 elements into an equivalent TET4/TRI3 `RawMeshData` used by the refinement pipeline.
 
 ### 2.5 Solvers and boundary handling
 
@@ -88,31 +89,29 @@ The following utilities exist and are in active use:
 - The VTK writer emits VTK cell type `24` for quadratic tetrahedra.
 - LcView mesh output supports quadratic input meshes by splitting each quadratic element into linear sub-elements during export.
 
+### 2.7 Adaptive mesh refinement on TET10/TRI6 meshes
+
+`autoref()` supports quadratic input meshes via a **split–refine–recombine** strategy:
+
+1. Before the refinement loop the quadratic geometry is split into an equivalent TET4/TRI3 mesh using `splitQuadraticGeometryToLinear`.
+2. The existing linear red-green refinement pipeline runs unchanged on the TET4 mesh.
+3. After refinement the linear mesh is re-promoted to TET10/TRI6 via `convertLinearMeshDataToQuadratic`.
+4. Post-refinement steps (node normals, regular-grid rebuild, Q-tensor interpolation, boundary conditions) run on the newly promoted quadratic geometry.
+
+The linear refinement path is completely unchanged; when the input geometry is TET4 the existing code executes without modification.
+
+### 2.8 Quadratic Q-tensor field transfer
+
+`interpolateQTensor()` branches on the source mesh element type:
+
+- **TET4 source**: uses 4-node barycentric interpolation.
+- **TET10 source**: evaluates all 10 quadratic shape functions (`TetShapeFunction(2)`) at the reference-coordinate point and interpolates over all 10 nodes, preserving quadratic field accuracy across mesh changes.
+
 ---
 
 ## 3. Current Limitations
 
-### 3.1 Adaptive refinement is still linear-only
-
-`autoref()` in `autorefinement.cpp` rejects any tetrahedral mesh whose element type is not `ElementType::LINEAR_TETRAHEDRON`.
-
-Current consequence:
-
-- adaptive refinement cannot be run on the quadratic meshes produced by `prepareGeometry()`;
-- a full quadratic simulation can solve on a prepared mesh, but it cannot continue through the refinement path.
-
-### 3.2 Q-tensor transfer after mesh changes is only first-order on TET10
-
-`interpolateQTensor()` uses only the four corner nodes of the containing tetrahedron:
-
-- geometry lookup is still exact for straight-edged TET10;
-- field transfer is linear within each element even when the source solution is quadratic.
-
-Current consequence:
-
-- any workflow that depends on carrying a quadratic solution between meshes loses the higher-order field representation.
-
-### 3.3 Native quadratic GiD input is not supported
+### 3.1 Native quadratic GiD input is not supported
 
 `ReadGiDMesh3D()` reads only 4-node tetrahedra and 3-node triangles.
 
@@ -121,7 +120,7 @@ Current consequence:
 - GiD input always enters the system as linear data and is then promoted by `prepareGeometry()`;
 - there is no direct path for loading native quadratic GiD connectivity.
 
-### 3.4 Generic boundary-node reordering is not higher-order-safe
+### 3.2 Generic boundary-node reordering is not higher-order-safe
 
 `reorderBoundaryTetNodes()` throws for anything other than a 4-node tetrahedron. Quadratic Neumann assembly works today because it explicitly calls `reorderQuadraticBoundaryTetNodes()`, but the generic helper is still linear-only.
 
@@ -138,19 +137,18 @@ Current consequence:
 | Test file | Current coverage |
 |---|---|
 | `tests/cpp/fe/gaussian-integration-tests.cpp` | TET10 and TRI6 shape functions, volume/surface integration, and quadratic sampling helpers |
-| `tests/cpp/mesh/element-split-convert-tests.cpp` | TET10/TRI6 split-recombine utilities and linear→quadratic conversion |
+| `tests/cpp/mesh/element-split-convert-tests.cpp` | TET10/TRI6 split-recombine utilities, linear→quadratic conversion, and `splitQuadraticGeometryToLinear` |
 | `tests/cpp/io/meshio-tests.cpp` | Quadratic Gmsh mesh loading |
 | `tests/cpp/init-geometry-tests.cpp` | `prepareGeometry()`, quadratic node-order correction, midpoint snapping/validation, and standalone regular-grid creation |
 | `tests/cpp/potential/potential-solver-test.cpp` | Quadratic potential solves, including Neumann-boundary cases |
 | `tests/cpp/lc/lc-solver-tests.cpp` | Steady-state LC solve on quadratic meshes |
 | `tests/cpp/geom/geom-tests.cpp` | TET10 containment, barycentric coordinates, centroid behavior, and regular-grid interaction |
 | `tests/cpp/io/result-output-test.cpp` | Quadratic LCView result I/O and quadratic VTK cell-type output |
-| `tests/cpp/refinement/q-tensor-interpolator-tests.cpp` | Q-tensor interpolation size/copy behavior and exact preservation of linear fields through refinement |
+| `tests/cpp/refinement/q-tensor-interpolator-tests.cpp` | Q-tensor interpolation size/copy behavior, exact preservation of linear fields, and exact quadratic-field interpolation on TET10 |
+| `tests/cpp/meshrefinement-test.cpp` | End-to-end adaptive refinement on quadratic meshes (Sphere, Box, Change types); verifies post-refinement element type, node-count growth, and sum-of-determinants conservation |
 
 ### 4.2 Coverage gaps that still matter
 
-- No test currently exercises adaptive refinement on an in-memory quadratic mesh, because `autoref()` rejects it.
-- `interpolateQTensor()` is tested for linear fields, but there is no regression test that documents the expected loss of quadratic field order on TET10.
 - LcView export is tested through result read/write behavior, but there is no explicit regression test that documents the 1 `TET10` → 8 `TET4` mesh expansion.
 - `recombineLinearisedMeshToQuadratic()` does not have a regression test focused on failure behavior and node-index stability across save/reload-style workflows.
 
@@ -204,32 +202,7 @@ Current consequence:
 
 ## 6. Recommended Milestones
 
-### Milestone 1 — Quadratic adaptive refinement
-
-**Work required**
-
-- remove the linear-only guard in `autoref()`;
-- define the refinement path for quadratic meshes, including how refined meshes are re-promoted to TET10/TRI6;
-- preserve boundary conditions, regular-grid rebuilds, and solution-vector remapping through that path.
-
-**Unlocked functionality**
-
-- adaptive LC and electrostatic simulations on quadratic meshes;
-- end-to-end quadratic workflows that include mesh refinement instead of stopping at the initial solve.
-
-### Milestone 2 — Higher-order Q-tensor transfer between meshes
-
-**Work required**
-
-- extend `interpolateQTensor()` so that field transfer uses the quadratic representation instead of only the four corner nodes;
-- add regression tests that distinguish exact linear preservation from expected quadratic-field behavior.
-
-**Unlocked functionality**
-
-- refinement and remeshing workflows that preserve quadratic solution quality;
-- more accurate restart and mesh-adaptation cycles for quadratic LC simulations.
-
-### Milestone 3 — Explicit mesh-order input policy
+### Milestone 1 — Explicit mesh-order input policy
 
 **Work required**
 
@@ -242,7 +215,7 @@ Current consequence:
 - direct quadratic GiD workflows, if native support is added;
 - reproducible debugging and benchmarking across linear and quadratic input paths.
 
-### Milestone 4 — Stable and explicit quadratic export/save-reload semantics
+### Milestone 2 — Stable and explicit quadratic export/save-reload semantics
 
 **Work required**
 
@@ -254,7 +227,7 @@ Current consequence:
 - predictable quadratic post-processing;
 - safer save/reload pipelines for workflows that depend on stable quadratic connectivity and node numbering.
 
-### Milestone 5 — Higher-order-safe helper APIs
+### Milestone 3 — Higher-order-safe helper APIs
 
 **Work required**
 
