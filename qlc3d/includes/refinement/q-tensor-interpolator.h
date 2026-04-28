@@ -14,13 +14,35 @@
 double interpolateScalar(const double loc[4], const double S[4]);
 
 /**
+ * @brief Evaluates all 10 TET10 quadratic shape functions at a barycentric point.
+ *
+ * The TET10 element uses volume (barycentric) coordinates @c loc[0..3] where
+ * @c loc[0] = 1 - loc[1] - loc[2] - loc[3].  Node ordering follows the Gmsh
+ * TET10 convention: nodes 0–3 are corner nodes and nodes 4–9 are mid-edge nodes
+ * in the order AB, BC, AC, AD, CD, BD.
+ *
+ * This function is exposed in the header to allow direct unit testing of the
+ * algebraic correctness of the shape functions.
+ *
+ * @param loc  Four barycentric (volume) coordinates summing to 1.
+ * @param N    Output array of length 10; N[i] receives the i-th shape function value.
+ */
+void evaluateTet10ShapeFunctions(const double loc[4], double N[10]);
+
+/**
  * @brief Interpolates Q-tensor values from an old mesh onto a new mesh.
  *
  * For each LC node in @p geomNew, the enclosing tetrahedron in @p geomOld
- * is found, barycentric coordinates are computed, and the five Q-tensor
- * components are interpolated linearly.  If the new node coincides with an
- * existing corner node of the enclosing tet (largest barycentric coordinate
- * >= 0.99999) the value is copied directly without interpolation.
+ * is found and barycentric coordinates are computed.
+ *
+ * - If the new node coincides with an existing corner node of the enclosing
+ *   tet (largest barycentric coordinate >= 0.99999) the value is copied
+ *   directly without interpolation.
+ * - If the source geometry is a TET10 (QUADRATIC_TETRAHEDRON) mesh all 10
+ *   nodes of the enclosing element contribute via the quadratic shape
+ *   functions.  This reproduces degree-2 polynomial fields exactly.
+ * - If the source geometry is a TET4 (LINEAR_TETRAHEDRON) mesh the four
+ *   corner nodes are interpolated linearly using barycentric weights.
  *
  * @param geomNew  Target geometry whose LC nodes need Q values.
  * @param geomOld  Source geometry from which Q values are read.
@@ -34,3 +56,4 @@ SolutionVector interpolateQTensor(Geometry &geomNew,
                                   const SolutionVector &qOld);
 
 #endif // Q_TENSOR_INTERPOLATOR_H
+
