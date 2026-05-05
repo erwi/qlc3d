@@ -103,6 +103,27 @@ Example 2: the mesh file "mesh.msh" is in a sub-directory named "meshes"
 	MeshName = meshes/mesh.msh
 ```
 
+### **MeshElementOrder**
+Optional (default = `native`)
+
+Controls the finite-element order used during the simulation. Three values are accepted (case-insensitive):
+
+| Value | Behaviour |
+|-------|-----------|
+| `native` | The mesh is used at the order it was loaded: TET4/TRI3 meshes remain first-order; TET10/TRI6 meshes remain second-order. This is the default. |
+| `quadratic` | Force second-order elements. A first-order mesh is promoted to TET10/TRI6 in memory. A mesh already in TET10/TRI6 format is used as-is. |
+| `linear` | Force first-order elements. A second-order mesh is demoted to TET4/TRI3 in memory. A mesh already in TET4/TRI3 format is used as-is. |
+
+Example — explicitly request quadratic elements even when the mesh file contains a linear mesh:
+```
+MeshElementOrder = quadratic
+```
+
+Example — force linear simulation on a quadratic mesh file:
+```
+MeshElementOrder = linear
+```
+
 ### **EndCriterion**
 Optional (default = Iteration, TODO: check this)
 

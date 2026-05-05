@@ -31,6 +31,7 @@ const std::string SFK_STRETCH_VECTOR = "stretchVector";
 const std::string SFK_DT_LIMITS = "dtLimits";
 const std::string SFK_DT_FUNCTION = "dtFunction";
 const std::string SFK_REGULAR_GRID_SIZE = "RegularGridSize";
+const std::string SFK_MESH_ELEMENT_ORDER = "MeshElementOrder";
 // LC Parameter keys
 const std::string SFK_K11 = "K11";
 const std::string SFK_K22 = "K22";

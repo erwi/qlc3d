@@ -10,6 +10,7 @@
 #include "util/exception.h"
 #include "util/logging.h"
 #include <unordered_set>
+#include <unordered_map>
 
 namespace {
 constexpr double MIDPOINT_TOLERANCE_RATIO = 1e-3;
@@ -631,6 +632,71 @@ void convertLinearMeshDataToQuadratic(RawMeshData &meshData) {
 
   meshData.setElementOrder(2);
   validateAndSnapQuadraticTetrahedra(meshData);
+}
+
+void splitQuadraticRawMeshDataToLinear(RawMeshData &data) {
+  if (data.getElementOrder() != 2) {
+    RUNTIME_ERROR(fmt::format("splitQuadraticRawMeshDataToLinear requires element order 2, got {}.", data.getElementOrder()));
+  }
+
+  const unsigned int nodesPerTetQuad = 10;
+  const unsigned int nodesPerTetLin  = 4;
+  const unsigned int nodesPerTriQuad = 6;
+  const unsigned int nodesPerTriLin  = 3;
+
+  const size_t numTets = data.tetNodes.size() / nodesPerTetQuad;
+  const size_t numTris = data.triNodes.size() / nodesPerTriQuad;
+
+  // Build new linear connectivity (corner nodes only)
+  std::vector<idx> newTetNodes;
+  newTetNodes.reserve(numTets * nodesPerTetLin);
+  for (size_t i = 0; i < numTets; i++) {
+    const size_t base = i * nodesPerTetQuad;
+    for (unsigned int c = 0; c < nodesPerTetLin; c++) {
+      newTetNodes.push_back(data.tetNodes[base + c]);
+    }
+  }
+
+  std::vector<idx> newTriNodes;
+  newTriNodes.reserve(numTris * nodesPerTriLin);
+  for (size_t i = 0; i < numTris; i++) {
+    const size_t base = i * nodesPerTriQuad;
+    for (unsigned int c = 0; c < nodesPerTriLin; c++) {
+      newTriNodes.push_back(data.triNodes[base + c]);
+    }
+  }
+
+  // Collect referenced corner-node indices
+  std::unordered_set<idx> referencedSet(newTetNodes.begin(), newTetNodes.end());
+  referencedSet.insert(newTriNodes.begin(), newTriNodes.end());
+
+  // Build remapping from old node index → new compact index
+  // Sort referenced indices to produce a stable, compact mapping
+  std::vector<idx> sortedReferenced(referencedSet.begin(), referencedSet.end());
+  std::sort(sortedReferenced.begin(), sortedReferenced.end());
+
+  std::unordered_map<idx, idx> remap;
+  remap.reserve(sortedReferenced.size());
+  for (idx newIdx = 0; newIdx < (idx)sortedReferenced.size(); newIdx++) {
+    remap[sortedReferenced[newIdx]] = newIdx;
+  }
+
+  // Compact coordinate array
+  std::vector<Vec3> newPoints;
+  newPoints.reserve(sortedReferenced.size());
+  for (idx oldIdx : sortedReferenced) {
+    newPoints.push_back(data.points[oldIdx]);
+  }
+
+  // Apply remapping to connectivity arrays
+  for (idx &n : newTetNodes) { n = remap.at(n); }
+  for (idx &n : newTriNodes) { n = remap.at(n); }
+
+  // Commit changes
+  data.points       = std::move(newPoints);
+  data.tetNodes     = std::move(newTetNodes);
+  data.triNodes     = std::move(newTriNodes);
+  data.setElementOrder(1);
 }
 
 //</editor-fold>

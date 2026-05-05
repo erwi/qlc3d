@@ -44,6 +44,9 @@ public:
                           PCG   = 1,
                           GMRES = 2};
 
+    /** Controls the finite-element order used during simulation. */
+    enum MeshElementOrder { Native = 0, Quadratic = 1, Linear = 2 };
+
     // NOTE: the order should match with VALID_END_CRITERIA
     enum EndCriteria {
         Iterations = 0, Time = 1, Change = 2
@@ -53,6 +56,7 @@ public:
     const static vector<string> VALID_END_CRITERIA;
     const static vector<string> VALID_SAVE_FORMATS;
     const static vector<string> VALID_Q_MATRIX_SOLVERS;
+    const static vector<string> VALID_MESH_ELEMENT_ORDERS;
     const static string DEFAULT_LOAD_Q;
     const static string DEFAULT_SAVE_DIR;
     const static string DEFAULT_Q_MATRIX_SOLVER;
@@ -75,6 +79,7 @@ public:
     const static vector<idx>    DEFAULT_REGULAR_GRID_SIZE;
     // default enums
     const static Simu::EndCriteria DEFAULT_END_CRITERION;
+    const static Simu::MeshElementOrder DEFAULT_MESH_ELEMENT_ORDER;
 
 private:
     const std::string meshName_;
@@ -104,6 +109,7 @@ private:
     const set<Simu::SaveFormats> saveFormat_;
     const unsigned int numAsseblyThreads_;
     const unsigned int numMatrixSolverThreads_;
+    const MeshElementOrder meshElementOrder_;
 public:
     Simu() = delete; // private, use SimuBuilder to create default valued Simu
     Simu(const std::string &meshName,  double initialTimeStep,
@@ -115,7 +121,8 @@ public:
          int outputEnergy, int outputFormat, int saveIter, double saveTime,
          const set<Simu::SaveFormats> saveFormat,
          unsigned int numAsseblyThreads, unsigned int numMatrixSolverThreads,
-         const std::filesystem::path &saveDirAbsolutePath
+         const std::filesystem::path &saveDirAbsolutePath,
+         MeshElementOrder meshElementOrder = MeshElementOrder::Native
 
          ): meshName_(meshName), initialTimeStep_(initialTimeStep),QMatrixSolver_(solver),
          maxError_(maxError), TargetdQ_(targetDQ),
@@ -126,7 +133,8 @@ public:
          regularGridSize_{regularGridSize[0], regularGridSize[1], regularGridSize[2]},
          outputEnergy_(outputEnergy), outputFormat_(outputFormat),
          saveIter_(saveIter), saveTime_(saveTime), saveFormat_(saveFormat), numAsseblyThreads_(numAsseblyThreads),
-         numMatrixSolverThreads_(numMatrixSolverThreads)
+         numMatrixSolverThreads_(numMatrixSolverThreads),
+         meshElementOrder_(meshElementOrder)
     {}
 
 
@@ -163,6 +171,7 @@ public:
     [[nodiscard]] const std::vector<std::string> getSaveFormatStrings() const;
     [[nodiscard]] EndCriteria  getEndCriterion()const {return endCriterion_;}
     [[nodiscard]] QMatrixSolvers getQMatrixSolver()const {return QMatrixSolver_;}
+    [[nodiscard]] MeshElementOrder getMeshElementOrder() const { return meshElementOrder_; }
     [[nodiscard]] size_t getRegularGridXCount()const{return regularGridSize_[0];}
     [[nodiscard]] size_t getRegularGridYCount()const{return regularGridSize_[1];}
     [[nodiscard]] size_t getRegularGridZCount()const{return regularGridSize_[2];
@@ -195,6 +204,7 @@ class SimuBuilder {
     set<Simu::SaveFormats> saveFormat_;
     unsigned int numAssemblyThreads_;
     unsigned int numMatrixSolverThreads_;
+    Simu::MeshElementOrder meshElementOrder_;
     std::filesystem::path workingDir_;
 
 public:
@@ -210,6 +220,7 @@ public:
             outputFormat_(Simu::DEFAULT_OUTPUT_FORMAT), saveIter_(Simu::DEFAULT_SAVE_ITER), saveTime_(Simu::DEFAULT_SAVE_TIME),
             saveFormat_{}, numAssemblyThreads_(Simu::DEFAULT_NUM_ASSEMBLY_THREADS),
             numMatrixSolverThreads_(Simu::DEFAULT_NUM_MATRIX_SOLVER_THREADS),
+            meshElementOrder_(Simu::DEFAULT_MESH_ELEMENT_ORDER),
             workingDir_(std::filesystem::current_path())
     {}
 
@@ -233,6 +244,7 @@ public:
     SimuBuilder &saveFormat(const set<std::string> &saveFormats);
     SimuBuilder &numAssemblyThreads(unsigned int n);
     SimuBuilder &numMatrixSolverThreads(unsigned int n);
+    SimuBuilder &meshElementOrder(const std::string &value);
 
     Simu* build() const;
 };

@@ -138,24 +138,44 @@ void prepareGeometry(Geometry &geom,
                      RawMeshData &rawMeshData,
                      Electrodes &electrodes,
                      const Alignment &alignment,
-                     const Vec3 &stretchVector) {
+                     const Vec3 &stretchVector,
+                     Simu::MeshElementOrder meshElementOrder) {
   Log::info("mesh element order = {}, triangles count = {}, tetrahedra count = {}, nodes count = {}",
             rawMeshData.getElementOrder(), rawMeshData.triMaterials.size(), rawMeshData.tetMaterials.size(), rawMeshData.points.size());
   validateTriangleMaterials(rawMeshData.triMaterials, electrodes, alignment);
   validateTetrahedralMaterials(rawMeshData.tetMaterials);
 
-  if (rawMeshData.getElementOrder() == 1 && recombineLinearisedMeshToQuadratic(rawMeshData)) {
-    Log::info("Recombined first order mesh to second order. New element counts: tetrahedra = {}, triangles = {}",
-              rawMeshData.tetMaterials.size(), rawMeshData.triMaterials.size());
-  }
+  using MEO = Simu::MeshElementOrder;
+  const int loadedOrder = (int)rawMeshData.getElementOrder();
 
-  if (rawMeshData.getElementOrder() == 1) {
-    convertLinearMeshDataToQuadratic(rawMeshData);
-  }
+  switch (meshElementOrder) {
 
-  if (rawMeshData.getElementOrder() == 2) {
-    reorderQuadraticTetNodeOrder(rawMeshData.tetNodes, rawMeshData.points);
-    validateAndSnapQuadraticTetrahedra(rawMeshData);
+    case MEO::Native:
+      // Keep the mesh at its loaded order. For quadratic meshes: reorder/validate.
+      if (loadedOrder == 2) {
+        reorderQuadraticTetNodeOrder(rawMeshData.tetNodes, rawMeshData.points);
+        validateAndSnapQuadraticTetrahedra(rawMeshData);
+      }
+      break;
+
+    case MEO::Quadratic:
+      // Ensure second-order output regardless of input.
+      if (loadedOrder == 1) {
+        // Attempt recombination first (handles saved/reloaded linearised meshes).
+        if (!recombineLinearisedMeshToQuadratic(rawMeshData)) {
+          convertLinearMeshDataToQuadratic(rawMeshData);
+        }
+      }
+      reorderQuadraticTetNodeOrder(rawMeshData.tetNodes, rawMeshData.points);
+      validateAndSnapQuadraticTetrahedra(rawMeshData);
+      break;
+
+    case MEO::Linear:
+      // Ensure first-order output regardless of input.
+      if (loadedOrder == 2) {
+        splitQuadraticRawMeshDataToLinear(rawMeshData);
+      }
+      break;
   }
 
   auto coordinates = std::make_shared<Coordinates>(std::move(rawMeshData.points));
@@ -168,7 +188,8 @@ void prepareGeometry(Geometry &geom,
 }
 
 void prepareGeometryWithDefaultBoundaries(Geometry& geom,
-                                          const std::filesystem::path &meshFileName) {
+                                           const std::filesystem::path &meshFileName,
+                                           Simu::MeshElementOrder meshElementOrder) {
   // read mesh data from file. Allocates the data arrays.
   RawMeshData rawMeshData = MeshReader::readMesh(meshFileName);
 
@@ -183,18 +204,19 @@ void prepareGeometryWithDefaultBoundaries(Geometry& geom,
     alignment.addSurface(Surface::ofStrongAnchoring(fixLcNumber, 0, 0));
   }
 
-  prepareGeometry(geom, rawMeshData, electrodes, alignment, {1, 1, 1});
+  prepareGeometry(geom, rawMeshData, electrodes, alignment, {1, 1, 1}, meshElementOrder);
 }
 
 void prepareGeometry(Geometry& geom,
                      const std::filesystem::path &meshFileName,
                      Electrodes& electrodes,
                      const Alignment& alignment,
-                     const Vec3 &stretchVector) {
+                     const Vec3 &stretchVector,
+                     Simu::MeshElementOrder meshElementOrder) {
 
     // read mesh data from file. Allocates the data arrays.
     RawMeshData rawMeshData = MeshReader::readMesh(meshFileName);
-    prepareGeometry(geom, rawMeshData, electrodes, alignment, stretchVector);
+    prepareGeometry(geom, rawMeshData, electrodes, alignment, stretchVector, meshElementOrder);
 }
 
 FILE* createOutputEnergyFile(Simu& simu) {

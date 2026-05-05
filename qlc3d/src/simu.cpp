@@ -12,10 +12,11 @@
 // Define valid enum string keys
 const vector<string> Simu::VALID_END_CRITERIA = {"iterations", "time", "change"};
 
-// NOTE: the order of these should match the order of the corresponding enum values
+// NOTE: the order should match with the order of the corresponding enum values
 const vector<string> Simu::VALID_SAVE_FORMATS = {
         "lcview", "regularvtk", "regularvecmat", "dirstackz", "lcviewtxt", "csvunstructured", "vtkunstructuredasciigrid"};
 const vector<string> Simu::VALID_Q_MATRIX_SOLVERS = {"Auto", "PCG", "GMRES"};
+const vector<string> Simu::VALID_MESH_ELEMENT_ORDERS = {"native", "quadratic", "linear"};
 // Define values of default Simu parameters
 const string Simu::DEFAULT_LOAD_Q = "";
 const string Simu::DEFAULT_SAVE_DIR = "res";
@@ -36,6 +37,7 @@ const double Simu::DEFAULT_SAVE_TIME = 0;
 const int Simu::DEFAULT_NUM_ASSEMBLY_THREADS = 0;
 const int Simu::DEFAULT_NUM_MATRIX_SOLVER_THREADS = 0;
 const Simu::EndCriteria Simu::DEFAULT_END_CRITERION = Simu::EndCriteria::Time;
+const Simu::MeshElementOrder Simu::DEFAULT_MESH_ELEMENT_ORDER = Simu::MeshElementOrder::Native;
 
 void Simu::getdtFunction(double f[4]) const  {
     f[0] = dtFunction_[0];
@@ -78,7 +80,8 @@ Simu *SimuBuilder::build() const {
                     outputFormat_, saveIter_, saveTime_,
                     saveFormat_, numAssemblyThreads_,
                     numMatrixSolverThreads_,
-                    workingDir_ / saveDir_); // absolute path to result directory
+                    workingDir_ / saveDir_, // absolute path to result directory
+                    meshElementOrder_);
 }
 
 SimuBuilder &SimuBuilder::initialTimeStep(double dt) {
@@ -225,6 +228,19 @@ SimuBuilder &SimuBuilder::numAssemblyThreads(unsigned int n) {
 SimuBuilder &SimuBuilder::numMatrixSolverThreads(unsigned int n) {
     numMatrixSolverThreads_ = n;
     return *this;
+}
+
+SimuBuilder &SimuBuilder::meshElementOrder(const std::string &value) {
+    // Case-insensitive comparison against valid values
+    string lower = value;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+    for (unsigned int i = 0; i < Simu::VALID_MESH_ELEMENT_ORDERS.size(); i++) {
+        if (Simu::VALID_MESH_ELEMENT_ORDERS[i] == lower) {
+            meshElementOrder_ = static_cast<Simu::MeshElementOrder>(i);
+            return *this;
+        }
+    }
+    throw runtime_error("invalid MeshElementOrder '" + value + "', valid values are [native, quadratic, linear]");
 }
 
 // </editor-fold>

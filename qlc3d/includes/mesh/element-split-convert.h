@@ -54,4 +54,12 @@ void validateAndSnapQuadraticTetrahedra(RawMeshData &meshData);
 
 void convertLinearMeshDataToQuadratic(RawMeshData &meshData);
 
+/**
+ * Converts a second-order RawMeshData in-place to first-order by retaining only
+ * corner nodes. Mid-edge nodes that become unreferenced are removed and coordinates
+ * are compacted accordingly.
+ * @param data Must have element order 2. On return has element order 1.
+ */
+void splitQuadraticRawMeshDataToLinear(RawMeshData &data);
+
 #endif //PROJECT_QLC3D_ELEMENT_SPLIT_H

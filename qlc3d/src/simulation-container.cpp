@@ -114,7 +114,8 @@ void SimulationContainer::initialise() {
                     meshName,
                     *electrodes,
                     alignment,
-                    simu->getStretchVector());
+                    simu->getStretchVector(),
+                    simu->getMeshElementOrder());
     regGrid = buildRegularGrid(simu->getRegularGridXCount(),
                                simu->getRegularGridYCount(),
                                simu->getRegularGridZCount(),

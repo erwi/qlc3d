@@ -412,3 +412,86 @@ TEST_CASE("split and recombine quadratic gmsh mesh") {
   REQUIRE(workingMeshData.triMaterials.size() == rawMeshData.triMaterials.size());
   REQUIRE(workingMeshData.triMaterials == rawMeshData.triMaterials);
 }
+
+// ============================================================
+// Tests for splitQuadraticRawMeshDataToLinear
+// ============================================================
+
+TEST_CASE("splitQuadraticRawMeshDataToLinear: throws on linear input mesh") {
+  // GIVEN a RawMeshData with element order 1
+  RawMeshData linearData = RawMeshData(1, {}, {}, {}, {}, {});
+
+  // WHEN splitQuadraticRawMeshDataToLinear is called
+  // THEN a runtime error is thrown (fail fast)
+  REQUIRE_THROWS_AS(splitQuadraticRawMeshDataToLinear(linearData), std::runtime_error);
+}
+
+TEST_CASE("splitQuadraticRawMeshDataToLinear: converts TET10/TRI6 to TET4/TRI3") {
+  // GIVEN a valid quadratic RawMeshData (1 TET10 with 4 TRI6 boundary faces, 10 nodes)
+  RawMeshData data = makeQuadraticTestRawMeshData();
+  REQUIRE(data.getElementOrder() == 2);
+  const size_t originalNumTets = data.tetNodes.size() / 10;  // 1 tet
+  const size_t originalNumTris = data.triNodes.size() / 6;   // 4 tris
+
+  // WHEN
+  splitQuadraticRawMeshDataToLinear(data);
+
+  // THEN: element order is 1
+  REQUIRE(data.getElementOrder() == 1);
+
+  // THEN: tet connectivity has 4 nodes per tet
+  REQUIRE(data.tetNodes.size() == originalNumTets * 4);
+
+  // THEN: tri connectivity has 3 nodes per tri
+  REQUIRE(data.triNodes.size() == originalNumTris * 3);
+
+  // THEN: materials are unchanged
+  REQUIRE(data.tetMaterials.size() == originalNumTets);
+  REQUIRE(data.triMaterials.size() == originalNumTris);
+
+  // THEN: only corner nodes remain (4 corners for a single TET4 from a unit tet)
+  REQUIRE(data.points.size() == 4);
+
+  // THEN: all node indices are within bounds of the compacted points array
+  for (idx n : data.tetNodes) {
+    REQUIRE(n < (idx)data.points.size());
+  }
+  for (idx n : data.triNodes) {
+    REQUIRE(n < (idx)data.points.size());
+  }
+}
+
+TEST_CASE("splitQuadraticRawMeshDataToLinear: works on a real quadratic mesh file") {
+  // GIVEN a quadratic mesh loaded from file
+  auto rawMeshData = MeshReader::readMesh(TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH);
+  REQUIRE(rawMeshData.getElementOrder() == 2);
+  const size_t numTetsQuad = rawMeshData.tetNodes.size() / 10;
+  const size_t numTrisQuad = rawMeshData.triNodes.size() / 6;
+  const size_t numPointsOriginal = rawMeshData.points.size();
+
+  // WHEN
+  splitQuadraticRawMeshDataToLinear(rawMeshData);
+
+  // THEN: element order is 1
+  REQUIRE(rawMeshData.getElementOrder() == 1);
+
+  // THEN: linear connectivity sizes
+  REQUIRE(rawMeshData.tetNodes.size() == numTetsQuad * 4);
+  REQUIRE(rawMeshData.triNodes.size() == numTrisQuad * 3);
+
+  // THEN: fewer nodes after compaction (mid-edge nodes removed)
+  REQUIRE(rawMeshData.points.size() < numPointsOriginal);
+
+  // THEN: all indices are within bounds
+  for (idx n : rawMeshData.tetNodes) {
+    REQUIRE(n < (idx)rawMeshData.points.size());
+  }
+  for (idx n : rawMeshData.triNodes) {
+    REQUIRE(n < (idx)rawMeshData.points.size());
+  }
+
+  // THEN: material arrays are unchanged in size
+  REQUIRE(rawMeshData.tetMaterials.size() == numTetsQuad);
+  REQUIRE(rawMeshData.triMaterials.size() == numTrisQuad);
+}
+

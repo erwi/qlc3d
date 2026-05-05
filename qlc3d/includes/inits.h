@@ -2,6 +2,7 @@
 #define PROJECT_QLC3D_INITS_H
 #include <filesystem>
 #include <geom/vec3.h>
+#include <simu.h>
 
 class Geometry;
 class Coordinates;
@@ -20,20 +21,23 @@ void prepareGeometry(Geometry& geom,
                      RawMeshData& rawMeshData,
                      Electrodes& electrodes,
                      const Alignment& alignment,
-                     const Vec3& stretchVector = {1, 1, 1});
+                     const Vec3& stretchVector = {1, 1, 1},
+                     Simu::MeshElementOrder meshElementOrder = Simu::MeshElementOrder::Native);
 
 void prepareGeometry(Geometry& geom,
                     const std::filesystem::path &meshFileName,
                     Electrodes& electrodes,
                     const Alignment& alignment,
-                    const Vec3& stretchVector = {1, 1, 1});
+                    const Vec3& stretchVector = {1, 1, 1},
+                    Simu::MeshElementOrder meshElementOrder = Simu::MeshElementOrder::Native);
 
 /**
  * Set up geometry from mesh file, with any electrode potentials set to all 0 and anchoring to to strong with 0 tilt, twist.
  * This is mainly for test purposes.
  */
 void prepareGeometryWithDefaultBoundaries(Geometry &geom,
-                                          const std::filesystem::path &meshFileName);
+                                          const std::filesystem::path &meshFileName,
+                                          Simu::MeshElementOrder meshElementOrder = Simu::MeshElementOrder::Native);
 
 
 FILE* createOutputEnergyFile(Simu& simu);

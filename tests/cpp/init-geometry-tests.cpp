@@ -9,6 +9,7 @@
 #include <regulargrid.h>
 #include <regulargrid-factory.h>
 #include <test-util.h>
+#include <simu.h>
 
 #include <filesystem>
 #include <fstream>
@@ -35,6 +36,16 @@ std::string replaceOnce(std::string text, const std::string &from, const std::st
 std::filesystem::path quadraticMeshResource() {
   return {TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH};
 }
+
+/** Build a minimal Electrodes + Alignment for the small-cube meshes which have electrodes 1&2 and fixLC 1&2 */
+struct SmallCubeBoundaries {
+  Electrodes electrodes;
+  Alignment alignment;
+  SmallCubeBoundaries() : electrodes(Electrodes::withInitialPotentials({1, 2}, {1, 0})), alignment() {
+    alignment.addSurface(Surface::ofStrongAnchoring(1, 0, 0));
+    alignment.addSurface(Surface::ofStrongAnchoring(2, 0, 0));
+  }
+};
 
 } // namespace
 
@@ -213,3 +224,102 @@ TEST_CASE("prepareGeometry works without regular-grid parameters and grid can be
   REQUIRE(regularGrid != nullptr);
 }
 
+// ============================================================
+// WP3 tests: MeshElementOrder policy enforcement in prepareGeometry
+// ============================================================
+
+TEST_CASE("prepareGeometry Native policy: linear mesh stays linear (T1)") {
+  // GIVEN a TET4/TRI3 mesh and Native policy
+  SmallCubeBoundaries bc;
+  Geometry geom;
+
+  // WHEN
+  prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, bc.electrodes, bc.alignment,
+                  {1,1,1}, Simu::MeshElementOrder::Native);
+
+  // THEN element types are first-order
+  REQUIRE(geom.getTetrahedra().getElementType() == ElementType::LINEAR_TETRAHEDRON);
+  REQUIRE(geom.getTriangles().getElementType()  == ElementType::LINEAR_TRIANGLE);
+  REQUIRE(geom.getTetrahedra().getnNodes() == 4);
+  REQUIRE(geom.getTriangles().getnNodes()  == 3);
+}
+
+TEST_CASE("prepareGeometry Quadratic policy: linear mesh is promoted to quadratic (T2)") {
+  // GIVEN a TET4/TRI3 mesh and Quadratic policy
+  SmallCubeBoundaries bc;
+  Geometry geom;
+
+  // WHEN
+  prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, bc.electrodes, bc.alignment,
+                  {1,1,1}, Simu::MeshElementOrder::Quadratic);
+
+  // THEN element types are second-order
+  REQUIRE(geom.getTetrahedra().getElementType() == ElementType::QUADRATIC_TETRAHEDRON);
+  REQUIRE(geom.getTriangles().getElementType()  == ElementType::QUADRATIC_TRIANGLE);
+  REQUIRE(geom.getTetrahedra().getnNodes() == 10);
+  REQUIRE(geom.getTriangles().getnNodes()  == 6);
+}
+
+TEST_CASE("prepareGeometry Linear policy: linear mesh stays linear (T3)") {
+  // GIVEN a TET4/TRI3 mesh and Linear policy
+  SmallCubeBoundaries bc;
+  Geometry geom;
+
+  // WHEN
+  prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_GMSH_MESH, bc.electrodes, bc.alignment,
+                  {1,1,1}, Simu::MeshElementOrder::Linear);
+
+  // THEN element types remain first-order (nothing to demote)
+  REQUIRE(geom.getTetrahedra().getElementType() == ElementType::LINEAR_TETRAHEDRON);
+  REQUIRE(geom.getTriangles().getElementType()  == ElementType::LINEAR_TRIANGLE);
+  REQUIRE(geom.getTetrahedra().getnNodes() == 4);
+  REQUIRE(geom.getTriangles().getnNodes()  == 3);
+}
+
+TEST_CASE("prepareGeometry Native policy: quadratic mesh stays quadratic (T4)") {
+  // GIVEN a TET10/TRI6 mesh and Native policy
+  SmallCubeBoundaries bc;
+  Geometry geom;
+
+  // WHEN
+  prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH, bc.electrodes, bc.alignment,
+                  {1,1,1}, Simu::MeshElementOrder::Native);
+
+  // THEN element types remain second-order
+  REQUIRE(geom.getTetrahedra().getElementType() == ElementType::QUADRATIC_TETRAHEDRON);
+  REQUIRE(geom.getTriangles().getElementType()  == ElementType::QUADRATIC_TRIANGLE);
+  REQUIRE(geom.getTetrahedra().getnNodes() == 10);
+  REQUIRE(geom.getTriangles().getnNodes()  == 6);
+}
+
+TEST_CASE("prepareGeometry Quadratic policy: quadratic mesh stays quadratic (T5)") {
+  // GIVEN a TET10/TRI6 mesh and Quadratic policy
+  SmallCubeBoundaries bc;
+  Geometry geom;
+
+  // WHEN
+  prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH, bc.electrodes, bc.alignment,
+                  {1,1,1}, Simu::MeshElementOrder::Quadratic);
+
+  // THEN element types remain second-order (already quadratic)
+  REQUIRE(geom.getTetrahedra().getElementType() == ElementType::QUADRATIC_TETRAHEDRON);
+  REQUIRE(geom.getTriangles().getElementType()  == ElementType::QUADRATIC_TRIANGLE);
+  REQUIRE(geom.getTetrahedra().getnNodes() == 10);
+  REQUIRE(geom.getTriangles().getnNodes()  == 6);
+}
+
+TEST_CASE("prepareGeometry Linear policy: quadratic mesh is demoted to linear (T6)") {
+  // GIVEN a TET10/TRI6 mesh and Linear policy
+  SmallCubeBoundaries bc;
+  Geometry geom;
+
+  // WHEN
+  prepareGeometry(geom, TestUtil::RESOURCE_SMALL_CUBE_QUADRATIC_GMSH_MESH, bc.electrodes, bc.alignment,
+                  {1,1,1}, Simu::MeshElementOrder::Linear);
+
+  // THEN element types are demoted to first-order
+  REQUIRE(geom.getTetrahedra().getElementType() == ElementType::LINEAR_TETRAHEDRON);
+  REQUIRE(geom.getTriangles().getElementType()  == ElementType::LINEAR_TRIANGLE);
+  REQUIRE(geom.getTetrahedra().getnNodes() == 4);
+  REQUIRE(geom.getTriangles().getnNodes()  == 3);
+}

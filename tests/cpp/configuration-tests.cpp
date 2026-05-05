@@ -2,6 +2,7 @@
 
 #include <settings-reader.h>
 #include <reader.h>
+#include <simu.h>
 #include <test-util.h>
 #include "geom/vec3.h"
 #include "lc-representation.h"
@@ -457,3 +458,131 @@ TEST_CASE("Read normal box with expression tilt and twist") {
   auto boxes = reader.initialVolumeOrientation();
   auto &box = boxes->getBox(0);
 }
+
+// ============================================================
+// Tests for MeshElementOrder enum in SimuBuilder (WP1)
+// ============================================================
+
+TEST_CASE("SimuBuilder default MeshElementOrder is Native") {
+  // GIVEN a default SimuBuilder
+  // WHEN build() is called
+  SimuBuilder builder;
+  builder.meshFileName("dummy.msh");
+  std::unique_ptr<Simu> simu(builder.build());
+
+  // THEN getMeshElementOrder() returns Native
+  REQUIRE(simu->getMeshElementOrder() == Simu::MeshElementOrder::Native);
+}
+
+TEST_CASE("SimuBuilder meshElementOrder: quadratic") {
+  // GIVEN a SimuBuilder with meshElementOrder set to quadratic
+  SimuBuilder builder;
+  builder.meshFileName("dummy.msh");
+
+  // WHEN
+  builder.meshElementOrder("quadratic");
+  std::unique_ptr<Simu> simu(builder.build());
+
+  // THEN
+  REQUIRE(simu->getMeshElementOrder() == Simu::MeshElementOrder::Quadratic);
+}
+
+TEST_CASE("SimuBuilder meshElementOrder: linear") {
+  // GIVEN a SimuBuilder with meshElementOrder set to linear
+  SimuBuilder builder;
+  builder.meshFileName("dummy.msh");
+
+  // WHEN
+  builder.meshElementOrder("linear");
+  std::unique_ptr<Simu> simu(builder.build());
+
+  // THEN
+  REQUIRE(simu->getMeshElementOrder() == Simu::MeshElementOrder::Linear);
+}
+
+TEST_CASE("SimuBuilder meshElementOrder: native explicit") {
+  // GIVEN
+  SimuBuilder builder;
+  builder.meshFileName("dummy.msh");
+
+  // WHEN
+  builder.meshElementOrder("native");
+  std::unique_ptr<Simu> simu(builder.build());
+
+  // THEN
+  REQUIRE(simu->getMeshElementOrder() == Simu::MeshElementOrder::Native);
+}
+
+TEST_CASE("SimuBuilder meshElementOrder: case-insensitive (QUADRATIC)") {
+  // GIVEN
+  SimuBuilder builder;
+  builder.meshFileName("dummy.msh");
+
+  // WHEN / THEN - case insensitive
+  builder.meshElementOrder("QUADRATIC");
+  std::unique_ptr<Simu> simu(builder.build());
+  REQUIRE(simu->getMeshElementOrder() == Simu::MeshElementOrder::Quadratic);
+}
+
+TEST_CASE("SimuBuilder meshElementOrder: invalid value throws") {
+  // GIVEN
+  SimuBuilder builder;
+  builder.meshFileName("dummy.msh");
+
+  // WHEN an invalid value is set THEN a runtime_error is thrown
+  REQUIRE_THROWS_AS(builder.meshElementOrder("badvalue"), std::runtime_error);
+}
+
+// ============================================================
+// Tests for MeshElementOrder in settings file reader (WP2)
+// ============================================================
+
+TEST_CASE("Settings reader: MeshElementOrder = quadratic") {
+  // GIVEN a settings file with MeshElementOrder = quadratic
+  std::string contents = "MeshName = test.msh\nMeshElementOrder = quadratic\n";
+  auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+  // WHEN
+  SettingsReader reader(settingsFile.name());
+  auto simu = reader.simu();
+
+  // THEN
+  REQUIRE(simu->getMeshElementOrder() == Simu::MeshElementOrder::Quadratic);
+}
+
+TEST_CASE("Settings reader: MeshElementOrder = linear") {
+  // GIVEN a settings file with MeshElementOrder = linear
+  std::string contents = "MeshName = test.msh\nMeshElementOrder = linear\n";
+  auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+  // WHEN
+  SettingsReader reader(settingsFile.name());
+  auto simu = reader.simu();
+
+  // THEN
+  REQUIRE(simu->getMeshElementOrder() == Simu::MeshElementOrder::Linear);
+}
+
+TEST_CASE("Settings reader: MeshElementOrder absent defaults to Native") {
+  // GIVEN a settings file without MeshElementOrder key
+  std::string contents = "MeshName = test.msh\n";
+  auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+  // WHEN
+  SettingsReader reader(settingsFile.name());
+  auto simu = reader.simu();
+
+  // THEN defaults to Native
+  REQUIRE(simu->getMeshElementOrder() == Simu::MeshElementOrder::Native);
+}
+
+TEST_CASE("Settings reader: MeshElementOrder = trash throws") {
+  // GIVEN a settings file with an invalid MeshElementOrder value
+  std::string contents = "MeshName = test.msh\nMeshElementOrder = trash\n";
+  auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+  // WHEN / THEN reading throws
+  REQUIRE_THROWS_AS(SettingsReader(settingsFile.name()), std::runtime_error);
+}
+
+

@@ -8,6 +8,7 @@
 #include <geometry.h>
 #include <mesh/mesh.h>
 #include <inits.h>
+#include <simu.h>
 
 TEST_CASE("Read GiD mesh file") {
     std::vector<Vec3> points;
@@ -61,9 +62,10 @@ TEST_CASE("Write quadratic mesh as GiD/LCView format mesh and read it back as a 
 
   LcViewResultFormatWriter::writeMeshFile(geom.getCoordinates(), geom.getTetrahedra(), geom.getTriangles(), meshout.name());
 
-  // Read it back in
+  // Read it back — GiD/LCView format stores a linearised (split) mesh.
+  // Explicitly request Quadratic policy to trigger recombination back to second-order elements.
   Geometry geom2;
-  prepareGeometryWithDefaultBoundaries(geom2, meshout.name());
+  prepareGeometryWithDefaultBoundaries(geom2, meshout.name(), Simu::MeshElementOrder::Quadratic);
 
   // THEN
   REQUIRE(geom2.getTetrahedra().getElementType() == ElementType::QUADRATIC_TETRAHEDRON);

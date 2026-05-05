@@ -147,6 +147,10 @@ void SettingsReader::readSimu(Reader &reader) {
         builder.saveFormat(sf);
     }
 
+    if (auto v = reader.getOptional<string>(SFK_MESH_ELEMENT_ORDER)) {
+        builder.meshElementOrder(v.value());
+    }
+
     simu_.reset(builder.build());
 }
 

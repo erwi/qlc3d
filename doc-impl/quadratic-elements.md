@@ -1,6 +1,6 @@
 # Quadratic Element Support — Current Snapshot
 
-> Last updated: April 2026
+> Last updated: May 2026
 
 This document describes the current state of quadratic finite-element support in qlc3d for 10-node tetrahedra (`TET10`) and 6-node triangles (`TRI6`). It is a snapshot of what works now, what is still limited, and what work would unlock additional functionality.
 
@@ -21,11 +21,13 @@ This document describes the current state of quadratic finite-element support in
 
 Quadratic support is active across the main geometry, assembly, search, and output paths.
 
-The key project-wide behavior is in `prepareGeometry()` in `inits.cpp`:
+The element order used in a simulation is controlled by the `MeshElementOrder` setting (see user documentation). The key behaviour is in `prepareGeometry()` in `inits.cpp`, which accepts a `Simu::MeshElementOrder` argument:
 
-- linear meshes are promoted in memory to quadratic meshes through `convertLinearMeshDataToQuadratic()`;
-- native quadratic Gmsh meshes are accepted directly;
-- downstream simulation code normally operates on quadratic tetrahedra and triangles.
+| Policy value | Behaviour |
+|---|---|
+| `Native` (default) | Mesh is used at its loaded order: TET4 stays TET4, TET10 stays TET10. |
+| `Quadratic` | Mesh is promoted to second order if needed: TET4→TET10, TET10 unchanged. |
+| `Linear` | Mesh is demoted to first order if needed: TET10→TET4, TET4 unchanged. |
 
 For straight-edged elements, the codebase treats quadratic geometry as the same physical volume and surface geometry defined by the corner nodes, with mid-edge nodes carrying the higher-order field representation.
 
@@ -75,6 +77,7 @@ The following utilities exist and are in active use:
 - `recombineLinearTetsToQuadratic()`
 - `recombineLinearTrianglesToQuadratic()`
 - `splitQuadraticGeometryToLinear()` — converts a full `Geometry` holding TET10/TRI6 elements into an equivalent TET4/TRI3 `RawMeshData` used by the refinement pipeline.
+- `splitQuadraticRawMeshDataToLinear()` — converts a `RawMeshData` holding TET10/TRI6 elements into TET4/TRI3 in-place, compacting the node array to contain only corner nodes. Used by the `Linear` demotion policy in `prepareGeometry()`.
 
 ### 2.5 Solvers and boundary handling
 
@@ -156,13 +159,9 @@ Current consequence:
 
 ## 5. Current Caveats and Technical Debt
 
-### 5.1 `prepareGeometry()` is implicitly "always quadratic"
+### 5.1 ~~`prepareGeometry()` is implicitly "always quadratic"~~ — **Resolved**
 
-`prepareGeometry()` performs the mesh-order promotion policy internally. There is no explicit switch for keeping the simulation in first-order mode.
-
-Current consequence:
-
-- linear-vs-quadratic comparisons, debugging, and performance studies require code changes or alternate setup paths instead of a documented runtime choice.
+`prepareGeometry()` now accepts an explicit `Simu::MeshElementOrder` argument that controls the mesh-order handling policy. Users can set `MeshElementOrder` in the settings file to `native`, `quadratic`, or `linear`. The default is `native`, which keeps the mesh at its loaded order without any automatic promotion.
 
 ### 5.2 `recombineLinearisedMeshToQuadratic()` is heuristic and non-authoritative
 
@@ -202,18 +201,9 @@ Current consequence:
 
 ## 6. Recommended Milestones
 
-### Milestone 1 — Explicit mesh-order input policy
+### Milestone 1 — Explicit mesh-order input policy — **Completed**
 
-**Work required**
-
-- add a documented policy for mesh-order handling at input time;
-- either support native quadratic GiD meshes or make first-order GiD ingestion plus promotion an explicit, inspectable step;
-- expose whether a mesh was loaded as quadratic, recombined to quadratic, or promoted from linear input.
-
-**Unlocked functionality**
-
-- direct quadratic GiD workflows, if native support is added;
-- reproducible debugging and benchmarking across linear and quadratic input paths.
+The `MeshElementOrder` setting provides runtime control over the mesh element order. The three policy values (`native`, `quadratic`, `linear`) cover all input/output order combinations and are documented in `qlc3d/doc/README.md`.
 
 ### Milestone 2 — Stable and explicit quadratic export/save-reload semantics
 
