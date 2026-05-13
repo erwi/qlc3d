@@ -43,6 +43,12 @@ namespace vtkIOFun {
     /**
      * Writes VTK unstructured grid compatible file. See https://kitware.github.io/vtk-examples/site/VTKFileFormats/
      * for more info about the format.
+     *
+     * @note For quadratic tetrahedra (TET10), qlc3d stores nodes internally in Gmsh ordering
+     * where mid-edge node position [8] = CD midpoint (vertices 2–3) and position [9] = BD midpoint
+     * (vertices 1–3). VTK cell type 24 (VTK_QUADRATIC_TETRA) expects the opposite: [8]=BD, [9]=CD.
+     * The writer swaps these two positions when emitting quadratic elements so that the output is
+     * valid for ParaView / VTK consumers.
      */
     class UnstructuredGridWriter {
         void writePoints(std::ostream &os, const Coordinates &coordinates) const;

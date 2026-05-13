@@ -140,12 +140,22 @@ namespace vtkIOFun {
           RUNTIME_ERROR("Only linear and quadratic tetrahedra are supported, got element with " + std::to_string(numNodes) + " nodes.");
         }
 
+        const bool isQuadratic = (numNodes == 10);
+
         std::vector<unsigned int> nodes(numNodes, 0);
 
         os << "\n";
         os << "CELLS " << numTetrahedra << " " << arrayLength << "\n";
         for (unsigned int i = 0; i < numTetrahedra; i++) {
           tetrahedra.loadNodes(i, nodes.data());
+
+          // qlc3d stores quadratic TET10 in Gmsh ordering where node [8]=CD midpoint and node [9]=BD midpoint.
+          // VTK (type 24) expects the opposite: [8]=BD midpoint, [9]=CD midpoint.
+          // Swap positions 8 and 9 to convert from Gmsh to VTK ordering.
+          if (isQuadratic) {
+            std::swap(nodes[8], nodes[9]);
+          }
+
           os << numNodes << " ";
           for (unsigned int nodeInd = 0; nodeInd < numNodes - 1; nodeInd++) {
             os << nodes[nodeInd] << " ";

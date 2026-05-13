@@ -105,21 +105,36 @@ TEST_CASE("write VTK unstructured ascii grid - linear 4 node tetrahedra") {
 }
 
 TEST_CASE("write VTK unstructured ascii grid - quadratic 10 node tetrahedra") {
+  // GIVEN: a single quadratic tetrahedron with nodes in qlc3d's internal ordering, which follows the Gmsh
+  // TET10 convention. In Gmsh ordering, element positions are:
+  //   [0-3] corner nodes A, B, C, D
+  //   [4]=AB, [5]=BC, [6]=AC, [7]=AD, [8]=CD, [9]=BD
+  // Note that VTK TET10 (cell type 24) differs: it expects [8]=BD, [9]=CD.
+  // The writer must swap nodes at positions 8 and 9 to produce a valid VTK file.
   using namespace vtkIOFun;
   using namespace std;
   unsigned int numLcPoints = 10;
 
+  // Corners: A=(0,0,0), B=(1,0,0), C=(0,1,0), D=(0,0,1)
+  // Mid-edge nodes in Gmsh ordering:
+  //   [4] AB = (0.5, 0,   0)
+  //   [5] BC = (0.5, 0.5, 0)
+  //   [6] AC = (0,   0.5, 0)
+  //   [7] AD = (0,   0,   0.5)
+  //   [8] CD = (0,   0.5, 0.5)  ← Gmsh: [8]=CD
+  //   [9] BD = (0.5, 0,   0.5)  ← Gmsh: [9]=BD
   Coordinates coordinates(
-          {{0, 0, 0},
-           {1, 0, 0},
-           {0, 1, 0},
-           {0, 0, 1},
-           {0.5, 0, 0},
-           {0.5, 0.5, 0},
-           {0, 0.5, 0},
-           {0, 0, 0.5},
-           {0.5, 0, 0.5},
-           {0, 0.5, 0.5}});
+          {{0, 0, 0},      // node 0 = A
+           {1, 0, 0},      // node 1 = B
+           {0, 1, 0},      // node 2 = C
+           {0, 0, 1},      // node 3 = D
+           {0.5, 0, 0},    // node 4 = AB
+           {0.5, 0.5, 0},  // node 5 = BC
+           {0, 0.5, 0},    // node 6 = AC
+           {0, 0, 0.5},    // node 7 = AD
+           {0, 0.5, 0.5},  // node 8 = CD (Gmsh position [8])
+           {0.5, 0, 0.5}}  // node 9 = BD (Gmsh position [9])
+          );
 
   SolutionVector q(10, 5);
   SolutionVector potentials(10, 1);
@@ -133,11 +148,9 @@ TEST_CASE("write VTK unstructured ascii grid - quadratic 10 node tetrahedra") {
   Mesh tetrahedra(3, ElementType::QUADRATIC_TETRAHEDRON);
   tetrahedra.setElementData(ElementType::QUADRATIC_TETRAHEDRON, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, {10});
 
-
-
   auto tempFile = TestUtil::TemporaryFile::empty();
 
-  // WHEN
+  // WHEN: write the single quadratic tet to a VTK file
   UnstructuredGridWriter writer;
   writer.write(tempFile.name(),
                numLcPoints,
@@ -146,28 +159,32 @@ TEST_CASE("write VTK unstructured ascii grid - quadratic 10 node tetrahedra") {
                potentials,
                q);
 
-  // THEN
+  // THEN: the written file must use VTK TET10 ordering where [8]=BD and [9]=CD.
+  // The writer is expected to swap Gmsh positions 8 and 9 to produce a valid VTK cell.
   vector<string> lines = tempFile.readContentsAsText();
 
   REQUIRE(lines[0] == "# vtk DataFile Version 2.0");
 
   int pointsStartLine = 5;
   REQUIRE(lines[pointsStartLine] == "POINTS 10 float");
-  REQUIRE(lines[pointsStartLine + 1] == "0 0 0");
-  REQUIRE(lines[pointsStartLine + 2] == "1 0 0");
-  REQUIRE(lines[pointsStartLine + 3] == "0 1 0");
-  REQUIRE(lines[pointsStartLine + 4] == "0 0 1");
-  REQUIRE(lines[pointsStartLine + 5] == "0.5 0 0");
-  REQUIRE(lines[pointsStartLine + 6] == "0.5 0.5 0");
-  REQUIRE(lines[pointsStartLine + 7] == "0 0.5 0");
-  REQUIRE(lines[pointsStartLine + 8] == "0 0 0.5");
-  REQUIRE(lines[pointsStartLine + 9] == "0.5 0 0.5");
-  REQUIRE(lines[pointsStartLine + 10] == "0 0.5 0.5");
+  REQUIRE(lines[pointsStartLine + 1] == "0 0 0");   // A
+  REQUIRE(lines[pointsStartLine + 2] == "1 0 0");   // B
+  REQUIRE(lines[pointsStartLine + 3] == "0 1 0");   // C
+  REQUIRE(lines[pointsStartLine + 4] == "0 0 1");   // D
+  REQUIRE(lines[pointsStartLine + 5] == "0.5 0 0"); // AB
+  REQUIRE(lines[pointsStartLine + 6] == "0.5 0.5 0"); // BC
+  REQUIRE(lines[pointsStartLine + 7] == "0 0.5 0"); // AC
+  REQUIRE(lines[pointsStartLine + 8] == "0 0 0.5"); // AD
+  REQUIRE(lines[pointsStartLine + 9] == "0 0.5 0.5"); // CD  (coordinate index 8 in Gmsh order)
+  REQUIRE(lines[pointsStartLine + 10] == "0.5 0 0.5"); // BD (coordinate index 9 in Gmsh order)
 
   int tetsStartLine = 17;
   REQUIRE(lines[tetsStartLine] == "CELLS 1 11");
-  REQUIRE(lines[tetsStartLine + 1] == "10 0 1 2 3 4 5 6 7 8 9");
-  REQUIRE(lines[tetsStartLine + 3] == "CELL_TYPES 1"); // a singe cell type follows
+  // VTK connectivity must have positions 8 and 9 swapped relative to Gmsh ordering:
+  //   VTK [8] = node 9 (BD midpoint at 0.5,0,0.5)
+  //   VTK [9] = node 8 (CD midpoint at 0,0.5,0.5)
+  REQUIRE(lines[tetsStartLine + 1] == "10 0 1 2 3 4 5 6 7 9 8");
+  REQUIRE(lines[tetsStartLine + 3] == "CELL_TYPES 1"); // a single cell type follows
   REQUIRE(lines[tetsStartLine + 4] == "24"); // 24 is quadratic tet type
 
   // Check potential data

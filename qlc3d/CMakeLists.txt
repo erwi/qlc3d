@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED (VERSION 3.0)
+CMAKE_MINIMUM_REQUIRED (VERSION 3.10.0)
 PROJECT (qlc3d)
 
 # set compiler preprocessor macro QLC3D_SHA to current git branch SHA. This will be logged by the compiled executable

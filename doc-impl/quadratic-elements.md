@@ -90,6 +90,7 @@ The following utilities exist and are in active use:
 - `RegularGrid` can be built for quadratic tetrahedral meshes.
 - Spatial lookup for straight-edged TET10 remains geometrically exact because containment and barycentric coordinates use the corner-node geometry.
 - The VTK writer emits VTK cell type `24` for quadratic tetrahedra.
+- The VTK writer remaps TET10 mid-edge node positions 8 and 9 from Gmsh ordering (positions 8=CD, 9=BD) to VTK ordering (positions 8=BD, 9=CD) before writing the cell connectivity. All other node positions are identical between the two conventions.
 - LcView mesh output supports quadratic input meshes by splitting each quadratic element into linear sub-elements during export.
 
 ### 2.7 Adaptive mesh refinement on TET10/TRI6 meshes
