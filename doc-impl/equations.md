@@ -64,14 +64,14 @@ $$
 $$
 
 $$
-\mathbf{T}_4 = (\hat{\mathbf{e}}_x \otimes \hat{\mathbf{e}}_z
-    + \hat{\mathbf{e}}_z \otimes \hat{\mathbf{e}}_x
+\mathbf{T}_4 = (\hat{\mathbf{e}}_y \otimes \hat{\mathbf{e}}_z
+    + \hat{\mathbf{e}}_z \otimes \hat{\mathbf{e}}_y
 ) / \sqrt{2}
 $$
 
 $$
-\mathbf{T}_5 = (\hat{\mathbf{e}}_y \otimes \hat{\mathbf{e}}_z
-    + \hat{\mathbf{e}}_z \otimes \hat{\mathbf{e}}_y
+\mathbf{T}_5 = (\hat{\mathbf{e}}_x \otimes \hat{\mathbf{e}}_z
+    + \hat{\mathbf{e}}_z \otimes \hat{\mathbf{e}}_x
 ) / \sqrt{2}
 $$
 
