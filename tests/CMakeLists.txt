@@ -45,7 +45,10 @@ add_executable(cpp-test
         cpp/init-geometry-tests.cpp
         cpp/mesh/mesh-tests.cpp
         cpp/sparsematrix-tests.cpp
-        cpp/mesh/element-split-convert-tests.cpp)
+        cpp/mesh/element-split-convert-tests.cpp
+        cpp/energy-density-tests.cpp
+        cpp/energy-calculator-tests.cpp
+        cpp/energy-csv-writer-tests.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 

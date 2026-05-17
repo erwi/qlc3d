@@ -4,6 +4,7 @@
 #include <fmt/format.h>
 #include <util/logging.h>
 #include <util/exception.h>
+#include <cassert>
 #include <set>
 #include <geom/coordinates.h>
 #include <geom/vec3.h>

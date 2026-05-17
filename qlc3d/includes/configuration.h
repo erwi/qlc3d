@@ -7,6 +7,10 @@
 class Simu;
 class SolverSettings;
 class InitialVolumeOrientation;
+class LC;
+class MeshRefinement;
+class Electrodes;
+class Alignment;
 
 class Configuration {
     std::filesystem::path settingsFilePath_;

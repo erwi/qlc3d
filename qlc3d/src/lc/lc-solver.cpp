@@ -3,6 +3,7 @@
 #include <qlc3d.h>
 #include <solver-settings.h>
 #include <simulation-state.h>
+#include <solutionvector.h>
 #include <spamtrix_ircmatrix.hpp>
 #include <spamtrix_vector.hpp>
 #include <sparsematrix.h>

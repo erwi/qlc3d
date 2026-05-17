@@ -14,6 +14,9 @@
 #include <memory>
 #include <eventhandler.h>
 #include "lc/lc-solver.h"
+#include <energy/lc-energy-calculator.h>
+#include <io/energy-csv-writer.h>
+#include <optional>
 
 
 class Configuration;
@@ -39,7 +42,10 @@ class SimulationContainer {
     // state related internal variables. TODO clean them up
     std::chrono::steady_clock::time_point startInstant;
     double maxdq;
-    FILE *Energy_fid;
+
+    // Energy calculation: calculator is injected; CSV writer is created during initialise() when enabled
+    LcEnergyCalculator &energyCalculator_;
+    std::optional<EnergyCsvWriter> energyCsvWriter_;
 
     // geometries and mesh
     Geometry geom1;
@@ -68,7 +74,8 @@ public:
                         ILCSolver &lcSolver,
                         EventList &eventList,
                         SimulationState &simulationState,
-                        SimulationAdaptiveTimeStep &adaptiveTimeStep);
+                        SimulationAdaptiveTimeStep &adaptiveTimeStep,
+                        LcEnergyCalculator &energyCalculator);
     /*!
      * Sets up simulation state. Reads configuration, loads mesh geometry etc.
      */

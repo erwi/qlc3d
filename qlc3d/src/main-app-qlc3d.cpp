@@ -9,6 +9,8 @@
 #include <io/result-output.h>
 #include <potential/potential-solver.h>
 #include <lc/lc-solver.h>
+#include <solver-settings.h>
+#include <energy/lc-energy-calculator.h>
 #include "reader.h"
 
 namespace fs = std::filesystem;
@@ -69,8 +71,9 @@ int runSimulation(Configuration &configuration) {
                                                         simu->getdtFunction() };
     SimulationAdaptiveTimeStep adaptiveTimeStep(parameters);
 
+    LcEnergyCalculator energyCalculator;
 
-    SimulationContainer simulation(configuration, resultOutput, potentialSolver, *lcSolver, eventList, simulationState, adaptiveTimeStep);
+    SimulationContainer simulation(configuration, resultOutput, potentialSolver, *lcSolver, eventList, simulationState, adaptiveTimeStep, energyCalculator);
 
     Log::clearIndent();
     Log::info("Initialising.");

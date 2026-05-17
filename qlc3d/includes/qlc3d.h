@@ -2,24 +2,22 @@
 #ifndef QLC3D_H
 #define QLC3D_H
 
-
 #include <lc.h>
 #include <box.h>
 #include <alignment.h>
 #include <simu.h>
-#include <mesh/mesh.h>
-#include <solutionvector.h>
 #include <material_numbers.h>
 #include <eventlist.h>
-#include <solver-settings.h>
-#include <geometry.h>
-#include <energy.h>
 #include <line.h>
-#include <meshrefinement.h>
-#include <eventlist.h>
+#include <geom/vec3.h>
 #include <vector>
-#include <list>
-#include <iostream>
+
+class SolutionVector;
+class Geometry;
+class Mesh;
+class Coordinates;
+class SimulationState;
+class SolverSettings;
 
 namespace SpaMtrix{
     class IRCMatrix;

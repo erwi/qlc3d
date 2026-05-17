@@ -219,17 +219,7 @@ void prepareGeometry(Geometry& geom,
     prepareGeometry(geom, rawMeshData, electrodes, alignment, stretchVector, meshElementOrder);
 }
 
-FILE* createOutputEnergyFile(Simu& simu) {
-    FILE* fid = nullptr;
-    if (simu.getOutputEnergy() == 1) {
-      std::filesystem::path energyFilePath = simu.getSaveDirAbsolutePath() / "energy.m";
-      fid = fopen( energyFilePath.string().c_str(), "w");
-      if (fid == nullptr) {
-        RUNTIME_ERROR(fmt::format("could not open output file for free energy by filename = {}.", energyFilePath));
-      }
-    }
-    return fid;
-}
+// createOutputEnergyFile removed — energy output is now handled by LcEnergyCalculator
 
 void initialiseLcSolutionVector(SolutionVector &q,
                                 const Simu &simu,

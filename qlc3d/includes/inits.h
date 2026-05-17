@@ -39,9 +39,6 @@ void prepareGeometryWithDefaultBoundaries(Geometry &geom,
                                           const std::filesystem::path &meshFileName,
                                           Simu::MeshElementOrder meshElementOrder = Simu::MeshElementOrder::Native);
 
-
-FILE* createOutputEnergyFile(Simu& simu);
-
 /**
  * Sets up initial LC solution vector including volume and surface orientations.
  */

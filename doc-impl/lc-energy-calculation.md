@@ -4,7 +4,7 @@ This document describes how the LC free energy is configured, computed, and writ
 
 ## Overview
 
-The free energy calculation is an optional diagnostic that integrates the LC free energy density over the LC domain at every simulation iteration and writes the per-component results to a MATLAB/Octave-compatible output file. It is entirely separate from the energy minimisation done by the solver; it only reads the current solution state and produces output.
+The free energy calculation is an optional diagnostic that integrates the LC free energy density over the LC domain at every simulation iteration and writes the per-component results to a CSV file. It is entirely separate from the energy minimisation done by the solver; it only reads the current solution state and produces output.
 
 The total free energy is:
 
@@ -12,15 +12,14 @@ $$
 F = \int_\Omega (f_D + f_B - f_E)\, d\Omega + \int_\Gamma f_S\, d\Gamma
 $$
 
-The energy output currently covers the bulk volume integral only (no surface anchoring term), decomposed into:
+Decomposed into four components:
 
-| Component | Symbol | Energy contribution |
-|-----------|--------|---------------------|
-| Splay | F11 | K11 splay distortion |
-| Twist | F22 | K22 twist distortion (including chirality) |
-| Bend | F33 | K33 bend distortion |
-| Thermotropic | Fth | Landau-de Gennes bulk ordering |
+| Component | Symbol | Description |
+|-----------|--------|-------------|
+| Elastic | Felastic | Total elastic distortion energy (L1..L6 combined) |
+| Thermotropic | Fth | Landau-de Gennes bulk ordering energy |
 | Electric | Fe | Dielectric + flexoelectric coupling to the field |
+| Surface | Fs | Surface anchoring energy |
 
 ---
 
@@ -36,281 +35,174 @@ The setting key is defined in `qlc3d/includes/settings_file_keys.h` as `SFK_OUTP
 
 ---
 
-## File Lifecycle
+## Architecture
 
-### Opening the output file
+The energy calculation is implemented as a set of independent, testable modules:
 
-At the end of `SimulationContainer::initialise()` (`simulation-container.cpp`), `createOutputEnergyFile()` is called (defined in `inits.cpp`):
+| File | Responsibility |
+|------|---------------|
+| `energy/energy-result.h` | `EnergyResult` struct with per-component fields and `total()` |
+| `energy/lc-energy-density.h/cpp` | Pure Gauss-point energy density functions (no integration), including `surfaceEnergyDensity` |
+| `energy/lc-energy-integrator.h/cpp` | Integrates all energy contributions; provides `integrateVolumeEnergy`, `integrateSurfaceEnergy`, and the combined `integrateEnergy` |
+| `energy/lc-energy-calculator.h/cpp` | Top-level calculator; delegates to `integrateEnergy` and returns `EnergyResult` |
+| `io/energy-csv-writer.h/cpp` | Writes `EnergyResult` rows to a CSV file |
 
-```cpp
-FILE* createOutputEnergyFile(Simu& simu) {
-    // opens <saveDir>/energy.m for writing if outputEnergy == 1
-}
-```
+`LcEnergyCalculator` is a stateless object injected into `SimulationContainer` via its constructor. CSV writing is handled separately by an `EnergyCsvWriter` that `SimulationContainer` creates internally during `initialise()` when `outputEnergy == 1`.
 
-The file is opened at `<saveDir>/energy.m` (within the simulation's save directory). If the file cannot be opened, a `RUNTIME_ERROR` is raised. The `FILE*` handle (`Energy_fid`) is stored as a member of `SimulationContainer`.
+The volume and surface integrators (`integrateVolumeEnergy`, `integrateSurfaceEnergy`) are defined in the same `lc-energy-integrator.h` but remain individually callable for independent unit testing. All energy density functions live in `lc-energy-density.h/cpp`.
 
-### Writing per-iteration data
-
-At the start of each iteration in `SimulationContainer::runIteration()`:
-
-```cpp
-if (simu->getOutputEnergy()) {
-    CalculateFreeEnergy(Energy_fid, currentIteration, currentTime, *lc, &geom1, &v, &q);
-}
-```
-
-Energy is calculated **before** the Q-tensor and potential are updated for that iteration.
-
-### Closing the file
-
-`closeEnergyFile(fid, simu)` (in `energy.cpp`) is called from the simulation teardown path. It appends the MATLAB array terminator `];` and closes the file handle.
+> **Note on absolute energy values:** No ground-state offsets are subtracted from any energy component. All reported energies (thermotropic, surface) are raw values and will generally be negative at the equilibrium state. The intended use is to monitor that the total energy decreases over simulation iterations, not to interpret the absolute numbers.
 
 ---
 
 ## Output File Format
 
-The output file `energy.m` uses MATLAB/Octave matrix syntax:
+The output file is `<saveDir>/energy.csv`. It is created at the start of the simulation. A row is appended at the start of each iteration (capturing the state from the previous iteration) and one final row is appended in `postSimulationTasks()` after all iterations have completed, capturing the final converged state.
 
-```matlab
-% columns are:
-% time[s],splay,twist,bend,thermotropic,dielectric
-F = [ ...
-1.000000e-09    <F11>    <F22>    <F33>    <Fth>    <Fe>;
-...
-];
+CSV columns:
+
+```
+time_s,iteration,elastic_J,thermotropic_J,electric_J,surface_J,total_J
 ```
 
-- First column: simulation time in seconds.
-- Remaining columns: integrated energy components in Joules.
-- The header comment is written only on the first iteration (`currentIteration == 1`).
+- `time_s` — simulation time in seconds.
+- `iteration` — simulation iteration number.
+- `elastic_J`, `thermotropic_J`, `electric_J`, `surface_J` — per-component energies in Joules.
+- `total_J` — sum of all four components.
 
 ---
 
 ## Numerical Integration
 
-The integral over the LC domain uses **11-point 3D Gauss-Legendre quadrature** on linear tetrahedral elements (P1 elements). The quadrature is set up inside the `Energy` namespace in `energy.cpp`.
+### Quadrature
 
-### Gauss points and weights
+Integration uses the `TetShapeFunction` and `TriShapeFunction` classes from `<fe/gaussian-quadrature.h>`, which are the same classes used by the LC and potential solvers.
 
-Constants and arrays in the `Energy` namespace:
+| Element | Shape function class | Integration points |
+|---------|--------------------|--------------------|
+| Linear tet (TET4) | `TetShapeFunction(1)` | `Keast8` (45 pts, 8th order) |
+| Quadratic tet (TET10) | `TetShapeFunction(2)` | `Keast8` (45 pts, 8th order) |
+| Linear tri (TRI3) | `TriShapeFunction(1)` | `Tri4thOrder` (7 pts, 4th order) |
+| Quadratic tri (TRI6) | `TriShapeFunction(2)` | `Tri4thOrder` (7 pts, 4th order) |
 
-| Symbol | Value | Description |
-|--------|-------|-------------|
-| `ngp` | 11 | Number of Gauss points |
-| `gp[11][4]` | — | Barycentric coordinates of each Gauss point |
-| `w[11]` | w11, w12, w13 | Corresponding quadrature weights |
-| `w11` | −74/5625 | Weight for centre point |
-| `w12` | 343/45000 | Weights for 4 vertex-adjacent points |
-| `w13` | 56/2250 | Weights for 6 edge-midpoint points |
+The element order is read at runtime from the mesh via `tets.getElementType()` → `getElementOrder(elementType)`, so the same integrator code handles both linear and quadratic mesh types.
 
-### Shape functions
+### Volume integral
 
-`init_shape()` pre-computes the P1 shape functions and their parametric derivatives at each Gauss point:
+`integrateVolumeEnergy(lc, geom, v, q)` (in `lc-energy-integrator.cpp`):
 
-| Array | Content |
-|-------|---------|
-| `sh1[ngp][4]` | Shape function values N_i(ξ_gp) |
-| `sh1r[ngp][4]` | ∂N_i/∂r (r-derivative, constant ±1 for P1) |
-| `sh1s[ngp][4]` | ∂N_i/∂s |
-| `sh1t[ngp][4]` | ∂N_i/∂t |
+1. Iterates over all tetrahedra with `materialNumber <= MAT_DOMAIN7` (LC domain elements only).
+2. For each element, calls `shapes.initialiseElement(nodes, det)` and loops over Gauss points via `shapes.hasNextPoint()` / `shapes.nextPoint()`.
+3. At each Gauss point, fills a `GaussPointData` struct from shape function interpolation of `q` and `v` nodal values (including spatial derivatives via `shapes.Nx/Ny/Nz`).
+4. Calls `elasticEnergyDensity`, `thermotropicEnergyDensity`, and `electricEnergyDensity` and accumulates `shapes.getWeight() * det * density`.
+5. Returns a partially populated `EnergyResult` (`surface` left at 0.0).
 
-### Jacobian and physical derivatives
+### Surface integral
 
-For each element and Gauss point:
+`integrateSurfaceEnergy(alignment, geom, q, S0)` (in `lc-energy-integrator.cpp`):
 
-1. The 3×3 Jacobian is assembled from the node coordinates (converted from micrometres to metres via `MICROMETER_TO_METER`).
-2. The determinant `Jdet` is read from the precomputed value on the `Mesh` object.
-3. The inverse Jacobian `Jinv[3][3]` is computed analytically.
-4. Physical shape function gradients `dSh[4][3]` are obtained by the chain rule: `dSh[i][k] = Σ_r sh1r[igp][i] * Jinv[r][k]`.
-
-### Interpolation at Gauss points
-
-At each Gauss point, the five T-tensor components and their spatial gradients are interpolated from the nodal DOFs stored in `SolutionVector *q`:
-
-```
-q_n     = Σ_i N_i * q->getValue(node_i, n)      (component value)
-q_n_x   = Σ_i dSh[i][0] * q->getValue(node_i, n) (x-derivative)
-q_n_y   = Σ_i dSh[i][1] * q->getValue(node_i, n)
-q_n_z   = Σ_i dSh[i][2] * q->getValue(node_i, n)
-```
-
-Electric field components are similarly interpolated from `SolutionVector *v` (the potential), giving `(Vx, Vy, Vz) = -∇φ`.
+1. Retrieves all weak-anchoring surfaces from `alignment.getWeakSurfacesByFixLcNumber()`.
+2. Iterates over all triangle elements; skips those whose `fixLcNumber` has no weak-anchoring entry.
+3. For homeotropic surfaces (`usesSurfaceNormal() == true`), uses the per-node surface normal; otherwise, uses the fixed easy-axis vectors `v1`, `v2` from the `Surface` object.
+4. Evaluates the raw Rapini-Papoular surface energy density (via `surfaceEnergyDensity`) at each Gauss point and accumulates the integral. No ground-state offset is applied.
 
 ---
 
 ## Energy Density Expressions
 
-All expressions are in terms of the five T-tensor components `q1..q5` and their spatial derivatives. The T-basis is defined as in `equations.md`:
+All density functions are implemented in `lc-energy-density.cpp` as pure functions taking `GaussPointData` and `EnergyMaterialParams`.
 
-```
-T1 = (3 ê_z⊗ê_z − I) / √6   (axial)
-T2 = (ê_x⊗ê_x − ê_y⊗ê_y) / √2   (biaxial)
-T3 = (ê_x⊗ê_y + ê_y⊗ê_x) / √2   (xy shear)
-T4 = (ê_y⊗ê_z + ê_z⊗ê_y) / √2   (yz shear)
-T5 = (ê_x⊗ê_z + ê_z⊗ê_x) / √2   (xz shear)
-```
+### Elastic energy
 
-### Pre-computed scalar invariants
+`elasticEnergyDensity` evaluates the total elastic distortion using the G1/G2/G4/G6 invariants:
 
-The code evaluates several intermediate scalar invariants before summing the energy contributions:
+| Invariant | Expression | Corresponds to |
+|-----------|-----------|----------------|
+| G1 | Q_ij,k Q_ij,k (in T-basis) | Isotropic elastic gradient |
+| G2 | Q_ij,j Q_ik,k (in T-basis) | Divergence-squared |
+| G4 | ε_ijk Q_il Q_jl,k | Chiral twist (proportional to n·curl n) |
+| G6 | Q_lk Q_ij,l Q_ij,k | Non-linear elastic |
 
-| Variable | Expression | Physical meaning |
-|----------|-----------|------------------|
-| `R` | q1²+q2²+q3²+q4²+q5² | tr(Q²) = Q_ij Q_ij |
-| `G1` | L1-type gradient invariant | Isotropic elastic gradient squared: Q_ij,k Q_ij,k |
-| `G2` | L2-type divergence invariant | Square of divergence of Q: Q_ij,j Q_ik,k |
-| `G3` | L3-weighted K24 saddle-splay term | Q_ik,j Q_ij,k |
-| `G4` | L4-type chiral twist invariant | ε_ijk Q_il Q_jl,k (proportional to n·curl n) |
-| `G6` | L6-type non-linear elastic invariant | Q_lk Q_ij,l Q_ij,k |
+The L1..L6 Landau-de Gennes coefficients are mapped from the Frank constants K11, K22, K33 via the `LC` class.
 
-### Elastic energy components
-
-The Frank elastic constants K11, K22, K33 are mapped to Landau-de Gennes coefficients L1, L2, L3, L4, L6 (see [Material Parameters](#material-parameters) below). The energy calculation uses the inverse mapping to express K11, K22, K33 contributions directly:
-
-```
-F_splay = 4*G2/(9*S0²) - 2*G1/(27*S0²) - 4*G6/(27*S0³)
-F_bend  = 2*G1/(27*S0²) + 4*G6/(27*S0³)
-F_twist = ((G4 - (3/2)*R*q0) / (9*S0²) * 4)²   [squared, chiral offset included]
-
-F11 += 0.5 * K11 * mul * F_splay
-F22 += 0.5 * K22 * mul * F_twist
-F33 += 0.5 * K33 * mul * F_bend
-```
-
-where `mul = w[igp] * Jdet` is the quadrature weight times Jacobian determinant, and `q0 = 2π/p0` is the chirality wavenumber (zero if `p0 == 0`).
-
-### Thermotropic (bulk) energy
+### Thermotropic energy
 
 ```
 f_B = A/2 * R  +  B/3 * tr(Q³)  +  C/4 * R²
 ```
 
-The `B/3 * tr(Q³)` cubic term is expanded explicitly in `q1..q5`. The reference ground-state value `f0` is subtracted so that the reported energy is zero at the equilibrium scalar order:
+No ground-state offset is applied. The value is negative at the equilibrium state.
 
-```
-f0 = (3A/4)*S0² + (B/4)*S0³ + (9C/16)*S0⁴
-Fth += mul * (f_B_elem - f0)
-```
+### Electric energy
 
-### Electric field energy
-
-The dielectric contribution uses the anisotropic permittivity tensor:
+The dielectric term uses the anisotropic permittivity tensor:
 
 ```
 ε_ij = (ε_⊥ + Δε/3) δ_ij  +  (2Δε / (3 S₀)) Q_ij
-```
-
-The electric energy density is:
-
-```
 f_E = ε₀/2 * ε_ij * E_i * E_j
 ```
 
-which is implemented as:
-
-```
-Fel_elem = e0 * (-Vx² - Vy² - Vz²) * epsav * 0.5
-         + e0 * deleps * (... terms in V×V×q ...)
-```
-
-where `epsav = ε_⊥/S0` and `deleps = (ε_∥ - ε_⊥)/S0`.
-
-### Flexoelectric energy
-
-The flexoelectric polarisation is:
+Flexoelectric polarisation:
 
 ```
 P_i = ξ_a Q_ij,j  +  ξ_b Q_ij Q_jk,k
 ```
 
-The two coefficients are computed from the flexoelectric parameters `e1` and `e3`:
-
-```
-ξ_a = efe  = 2/(9*S0) * (e1 + 2*e3)
-ξ_b = efe2 = 4/(9*S0²) * (e1 - e3)
-```
-
-Each term is added to `Fflx` only if its coefficient is non-zero. The flexoelectric energy contribution is included in the `Fe` output column together with the dielectric energy.
+where `ξ_a = 2/(9*S0) * (e1 + 2*e3)` and `ξ_b = 4/(9*S0²) * (e1 - e3)`.
 
 ---
 
 ## Material Parameters
 
-### Frank elastic constants → L-coefficients
-
-The `LC` class (in `lc.h` / `lc.cpp`) computes the Landau-de Gennes L-coefficients from the Frank constants and the equilibrium order parameter S0. S0 is found from the thermotropic parameters:
-
-```
-S0 = (-B + √(B² - 24AC)) / (6C)
-```
-
-The Frank-to-Landau conversions are:
-
-| L-coefficient | Formula |
-|---------------|---------|
-| L1 | 2(K33 - K11 + 3 K22) / (27 S0²) |
-| L2 | 4(K11 - K22) / (9 S0²) |
-| L3 | 4 K24 / (9 S0²) |
-| L4 | 8 q0 K22 / (9 S0²) — chirality wavenumber q0 = 2π/p0 |
-| L6 | 4(K33 - K11) / (27 S0³) |
-
-### Parameters used in the energy calculation
-
-| Parameter | Source in code | Role |
-|-----------|---------------|------|
+| Parameter | Source | Role |
+|-----------|--------|------|
 | S0 | `lc.S0()` | Equilibrium scalar order parameter |
-| K11, K22, K33 | `lc.K11()`, `lc.K22()`, `lc.K33()` | Frank elastic constants |
+| K11, K22, K33 | `lc.K11()`, etc. | Frank elastic constants |
 | A, B, C | `lc.A()`, `lc.B()`, `lc.C()` | Landau thermotropic coefficients |
-| ε_∥, ε_⊥ | `lc.eps_par()`, `lc.eps_per()` | Dielectric permittivities (parallel/perpendicular) |
+| ε_∥, ε_⊥ | `lc.eps_par()`, `lc.eps_per()` | Dielectric permittivities |
 | e1, e3 | `lc.e1()`, `lc.e3()` | Flexoelectric coefficients |
-| p0 | `lc.p0()` | Cholesteric pitch (0 = non-chiral) |
+| p0 | `lc.p0()` | Cholesteric pitch (0 = non-chiral), q0 = 2π/p0 |
 
 ---
 
 ## Element Selection
 
-Only elements whose material number satisfies `materialNumber <= MAT_DOMAIN7` (i.e., LC domain elements) contribute to the integral. Fixed-surface, electrode, or non-LC elements are excluded.
+Only volume elements whose material number satisfies `materialNumber <= MAT_DOMAIN7` (LC domain) contribute to the volume integral. Surface elements are filtered by `fixLcNumber` against the set of weak-anchoring surfaces registered in the `Alignment` object.
 
 ---
 
 ## Call Sequence Summary
 
 ```
+main-app-qlc3d.cpp
+  └─ creates LcEnergyCalculator (stateless, injected into SimulationContainer)
+
 SimulationContainer::initialise()
-  └─ createOutputEnergyFile(*simu)        // opens <saveDir>/energy.m
+  └─ if outputEnergy == 1:
+       energyCsvWriter_.emplace(savePath/"energy.csv")
+            └─ opens energy.csv and writes CSV header
 
-SimulationContainer::runIteration()       // called every iteration
-  └─ if (simu->getOutputEnergy())
-       └─ CalculateFreeEnergy(fid, iter, time, lc, geom, v, q)
-            ├─ init_shape()               // Gauss point shape functions
-            ├─ for each LC tetrahedron:
-            │    for each Gauss point:
-            │      interpolate q1..q5, gradients, E-field
-            │      evaluate G1, G2, G3, G4, G6, R
-            │      accumulate F11, F22, F33, Fth, Fflx, Fe
-            └─ fprintf(fid, "time F11 F22 F33 Fth Fe;\n")
+SimulationContainer::runIteration()
+  └─ if energyCsvWriter_.has_value():
+       result = energyCalculator_.calculate(lc, geom, v, q, alignment)
+         └─ integrateEnergy(...)
+              ├─ integrateVolumeEnergy(...)   → elastic, thermotropic, electric
+              └─ integrateSurfaceEnergy(...)  → surface
+       energyCsvWriter_->write(time, iteration, result)
+         └─ appends one CSV row (state from the previous iteration)
 
-SimulationContainer::postSimulationTasks() (or teardown)
-  └─ closeEnergyFile(fid, simu)           // appends "];" and fclose
+SimulationContainer::postSimulationTasks()
+  └─ if energyCsvWriter_.has_value():
+       result = energyCalculator_.calculate(lc, geom, v, q, alignment)
+       energyCsvWriter_->write(time, iteration, result)
+         └─ appends final CSV row for the converged end state
 ```
 
 ---
 
 ## Symbolic Energy Expressions
 
-The file `equations/lc-energy-derivation.py` contains symbolic SymPy derivations of all four energy densities (f_D, f_B, f_E, f_S) directly in the T-tensor basis (`t1..t5` and their spatial derivatives):
-
-| Function | Returns |
-|----------|---------|
-| `thermotropic_energy_density()` | f_B expanded in t1..t5 |
-| `elastic_energy_density()` | f_D expanded in t1..t5 and their first derivatives, parameterised by L1,L2,L3,L4,L6 |
-| `electric_energy_density()` | f_E with ε_ij and P_flexo as separate outputs |
-| `surface_anchoring_energy_density()` | f_S with easy-axis vectors v1, v2 |
-
-The script also includes **sanity checks** that verify the SymPy-derived Q matrix and ε tensor exactly match the runtime C++ implementations in `lc-representation.cpp` (via `TTensor::toQTensor()` and `DielectricPermittivity::fromTTensor()`). These symbolic expressions can serve as a foundation for **C++ code generation** to replace or validate the hand-written formulas in `energy.cpp`.
-
-The key **C++ variable mapping** is:
+The file `equations/lc-energy-derivation.py` contains symbolic SymPy derivations of all four energy densities (f_D, f_B, f_E, f_S) directly in the T-tensor basis (`t1..t5` and their spatial derivatives). The C++ variable mapping is:
 
 | C++ variable | SymPy symbol | Note |
 |-------------|-------------|------|
@@ -318,8 +210,3 @@ The key **C++ variable mapping** is:
 | `q1x`..`q5z` | `t1x`..`t5z` | Physical spatial gradients |
 | `Vx`, `Vy`, `Vz` | `E_x`, `E_y`, `E_z` | Electric field = −∇φ |
 | `S0` | `S_0` | Equilibrium order parameter |
-| `epsav` | `ε_⊥/S0` | Scaled perpendicular permittivity |
-| `deleps` | `Δε/S0` | Scaled permittivity anisotropy |
-| `efe` | `ξ_a` | Linear flexoelectric coefficient |
-| `efe2` | `ξ_b` | Quadratic flexoelectric coefficient |
-

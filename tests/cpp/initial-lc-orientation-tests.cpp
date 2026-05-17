@@ -1,5 +1,6 @@
 #include <catch.h>
 #include <qlc3d.h>
+#include <solutionvector.h>
 #include <lc-representation.h>
 #include <geom/coordinates.h>
 #include <geom/vec3.h>

@@ -1,14 +1,9 @@
-
 #include <simulation-container.h>
 #include <configuration.h>
 #include <simu.h>
 #include <electrodes.h>
-#include <box.h>
 #include <alignment.h>
-#include <meshrefinement.h>
-#include <regulargrid.h>
 #include <regulargrid-factory.h>
-#include <resultio.h>
 #include <qlc3d.h>
 #include <inits.h>
 #include <eventhandler.h>
@@ -16,13 +11,13 @@
 #include <util/exception.h>
 #include <util/stringutil.h>
 #include <io/result-output.h>
+#include <io/energy-csv-writer.h>
 #include <potential/potential-solver.h>
 #include <lc/lc-solver.h>
 #include <simulation-adaptive-time-step.h>
 #include <simulation-state.h>
-#include <spamtrix_ircmatrix.hpp>
 #include "util/stopwatch.h"
-#include "geom/periodicity.h"
+#include <energy/lc-energy-calculator.h>
 
 namespace fs = std::filesystem;
 
@@ -32,7 +27,8 @@ SimulationContainer::SimulationContainer(Configuration &config,
                                          ILCSolver &lcSolver,
                                          EventList &eventList,
                                          SimulationState &simulationState,
-                                         SimulationAdaptiveTimeStep &adaptiveTimeStep) :
+                                         SimulationAdaptiveTimeStep &adaptiveTimeStep,
+                                         LcEnergyCalculator &energyCalculator) :
         configuration(config),
         resultOutput(resultOut),
         potentialSolver(potentialSolver),
@@ -43,9 +39,10 @@ SimulationContainer::SimulationContainer(Configuration &config,
         regGrid(nullptr),
         eventList(eventList),
         simulationState(simulationState),
-        adaptiveTimeStep(adaptiveTimeStep) {
+        adaptiveTimeStep(adaptiveTimeStep),
+        energyCalculator_(energyCalculator) {
 
-    Energy_fid = nullptr;
+    energyCsvWriter_ = std::nullopt;
 }
 
 void SimulationContainer::initialise() {
@@ -66,6 +63,12 @@ void SimulationContainer::initialise() {
             RUNTIME_ERROR(fmt::format("Could not create directory {}", simu->getSaveDirAbsolutePath().string()));
     }
     Log::info("output and result files will be written into {}", simu->getSaveDirAbsolutePath().string());
+
+    // Open energy CSV writer when energy output is enabled
+    if (simu->getOutputEnergy()) {
+        energyCsvWriter_.emplace(simu->getSaveDirAbsolutePath() / "energy.csv");
+        Log::info("energy output enabled, writing to {}", (simu->getSaveDirAbsolutePath() / "energy.csv").string());
+    }
 
     if (simu->getSaveFormat().empty()) {
       Log::warn("No save format specified, no results will be saved. Valid save formats are " + StringUtil::toString(Simu::VALID_SAVE_FORMATS) );
@@ -103,7 +106,6 @@ void SimulationContainer::initialise() {
       RUNTIME_ERROR(fmt::format("Could not back up settings file {} to {}", configuration.settingsFile(), settingsBackup));
     }
 
-    Energy_fid = nullptr; // file for outputting free energy
     // ================================================================
     //	CREATE GEOMETRY
     //	NEED 3 GEOMETRY OBJECTS WHEN USING MESH REFINEMENT
@@ -158,7 +160,6 @@ void SimulationContainer::initialise() {
     //*
     //********************************************************************
     Log::info("Saving starting configuration");
-    Energy_fid = createOutputEnergyFile(*simu); // done in inits
 
     handleInitialEvents(simulationState,
                         eventList,
@@ -212,7 +213,6 @@ void SimulationContainer::runIteration() {
   Stopwatch stopwatch;
   stopwatch.start();
   simulationState.state(RunningState::RUNNING);
-  //adjustTimeStepSize(); // calculate time step size for this iteration.
   adaptiveTimeStep.calculateTimeStep(simulationState);
 
   std::chrono::duration<double> elapsedSeconds = std::chrono::steady_clock::now() - startInstant;
@@ -226,15 +226,14 @@ void SimulationContainer::runIteration() {
 
   Log::incrementIndent();
 
-  // mve this to event handling/result output
-  if (simu->getOutputEnergy()) {
-    CalculateFreeEnergy(Energy_fid,
-                        simulationState.currentIteration(),
-                        simulationState.currentTime().getTime(),
-                        *lc,
-                        &geom1,
-                        &v,
-                        &q);
+  // Calculate and write energy if output is enabled
+  if (energyCsvWriter_.has_value()) {
+    EnergyResult energyResult = energyCalculator_.calculate(
+        *lc, geom1, v, q, alignment);
+    energyCsvWriter_->write(
+        simulationState.currentTime().getTime(),
+        simulationState.currentIteration(),
+        energyResult);
   }
 
   // CALCULATES Q-TENSOR AND POTENTIAL
@@ -266,6 +265,16 @@ void SimulationContainer::runIteration() {
 
 void SimulationContainer::postSimulationTasks() {
     simulationState.state(RunningState::COMPLETED);
+
+    // Calculate and write energy for the final converged state after all iterations
+    if (energyCsvWriter_.has_value()) {
+        EnergyResult energyResult = energyCalculator_.calculate(*lc, geom1, v, q, alignment);
+        energyCsvWriter_->write(
+            simulationState.currentTime().getTime(),
+            simulationState.currentIteration(),
+            energyResult);
+    }
+
     resultOutput.writeResults(*geometries.geom, v, q, regGrid.get(), simulationState);
 }
 

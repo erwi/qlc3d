@@ -1,4 +1,5 @@
 #include "../includes/qlc3d.h"
+#include <solutionvector.h>
 #include <geom/vec3.h>
 #include <lc-representation.h>
 #include <util/logging.h>

@@ -40,6 +40,7 @@ add_library(lib-qlc3d STATIC
         includes/io/vtkiofun.h
         includes/io/lcview-result-output.h
         includes/io/result-output.h
+        includes/io/energy-csv-writer.h
         src/io/meshreader.cpp
         src/io/ReadGiDMesh3D.cpp
         src/io/gmsh-read.cpp
@@ -48,6 +49,7 @@ add_library(lib-qlc3d STATIC
         src/io/result-output.cpp
         src/io/writeLCD.cpp
         src/io/lcview-result-output.cpp
+        src/io/energy-csv-writer.cpp
         includes/inits.h
         includes/util/logging.h
         includes/util/exception.h
@@ -92,6 +94,13 @@ add_library(lib-qlc3d STATIC
         src/mesh/element-split-convert.cpp
         includes/mesh/mesh.h
         src/mesh/mesh.cpp
+        includes/energy/energy-result.h
+        includes/energy/lc-energy-density.h
+        src/energy/lc-energy-density.cpp
+        includes/energy/lc-energy-integrator.h
+        src/energy/lc-energy-integrator.cpp
+        includes/energy/lc-energy-calculator.h
+        src/energy/lc-energy-calculator.cpp
 )
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 set_target_properties(lib-qlc3d PROPERTIES CXX_STANDARD 17)
