@@ -10,6 +10,9 @@
 #include <geom/vec3.h>
 #include <box.h>
 #include <resultio.h>
+#include <io/orientation-reader.h>
+#include <io/orientation-assignment.h>
+#include <io/orientation-loader.h>
 #include <lc-representation.h>
 #include <mesh/element-split-convert.h>
 
@@ -229,9 +232,7 @@ void initialiseLcSolutionVector(SolutionVector &q,
                                 Geometry &geom) {
   const double S0 = lc.S0();
   boxes.setVolumeQ(q, S0, geom.getCoordinates());
-  if (!simu.getLoadQ().empty()) {
-    ResultIO::ReadResult(simu.getLoadQ(), q);
-  }
+  qlc3d::loadInitialOrientation(simu, S0, geom.getCoordinates(), q);
   setSurfacesQ(q, alignment, S0, geom);
   q.initialiseLcBoundaries(geom, alignment);
 }

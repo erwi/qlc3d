@@ -6,6 +6,8 @@
 #include <io/result-output.h>
 #include <io/lcview-result-output.h>
 #include <resultio.h>
+#include <io/orientation-reader.h>
+#include <io/orientation-assignment.h>
 #include <util/stringutil.h>
 #include <test-util.h>
 #include <simulation-state.h>
@@ -186,6 +188,14 @@ TEST_CASE("Write text LCViewTxt result file") {
   }
 }
 
+// Test helper mirroring the orchestration in inits.cpp::initialiseLcSolutionVector: dispatch to the
+// appropriate LCView reader, parse samples, then assign them onto q in exact file order.
+void readLcViewResultInto(const std::string &fileName, SolutionVector &q) {
+  auto reader = qlc3d::createLcViewReader(fileName);
+  auto samples = reader->read(fileName, 0.);
+  qlc3d::ExactOrderAssignment{}.assign(samples, Coordinates(), q);
+}
+
 void shouldEqual(const SolutionVector &q1, const SolutionVector &q2) {
   REQUIRE(q1.getnDoF() == q2.getnDoF());
   REQUIRE(q1.getnDimensions() == q2.getnDimensions());
@@ -229,7 +239,7 @@ TEST_CASE("Write and read back Q-tensor as LCView format - Linear elements") {
 
     const std::string resultFile = (resDir.path() / "result00000.dat").string();
     REQUIRE(fs::exists(resultFile));
-    ResultIO::ReadResult(resultFile, qTensorRead);
+    readLcViewResultInto(resultFile, qTensorRead);
 
     // THEN:
     REQUIRE(qTensorRead.getnDoF() == geom->getnpLC());
@@ -256,7 +266,7 @@ TEST_CASE("Write and read back Q-tensor as LCView format - Linear elements") {
     // WHEN:
     // Read back the Q-tensor from the text file
     SolutionVector qTensorRead(geom->getnpLC(), 5);
-    ResultIO::ReadResult(resultFile, qTensorRead);
+    readLcViewResultInto(resultFile, qTensorRead);
 
     // THEN:
     // Check that the read values equal the written values
@@ -296,7 +306,7 @@ TEST_CASE("Write and read back Q-tensor as LCView format - Quadratic elements") 
 
     const std::string resultFile = (resDir.path() / "result00000.dat").string();
     REQUIRE(fs::exists(resultFile));
-    ResultIO::ReadResult(resultFile, qTensorRead);
+    readLcViewResultInto(resultFile, qTensorRead);
 
     // THEN:
     REQUIRE(qTensorRead.getnDoF() == geom->getnpLC());
@@ -323,7 +333,7 @@ TEST_CASE("Write and read back Q-tensor as LCView format - Quadratic elements") 
     // WHEN:
     // Read back the Q-tensor from the text file
     SolutionVector qTensorRead(geom->getnpLC(), 5);
-    ResultIO::ReadResult(resultFile, qTensorRead);
+    readLcViewResultInto(resultFile, qTensorRead);
 
     // THEN:
     // Check that the read values equal the written values

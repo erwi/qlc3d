@@ -97,6 +97,42 @@ TEST_CASE("Read Simu from settings file") {
     REQUIRE(simu->getSaveFormat().count(Simu::LCviewTXT));
 }
 
+TEST_CASE("Read loadOrientation from settings file") {
+    // ARRANGE - loadOrientation is the new, more general setting superseding loadQ. Kept in its own
+    // TEST_CASE since both keys must not be set together in the same file (that combination must fail).
+    std::string contents;
+    contents += "MeshName= wowowoo.txt\n";
+    contents += "loadOrientation=some-file2.abc\n";
+    auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+    // ACT
+    SettingsReader reader(settingsFile.name());
+    auto simu = reader.simu();
+
+    // ASSERT
+    REQUIRE(simu->getLoadOrientation() == "some-file2.abc");
+    REQUIRE(simu->getLoadQ().empty());
+}
+
+TEST_CASE("Settings parsing succeeds when both loadQ and loadOrientation are set") {
+    // ARRANGE - the conflict between loadQ and loadOrientation is only detected later, when
+    // qlc3d::loadInitialOrientation is invoked (see orientation-loader-tests.cpp); settings-file parsing
+    // itself must not fail just because both keys happen to be present.
+    std::string contents;
+    contents += "MeshName= wowowoo.txt\n";
+    contents += "loadQ=some-file.abc\n";
+    contents += "loadOrientation=some-file2.abc\n";
+    auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+    // ACT
+    SettingsReader reader(settingsFile.name());
+    auto simu = reader.simu();
+
+    // ASSERT
+    REQUIRE(simu->getLoadQ() == "some-file.abc");
+    REQUIRE(simu->getLoadOrientation() == "some-file2.abc");
+}
+
 TEST_CASE("read LC from settings file") {
     // ARRANGE
     std::string contents;

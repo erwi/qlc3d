@@ -94,9 +94,15 @@ private:
     const EndCriteria endCriterion_;    // how we determine that a simulation has ended
 
     /**
-     * file name of the Q-tensor to load from a past LcView result file (either binary or text)
+     * file name of the Q-tensor to load from a past LcView result file (either binary or text).
+     * Deprecated in favor of loadOrientation_.
      */
     const std::string loadQ_;
+    /**
+     * file name of the initial LC orientation to load from file (LCView text/binary or, in future,
+     * point-cloud formats). Supersedes the legacy loadQ_.
+     */
+    const std::string loadOrientation_;
     const std::string saveDir_;         // directory where results are saved
     const std::filesystem::path saveDirAbsolutePath_;
     const double endValue_;
@@ -116,6 +122,7 @@ public:
          QMatrixSolvers solver, double maxError, double targetDQ,
          const double dtLimits[2], const double dtFunction[4],
          EndCriteria endCriterion, const std::string &loadQ,
+         const std::string &loadOrientation,
          const std::string &saveDir, double endValue,
          const double stretchVector[3], const size_t regularGridSize[3],
          int outputEnergy, int outputFormat, int saveIter, double saveTime,
@@ -128,7 +135,7 @@ public:
          maxError_(maxError), TargetdQ_(targetDQ),
          dtLimits_{dtLimits[0], dtLimits[1]},
          dtFunction_{dtFunction[0], dtFunction[1], dtFunction[2], dtFunction[3]},
-         endCriterion_(endCriterion), loadQ_(loadQ), saveDir_(saveDir), saveDirAbsolutePath_(saveDirAbsolutePath), endValue_(endValue),
+         endCriterion_(endCriterion), loadQ_(loadQ), loadOrientation_(loadOrientation), saveDir_(saveDir), saveDirAbsolutePath_(saveDirAbsolutePath), endValue_(endValue),
          stretchVector_{stretchVector[0], stretchVector[1], stretchVector[2]},
          regularGridSize_{regularGridSize[0], regularGridSize[1], regularGridSize[2]},
          outputEnergy_(outputEnergy), outputFormat_(outputFormat),
@@ -147,6 +154,7 @@ public:
     [[nodiscard]] unsigned int getMatrixSolverThreadCount()const {return numMatrixSolverThreads_;}
 
     [[nodiscard]] const std::string &getLoadQ() const {return loadQ_;}
+    [[nodiscard]] const std::string &getLoadOrientation() const {return loadOrientation_;}
     /**
      * @brief Returns the directory where results are saved. NOTE: this path is relative to the working directory of
      * the process, not absolute. TODO deprecated, use getSaveDirAbsolutePath() instead
@@ -192,6 +200,7 @@ class SimuBuilder {
     double dtFunction_[4];
     Simu::EndCriteria endCriterion_;
     std::string loadQ_;
+    std::string loadOrientation_;
     std::string saveDir_;
     double endValue_;
     double stretchVector_[3];
@@ -214,6 +223,7 @@ public:
             maxError_(Simu::DEFAULT_MAX_ERROR), dtLimits_{Simu::DEFAULT_DT, Simu::DEFAULT_MAX_DT},
             dtFunction_{Simu::DEFAULT_DT_FUNCTION[0], Simu::DEFAULT_DT_FUNCTION[1], Simu::DEFAULT_DT_FUNCTION[2], Simu::DEFAULT_DT_FUNCTION[3]},
             endCriterion_(Simu::DEFAULT_END_CRITERION), loadQ_(""),
+            loadOrientation_(""),
             saveDir_(Simu::DEFAULT_SAVE_DIR), endValue_(Simu::DEFAULT_END_VALUE),
             stretchVector_{1., 1., 1.}, regularGridSize_{0, 0, 0},
             outputEnergy_(Simu::DEFAULT_OUTPUT_ENERGY),
@@ -233,6 +243,7 @@ public:
     SimuBuilder &dtFunction(double v1, double v2, double v3, double v4);
     SimuBuilder &endCriterion(const std::string &name);
     SimuBuilder &loadQ(const std::string &loadQ);
+    SimuBuilder &loadOrientation(const std::string &loadOrientation);
     SimuBuilder &saveDir(const std::string &saveDir);
     SimuBuilder &endValue(double endValue);
     SimuBuilder &stretchVector(double x, double y, double z);

@@ -74,7 +74,7 @@ Simu *SimuBuilder::build() const {
                     qMatrixSolver_, maxError_,
                     targetDQ_, dtLimits_,
                     dtFunction_, endCriterion_,
-                    loadQ_, saveDir_,
+                    loadQ_, loadOrientation_, saveDir_,
                     endValue_, stretchVector_,
                     regularGridSize_, outputEnergy_,
                     outputFormat_, saveIter_, saveTime_,
@@ -146,6 +146,11 @@ SimuBuilder &SimuBuilder::endCriterion(const string &name) {
 
 SimuBuilder &SimuBuilder::loadQ(const std::string &loadQ) {
     loadQ_ = loadQ;
+    return *this;
+}
+
+SimuBuilder &SimuBuilder::loadOrientation(const std::string &loadOrientation) {
+    loadOrientation_ = loadOrientation;
     return *this;
 }
 

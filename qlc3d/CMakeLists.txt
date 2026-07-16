@@ -47,7 +47,15 @@ add_library(lib-qlc3d STATIC
         src/io/matlabiofun.cpp
         src/io/vtkiofun.cpp
         src/io/result-output.cpp
-        src/io/writeLCD.cpp
+        includes/io/orientation-sample.h
+        includes/io/orientation-reader.h
+        src/io/orientation-reader.cpp
+        includes/io/orientation-assignment.h
+        src/io/orientation-assignment.cpp
+        includes/io/orientation-loader.h
+        src/io/orientation-loader.cpp
+        includes/io/director-csv-reader.h
+        src/io/director-csv-reader.cpp
         src/io/lcview-result-output.cpp
         src/io/energy-csv-writer.cpp
         includes/inits.h

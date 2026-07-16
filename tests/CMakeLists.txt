@@ -30,6 +30,10 @@ add_executable(cpp-test
         cpp/io/gmsh-read-test.cpp
         cpp/io/meshreader-test.cpp
         cpp/io/result-output-test.cpp
+        cpp/io/orientation-reader-tests.cpp
+        cpp/io/orientation-assignment-tests.cpp
+        cpp/io/orientation-loader-tests.cpp
+        cpp/io/director-csv-reader-tests.cpp
         cpp/geom/geom-tests.cpp
         cpp/geom/tet-mesh-search-tests.cpp
         cpp/potential/potential-solver-test.cpp

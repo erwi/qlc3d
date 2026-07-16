@@ -183,7 +183,7 @@ If dt is set to zero, a steady-state solver mode (Newton-Raphson method) is used
 Hint:
 It is often a good idea to first run a simulation for a short while (e.g. for one milliseconds) with dt > 0.  Then using a the last result file as an initial starting LC configuration and setting dt = 0 to try to find the final steady state solution.  
 
-See also the `LoadQ`, `EndCriterion` and `EndValue` parameters to do this. 
+See also the `LoadOrientation`, `EndCriterion` and `EndValue` parameters to do this. 
 
 
 ### **dtLimits = [1e-09, 1e-3]** ###
@@ -260,7 +260,27 @@ Optional numerical value determining whether LC free energy is calculated and sa
 Optional vector of length 3 specifying a three dimensional scaling of the finite element mesh. All mesh node coordinates are multiplied by their corresponding `StretchVector` components. This option can be used to scale and stretch mesh files (although stretching a mesh in one direction more than other may reduce the mesh quality). The default value is `[1.0, 1.0, 1.0]`. 
 
 ### **LoadQ = result_final.dat** ###
-Optional string variable specifying the filename of a previous result. The Q-tensor distribution is loaded from this file and used as a starting condition for a new simulation. The default is that no existing result is loaded.
+**Deprecated** — use `LoadOrientation` instead. Optional string variable specifying the filename of a previous
+result. The Q-tensor distribution is loaded from this file and used as a starting condition for a new simulation.
+The default is that no existing result is loaded. Using `LoadQ` logs a deprecation warning. Setting both `LoadQ`
+and `LoadOrientation` in the same settings file is an error.
+
+### **LoadOrientation = result_final.dat** ###
+Optional string variable specifying the filename of a file containing the initial LC orientation, used as a
+starting condition for a new simulation, superseding the deprecated `LoadQ`. The default is that no existing
+orientation is loaded. Two file formats are supported, distinguished automatically:
+
+- **LCView text/binary** (mesh-matched): the same result file formats previously accepted by `LoadQ`. These files
+  carry no coordinates — the file must contain exactly one entry per LC mesh node, in the same order as the mesh.
+- **Director CSV** (point-cloud): any file with a `.csv` extension (case-insensitive). The file must start with a
+  header row naming its comma-separated columns (case-insensitive, any order): the required columns `x, y, z, nx,
+  ny, nz` giving a sample location and (possibly un-normalized) director vector, and an optional `S` column giving
+  the order parameter for that row. If `S` is omitted, every row uses the equilibrium order parameter `S0`
+  computed from the `A`, `B`, `C` material parameters. Each mesh node is assigned the orientation of the nearest
+  CSV point by Euclidean distance (nearest-neighbor search) — this includes the special case of a single-row CSV
+  file, which then applies one uniform orientation to the whole domain. CSV point locations are interpreted in the
+  same unstretched coordinate space as the mesh file and are automatically scaled by `StretchVector` before
+  matching against mesh nodes (see the `StretchVector` section above).
 
 ---
 ## Liquid Crystal Material Parameters ##
@@ -314,7 +334,7 @@ Rotational viscosity:
 
 ---
 ## Initial LC Orientation ##
-Initial LC orientation can be defined wither by specifying `Box`es or by loading the q-tensor from and existing result file (see see the `LoadQ` setting). 
+Initial LC orientation can be defined either by specifying `Box`es or by loading the q-tensor/director from an existing result or director CSV file (see the `LoadOrientation` setting). 
 
 ### Boxes
 Initial liquid crystal orientation is set using a number of `BOX` structures ranging from `BOX1` to `BOX99`. Each box represents a separate axis-aligned cuboid 3D volume whose position and size need to be specified. If box volumes are overlapping, the box with a higher number overrides the conditions of a lower numbered box within the overlapping region.
@@ -405,7 +425,7 @@ When `FIXLCn.Anchoring = ManualNodes`, the `Params` are mesh node indexes. In ot
 A boolean flag that controls setting of the initial LC orientation at the FixLC surface. When set to `true`, the LC initial orientation
 at the surface is set to the surface's easy direction. When set to `false`, the initial LC orientation at the surface is set
 according to the settings for the volume in that region, e.g. using `Box`es or by loading an initial configuration from an
-existing result file using `LoadQ` parameter.
+existing result file using the `LoadOrientation` parameter.
 
 By default, this is set to `true`, so that it should only be necessary to use this if you want to change it to `false`. 
 

@@ -29,8 +29,13 @@ TestUtil::TemporaryFile TemporaryFile::empty() {
     return TemporaryFile::withContents("");
 }
 
-TestUtil::TemporaryFile TemporaryFile::withContents(const std::string &fileContents) {
+TestUtil::TemporaryFile TemporaryFile::withContents(const std::string &fileContents, const std::string &extension) {
     TemporaryFile f;
+    if (!extension.empty()) {
+        fs::path renamed = f.name_;
+        renamed += extension;
+        f.name_ = renamed;
+    }
     FILE *fid = fopen(f.name().string().c_str(), "wt");
     fprintf(fid, "%s", fileContents.c_str());
     fclose(fid);

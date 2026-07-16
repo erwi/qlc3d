@@ -42,7 +42,9 @@ namespace TestUtil {
     ~TemporaryFile();
     [[nodiscard]] const std::filesystem::path &name() const { return name_; }
     static TemporaryFile empty();
-    static TemporaryFile withContents(const std::string &fileContents);
+    /** @param extension optional filename extension (e.g. ".csv") to append to the generated temporary
+     *  file name, needed by code that dispatches on file extension. */
+    static TemporaryFile withContents(const std::string &fileContents, const std::string &extension = "");
 
     /**
      * Read the file contents to a vector of strings, each string corresponding to one line

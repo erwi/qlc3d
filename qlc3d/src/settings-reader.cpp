@@ -109,6 +109,7 @@ void SettingsReader::readSimu(Reader &reader) {
     if (auto v = reader.getOptional<double>(SFK_MAX_ERROR)) { builder.maxError(v.value()); }
     if (auto v = reader.getOptional<string>(SFK_END_CRITERION)) { builder.endCriterion(v.value()); }
     if (auto v = reader.getOptional<string>(SFK_LOAD_Q)) { builder.loadQ(v.value()); }
+    if (auto v = reader.getOptional<string>(SFK_LOAD_ORIENTATION)) { builder.loadOrientation(v.value()); }
     if (auto v = reader.getOptional<string>(SFK_SAVE_DIR)) { builder.saveDir(v.value()); }
     if (auto v = reader.getOptional<double>(SFK_END_VALUE)) { builder.endValue(v.value()); }
     if (auto v = reader.getOptional<int>(SFK_OUTPUT_FORMAT)) { builder.outputFormat(v.value()); }
