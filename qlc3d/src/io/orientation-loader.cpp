@@ -27,6 +27,10 @@ namespace qlc3d {
       return; // nothing to load
     }
 
+    if (std::filesystem::path f(file); !std::filesystem::exists(f)) {
+      RUNTIME_ERROR("Orientation file " + file + " for initial LC configuration does not exist.");
+    }
+
     auto reader = qlc3d::createOrientationReader(file);
     auto samples = reader->read(file, s0);
     if (reader->producesLocations()) {
