@@ -3,13 +3,22 @@
 - After making code changes always run all unit tests under cpp-tests and fix issues until those tests pass
 - Do not relax test tolerances to make tests pass.
 - Ask clarifying questions rather than making assumption if something is unclear or ambiguous or a choice needs to be made between multiple options
-- Fail fast and loud. Dont try to recover from unexpected states by falling back to some defaults unless the user explicitly asked for it. 
+- Code should fail fast and loud. Dont try to recover from unexpected states, missing arguments, null pointers etc. by falling back to some defaults unless the user explicitly asked for it. 
 - When failing use the RUNTIME_ERROR macro which auto-fills in the location of the error. 
 
 ## Documentation
-- Update the README file and any other documentation so that they accurately describe the current state after any changes. Do not refer to old state, previous implementations or resolved issues. Documentation is a snapshot of current state not a story.
+- Glossary of terminology in this project can be found in GLOSSARY.md. 
+  - Use these consistently in code and documentation.
+- Implementation focused documentation is located in the doc-impl subdirectory. This describes the code from a developers point of view.
+  - First read the INDEX.md file to find relevant files only
+  - Read the relevant files first before looking at code. It will help identify the correct code files. 
+- A user-facing documentation or user manual is found in the qlcd/doc/README.md file
+- Update all relevant documentation files as part of any other changes.
+  - All documentation should accurately reflect the current state. Delete old documentation related to past implementations. Dont keep a history of changes. Only current state matters. 
 - Add Doxygen usage documentation to header files using /** ... */ and including tags like @param and @return. Implementation focused longer internal comments belong in the .cpp files.
-- Technical implementation documentation can be found in the doc-impl subdirectory organised by topic in separate markdown files. Keep this up to date as a snapshot of current state.
+  - Add Doxygen comments to all new code 
+  - Existing function or class changes: check that the Doxygen comments exist and accurately represent the current state
+
 
 ## Testing
 - Document tests you write using comments so its easy to understand what is being tested. 
