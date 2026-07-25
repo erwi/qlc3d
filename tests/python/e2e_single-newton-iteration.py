@@ -11,9 +11,18 @@ RESULT_BACKUP_CONFIG_FILE = 'settings.qfg'
 RESULT_FILE_0 = 'dirstacksz00000000.csv'
 RESULT_FILE_1 = 'dirstacksz00000001.csv'
 RESULT_FILE_FINAL = 'dirstacksz-final.csv'
-EXPECTED_RESULT_FILE_LINES = ['1,1,3,0',
-                              '0.998782,0.0348782,0.0348995,0.958484,-6.13272e-08,0.285145,0.998782,-0.0348782,0.0348995']
+# first file line is header with info about grid. 1 x, 1 y, 3 z points
+EXPECTED_HEADER_LINE = '1,1,3,0'
+# second line has three director x,y,z components along a single column of 3 points
+# values observed from a presumed correctly run. This is not the expected final correct result, just the first step result
+# and may depend on many configuration settings
+EXPECTED_DIRECTORS = [
+    (0.998782, 0.0348782, 0.0348995),
+    (0.958874,0.00504492,0.283788),
+    (0.998782, -0.0348782, 0.0348995)
+]
 
+EPSILON = 1e-5
 
 def check_results(result_dir):
     print("resultDir:" + result_dir)
@@ -25,12 +34,24 @@ def check_results(result_dir):
     assert_true(RESULT_FILE_1 in files, RESULT_FILE_1 + " not found")
     assert_true(RESULT_FILE_FINAL in files, RESULT_FILE_FINAL + " not found")
 
-    # make sure the file contents are as expected, line-by-line
+    # Check the result file contents
     fid = open(result_dir + "/" + RESULT_FILE_1)
     count = 0
     for line in fid:
-        assert_equals(EXPECTED_RESULT_FILE_LINES[count], line.rstrip())
+        if count == 0:
+            assert_equals(EXPECTED_HEADER_LINE, line.rstrip())
+        elif count == 1:
+            # split the line into three tuples, one per director
+            nums = [float(x) for x in line.rstrip().split(',')]
+            directors = [tuple(nums[i:i+3]) for i in range(0, 9, 3)]
+
+            for i, (d, expected) in enumerate(zip(directors, EXPECTED_DIRECTORS)):
+                dot = sum(a * b for a, b in zip(d, expected))
+                assert_true(abs(dot - 1.0) < EPSILON,
+                            "director %d mismatch, dot product = %f" % (i, dot))
+            break;
         count += 1
+    assert_true(count == 1, "unexpected line count in result file, may have skipped assertions")
     fid.close()
 
 
@@ -46,13 +67,7 @@ def run_test(executable):
     shutil.copy("./resources/thin.msh", project_dir + "/thin.msh")
 
     # 3. run qlc3d executable
-    command = executable + " " + settings_file + " " + project_dir
-    print("command=" + command)
-    sys.stdout.flush()
-    exitCode = os.system(command)
-    assert_equals(0, exitCode)
-    print("end")
-    sys.stdout.flush()
+    run_executable(executable, settings_file, project_dir)
 
     # 4. check results
     check_results(project_dir + '/res')

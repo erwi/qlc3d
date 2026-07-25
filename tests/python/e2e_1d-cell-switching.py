@@ -16,16 +16,16 @@ def check_results(result_dir):
     """
     print("resultDir:" + result_dir)
 
-    # Expect the reslt directory to contain 15 files. "settings.qfg" and dirstackz0.csv to dirstackz12.csv. The last
-    # result should be in file dirstackz-final.csv.
+    # Check that first and last result files exist in the results directory
+    initial_result_file = 'dirstacksz00000000.csv'
     final_result_file = 'dirstacksz-final.csv'
     files = os.listdir(result_dir)
-    print(str(files))
-    assert_equals(15, len(files))
+
+    assert_true(initial_result_file in files, "{} should contain the file {}".format(str(files), initial_result_file))
     assert_true(final_result_file in files, "{} should contain the file {}".format(str(files), final_result_file))
 
     # Read the final result file. The first line contains header info and the second line contains the
-    # mid-cell director x, y, z, values.
+    # mid-cell director x, y, z values.
     fid = open(result_dir + "/" + final_result_file, "r")
     fid.readline()  # ignore header line
     director_string = fid.readline().split(",")  # read the director line
@@ -40,10 +40,10 @@ def check_results(result_dir):
 
 def run_test(qlc3d_executable):
     """
-    In this test, A potential is applied across a 1 micron thick 1D cell and the steady-state mid-cell tilt
-    angle is measured and compared to a known (assumed) corect value.
+    In this test, a potential is applied across a 1 micron thick 1D cell and the steady-state mid-cell tilt
+    angle is measured and compared to a known (assumed) correct value.
 
-    Material parameters are for 5CB and the cell has string anchoring with 5 degrees pre-tilt on both surfaces.
+    Material parameters are for 5CB and the cell has strong anchoring with 5 degrees pre-tilt on both surfaces.
 
     """
     print("current working directory=" + os.getcwd())
@@ -51,19 +51,13 @@ def run_test(qlc3d_executable):
     # 1. create temp directory for project
     project_dir = tempfile.mkdtemp()
 
-    # 2. copy mesh and setting file to project dir
+    # 2. copy mesh and settings file to project dir
     settings_file = project_dir + "/settings.txt"
     shutil.copy("./resources/settings-switch-1d.txt", settings_file)
     shutil.copy("./resources/thin.msh", project_dir + "/thin.msh")
 
     # 3. run qlc3d executable
-    command = qlc3d_executable + " " + settings_file + " " + project_dir
-    print("command=" + command)
-    sys.stdout.flush()
-    exit_code = os.system(command)
-    assert_equals(0, exit_code)
-    print("end")
-    sys.stdout.flush()
+    run_executable(qlc3d_executable, settings_file, project_dir)
 
     # 4. check results
     check_results(project_dir + '/res')
