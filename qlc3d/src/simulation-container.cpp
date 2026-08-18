@@ -155,12 +155,8 @@ void SimulationContainer::initialise() {
     solutionVectors.v = &v;
 
     //********************************************************************
-    //*
     //*		Save Initial configuration and potential
-    //*
     //********************************************************************
-    Log::info("Saving starting configuration");
-
     handleInitialEvents(simulationState,
                         eventList,
                         *electrodes,

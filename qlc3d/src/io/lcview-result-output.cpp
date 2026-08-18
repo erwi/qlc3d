@@ -148,7 +148,7 @@ void LcViewBinaryResultFormatWriter::writeResult(const Geometry &geom, const Sim
   } else {
     RUNTIME_ERROR("Simulation state is not RUNNING or COMPLETED");
   }
-
+  Log::info("Writing binary LcView result file {}", outputFilePath.string());
   writeBinaryResultFile(potential,
                         qTensor,
                         simulationState.currentTime().getTime(),

@@ -45,6 +45,21 @@ namespace qlc3d {
     };
   }
 
+  /**
+   * read line ignoring anything after a hash character # which is interpreted as start of a comment
+   * @param fin
+   * @param line
+   * @return
+   */
+  std::ifstream& readLine(std::ifstream &fin, std::string &line) {
+    std::getline(fin, line);
+    size_t hashPos = line.find_first_of('#');
+    if (hashPos != std::string::npos) {
+      line = line.substr(0, hashPos);
+    }
+    return fin;
+  }
+
   std::vector<OrientationSample> DirectorCsvReader::read(const std::string &fileName, double s0) const {
     std::ifstream fin(fileName);
     if (!fin.is_open()) {
@@ -53,7 +68,7 @@ namespace qlc3d {
 
     // Find first non-empty line as the header.
     std::string headerLine;
-    while (std::getline(fin, headerLine)) {
+    while (readLine(fin, headerLine)) {
       if (!trim(headerLine).empty()) {
         break;
       }
@@ -97,7 +112,7 @@ namespace qlc3d {
     std::vector<OrientationSample> samples;
     std::string line;
     size_t lineNumber = 1; // header was line 1
-    while (std::getline(fin, line)) {
+    while (readLine(fin, line)) {
       lineNumber++;
       if (trim(line).empty()) {
         continue;

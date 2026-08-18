@@ -1,7 +1,7 @@
 #include <io/orientation-loader.h>
 #include <io/orientation-reader.h>
 #include <io/orientation-assignment.h>
-#include <geom/coordinates.h>
+#include <solutionvector.h>
 #include <geom/vec3.h>
 #include <simu.h>
 #include <util/logging.h>
@@ -30,6 +30,7 @@ namespace qlc3d {
     if (std::filesystem::path f(file); !std::filesystem::exists(f)) {
       RUNTIME_ERROR("Orientation file " + file + " for initial LC configuration does not exist.");
     }
+    Log::info("Reading initial orientation from file {}", file);
 
     auto reader = qlc3d::createOrientationReader(file);
     auto samples = reader->read(file, s0);
@@ -39,8 +40,12 @@ namespace qlc3d {
         const Vec3 &p = sample.location.value();
         sample.location = Vec3(p.x() * stretch.x(), p.y() * stretch.y(), p.z() * stretch.z());
       }
+      Log::info("Assigning {} orientation samples to {} mesh nodes using nearest-neighbor assignment.",
+                samples.size(), q.getnDoF());
       qlc3d::NearestNeighborAssignment{}.assign(samples, meshCoordinates, q);
     } else {
+      Log::info("Assigning {} orientation samples to {} mesh nodes using exact-order assignment.",
+                samples.size(), q.getnDoF());
       qlc3d::ExactOrderAssignment{}.assign(samples, meshCoordinates, q);
     }
   }

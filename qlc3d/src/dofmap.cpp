@@ -2,6 +2,7 @@
 #include <geometry.h>
 #include <fixednodes.h>
 #include <geom/periodicity.h>
+#include <util/logging.h>
 
 DofMap::DofMap(unsigned int nDof, unsigned int nDimensions): nDof(nDof), nDimensions(nDimensions) {
   dofs.resize(nDof * nDimensions, NOT_DOF);
@@ -9,6 +10,8 @@ DofMap::DofMap(unsigned int nDof, unsigned int nDimensions): nDof(nDof), nDimens
 
 void DofMap::calculateMapping(const std::unordered_set<unsigned int> &fixedNodes,
                               const std::vector<unsigned int> &periodicNodesMapping) {
+  Log::info("Calculating mapping of {} nodes, {} fixed nodes, and {} periodic nodes",
+            nDof, fixedNodes.size(), periodicNodesMapping.size());
   // TODO: rewrite this
   dofs.clear();
   dofs.resize(nDof * nDimensions, 0);
@@ -20,7 +23,7 @@ void DofMap::calculateMapping(const std::unordered_set<unsigned int> &fixedNodes
     elimt.at(i) = periodicNodesMapping[i];
   }
 
-  // MARK FIXED NODES. THSE WILL BE LATER ON REMOVED FROM
+  // MARK FIXED NODES. THESE WILL BE LATER ON REMOVED FROM
   // FREE DEGREES OF FREEDOM
   for (idx i = 0 ; i < nDof ; i++) {
     if (fixedNodes.find(i) != fixedNodes.end()) {
@@ -36,13 +39,20 @@ void DofMap::calculateMapping(const std::unordered_set<unsigned int> &fixedNodes
   // LOOP OVER EACH NODE. DECREASE INDEX TO ALL INDEPENDENT DOFs
   // THAT COME AFTER A DEPENDENT NODE (EQUIVALENT TO SHIFTING LEFT
   // ROWS/COLUMNS OF A MATRIX AFTER A COLUMN IS REMOVED)
-  for (idx i = 0; i < nDof; i++) {
-    if (elimt.at(i) != i) {  // IF i'th NODE IS DEPENDENT
-      for (idx j = i; j < nDof; j++) { // SHIFT DOWN ALL DOF INDEXES AFTER IT
-        elima.at(j)--;
-      }
+  idx reduceCounter = 0;
+  std::vector<idx> reduced(nDof, 0);
+
+
+  for (idx i = 0; i < nDof; i++) { // if i'th node is dependent reduce dof for it and all nodes after it in elima
+    if (elimt.at(i) != i) {
+      reduceCounter ++;
     }
+    reduced.at(i) = reduceCounter;
   }
+  for (idx i = 0 ; i < nDof ; i++) {
+    elima.at(i) -= reduced.at(i);
+  }
+
   // SET DEPENDENT VARAIBLE INDEXES TO POINT TO CORRECT
   // INDEPENDENT DOF
   for (idx i = 0; i < nDof; i++) { // SET CORRECT VALUES
