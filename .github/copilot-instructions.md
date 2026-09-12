@@ -11,10 +11,11 @@
   - Use these consistently in code and documentation.
 - Implementation focused documentation is located in the doc-impl subdirectory. This describes the code from a developers point of view.
   - First read the INDEX.md file to find relevant files only
-  - Read the relevant files first before looking at code. It will help identify the correct code files. 
+  - Read the relevant files first before looking at code. It will help identify the correct code files and saves tokens. 
 - A user-facing documentation or user manual is found in the qlcd/doc/README.md file
 - Update all relevant documentation files as part of any other changes.
-  - All documentation should accurately reflect the current state. Delete old documentation related to past implementations. Dont keep a history of changes. Only current state matters. 
+  - All documentation should accurately reflect the current state. Delete old documentation related to past implementations. Don't keep a history of changes. Only current state matters.
+  - When you encounter a bug, add a note to known-bugs.md with a file:line citation. If you fix a bug, remove the note from known-bugs.md.
 - Add Doxygen usage documentation to header files using /** ... */ and including tags like @param and @return. Implementation focused longer internal comments belong in the .cpp files.
   - Add Doxygen comments to all new code 
   - Existing function or class changes: check that the Doxygen comments exist and accurately represent the current state
