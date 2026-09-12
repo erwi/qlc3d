@@ -115,6 +115,7 @@ Read by `SettingsReader::readSimu` into a `SimuBuilder`
 | `EndValue` | `1e-3` | Must be `>= 0`. |
 | `loadQ` | `""` | Deprecated; mutually exclusive with `loadOrientation` (throws `RUNTIME_ERROR` if both set) — see `orientation-loader.cpp:10-17`. |
 | `loadOrientation` | `""` | Preferred replacement for `loadQ`. |
+| `LoadInitialOrientationS0Mode` | `file` | Controls whether file-based initial orientation loads keep the file’s scalar order (`file`, legacy default) or replace it with the active material equilibrium `S0` (`current`, opt-in). |
 | `saveDir` | `"res"` | Resolved to an absolute path at build time as `workingDir / saveDir` (`simu.cpp:83`), where `workingDir` is the current path *at the time `SimuBuilder` was constructed* (not necessarily the final working directory — see Known Bugs). |
 | `dtLimits` | `[1e-9, 1e-4]` | Array of exactly 2 values, both `> 0`, high `>` low is only asserted as high `> 0` (label says should be `> min`, but code does not check this — see Known Bugs). |
 | `dtFunction` | `[0.5, 0.8, 1.2, 10]` | Array of exactly 4 values; no validation performed (`SimuBuilder::dtFunction`, TODO comment in code). |

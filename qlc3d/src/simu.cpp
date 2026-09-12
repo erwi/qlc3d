@@ -17,6 +17,7 @@ const vector<string> Simu::VALID_SAVE_FORMATS = {
         "lcview", "regularvtk", "regularvecmat", "dirstackz", "lcviewtxt", "csvunstructured", "vtkunstructuredasciigrid"};
 const vector<string> Simu::VALID_Q_MATRIX_SOLVERS = {"Auto", "PCG", "GMRES"};
 const vector<string> Simu::VALID_MESH_ELEMENT_ORDERS = {"native", "quadratic", "linear"};
+const vector<string> Simu::VALID_LOAD_INITIAL_ORIENTATION_S0_MODES = {"file", "current"};
 // Define values of default Simu parameters
 const string Simu::DEFAULT_LOAD_Q = "";
 const string Simu::DEFAULT_SAVE_DIR = "res";
@@ -36,6 +37,7 @@ const int Simu::DEFAULT_SAVE_ITER = 0;
 const double Simu::DEFAULT_SAVE_TIME = 0;
 const int Simu::DEFAULT_NUM_ASSEMBLY_THREADS = 0;
 const int Simu::DEFAULT_NUM_MATRIX_SOLVER_THREADS = 0;
+const Simu::LoadInitialOrientationS0Mode Simu::DEFAULT_LOAD_INITIAL_ORIENTATION_S0_MODE = Simu::LoadInitialOrientationS0Mode::File;
 const Simu::EndCriteria Simu::DEFAULT_END_CRITERION = Simu::EndCriteria::Time;
 const Simu::MeshElementOrder Simu::DEFAULT_MESH_ELEMENT_ORDER = Simu::MeshElementOrder::Native;
 
@@ -74,7 +76,7 @@ Simu *SimuBuilder::build() const {
                     qMatrixSolver_, maxError_,
                     targetDQ_, dtLimits_,
                     dtFunction_, endCriterion_,
-                    loadQ_, loadOrientation_, saveDir_,
+                    loadQ_, loadOrientation_, loadInitialOrientationS0Mode_, saveDir_,
                     endValue_, stretchVector_,
                     regularGridSize_, outputEnergy_,
                     outputFormat_, saveIter_, saveTime_,
@@ -152,6 +154,18 @@ SimuBuilder &SimuBuilder::loadQ(const std::string &loadQ) {
 SimuBuilder &SimuBuilder::loadOrientation(const std::string &loadOrientation) {
     loadOrientation_ = loadOrientation;
     return *this;
+}
+
+SimuBuilder &SimuBuilder::loadInitialOrientationS0Mode(const std::string &value) {
+    std::string lower = value;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+    for (unsigned int i = 0; i < Simu::VALID_LOAD_INITIAL_ORIENTATION_S0_MODES.size(); i++) {
+        if (Simu::VALID_LOAD_INITIAL_ORIENTATION_S0_MODES[i] == lower) {
+            loadInitialOrientationS0Mode_ = static_cast<Simu::LoadInitialOrientationS0Mode>(i);
+            return *this;
+        }
+    }
+    throw runtime_error("invalid LoadInitialOrientationS0Mode '" + value + "', valid values are [file, current]");
 }
 
 SimuBuilder &SimuBuilder::saveDir(const std::string &saveDir) {

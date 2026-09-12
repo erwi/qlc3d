@@ -52,11 +52,17 @@ public:
         Iterations = 0, Time = 1, Change = 2
     };
 
+    enum LoadInitialOrientationS0Mode {
+        File = 0,
+        Current = 1
+    };
+
     // Declare default values for parameters in Simu
     const static vector<string> VALID_END_CRITERIA;
     const static vector<string> VALID_SAVE_FORMATS;
     const static vector<string> VALID_Q_MATRIX_SOLVERS;
     const static vector<string> VALID_MESH_ELEMENT_ORDERS;
+    const static vector<string> VALID_LOAD_INITIAL_ORIENTATION_S0_MODES;
     const static string DEFAULT_LOAD_Q;
     const static string DEFAULT_SAVE_DIR;
     const static string DEFAULT_Q_MATRIX_SOLVER;
@@ -65,6 +71,7 @@ public:
     const static double DEFAULT_TARGET_DQ;
     const static double DEFAULT_MAX_DT;
     const static double DEFAULT_MAX_ERROR;
+    const static LoadInitialOrientationS0Mode DEFAULT_LOAD_INITIAL_ORIENTATION_S0_MODE;
     // int default values can be defined here
     const static int DEFAULT_OUTPUT_ENERGY;
     const static int DEFAULT_OUTPUT_FORMAT;
@@ -103,6 +110,7 @@ private:
      * point-cloud formats). Supersedes the legacy loadQ_.
      */
     const std::string loadOrientation_;
+    const LoadInitialOrientationS0Mode loadInitialOrientationS0Mode_;
     const std::string saveDir_;         // directory where results are saved
     const std::filesystem::path saveDirAbsolutePath_;
     const double endValue_;
@@ -123,6 +131,7 @@ public:
          const double dtLimits[2], const double dtFunction[4],
          EndCriteria endCriterion, const std::string &loadQ,
          const std::string &loadOrientation,
+         LoadInitialOrientationS0Mode loadInitialOrientationS0Mode,
          const std::string &saveDir, double endValue,
          const double stretchVector[3], const size_t regularGridSize[3],
          int outputEnergy, int outputFormat, int saveIter, double saveTime,
@@ -135,7 +144,7 @@ public:
          maxError_(maxError), TargetdQ_(targetDQ),
          dtLimits_{dtLimits[0], dtLimits[1]},
          dtFunction_{dtFunction[0], dtFunction[1], dtFunction[2], dtFunction[3]},
-         endCriterion_(endCriterion), loadQ_(loadQ), loadOrientation_(loadOrientation), saveDir_(saveDir), saveDirAbsolutePath_(saveDirAbsolutePath), endValue_(endValue),
+         endCriterion_(endCriterion), loadQ_(loadQ), loadOrientation_(loadOrientation), loadInitialOrientationS0Mode_(loadInitialOrientationS0Mode), saveDir_(saveDir), saveDirAbsolutePath_(saveDirAbsolutePath), endValue_(endValue),
          stretchVector_{stretchVector[0], stretchVector[1], stretchVector[2]},
          regularGridSize_{regularGridSize[0], regularGridSize[1], regularGridSize[2]},
          outputEnergy_(outputEnergy), outputFormat_(outputFormat),
@@ -155,6 +164,11 @@ public:
 
     [[nodiscard]] const std::string &getLoadQ() const {return loadQ_;}
     [[nodiscard]] const std::string &getLoadOrientation() const {return loadOrientation_;}
+    /**
+     * Controls whether file-based initial orientation loads keep the file's stored scalar order (legacy `file` mode)
+     * or replace it with the current material equilibrium `S0` (`current` mode).
+     */
+    [[nodiscard]] LoadInitialOrientationS0Mode getLoadInitialOrientationS0Mode() const { return loadInitialOrientationS0Mode_; }
     /**
      * @brief Returns the directory where results are saved. NOTE: this path is relative to the working directory of
      * the process, not absolute. TODO deprecated, use getSaveDirAbsolutePath() instead
@@ -201,6 +215,7 @@ class SimuBuilder {
     Simu::EndCriteria endCriterion_;
     std::string loadQ_;
     std::string loadOrientation_;
+    LoadInitialOrientationS0Mode loadInitialOrientationS0Mode_;
     std::string saveDir_;
     double endValue_;
     double stretchVector_[3];
@@ -223,7 +238,7 @@ public:
             maxError_(Simu::DEFAULT_MAX_ERROR), dtLimits_{Simu::DEFAULT_DT, Simu::DEFAULT_MAX_DT},
             dtFunction_{Simu::DEFAULT_DT_FUNCTION[0], Simu::DEFAULT_DT_FUNCTION[1], Simu::DEFAULT_DT_FUNCTION[2], Simu::DEFAULT_DT_FUNCTION[3]},
             endCriterion_(Simu::DEFAULT_END_CRITERION), loadQ_(""),
-            loadOrientation_(""),
+            loadOrientation_(""), loadInitialOrientationS0Mode_(Simu::DEFAULT_LOAD_INITIAL_ORIENTATION_S0_MODE),
             saveDir_(Simu::DEFAULT_SAVE_DIR), endValue_(Simu::DEFAULT_END_VALUE),
             stretchVector_{1., 1., 1.}, regularGridSize_{0, 0, 0},
             outputEnergy_(Simu::DEFAULT_OUTPUT_ENERGY),
@@ -244,6 +259,7 @@ public:
     SimuBuilder &endCriterion(const std::string &name);
     SimuBuilder &loadQ(const std::string &loadQ);
     SimuBuilder &loadOrientation(const std::string &loadOrientation);
+    SimuBuilder &loadInitialOrientationS0Mode(const std::string &value);
     SimuBuilder &saveDir(const std::string &saveDir);
     SimuBuilder &endValue(double endValue);
     SimuBuilder &stretchVector(double x, double y, double z);

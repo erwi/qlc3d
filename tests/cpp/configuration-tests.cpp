@@ -32,6 +32,7 @@ TEST_CASE("Read Simu from settings file") {
     contents += "maxError=2.2\n";
     contents += "endcriterion=CHANGE\n";
     contents += "loadQ=some-file.abc\n";
+    contents += "LoadInitialOrientationS0Mode=current\n";
     contents += "savedir=someDir\n";
     contents += "endValue=1.5\n";
     contents += "outputEnergy=1\n";
@@ -62,6 +63,7 @@ TEST_CASE("Read Simu from settings file") {
     REQUIRE(simu->getMaxdt() == 4.2);
     REQUIRE(simu->getEndCriterion() == Simu::EndCriteria::Change);
     REQUIRE(simu->getLoadQ() == "some-file.abc");
+    REQUIRE(simu->getLoadInitialOrientationS0Mode() == Simu::LoadInitialOrientationS0Mode::Current);
     REQUIRE(simu->getSaveDir() == "somedir");
     REQUIRE(simu->getEndValue() == 1.5);
     REQUIRE(simu->getOutputEnergy() == 1);
@@ -112,6 +114,29 @@ TEST_CASE("Read loadOrientation from settings file") {
     // ASSERT
     REQUIRE(simu->getLoadOrientation() == "some-file2.abc");
     REQUIRE(simu->getLoadQ().empty());
+}
+
+TEST_CASE("LoadInitialOrientationS0Mode defaults to file mode") {
+    std::string contents;
+    contents += "MeshName= wowowoo.txt\n";
+    auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+    SettingsReader reader(settingsFile.name());
+    auto simu = reader.simu();
+
+    REQUIRE(simu->getLoadInitialOrientationS0Mode() == Simu::LoadInitialOrientationS0Mode::File);
+}
+
+TEST_CASE("LoadInitialOrientationS0Mode parses explicit current mode") {
+    std::string contents;
+    contents += "MeshName= wowowoo.txt\n";
+    contents += "LoadInitialOrientationS0Mode=current\n";
+    auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+    SettingsReader reader(settingsFile.name());
+    auto simu = reader.simu();
+
+    REQUIRE(simu->getLoadInitialOrientationS0Mode() == Simu::LoadInitialOrientationS0Mode::Current);
 }
 
 TEST_CASE("Settings parsing succeeds when both loadQ and loadOrientation are set") {

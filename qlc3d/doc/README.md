@@ -282,6 +282,20 @@ orientation is loaded. Two file formats are supported, distinguished automatical
   same unstretched coordinate space as the mesh file and are automatically scaled by `StretchVector` before
   matching against mesh nodes (see the `StretchVector` section above).
 
+### **LoadInitialOrientationS0Mode = file** ###
+Optional string controlling how stored scalar order is handled when a previous result file is loaded as the initial
+LC orientation. The default is `file`, which preserves the legacy behavior and keeps the loaded file’s stored
+scalar order unchanged. Set it to `current` to keep the loaded director/orientation but replace the scalar order
+with the active material equilibrium `S0` computed from the current `A`, `B`, `C` values. This is useful when
+continuing from a result generated with different material parameters while keeping the same orientation pattern.
+
+Example:
+
+```
+LoadOrientation = previous_result_final.dat
+LoadInitialOrientationS0Mode = current
+```
+
 ---
 ## Liquid Crystal Material Parameters ##
 Liquid Crystal Material parameters are defined using the key/value pairs specified  below:

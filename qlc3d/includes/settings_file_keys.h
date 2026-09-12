@@ -13,6 +13,7 @@ const char SFK_WILDCARD = '*';
 const std::string SFK_MESH_NAME = "MeshName";
 const std::string SFK_LOAD_Q    = "loadQ";
 const std::string SFK_LOAD_ORIENTATION = "loadOrientation";
+const std::string SFK_LOAD_INITIAL_ORIENTATION_S0_MODE = "LoadInitialOrientationS0Mode";
 const std::string SFK_SAVE_DIR  = "saveDir";
 const std::string SFK_Q_MATRIX_SOLVER = "QMatrixSolver";
 const std::string SFK_SAVE_FORMAT = "SaveFormat";
