@@ -108,6 +108,60 @@ TEST_CASE("loadInitialOrientation throws when both loadQ and loadOrientation are
   delete simu;
 }
 
+TEST_CASE("loadInitialOrientation current S0 mode preserves file orientation and replaces scalar order") {
+  // GIVEN a stored LCView file whose tensor magnitude differs from the active material S0
+  std::vector<qlc3d::Director> directors = {
+      qlc3d::Director::fromDegreeAngles(30, 60, 0.65),
+      qlc3d::Director::fromDegreeAngles(10, 20, 0.55)
+  };
+  auto file = writeLcViewTextFixture(directors);
+
+  Simu *simu = SimuBuilder().meshFileName("mesh.txt")
+      .loadOrientation(file.name().string())
+      .loadInitialOrientationS0Mode("current")
+      .build();
+  SolutionVector q(2, 5);
+  Coordinates coords;
+
+  // WHEN the active material S0 is different from the file's stored scalar magnitude
+  qlc3d::loadInitialOrientation(*simu, 0.35, coords, q);
+
+  // THEN the loaded director direction is preserved while the scalar order is replaced by the current S0
+  for (size_t i = 0; i < directors.size(); i++) {
+    auto actual = q.getDirector((idx) i);
+    REQUIRE(actual.S() == Approx(0.35).margin(1e-6));
+    REQUIRE(actual.nx() == Approx(directors[i].nx()).margin(1e-6));
+    REQUIRE(actual.ny() == Approx(directors[i].ny()).margin(1e-6));
+    REQUIRE(actual.nz() == Approx(directors[i].nz()).margin(1e-6));
+  }
+  delete simu;
+}
+
+TEST_CASE("loadInitialOrientation current S0 mode overrides CSV row s while keeping director orientation") {
+  // GIVEN a director CSV whose row scalar differs from the current material S0
+  std::string contents = "x,y,z,nx,ny,nz,s\n0,0,0,0,0,1,0.65\n";
+  auto file = TestUtil::TemporaryFile::withContents(contents, ".csv");
+
+  Simu *simu = SimuBuilder().meshFileName("mesh.txt")
+      .loadOrientation(file.name().string())
+      .loadInitialOrientationS0Mode("current")
+      .stretchVector(1, 1, 1)
+      .build();
+  SolutionVector q(1, 5);
+  Coordinates coords(std::vector<Vec3>{Vec3(0, 0, 0)});
+
+  // WHEN the current material S0 differs from the file value
+  qlc3d::loadInitialOrientation(*simu, 0.45, coords, q);
+
+  // THEN the CSV director direction is preserved but the scalar order is replaced by the current S0
+  auto actual = q.getDirector(0);
+  REQUIRE(actual.S() == Approx(0.45).margin(1e-6));
+  REQUIRE(actual.nx() == Approx(0.).margin(1e-6));
+  REQUIRE(actual.ny() == Approx(0.).margin(1e-6));
+  REQUIRE(actual.nz() == Approx(1.).margin(1e-6));
+  delete simu;
+}
+
 TEST_CASE("loadInitialOrientation: single director CSV point applies to every mesh node") {
   // GIVEN a single-row director CSV, and mesh nodes at several different locations
   std::string contents = "x,y,z,nx,ny,nz,s\n0,0,0,1,0,0,0.65\n";

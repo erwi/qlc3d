@@ -8,6 +8,20 @@
 #include <util/exception.h>
 
 namespace qlc3d {
+  namespace {
+    void applyCurrentOrderParameterOverride(std::vector<OrientationSample> &samples, double s0,
+                                           Simu::LoadInitialOrientationS0Mode mode) {
+      if (mode != Simu::LoadInitialOrientationS0Mode::Current) {
+        return;
+      }
+
+      for (auto &sample : samples) {
+        const auto director = sample.tensor.toDirector();
+        sample.tensor = TTensor::fromDirector(qlc3d::Director(director.nx(), director.ny(), director.nz(), s0));
+      }
+    }
+  }
+
   void loadInitialOrientation(const Simu &simu, double s0, const Coordinates &meshCoordinates, SolutionVector &q) {
     const std::string &loadQ = simu.getLoadQ();
     const std::string &loadOrientation = simu.getLoadOrientation();
@@ -34,6 +48,7 @@ namespace qlc3d {
 
     auto reader = qlc3d::createOrientationReader(file);
     auto samples = reader->read(file, s0);
+    applyCurrentOrderParameterOverride(samples, s0, simu.getLoadInitialOrientationS0Mode());
     if (reader->producesLocations()) {
       Vec3 stretch = simu.getStretchVector();
       for (auto &sample : samples) {
