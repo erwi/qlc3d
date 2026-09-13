@@ -215,7 +215,7 @@ class SimuBuilder {
     Simu::EndCriteria endCriterion_;
     std::string loadQ_;
     std::string loadOrientation_;
-    LoadInitialOrientationS0Mode loadInitialOrientationS0Mode_;
+    Simu::LoadInitialOrientationS0Mode loadInitialOrientationS0Mode_;
     std::string saveDir_;
     double endValue_;
     double stretchVector_[3];
