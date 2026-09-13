@@ -578,60 +578,24 @@ Performs two refinement iterations, selecting any elements within the whole mode
 
 ---
 ## Solver Settings ##
-Various settings can be used to controll some numerical and implementational aspects of a simulation. In most cases there should be no need to set or change these values, the `qlc3d` application should be able to choose appropriate settings automatically. However, advanced users or developers may want to override some of these settings. 
+Various settings can be used to control some numerical and implementational aspects of a simulation. In most cases there is no need to change these values manually; the application chooses a sensible default automatically.
 
-The equations for the Q-tensor and the electric potential are solved using either the Preconditioned Conjugate Gradient (**PCG**) or the Gerneralised Minimal Residual (**GMRES**) method. In most cases, the **PCG** algorithm is faster and requires less memory, but it requires the solution matrix to be symmetric, which is not the case for certain combinations of liquid crystal material parameters. To manually choose between these algorithms, set `Q_Solver` and `V_Solver` to either 1 or 0. If the algorithm is not explicitly defined, `qlc3d` automatically chooses the appropriate one depending on whether the solution matrix is symmetric.
+The current code path does not expose a user-facing solver-selection switch in the settings file. Instead, qlc3d automatically chooses the linear-solver backend from the structure of the underlying matrix. The Q-tensor solve uses **PCG** for symmetric matrices and **GMRES** for non-symmetric matrices. The same principle is used for the potential solve when the matrix is assembled. In other words, the solver choice is determined automatically by the problem.
 
-Both the **PCG** and **GMRES** algorithms require a preconditioner matrix that can be diagonal (Jacobi), incomplete cholesky or incomplete LU decomposition. Se the Q and V preconditioner variables to 1, 2, or 3. 
-
-A maximum number of iterations and required accuracy must also be defined for both methods.
-
-Usually the **PCG** method with diagonal preconditioning is fastest, but in some cases does not converge to a solution. The **GMRES** method with e.g. incomplete LU preconditioning is more robust, but a bit slower and uses more memory. For example, structures with Neumann boundary conditions require using the **GMRES** method for the potential solution since the matrix problem is non-symmetric. (detection of cases like this should really be automatic…)
-
-The dynamics of the Q-tensor involves multiple sub-iterations per time step. If the size of the time step is too large, these sub-iterations may not converge. The `Q_Newton_Panic_Iter` determines the maximum number of sub iterations before the time step is scaled by the value of `Q_Newton_Panic_Coeff`.
+For the dynamic Q-tensor solve, the time-step adaptation and Newton sub-iterations are still relevant. In particular, the `Q_Newton_Panic_Iter` and `Q_Newton_Panic_Coeff` values bound how aggressively the time step is reduced when sub-iterations fail to converge.
 
 ```
-	nThreads 	= 4
-	Q_Solver	= 1	# 0 = PCG, 1 = GMRES
-	V_Solver	= 1	# 0 = PCG, 1 = GMRES
-#--------------------------------------------------------
-#	Q-Tensor solver settings
-#--------------------------------------------------------
-	Q_Newton_Panic_Iter  = 10
-	Q_Newton_Panic_Coeff = 0.1		
-	
-	# Preconditioned Conjugate Gradient Q-tensor solver settings
-	Q_PCG_Preconditioner 	= 0	# 0 = Diagonal
-						# 1 = Incomplete Cholesky
-						# 2 = Incoplete LU
-	Q_PCG_Maxiter	= 2000
-	Q_PCG_Toler		= 1e-3
-		
-	# GMRES Q-tensor solver settings	
-	Q_GMRES_Preconditioner	= 2	# 0 = Diagonal
-							# 1 = Incomplete Cholesky
-							# 2 = Incoplete LU
-	Q_GMRES_Maxiter	= 200
-	Q_GMRES_Restart	= 100
-	Q_GMRES_Toler	= 1e-3
-#-------------------------------------------------------
-#	Potential solver settings
-#-------------------------------------------------------
-	# Preconditioned Conjugate Gradient potential solver settings
-	V_PCG_Preconditioner = 0		# 0 = Diagonal
-							# 1 = Incomplete Cholesky
-							# 2 = Incomplete LU
-	V_PCG_Maxiter	= 2000
-	V_PCG_Toler		= 1e-6
-	
-	# GMRES potential solver settings	
-	V_GMRES_Preconditioner	= 2		# 0 = Diagonal
-							# 1 = Incomplete Cholesky
-							# 2 = Incoplete LU
-	V_GMRES_Maxiter	= 2000
-	V_GMRES_Restart	= 50;
-	V_GMRES_Toler	= 1e-6;
+	nThreads = 4
+	Q_Newton_Panic_Iter = 10
+	Q_Newton_Panic_Coeff = 0.1
 ```
+
+The automatic choice is effectively:
+
+- symmetric matrix -> **PCG**
+- non-symmetric matrix -> **GMRES**
+
+This is the current behavior used by the solver implementation, and is the source of truth for solver selection unless the code is intentionally changed in a future release.
 
 ---
 ## Settings File Example ##

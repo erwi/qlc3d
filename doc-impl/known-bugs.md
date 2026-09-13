@@ -223,3 +223,4 @@ converted to regex. `SettingsReader::read()` never calls `readValidKeysFile()`
 real application — any key name at all is currently accepted (and simply ignored if
 unrecognized by `SettingsReader`), with no "unknown key" validation performed against
 the actual, hard-coded set of keys `SettingsReader` understands.
+
