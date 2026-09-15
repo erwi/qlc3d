@@ -46,8 +46,13 @@ double Mesh::getDeterminant(const idx i) const {
   return determinants[i];
 }
 
+bool Mesh::isConnectedToVolume(idx indTri) const {
+  assert(elementType_ == ElementType::LINEAR_TRIANGLE || elementType_ == ElementType::QUADRATIC_TRIANGLE);
+  assert(indTri < connectedVolumes.size());
+  return connectedVolumes[indTri] != INVALID_INDEX;
+}
+
 idx Mesh::getConnectedVolume(const idx e) const {
-  // RETURNS INDEX TO CONNECTED LC TETRAHEDRON, WHEN e IS INDEX TO A TRIANGLE
 #ifdef DEBUG
   assert(e < connectedVolumes.size());
 #endif
@@ -125,7 +130,7 @@ void Mesh::setConnectedVolume(Mesh* vol) {
         RUNTIME_ERROR(format("Unable to associate triangles with tetrahedra. Triangles dimension = {}, "
                              "tetrahedra dimension = {}", this->getDimension(), vol->getDimension()));
     }
-    connectedVolumes.resize(getnElements(), NOT_AN_INDEX);
+    connectedVolumes.resize(getnElements(), INVALID_INDEX);
 
     vector <set <idx> > v_in_p ; // vector of sets containing volume element numbers connected to each node
     vector < set < idx> > p_to_t;
@@ -344,7 +349,7 @@ void Mesh::calculateSurfaceNormals(const Coordinates &coords, Mesh* tets) {
     // IF NOT REVERSE ITS ORIENTATION
     unsigned int t = getConnectedVolume(i); // index to neighbouring tet.
 
-    if (t != NOT_AN_INDEX) { // index may only exist for LC tet connections.
+    if (t != INVALID_INDEX) { // index may only exist for LC tet connections.
       Vec3 triBary = (p0 + p1 + p2) / 3.;
 
       // calculate tet barycentre

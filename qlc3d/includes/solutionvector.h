@@ -118,9 +118,8 @@ public:
       for (idx dim = 0; dim < numDims; dim++) {
         for (idx i = 0; i < nDoF; i++) {
           const idx index = i + dim * numDofs;
-          const idx equIndex = getEquNode(index);
-
-          if (equIndex != NOT_AN_INDEX) {
+          if (dofMap->isFreeNode(index)) {
+            const idx equIndex = dofMap->getDof(index);
             values[index] += array[equIndex] * factor;
           }
         }
@@ -132,11 +131,10 @@ public:
   void copyFreeDofsTo(T& array) const {
     idx nDofs = getnDoF() * getnDimensions();
     for (idx i = 0; i < nDofs; i++) {
-      const idx indDof = getEquNode(i);
-      if (indDof == NOT_AN_INDEX) {
-        continue;
+      if (dofMap->isFreeNode(i)) {
+        const idx indDof = dofMap->getDof(i);
+        array[indDof] = getValue(i);
       }
-      array[indDof] = getValue(i);
     }
   }
 

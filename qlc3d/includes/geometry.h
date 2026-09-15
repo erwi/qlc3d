@@ -29,8 +29,6 @@ private:
   void updateMaxNodeNumbers();
 
 public:
-    static const unsigned int NOT_AN_INDEX;
-
     Geometry();
     ~Geometry();
     Geometry(const Geometry&) = delete;

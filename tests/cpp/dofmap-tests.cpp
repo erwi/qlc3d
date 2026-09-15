@@ -2,11 +2,14 @@
 #include "dofmap.h"
 
 TEST_CASE("Initialise DofMap") {
+  // ARRANGE
+  // map is initialised to all fixed nodes
   DofMap dofMap(10, 5);
 
   for (unsigned int i = 0; i < 10; i++) {
     for (unsigned int j = 0; j < 5; j++) {
-      REQUIRE(dofMap.getDof(i, j) == DofMap::NOT_DOF);
+      auto dof = dofMap.getDof(i, j);
+      REQUIRE(dofMap.isFixedDof(dof));
     }
   }
 }
@@ -80,12 +83,12 @@ TEST_CASE("Calculate DofMap when fixed nodes exist, but no periodic nodes") {
   REQUIRE(dofMap.getnDimensions() == numDimensions);
   REQUIRE(dofMap.getnDof() == numNodes);
 
-  REQUIRE(dofMap.getDof(0, 0) == DofMap::NOT_DOF);
-  REQUIRE(dofMap.getDof(1, 0) == DofMap::NOT_DOF);
+  REQUIRE(dofMap.isFixedDof(dofMap.getDof(0, 0)));
+  REQUIRE(dofMap.isFixedDof(dofMap.getDof(1, 0)));
   REQUIRE(dofMap.getDof(2, 0) == 0);
 
-  REQUIRE(dofMap.getDof(0, 1) == DofMap::NOT_DOF);
-  REQUIRE(dofMap.getDof(1, 1) == DofMap::NOT_DOF);
+  REQUIRE(dofMap.isFixedDof(dofMap.getDof(0, 1)));
+  REQUIRE(dofMap.isFixedDof(dofMap.getDof(1, 1)));
   REQUIRE(dofMap.getDof(2, 1) == 1);
 }
 
@@ -107,12 +110,12 @@ TEST_CASE("Calculate DofMap when both fixed and periodic nodes exist") {
   REQUIRE(dofMap.getnDof() == numNodes);
 
   REQUIRE(dofMap.getDof(0, 0) == 0);
-  REQUIRE(dofMap.getDof(1, 0) == DofMap::NOT_DOF);
+  REQUIRE(dofMap.isFixedDof(dofMap.getDof(1, 0)));
   REQUIRE(dofMap.getDof(2, 0) == 0);
   REQUIRE(dofMap.getDof(3, 0) == 1);
 
   REQUIRE(dofMap.getDof(0, 1) == 2);
-  REQUIRE(dofMap.getDof(1, 1) == DofMap::NOT_DOF);
+  REQUIRE(dofMap.isFixedDof(dofMap.getDof(1, 1)));
   REQUIRE(dofMap.getDof(2, 1) == 2);
   REQUIRE(dofMap.getDof(3, 1) == 3);
 }

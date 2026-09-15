@@ -41,13 +41,13 @@ void setupSingleBlock(const Geometry &geom,
         // ADD EQU NODES TO MATRIX
         for (idx i = 0 ; i < npt ; ++i){
             // IGNORE FIXED NODES
-            if ( eqn[i] == DofMap::NOT_DOF) {
+            if (dofMap.isFixedDof(eqn[i])) {
                 continue;
             }
 
             mm.addNonZero(eqn[i],eqn[i]); // DIAGONAL i,i
             for (idx j = i+1 ; j < npt ; ++j ) {
-                if (eqn[j] == DofMap::NOT_DOF) { // IGNORE FIXED NODES
+                if (dofMap.isFixedDof(eqn[j])) { // IGNORE FIXED NODES
                     continue;
                 }
                 mm.addNonZero(eqn[i], eqn[j]);

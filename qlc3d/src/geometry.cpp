@@ -10,8 +10,6 @@
 #include <mesh/mesh.h>
 #include <cassert>
 
-const idx Geometry::NOT_AN_INDEX = std::numeric_limits<idx>::max();
-
 Geometry::Geometry() {
   npLC = 0;
   t = Mesh::tetMesh();
@@ -213,7 +211,9 @@ void Geometry::ReorderDielectricNodes() {
         RUNTIME_ERROR(fmt::format("Failed to reorder dielectric nodes: expected {} nodes, built {}.", getnp(), reorderedNodeIndices.size()));
     }
 
-    std::vector<idx> inverseNodeMap(getnp(), NOT_AN_INDEX);
+    const idx notAnIndex = std::numeric_limits<idx>::max();
+
+    std::vector<idx> inverseNodeMap(getnp(), notAnIndex);
     for (idx i = 0; i < getnp(); i++) {
         inverseNodeMap[reorderedNodeIndices[i]] = i;
     }
@@ -233,12 +233,20 @@ void Geometry::ReorderDielectricNodes() {
         tetMaterials[i] = t->getMaterialNumber(i);
         for (idx j = 0 ; j < t->getnNodes() ; j++) {
             const idx mappedNode = inverseNodeMap[oldTetNodes[j]];
-            if (mappedNode == NOT_AN_INDEX) {
+            if (mappedNode == notAnIndex) {
                 RUNTIME_ERROR(fmt::format("Encountered unmapped tetrahedral node {} while reordering dielectric nodes.", oldTetNodes[j]));
             }
             reorderedTetNodes[i * t->getnNodes() + j] = mappedNode;
         }
     }
+
+    // assert there are no notAnIndex valued nodes in reorderedTetNodes
+    for (idx i = 0; i < reorderedTetNodes.size(); i++) {
+      if (reorderedTetNodes[i] == notAnIndex) {
+        RUNTIME_ERROR(fmt::format("Reordered tetrahedral node at index {} is not mapped to a valid node index.", i));
+      }
+    }
+
     t->setElementData(t->getElementType(), std::move(reorderedTetNodes), std::move(tetMaterials));
 
     std::vector<idx> reorderedTriNodes(e->getnElements() * e->getnNodes());
@@ -249,12 +257,20 @@ void Geometry::ReorderDielectricNodes() {
         triMaterials[i] = e->getMaterialNumber(i);
         for (idx j = 0 ; j < e->getnNodes() ; j++) {
             const idx mappedNode = inverseNodeMap[oldTriNodes[j]];
-            if (mappedNode == NOT_AN_INDEX) {
+            if (mappedNode == notAnIndex) {
                 RUNTIME_ERROR(fmt::format("Encountered unmapped triangle node {} while reordering dielectric nodes.", oldTriNodes[j]));
             }
             reorderedTriNodes[i * e->getnNodes() + j] = mappedNode;
         }
     }
+
+    // assert there are no notAnIndex valued nodes in reorderedTriNodes
+    for (idx i = 0; i < reorderedTriNodes.size(); i++) {
+      if (reorderedTriNodes[i] == notAnIndex) {
+        RUNTIME_ERROR(fmt::format("Reordered triangle node at index {} is not mapped to a valid node index.", i));
+      }
+    }
+
     e->setElementData(e->getElementType(), std::move(reorderedTriNodes), std::move(triMaterials));
 
     this->updateMaxNodeNumbers();

@@ -411,21 +411,24 @@ ImplicitLCSolver(lc, solverSettings, alignment), maxError(maxError), maxNewtonIt
             isThreeElasticConstants, isSymmetricMatrix, maxNewtonIterations);
 }
 
-bool isFixedNode(idx i) {
-  return i == NOT_AN_INDEX;
-}
-
-void addToGlobalMassMatrix(const SpaMtrix::DenseMatrix &lK, const std::vector<unsigned int> &tetDofs, SpaMtrix::IRCMatrix &M) {
+/**
+ *
+ * @param lK
+ * @param tetDofs mapped nodal degrees of freedom, not raw indices
+ * @param M
+ * @param dofMap
+ */
+void addToGlobalMassMatrix(const SpaMtrix::DenseMatrix &lK, const std::vector<unsigned int> &tetDofs, SpaMtrix::IRCMatrix &M, const DofMap &dofMap) {
   const unsigned int npt = lK.getNumRows();
   const unsigned int numFreeNodes = M.getNumRows() / 5;
 
   for (idx i = 0; i < npt; i++) {
     const idx iDof = tetDofs[i];
-    if (isFixedNode(iDof)) { continue; } // this row should not even exist in the matrix
+    if (dofMap.isFixedDof(iDof)) { continue; }
 
     for (idx j = 0; j < npt; j++) {
       const idx jDof = tetDofs[j];
-      if (isFixedNode(jDof)) { continue; }
+      if (dofMap.isFixedDof(jDof)) { continue; }
 
       for (int dof = 0; dof < 5; dof ++) {
         M.sparse_add(iDof + dof * numFreeNodes, jDof + dof * numFreeNodes, lK(i, j));
@@ -480,7 +483,7 @@ void assembleGlobalMassMatrix(SpaMtrix::IRCMatrix &M, const Geometry &geom, cons
 
     assembleElementMassMatrix(lK, tetNodes, tetMesh.getDeterminant(tetIndex), geom, shapes);
 
-    addToGlobalMassMatrix(lK, tetDofs, M);
+    addToGlobalMassMatrix(lK, tetDofs, M, q.getDofMap());
   }
 }
 

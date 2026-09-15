@@ -106,12 +106,13 @@ void readNodes(ifstream* fin, idx np, std::vector<Vec3> &points) {
 void readTetrahedra(ifstream* fin, idx numTets, std::vector<idx> &tetNodes, std::vector<idx> &tetMaterials) {
     Log::info("Reading {} tetrahedra", numTets);
     forwardToLine(fin, "elements");
-    char cbuff[256];
+    const idx bufferSize = 512;
+    char cbuff[bufferSize];
 
-    tetNodes.resize(numTets * 4, NOT_AN_INDEX);
-    tetMaterials.resize(numTets, NOT_AN_INDEX);
+    tetNodes.resize(numTets * 4, std::numeric_limits<idx>::max());
+    tetMaterials.resize(numTets, std::numeric_limits<idx>::max());
     for (idx i = 0; i < numTets; i++) {
-        fin->getline(cbuff,256);
+        fin->getline(cbuff,bufferSize);
         std::stringstream ss(cbuff);
 
         idx tmp=0;
@@ -138,8 +139,8 @@ void readTriangles(ifstream* fin, idx numTris, std::vector<idx> &triNodes, std::
     forwardToLine(fin, "elements");
     triNodes.clear();
     triMaterials.clear();
-    triNodes.resize(numTris * 3, NOT_AN_INDEX);
-    triMaterials.resize(numTris, NOT_AN_INDEX);
+    triNodes.resize(numTris * 3, std::numeric_limits<idx>::max());
+    triMaterials.resize(numTris, std::numeric_limits<idx>::max());
 
     for (idx i =0 ; i < numTris ; i++) {
         idx temp;

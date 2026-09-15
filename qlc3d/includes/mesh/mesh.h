@@ -96,6 +96,7 @@ public:
 
 class Mesh {
 private:
+  static constexpr idx INVALID_INDEX = std::numeric_limits<idx>::max();
   ElementType elementType_;
   std::vector<idx> nodes;
   std::vector<idx> materials;
@@ -138,6 +139,8 @@ public:
     [[nodiscard]] inline unsigned int getnNodes() const { return getNodesPerElement(elementType_); }
     /** number of dimensions of mesh - 2 for triangles and 3 for tetrahedra */
     [[nodiscard]] inline idx getDimension() const { return getElementDimension(elementType_); }
+    /** whether the indexed triangle element is connected to a tetrahedron element */
+    [[nodiscard]] bool isConnectedToVolume(idx indTri) const;
     idx getConnectedVolume(const idx e) const;  // returns index to connected volume element, or -1 if not connected to LC1
     inline idx getNode(const idx e, const idx n) const { // returns node n of element e
 #ifdef DEBUG

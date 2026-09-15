@@ -17,9 +17,6 @@
 #include <fe/gaussian-quadrature.h>
 #include <spamtrix_luincpreconditioner.hpp>
 #include <spamtrix_iterativesolvers.hpp>
-#include <spamtrix_matrixmaker.hpp>
-#include <spamtrix_vector.hpp>
-#include <spamtrix_densematrix.hpp>
 #include <fe/fe-util.h>
 #include <util/exception.h>
 
@@ -152,7 +149,7 @@ void PotentialSolver::addToGlobalMatrix(const SpaMtrix::DenseMatrix &lK, const s
 
   // check if any dof is fixed and load the nodal values if required.
   const unsigned int numTetNodes = tetNodes.size();
-  bool anyFixed = std::any_of(&tetDofs[0], &tetDofs[numTetNodes], [this](auto val){ return this->isFixedNode(val); });
+  bool anyFixed = std::any_of(&tetDofs[0], &tetDofs[numTetNodes], [&v](auto val){ return v.getDofMap().isFixedDof(val); });
   std::vector<double> values(numTetNodes, 0.);
   if (anyFixed) {
     v.loadValues(&tetNodes[0], &tetNodes[numTetNodes], &values[0]);
@@ -160,14 +157,14 @@ void PotentialSolver::addToGlobalMatrix(const SpaMtrix::DenseMatrix &lK, const s
 
   for (idx  i = 0; i < numTetNodes; i++) {
     const idx iDof = tetDofs[i];
-    if (!isFreeNode(iDof)) { // this row/column doesn't even exist in the system as the value is already known
+    if (v.getDofMap().isFixedDof(iDof)) { // this row/column doesn't even exist in the system as the value is already known
       continue;
     }
 
     double fixedContribution = 0.;
     for (idx j = 0; j < numTetNodes; j++) {
       const idx jDof = tetDofs[j];
-      if (isFreeNode(jDof)) { // both i and j are free dofs, add the matrix contribution
+      if (v.getDofMap().isFreeDof(jDof)) { // both i and j are free dofs, add the matrix contribution
         double *val = K->getValuePtr(iDof, jDof);
         if (val == nullptr) {
           RUNTIME_ERROR(fmt::format("Value at row {} and column {} is not found in the matrix for potential solution", iDof, jDof));
@@ -231,10 +228,11 @@ void PotentialSolver::assembleNeumann(const SolutionVector &v, const SolutionVec
       continue;
     }
 
-    const unsigned int indTet = triMesh.getConnectedVolume(indTri);
-    if (indTet == NOT_AN_INDEX) {
-      throw std::runtime_error(fmt::format("Neumann boundary triangle {} not connected to a volume element", indTri));
+    if (!triMesh.isConnectedToVolume(indTri)) {
+      RUNTIME_ERROR(fmt::format("Neumann boundary triangle {} is not connected to a volume element", indTri));
     }
+    const unsigned int indTet = triMesh.getConnectedVolume(indTri);
+
     const unsigned int tetMaterial = tetMesh.getMaterialNumber(indTet);
     if (!isLCMaterial(tetMaterial)) {
       continue;
@@ -260,14 +258,6 @@ void PotentialSolver::assembleNeumann(const SolutionVector &v, const SolutionVec
                    shapes);
     addToGlobalMatrix(lK, lL, v, tetNodes, tetDofs);
   }
-}
-
-bool PotentialSolver::isFixedNode(idx i) {
-  return i == NOT_AN_INDEX;
-}
-
-bool PotentialSolver::isFreeNode(idx i) {
-  return i < NOT_AN_INDEX;
 }
 
 void PotentialSolver::localKL(const Geometry &geom,
