@@ -93,54 +93,7 @@ API plus a hard-coded single-element default of `{1.0}` set in the default const
 non-default dielectric permittivity through the settings file, even though the data
 model and constant for the key both exist.
 
-## 7. `Reader::isValueArrayOfNumbers` checks the key string instead of the value string
-
-`qlc3d/includes/reader.h:445-457`:
-
-```cpp
-bool Reader::isValueArrayOfNumbers(const std::string &key) const {
-  if (!isValidNumber(key)) {     // BUG: validates `key` (e.g. "FIXLC1.Easy"), not its value
-    return false;
-  }
-  try {
-    auto array = getValueByKey<std::vector<double>>(key);
-  } catch (...) {
-    return false;
-  }
-  return true;
-}
-```
-
-`isValidNumber()` is meant to check whether a *value string* looks like a number. Here
-it is called on `key`, which is a settings-file key name such as `"FIXLC1.Easy"`. Since
-key names contain letters and dots, `isValidNumber(key)` is always `false` for any
-realistic key, so `isValueArrayOfNumbers()` always returns `false`, regardless of
-whether the value is actually a numeric array.
-
-The only call site is `SettingsReader::readAlignment` for `FIXLC{i}.Anchoring =
-strong` surfaces (`settings-reader.cpp:296-316`):
-
-```cpp
-if (reader.isValueArrayOfNumbers(key)) {
-  // numeric tilt/twist angle branch — currently unreachable
-  ...
-} else if (reader.isValueArrayOfStrings(key)) {
-  // expression branch — always taken instead, even for plain numeric values
-  ...
-}
-```
-
-Because `isValueArrayOfNumbers` always returns `false`, the "plain numeric tilt/twist"
-branch for `FIXLC*.Anchoring = Strong` is unreachable code, and every `FIXLC*.Easy`
-value — even a purely numeric array like `[5.0, 90.0, 0.0]`, as used in
-`examples/switching-dynamics-1d/settings.txt:33` — is instead parsed as a pair of
-string *expressions* and evaluated through `CartesianExpression`/`tinyexpr`. This
-happens to produce the same numeric result for constant expressions like `"5.0"`, so
-the bug is currently benign for typical settings files, but it means the intended fast
-path never executes and any settings file relying on the documented numeric-array
-behavior is silently and invisibly routed through the expression evaluator instead.
-
-## 8. Third `FIXLC*.Easy` value ("rotation") is accepted but always discarded
+## 7. Third `FIXLC*.Easy` value ("rotation") is accepted but always discarded
 
 For `weak` anchoring, `SettingsReader::readAlignment` explicitly validates that
 `FIXLC{i}.Easy` has 2 or 3 elements (`settings-reader.cpp:325`: `assertTrue(easyAngles.size()
@@ -155,7 +108,7 @@ rotation parameter). Example settings files (e.g.
 comment ("easy tilt, twist, rotation angles"), but that value has no effect for any
 currently supported anchoring type.
 
-## 9. `Electrode` constructor can double-count the initial time-0 sample
+## 8. `Electrode` constructor can double-count the initial time-0 sample
 
 `qlc3d/src/electrodes.cpp:13-35`:
 
@@ -191,7 +144,7 @@ because the structure is easy to misread as double-inserting the `(0,0)` pair an
 become a real bug if the trailing `for` loops were ever changed without noticing the
 implicit dependency on the preceding `if`/`else if`.
 
-## 10. Inconsistent coordinate normalization between `Box` and `Surface` expressions
+## 9. Inconsistent coordinate normalization between `Box` and `Surface` expressions
 
 `Box::getTiltAt`/`getTwistAt` (`box.cpp:164-186`) evaluate `Box{i}.Tilt`/`Box{i}.Twist`
 string expressions using coordinates normalized to `[0, 1]` within that box's own
@@ -202,7 +155,7 @@ but it is an undocumented inconsistency: an expression written for a `Box` canno
 reused verbatim for a `Surface`, and vice versa, without accounting for the different
 coordinate conventions.
 
-## 11. `AnchoringType::Polymerise` is defined but unreachable
+## 10. `AnchoringType::Polymerise` is defined but unreachable
 
 `AnchoringType::Polymerise` is declared in the enum (`alignment.h:22`), and a `TODO`
 comment for a future `Surface::ofPolymerise()` factory exists (`alignment.h:108`), but:
@@ -213,7 +166,7 @@ comment for a future `Surface::ofPolymerise()` factory exists (`alignment.h:108`
 - `ManualNodes` is likewise defined in the enum but also has no reachable path in
   `SettingsReader::readAlignment` today.
 
-## 12. `Reader::readValidKeysFile` / key whitelist mechanism is unused in production
+## 11. `Reader::readValidKeysFile` / key whitelist mechanism is unused in production
 
 `Reader` supports restricting the set of allowed settings keys via
 `readValidKeysFile()`/`isValidKey()` (`reader.h:351-412`), with wildcard (`*`) support

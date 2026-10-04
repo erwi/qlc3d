@@ -159,7 +159,12 @@ public:
      * NOTE: currently all numbers are strings too, but all strings are not numbers
      */
     [[nodiscard]] inline bool isValueArrayOfStrings(const std::string &key) const;
-    /** Return whether all values in the array are valid numbers */
+    /**
+     * Return whether the value stored for @p key is an array whose elements are all valid numbers.
+     *
+     * @param key The settings key whose value should be checked.
+     * @return True if the value is a numeric array, false otherwise.
+     */
     [[nodiscard]] inline bool isValueArrayOfNumbers(const std::string &key) const;
 };
 
@@ -443,13 +448,16 @@ bool Reader::isValueArrayOfStrings(const std::string &key) const {
 }
 
 bool Reader::isValueArrayOfNumbers(const std::string &key) const {
-  if (!isValidNumber(key)) {
+  if (!isValueArray(key)) {
     return false;
   }
 
   try {
-    // brute force method to check if all values are readable as numbers without errors
-    auto array = getValueByKey<std::vector<double>>(key);
+    std::string keyLower(key);
+    toLower(keyLower);
+    auto value = _keyValues.at(keyLower).val_;
+    std::vector<double> array;
+    parseValue(value, array);
   } catch (...) {
     return false;
   }

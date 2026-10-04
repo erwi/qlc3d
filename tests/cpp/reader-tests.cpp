@@ -44,6 +44,17 @@ TEST_CASE("Check if value type is array") {
   REQUIRE(r.isValueArray("key") == true);
 }
 
+TEST_CASE("Check if numeric array value is detected from the value, not the key") {
+  std::string contents = "FIXLC1.Easy = [5.0, 90.0, 0.0]";
+  auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+  Reader r;
+  r.readSettingsFile(settingsFile.name());
+
+  REQUIRE(r.isValueArrayOfNumbers("FIXLC1.Easy") == true);
+  REQUIRE(r.isValueArrayOfStrings("FIXLC1.Easy") == false);
+}
+
 TEST_CASE("Read string value with spaces") {
   std::string contents = "key = \"value with spaces\"";
   auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
