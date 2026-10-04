@@ -212,8 +212,7 @@ numerical value used as an accuracy parameter for the nonlinear Crank-Nicholson 
 ### **numAssemblyThreads = 1** ###
 An optional numerical value, larger or equal to 0, that specifies the number of threads to use in assembling the matrix problems.  The default value is 1. Using 0 results in all the available threads on the system being used.
 
-### **NumMatrixSolverThreads = 0** ###
-An optional numerical value, larger or equal to 0, that specifies the number of threads to use in solving the matrix problems.  The default value is 0, which results in all the available threads being used. Note that, optimum performance is achieved using a value larger than 0 but smaller than the number of cores/hardware threads available on the system.
+The linear-solver backend is selected automatically by the problem. qlc3d uses **PCG** for symmetric systems and **GMRES** for non-symmetric systems; no user-facing solver-selection setting is exposed in the settings file.
 
 ---
 ## Result Input/Output ##

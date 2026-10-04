@@ -15,13 +15,11 @@ const vector<string> Simu::VALID_END_CRITERIA = {"iterations", "time", "change"}
 // NOTE: the order should match with the order of the corresponding enum values
 const vector<string> Simu::VALID_SAVE_FORMATS = {
         "lcview", "regularvtk", "regularvecmat", "dirstackz", "lcviewtxt", "csvunstructured", "vtkunstructuredasciigrid"};
-const vector<string> Simu::VALID_Q_MATRIX_SOLVERS = {"Auto", "PCG", "GMRES"};
 const vector<string> Simu::VALID_MESH_ELEMENT_ORDERS = {"native", "quadratic", "linear"};
 const vector<string> Simu::VALID_LOAD_INITIAL_ORIENTATION_S0_MODES = {"file", "current"};
 // Define values of default Simu parameters
 const string Simu::DEFAULT_LOAD_Q = "";
 const string Simu::DEFAULT_SAVE_DIR = "res";
-const string Simu::DEFAULT_Q_MATRIX_SOLVER = "auto";
 const double Simu::DEFAULT_END_VALUE = 1e-3;
 const double Simu::DEFAULT_DT = 1e-9;
 const double Simu::DEFAULT_TARGET_DQ = 1e-3;
@@ -32,11 +30,9 @@ const vector<double> Simu::DEFAULT_DT_LIMITS = {Simu::DEFAULT_DT, Simu::DEFAULT_
 const vector<double> Simu::DEFAULT_DT_FUNCTION = {0.5, 0.8, 1.2, 10};
 const vector<idx> Simu::DEFAULT_REGULAR_GRID_SIZE = {0, 0, 0};
 const int Simu::DEFAULT_OUTPUT_ENERGY = 0;
-const int Simu::DEFAULT_OUTPUT_FORMAT = SIMU_OUTPUT_FORMAT_BINARY; // TODO: Get rid of this
 const int Simu::DEFAULT_SAVE_ITER = 0;
 const double Simu::DEFAULT_SAVE_TIME = 0;
 const int Simu::DEFAULT_NUM_ASSEMBLY_THREADS = 0;
-const int Simu::DEFAULT_NUM_MATRIX_SOLVER_THREADS = 0;
 const Simu::LoadInitialOrientationS0Mode Simu::DEFAULT_LOAD_INITIAL_ORIENTATION_S0_MODE = Simu::LoadInitialOrientationS0Mode::File;
 const Simu::EndCriteria Simu::DEFAULT_END_CRITERION = Simu::EndCriteria::Time;
 const Simu::MeshElementOrder Simu::DEFAULT_MESH_ELEMENT_ORDER = Simu::MeshElementOrder::Native;
@@ -73,15 +69,14 @@ void assertTrue(bool shouldBeTrue, const std::string &msg) {
 
 Simu *SimuBuilder::build() const {
     return new Simu(meshFileName_, initialTimeStep_,
-                    qMatrixSolver_, maxError_,
+                    maxError_,
                     targetDQ_, dtLimits_,
                     dtFunction_, endCriterion_,
                     loadQ_, loadOrientation_, loadInitialOrientationS0Mode_, saveDir_,
                     endValue_, stretchVector_,
                     regularGridSize_, outputEnergy_,
-                    outputFormat_, saveIter_, saveTime_,
+                    saveIter_, saveTime_,
                     saveFormat_, numAssemblyThreads_,
-                    numMatrixSolverThreads_,
                     workingDir_ / saveDir_, // absolute path to result directory
                     meshElementOrder_);
 }
@@ -89,19 +84,6 @@ Simu *SimuBuilder::build() const {
 SimuBuilder &SimuBuilder::initialTimeStep(double dt) {
     assertTrue(dt >= 0, "time step should be >= 0");
     initialTimeStep_ = dt;
-    return *this;
-}
-
-SimuBuilder &SimuBuilder::qMatrixSolver(const std::string &solverName) {
-    if ("auto" == solverName) {
-        qMatrixSolver_ = Simu::QMatrixSolvers::Auto;
-    } else if ("pcg" == solverName) {
-        qMatrixSolver_ = Simu::QMatrixSolvers::PCG;
-    } else if ("gmres" == solverName) {
-        qMatrixSolver_ = Simu::QMatrixSolvers::GMRES;
-    } else {
-        throw runtime_error("valid Q solver names are [auto, pcg, gmres], got " + solverName);
-    }
     return *this;
 }
 
@@ -206,11 +188,6 @@ SimuBuilder &SimuBuilder::outputEnergy(int outputEnergy) {
     return *this;
 }
 
-SimuBuilder &SimuBuilder::outputFormat(int outputFormat) {
-    outputFormat_ = outputFormat;
-    return *this;
-}
-
 SimuBuilder &SimuBuilder::saveIter(int saveIter) {
     assertTrue(saveIter >= 0, "saveIter should not be negative");
     saveIter_ = saveIter;
@@ -241,11 +218,6 @@ SimuBuilder &SimuBuilder::saveFormat(const set<std::string> &saveFormats) {
 
 SimuBuilder &SimuBuilder::numAssemblyThreads(unsigned int n) {
     numAssemblyThreads_ = n;
-    return *this;
-}
-
-SimuBuilder &SimuBuilder::numMatrixSolverThreads(unsigned int n) {
-    numMatrixSolverThreads_ = n;
     return *this;
 }
 

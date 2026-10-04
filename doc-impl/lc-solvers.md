@@ -54,7 +54,8 @@ The code sets:
 isSymmetricMatrix(lc.p0() == 0.0);
 ```
 
-so the actual linear-solver choice is inferred from the material parameters, not from the `Q_Solver` settings key. In other words, the matrix symmetry is the runtime decision point, while the settings file is only a place where the values are stored.
+so the actual linear-solver choice is inferred from the material parameters. The active GMRES settings (`Q_GMRES_*` and `V_GMRES_*`) are still read from the settings file, but there is no separate user-facing solver-selection switch in the runtime path.
+
 
 ## 3. Available concrete solvers today
 
@@ -143,4 +144,4 @@ The key point for maintainers is that the real runtime solver choice in qlc3d is
 - choose the nonlinear algorithm by simulation mode (`SteadyState` vs time stepping)
 - choose the linear backend internally by matrix symmetry (`PCG` or `GMRES`)
 
-and not by the `Q_Solver` / `V_Solver` settings that are still described in older documentation.
+There is no supported settings-file switch for this selection; the active GMRES tuning keys are the maxiter/restart/tolerance entries only.

@@ -374,7 +374,6 @@ TEST_CASE("[SteadyState] Relax elastic distortions with chirality - quadratic el
   solverSettings->setV_GMRES_Toler(1e-9);
   solverSettings->setQ_GMRES_Maxiter(0); // same as number of degrees of freedom
   solverSettings->setQ_GMRES_Restart(1000);
-  solverSettings->setQ_GMRES_Preconditioner(0);
   SteadyStateLCSolver ssSolver(*lc, *solverSettings, alignment);
 
   // ACT

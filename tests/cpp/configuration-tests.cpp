@@ -41,7 +41,6 @@ TEST_CASE("Read Simu from settings file") {
     std::string contents;
     contents += "MeshName= wowowoo.txt\n";
     contents += "dt=123\n";
-    contents += "qmatrixsolver=PCG\n";
     contents += "targetdq=1.2\n";
     contents += "maxError=2.2\n";
     contents += "endcriterion=CHANGE\n";
@@ -50,12 +49,10 @@ TEST_CASE("Read Simu from settings file") {
     contents += "savedir=someDir\n";
     contents += "endValue=1.5\n";
     contents += "outputEnergy=1\n";
-    contents += "outputformat=123\n";
     contents += "saveiter=13\n";
     contents += "saveTime=6e-6\n";
     contents += "saveFormat=[regularvecmat, LCviewTXT]\n";
     contents += "numAssemblyThreads=99\n";
-    contents += "numMatrixSolverThreads=98\n";
     contents += "dtlimits=[3.2, 4.2]\n";
     contents += "dtfunction=[1.2, 2.2, 3.2, 4.2]\n";
     contents += "stretchvector=[1.2, 2.2, 3.2]\n";
@@ -70,7 +67,6 @@ TEST_CASE("Read Simu from settings file") {
     // ASSERT - check that the read simu matches the file contents specified above
     REQUIRE(simu->meshName() == "wowowoo.txt");
     REQUIRE(simu->initialTimeStep() == 123);
-    REQUIRE(simu->getQMatrixSolver() == Simu::QMatrixSolvers::PCG);
     REQUIRE(simu->getTargetdQ() == 1.2);
     REQUIRE(simu->getMaxError() == 2.2);
     REQUIRE(simu->getMindt() == 3.2);
@@ -81,11 +77,9 @@ TEST_CASE("Read Simu from settings file") {
     REQUIRE(simu->getSaveDir() == "somedir");
     REQUIRE(simu->getEndValue() == 1.5);
     REQUIRE(simu->getOutputEnergy() == 1);
-    REQUIRE(simu->getOutputFormat() == 123);
     REQUIRE(simu->getSaveIter() == 13);
     REQUIRE(simu->getSaveTime() == 6e-6);
     REQUIRE(simu->getAssemblyThreadCount() == 99);
-    REQUIRE(simu->getMatrixSolverThreadCount() == 98);
 
     // check lists
     // dtLimits
@@ -324,21 +318,11 @@ TEST_CASE("Read solver settings from settings file") {
   std::string contents;
   contents += "MeshName= test.msh\n"; // required in every settings file
   contents += "NumAssemblyThreads = 1\n";
-  contents += "Q_Solver = 2\n";
-  contents += "V_Solver = 3\n";
   contents += "Q_Newton_Panic_Iter = 4\n";
   contents += "Q_Newton_Panic_Coeff = 0.5\n";
-  contents += "Q_PCG_Preconditioner = 6\n";
-  contents += "Q_PCG_Maxiter = 7\n";
-  contents += "Q_PCG_Toler = 8\n";
-  contents += "Q_GMRES_Preconditioner = 9\n";
   contents += "Q_GMRES_Maxiter = 10\n";
   contents += "Q_GMRES_Restart = 11\n";
   contents += "Q_GMRES_Toler = 12\n";
-  contents += "V_PCG_Preconditioner = 13\n";
-  contents += "V_PCG_Maxiter = 14\n";
-  contents += "V_PCG_Toler = 15\n";
-  contents += "V_GMRES_Preconditioner = 16\n";
   contents += "V_GMRES_Maxiter = 17\n";
   contents += "V_GMRES_Restart = 18\n";
   contents += "V_GMRES_Toler = 19\n";
@@ -348,21 +332,11 @@ TEST_CASE("Read solver settings from settings file") {
   auto solverSettings = reader.solverSettings();
 
   REQUIRE(1 == solverSettings->getnThreads());
-  REQUIRE(2 == solverSettings->getQ_Solver());
-  REQUIRE(3 == solverSettings->getV_Solver());
   REQUIRE(4 == solverSettings->getQ_Newton_Panic_Iter());
   REQUIRE(0.5 == solverSettings->getQ_Newton_Panic_Coeff());
-  REQUIRE(6 == solverSettings->getQ_PCG_Preconditioner());
-  REQUIRE(7 == solverSettings->getQ_PCG_Maxiter());
-  REQUIRE(8 == solverSettings->getQ_PCG_Toler());
-  REQUIRE(9 == solverSettings->getQ_GMRES_Preconditioner());
   REQUIRE(10 == solverSettings->getQ_GMRES_Maxiter());
   REQUIRE(11 == solverSettings->getQ_GMRES_Restart());
   REQUIRE(12 == solverSettings->getQ_GMRES_Toler());
-  REQUIRE(13 == solverSettings->getV_PCG_Preconditioner());
-  REQUIRE(14 == solverSettings->getV_PCG_Maxiter());
-  REQUIRE(15 == solverSettings->getV_PCG_Toler());
-  REQUIRE(16 == solverSettings->getV_GMRES_Preconditioner());
   REQUIRE(17 == solverSettings->getV_GMRES_Maxiter());
   REQUIRE(18 == solverSettings->getV_GMRES_Restart());
   REQUIRE(19 == solverSettings->getV_GMRES_Toler());

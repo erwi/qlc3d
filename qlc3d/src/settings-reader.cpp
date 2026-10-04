@@ -17,9 +17,9 @@ const std::vector<std::string> validSettingsKeys = {
     "meshname", "loadq", "loadorientation", "loadinitialorientations0mode",
     "reprefiter", "repreftime", "refinement*.type", "refinement*.x", "refinement*.y",
     "refinement*.z", "refinement*.iterations", "refinement*.times", "refinement*.values",
-    "savedir", "qmatrixsolver", "saveformat", "endcriterion", "endvalue", "dt",
-    "targetdq", "maxdt", "maxerror", "outputenergy", "outputformat", "saveiter",
-    "savetime", "numassemblythreads", "nummatrixsolverthreads", "stretchvector",
+    "savedir", "saveformat", "endcriterion", "endvalue", "dt",
+    "targetdq", "maxdt", "maxerror", "outputenergy", "saveiter",
+    "savetime", "numassemblythreads", "stretchvector",
     "dtlimits", "dtfunction", "regulargridsize", "meshelementorder",
     // LC parameters
     "k11", "k22", "k33", "k24", "p0", "a", "b", "c", "eps_par", "eps_per",
@@ -33,11 +33,9 @@ const std::vector<std::string> validSettingsKeys = {
     "fixlc*.anchoring", "fixlc*.strength", "fixlc*.easy", "fixlc*.k1",
     "fixlc*.k2", "fixlc*.params", "fixlc*.overridevolume",
     // solver settings
-    "q_solver", "v_solver", "q_newton_panic_iter", "q_newton_panic_coeff",
-    "q_pcg_preconditioner", "q_pcg_maxiter", "q_pcg_toler", "q_gmres_preconditioner",
-    "q_gmres_maxiter", "q_gmres_restart", "q_gmres_toler", "v_pcg_preconditioner",
-    "v_pcg_maxiter", "v_pcg_toler", "v_gmres_preconditioner", "v_gmres_maxiter",
-    "v_gmres_restart", "v_gmres_toler"
+    "q_newton_panic_iter", "q_newton_panic_coeff",
+    "q_gmres_maxiter", "q_gmres_restart", "q_gmres_toler",
+    "v_gmres_maxiter", "v_gmres_restart", "v_gmres_toler"
 };
 } // namespace
 
@@ -136,7 +134,6 @@ void SettingsReader::readSimu(Reader &reader) {
 
     readDouble(reader, SFK_DT, [&](double v) { builder.initialTimeStep( v); });
     //if (auto t = reader.getOptional<double>(SFK_DT)) { builder.initialTimeStep(t.value()); }
-    if (auto s = reader.getOptional<string>(SFK_Q_MATRIX_SOLVER)) { builder.qMatrixSolver(s.value()); }
     if (auto v = reader.getOptional<double>(SFK_TARGET_DQ)) { builder.targetDQ(v.value()); }
     if (auto v = reader.getOptional<double>(SFK_MAX_ERROR)) { builder.maxError(v.value()); }
     if (auto v = reader.getOptional<string>(SFK_END_CRITERION)) { builder.endCriterion(v.value()); }
@@ -145,13 +142,11 @@ void SettingsReader::readSimu(Reader &reader) {
     if (auto v = reader.getOptional<string>(SFK_LOAD_INITIAL_ORIENTATION_S0_MODE)) { builder.loadInitialOrientationS0Mode(v.value()); }
     if (auto v = reader.getOptional<string>(SFK_SAVE_DIR)) { builder.saveDir(v.value()); }
     if (auto v = reader.getOptional<double>(SFK_END_VALUE)) { builder.endValue(v.value()); }
-    if (auto v = reader.getOptional<int>(SFK_OUTPUT_FORMAT)) { builder.outputFormat(v.value()); }
     if (auto v = reader.getOptional<int>(SFK_OUTPUT_ENERGY)) { builder.outputEnergy(v.value()); }
     //if (auto v = reader.getOptional<int>(SFK_SAVE_FORMAT)) { builder.saveFormat(v.value()); } // TODO list of enum
     if (auto v = reader.getOptional<int>(SFK_SAVE_ITER)) { builder.saveIter(v.value()); }
     if (auto v = reader.getOptional<double>(SFK_SAVE_TIME)) { builder.saveTime(v.value()); }
     if (auto v = reader.getOptional<int>(SFK_NUM_ASSEMBLY_THREADS)) { builder.numAssemblyThreads(v.value()); }
-    if (auto v = reader.getOptional<int>(SFK_NUM_MATRIX_SOLVER_THREADS)) { builder.numMatrixSolverThreads(v.value()); }
 
     if (auto v = reader.getOptional<vector<double>>(SFK_DT_LIMITS)) {
         assertTrue(v.value().size() == 2, SFK_DT_LIMITS + " length should be 2");
@@ -289,23 +284,12 @@ void SettingsReader::readSolverSettings(Reader &reader) {
   solverSettings_ = std::make_unique<SolverSettings>();
   readInt(reader, SFK_NUM_ASSEMBLY_THREADS, [&](int v) { solverSettings_->setnThreads(v); });
 
-  readInt(reader, SFK_Q_SOLVER, [&](int v) { solverSettings_->setQ_Solver(v); });
   readInt(reader, SFK_Q_NEWTON_PANIC_ITER, [&](int v) { solverSettings_->setQ_Newton_Panic_Iter(v); });
   readDouble(reader, SFK_Q_NEWTON_PANIC_COEFF, [&](double v) { solverSettings_->setQ_Newton_Panic_Coeff(v); });
-  readInt(reader, SFK_Q_PCG_PRECONDITIONER, [&](int v) { solverSettings_->setQ_PCG_Preconditioner(v); });
-  readInt(reader, SFK_Q_PCG_MAXITER, [&](int v) { solverSettings_->setQ_PCG_Maxiter(v); });
-  readDouble(reader, SFK_Q_PCG_TOLER, [&](double v) { solverSettings_->setQ_PCG_Toler(v); });
-  readInt(reader, SFK_Q_GMRES_PRECONDITIONER, [&](int v) { solverSettings_->setQ_GMRES_Preconditioner(v); });
   readInt(reader, SFK_Q_GMRES_MAXITER, [&](int v) { solverSettings_->setQ_GMRES_Maxiter(v); });
   readInt(reader, SFK_Q_GMRES_RESTART, [&](int v) { solverSettings_->setQ_GMRES_Restart(v); });
   readDouble(reader, SFK_Q_GMRES_TOLER, [&](double v) { solverSettings_->setQ_GMRES_Toler(v); });
 
-  readInt(reader, SFK_V_SOLVER, [&](int v) { solverSettings_->setV_Solver(v); });
-  readInt(reader, SFK_V_PCG_PRECONDITIONER, [&](int v) { solverSettings_->setV_PCG_Preconditioner(v); });
-  readInt(reader, SFK_V_PCG_MAXITER, [&](int v) { solverSettings_->setV_PCG_Maxiter(v); });
-  readDouble(reader, SFK_V_PCG_TOLER, [&](double v) { solverSettings_->setV_PCG_Toler(v); });
-
-  readInt(reader, SFK_V_GMRES_PRECONDITIONER, [&](int v) { solverSettings_->setV_GMRES_Preconditioner(v); });
   readInt(reader, SFK_V_GMRES_MAXITER, [&](int v) { solverSettings_->setV_GMRES_Maxiter(v); });
   readInt(reader, SFK_V_GMRES_RESTART, [&](int v) { solverSettings_->setV_GMRES_Restart(v); });
   readDouble(reader, SFK_V_GMRES_TOLER, [&](double v) { solverSettings_->setV_GMRES_Toler(v); });

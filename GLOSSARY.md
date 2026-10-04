@@ -12,7 +12,6 @@ Terms used across the project documentation (`doc-impl` and `qlc3d/doc`), groupe
 - **Event** : Scheduled action in the simulation loop (electrode switching, mesh refinement, or result save). Managed by `EventList`.
 - **MaxError** : Accuracy parameter for the nonlinear time-stepping Newton iterations.
 - **numAssemblyThreads** : Number of OpenMP threads used in FEM matrix assembly.
-- **NumMatrixSolverThreads** : Number of threads used by the linear solvers.
 - **Settings file** : Text file (`.qfg`) of `key = value` pairs controlling the simulation.
 - **Simu** : Class holding simulation mode, time-stepping, output, and refinement settings.
 - **TargetdQ** : Target maximum Q-tensor change per time step used by adaptive time stepping; also used as Newton damping when `dt = 0`.

@@ -106,7 +106,6 @@ Read by `SettingsReader::readSimu` into a `SimuBuilder`
 |---|---|---|
 | `MeshName` | *(required)* | Mesh file, resolved relative to `configuration.currentDirectory()` (`simulation-container.cpp:113`). |
 | `dt` | `1e-9` | Initial time step. `simulationMode()` is derived, not stored: `dt > 0` ⇒ `TimeStepping`, otherwise ⇒ `SteadyState` (`simu.h:148`). |
-| `QMatrixSolver` | `auto` | One of `auto`/`pcg`/`gmres`. See "Solver settings" below — this setting only affects the (currently dead/commented-out) code in `solve_pcg.cpp`; it has **no effect** on the active Q-tensor solver. |
 | `TargetdQ` | `1e-3` | Must be `> 0`. |
 | `MaxError` | `1e-3` | Must be `> 0`; Newton iteration convergence criterion, passed to `TimeSteppingLCSolver`. |
 | `EndCriterion` | `Time` | One of `iterations`/`time`/`change`. |
@@ -122,17 +121,14 @@ Read by `SettingsReader::readSimu` into a `SimuBuilder`
 | `SaveFormat` | `{}` (empty set) | Array of strings, each matched case-insensitively against `Simu::VALID_SAVE_FORMATS = {lcview, regularvtk, regularvecmat, dirstackz, lcviewtxt, csvunstructured, vtkunstructuredasciigrid}`. |
 | `MeshElementOrder` | `native` | One of `native`/`quadratic`/`linear`. |
 | `outputEnergy` | `0` | Boolean-as-int; if truthy, `SimulationContainer` opens `energy.csv` in the save directory. |
-| `outputFormat` | `0` (binary) | Stored and exposed via `getOutputFormat()`, but **no code in the repository reads this value** — see Known Bugs. |
 | `SaveIter` | `0` | Must be `>= 0`. |
 | `SaveTime` | `0` | Must be `>= 0`. |
 | `NumAssemblyThreads` | `0` | Also copied into `SolverSettings::nThreads` (see below) — the same key is read twice, once into `Simu` and once into `SolverSettings`. |
-| `NumMatrixSolverThreads` | `0` | Stored in `Simu` as `numMatrixSolverThreads_`/`getMatrixSolverThreadCount()`, but **no code in the repository ever calls `getMatrixSolverThreadCount()`** — see Known Bugs. |
 
 `Simu::getSaveFormatStrings()` converts the parsed `set<SaveFormats>` bitfield back to
-strings for logging (`simu.cpp:53-59`). `PotentialConsistency` (`simu.h:19`) and the
-`QMatrixSolvers` enum's `Auto` value are declared but `Auto` is never distinguished from
-any other case in the code that reads it (again see Known Bugs, since the only
-consumer is dead code).
+strings for logging (`simu.cpp:53-59`). `PotentialConsistency` (`simu.h:19`) remains
+in the public API for backward compatibility, but the dead `QMatrixSolver` and
+`outputFormat` settings have been removed from the active configuration path.
 
 ## 6. `LC` — liquid crystal material parameters
 
@@ -308,24 +304,17 @@ set in the `SolverSettings()` constructor (`qlc3d/src/solver-settings.cpp:4-28`)
 |---|---|---|
 | `NumAssemblyThreads` | `1` | `main-app-qlc3d.cpp` calls `omp_set_num_threads(solverSettings->getnThreads())` (`main-app-qlc3d.cpp:62-63`). Note this is the *same settings key* also stored separately on `Simu` (see section 5). |
 | `Q_Newton_Panic_Iter` | `10` | Passed to `TimeSteppingLCSolver`'s constructor (`main-app-qlc3d.cpp:60`). |
-| `Q_Newton_Panic_Coeff` | `0.1` | Stored, but no call site outside `solver-settings.cpp` reads `getQ_Newton_Panic_Coeff()`. |
+| `Q_Newton_Panic_Coeff` | `0.1` | Stored and available through `SolverSettings`; no active call site currently reads it. |
 | `Q_GMRES_Maxiter` | `2000` | Used by the active Q-tensor GMRES solve in `lc-solver.cpp:40` (`0` is treated specially: it falls back to the matrix's column count instead of literally 0 iterations). |
 | `Q_GMRES_Restart` | `100` | Used in `lc-solver.cpp:41`. |
 | `Q_GMRES_Toler` | `1e-7` | Used in `lc-solver.cpp:42`. |
-| `Q_GMRES_Preconditioner` | `LUinc` (`2`) | Stored; not read outside `solver-settings.cpp` in the current codebase's active (non-commented) Q-solver path. |
-| `Q_Solver` | `Q_Solver_GMRES` (`1`) | Stored via `getQ_Solver()`/`setQ_Solver()`, but **no active code path reads `getQ_Solver()`**. The actual Q-tensor solver choice (PCG vs GMRES) is made in `lc-solver.cpp` based on whether the Q-tensor matrix is symmetric (which follows from whether `p0 == 0`, i.e. achiral vs chiral), not from this setting. See Known Bugs. |
-| `Q_PCG_Preconditioner`, `Q_PCG_Maxiter`, `Q_PCG_Toler` | `Diagonal`(`0`), `2000`, `1e-7` | Stored; not read by any active (non-commented-out) code. |
 | `V_GMRES_Maxiter` | `2000` | Used in `potential-solver.cpp:450`. |
 | `V_GMRES_Restart` | `100` | Used in `potential-solver.cpp:451`. |
 | `V_GMRES_Toler` | `1e-7` | Used in `potential-solver.cpp:454`. |
-| `V_GMRES_Preconditioner` | `LUinc` (`2`) | Stored; not read by any active code in the current codebase. |
-| `V_Solver` | `V_Solver_GMRES` (`1`) | Stored via `getV_Solver()`/`setV_Solver()`, but **no active code path reads `getV_Solver()`** — the potential solver always uses GMRES (`potential-solver.cpp:448-457`). |
-| `V_PCG_Preconditioner`, `V_PCG_Maxiter`, `V_PCG_Toler` | `Cholinc`(`1`), `2000`, `1e-7` | Stored; not read by any active code — the potential solver never uses PCG. |
 
-In short: **only the `Q_GMRES_*` and `V_GMRES_*` settings currently have any effect**
-on the running simulation. `Q_Solver`, `V_Solver`, all `*_PCG_*` settings, and both
-`*_GMRES_Preconditioner` settings are parsed and validated but not consulted by any
-active solver code path. See `known-bugs.md` for details.
+In short: **only the active `Q_GMRES_*` and `V_GMRES_*` settings currently affect**
+the running simulation. The dead/no-effect solver-selection and PCG/preconditioner keys
+were removed from the model and settings parser.
 
 ## 12. Where settings end up being used
 

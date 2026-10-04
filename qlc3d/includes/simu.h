@@ -11,8 +11,6 @@
 #include <set>
 #include <globals.h>
 #define SIMU_END_SIMULATION -20000000 // magic minus bignum
-#define SIMU_OUTPUT_FORMAT_BINARY 	0
-#define SIMU_OUTPUT_FORMAT_TEXT		1
 
 class Reader; // forward declaration of settings file reader
 class Vec3;
@@ -39,11 +37,6 @@ public:
     // The director components in each stack are interleaved in order nx,ny,nz, nx,ny,nz, ... as z-increases
     // The stacks are ordered in rows along the x-axis.
     //
-    // Possible matrix solver for Q-tensor
-    enum QMatrixSolvers { Auto  = 0,
-                          PCG   = 1,
-                          GMRES = 2};
-
     /** Controls the finite-element order used during simulation. */
     enum MeshElementOrder { Native = 0, Quadratic = 1, Linear = 2 };
 
@@ -60,12 +53,10 @@ public:
     // Declare default values for parameters in Simu
     const static vector<string> VALID_END_CRITERIA;
     const static vector<string> VALID_SAVE_FORMATS;
-    const static vector<string> VALID_Q_MATRIX_SOLVERS;
     const static vector<string> VALID_MESH_ELEMENT_ORDERS;
     const static vector<string> VALID_LOAD_INITIAL_ORIENTATION_S0_MODES;
     const static string DEFAULT_LOAD_Q;
     const static string DEFAULT_SAVE_DIR;
-    const static string DEFAULT_Q_MATRIX_SOLVER;
     const static double DEFAULT_END_VALUE;
     const static double DEFAULT_DT;
     const static double DEFAULT_TARGET_DQ;
@@ -74,11 +65,9 @@ public:
     const static LoadInitialOrientationS0Mode DEFAULT_LOAD_INITIAL_ORIENTATION_S0_MODE;
     // int default values can be defined here
     const static int DEFAULT_OUTPUT_ENERGY;
-    const static int DEFAULT_OUTPUT_FORMAT;
     const static int DEFAULT_SAVE_ITER;
     const static double DEFAULT_SAVE_TIME;
     const static int DEFAULT_NUM_ASSEMBLY_THREADS;
-    const static int DEFAULT_NUM_MATRIX_SOLVER_THREADS;
     // default vectors
     const static vector<double> DEFAULT_STRETCH_VECTOR;
     const static vector<double> DEFAULT_DT_LIMITS;
@@ -92,7 +81,6 @@ private:
     const std::string meshName_;
     //! initial time step is set by user in configuration, the actual time step may change_ during the simulation.
     const double initialTimeStep_;
-    const QMatrixSolvers QMatrixSolver_;
     /** convergence for Newton iterations in time stepping */
     const double maxError_;
     const double TargetdQ_;             // do newton iterations until this precision
@@ -116,40 +104,37 @@ private:
     const double endValue_;
     const double  stretchVector_[3];
     const size_t regularGridSize_[3];   // NUMBER OF NODES IN X,Y AND Z-DIRECTIONS
-    const int	outputEnergy_;	        // boolean whether or not to calculate energy
-    const int	outputFormat_;          // 0/1 -> binary/text (for SaveFormat = LCview) // TODO should be part of list of save formats? Looks like not used anywhere
+    const int	outputEnergy_	;        // boolean whether or not to calculate energy
     const int	saveIter_;              // determines frequency of saving intermediate result files !! CAN THIS BE REMOVED FROM SIMU??
     const double saveTime_;             // determines frequence of saving intermediate result file, frequency expressed in untis of time
     const set<Simu::SaveFormats> saveFormat_;
     const unsigned int numAsseblyThreads_;
-    const unsigned int numMatrixSolverThreads_;
     const MeshElementOrder meshElementOrder_;
 public:
     Simu() = delete; // private, use SimuBuilder to create default valued Simu
     Simu(const std::string &meshName,  double initialTimeStep,
-         QMatrixSolvers solver, double maxError, double targetDQ,
+         double maxError, double targetDQ,
          const double dtLimits[2], const double dtFunction[4],
          EndCriteria endCriterion, const std::string &loadQ,
          const std::string &loadOrientation,
          LoadInitialOrientationS0Mode loadInitialOrientationS0Mode,
          const std::string &saveDir, double endValue,
          const double stretchVector[3], const size_t regularGridSize[3],
-         int outputEnergy, int outputFormat, int saveIter, double saveTime,
+         int outputEnergy, int saveIter, double saveTime,
          const set<Simu::SaveFormats> saveFormat,
-         unsigned int numAsseblyThreads, unsigned int numMatrixSolverThreads,
+         unsigned int numAsseblyThreads,
          const std::filesystem::path &saveDirAbsolutePath,
          MeshElementOrder meshElementOrder = MeshElementOrder::Native
 
-         ): meshName_(meshName), initialTimeStep_(initialTimeStep),QMatrixSolver_(solver),
+         ): meshName_(meshName), initialTimeStep_(initialTimeStep),
          maxError_(maxError), TargetdQ_(targetDQ),
          dtLimits_{dtLimits[0], dtLimits[1]},
          dtFunction_{dtFunction[0], dtFunction[1], dtFunction[2], dtFunction[3]},
          endCriterion_(endCriterion), loadQ_(loadQ), loadOrientation_(loadOrientation), loadInitialOrientationS0Mode_(loadInitialOrientationS0Mode), saveDir_(saveDir), saveDirAbsolutePath_(saveDirAbsolutePath), endValue_(endValue),
          stretchVector_{stretchVector[0], stretchVector[1], stretchVector[2]},
          regularGridSize_{regularGridSize[0], regularGridSize[1], regularGridSize[2]},
-         outputEnergy_(outputEnergy), outputFormat_(outputFormat),
+         outputEnergy_(outputEnergy),
          saveIter_(saveIter), saveTime_(saveTime), saveFormat_(saveFormat), numAsseblyThreads_(numAsseblyThreads),
-         numMatrixSolverThreads_(numMatrixSolverThreads),
          meshElementOrder_(meshElementOrder)
     {}
 
@@ -160,7 +145,6 @@ public:
     [[nodiscard]] std::vector<double> getdtFunction() const;
     // METHOD VARIABLE ACCESS
     [[nodiscard]] unsigned int getAssemblyThreadCount()const {return numAsseblyThreads_;}
-    [[nodiscard]] unsigned int getMatrixSolverThreadCount()const {return numMatrixSolverThreads_;}
 
     [[nodiscard]] const std::string &getLoadQ() const {return loadQ_;}
     [[nodiscard]] const std::string &getLoadOrientation() const {return loadOrientation_;}
@@ -188,11 +172,9 @@ public:
     [[nodiscard]] int getSaveIter() const{ return saveIter_;}
     [[nodiscard]] double getSaveTime() const { return saveTime_; }
     [[nodiscard]] int getOutputEnergy()const{return outputEnergy_;}
-    [[nodiscard]] int getOutputFormat()const{return outputFormat_;}
     [[nodiscard]] const set<Simu::SaveFormats> &getSaveFormat() const { return saveFormat_; }
     [[nodiscard]] const std::vector<std::string> getSaveFormatStrings() const;
     [[nodiscard]] EndCriteria  getEndCriterion()const {return endCriterion_;}
-    [[nodiscard]] QMatrixSolvers getQMatrixSolver()const {return QMatrixSolver_;}
     [[nodiscard]] MeshElementOrder getMeshElementOrder() const { return meshElementOrder_; }
     [[nodiscard]] size_t getRegularGridXCount()const{return regularGridSize_[0];}
     [[nodiscard]] size_t getRegularGridYCount()const{return regularGridSize_[1];}
@@ -207,7 +189,6 @@ public:
 class SimuBuilder {
     std::string meshFileName_;
     double initialTimeStep_;
-    Simu::QMatrixSolvers qMatrixSolver_;
     double targetDQ_;
     double maxError_;
     double dtLimits_[2];
@@ -221,20 +202,18 @@ class SimuBuilder {
     double stretchVector_[3];
     size_t regularGridSize_[3];
     int outputEnergy_;
-    int outputFormat_;
     int saveIter_;
     double saveTime_;
     //size_t saveFormat_;
     set<Simu::SaveFormats> saveFormat_;
     unsigned int numAssemblyThreads_;
-    unsigned int numMatrixSolverThreads_;
     Simu::MeshElementOrder meshElementOrder_;
     std::filesystem::path workingDir_;
 
 public:
     SimuBuilder():
             meshFileName_(""), initialTimeStep_(Simu::DEFAULT_DT),
-            qMatrixSolver_(Simu::QMatrixSolvers::Auto), targetDQ_(Simu::DEFAULT_TARGET_DQ),
+            targetDQ_(Simu::DEFAULT_TARGET_DQ),
             maxError_(Simu::DEFAULT_MAX_ERROR), dtLimits_{Simu::DEFAULT_DT, Simu::DEFAULT_MAX_DT},
             dtFunction_{Simu::DEFAULT_DT_FUNCTION[0], Simu::DEFAULT_DT_FUNCTION[1], Simu::DEFAULT_DT_FUNCTION[2], Simu::DEFAULT_DT_FUNCTION[3]},
             endCriterion_(Simu::DEFAULT_END_CRITERION), loadQ_(""),
@@ -242,16 +221,14 @@ public:
             saveDir_(Simu::DEFAULT_SAVE_DIR), endValue_(Simu::DEFAULT_END_VALUE),
             stretchVector_{1., 1., 1.}, regularGridSize_{0, 0, 0},
             outputEnergy_(Simu::DEFAULT_OUTPUT_ENERGY),
-            outputFormat_(Simu::DEFAULT_OUTPUT_FORMAT), saveIter_(Simu::DEFAULT_SAVE_ITER), saveTime_(Simu::DEFAULT_SAVE_TIME),
+            saveIter_(Simu::DEFAULT_SAVE_ITER), saveTime_(Simu::DEFAULT_SAVE_TIME),
             saveFormat_{}, numAssemblyThreads_(Simu::DEFAULT_NUM_ASSEMBLY_THREADS),
-            numMatrixSolverThreads_(Simu::DEFAULT_NUM_MATRIX_SOLVER_THREADS),
             meshElementOrder_(Simu::DEFAULT_MESH_ELEMENT_ORDER),
             workingDir_(std::filesystem::current_path())
     {}
 
     SimuBuilder &meshFileName(const std::string &name) { meshFileName_ = name; return *this; };
     SimuBuilder &initialTimeStep(double dt);
-    SimuBuilder &qMatrixSolver(const std::string &solverName);
     SimuBuilder &targetDQ(double targetDQ);
     SimuBuilder &maxError(double maxError);
     SimuBuilder &dtLimits(double low, double high);
@@ -265,12 +242,10 @@ public:
     SimuBuilder &stretchVector(double x, double y, double z);
     SimuBuilder &regularGridSize(size_t x, size_t y, size_t z);
     SimuBuilder &outputEnergy(int outputEnergy);
-    SimuBuilder &outputFormat(int outputFormat);
     SimuBuilder &saveIter(int saveIter);
     SimuBuilder &saveTime(double saveTime);
     SimuBuilder &saveFormat(const set<std::string> &saveFormats);
     SimuBuilder &numAssemblyThreads(unsigned int n);
-    SimuBuilder &numMatrixSolverThreads(unsigned int n);
     SimuBuilder &meshElementOrder(const std::string &value);
 
     Simu* build() const;
