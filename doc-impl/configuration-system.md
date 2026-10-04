@@ -79,11 +79,9 @@ constructed objects via `simu()`, `lc()`, `refinement()`, `electrodes()`,
 - `Reader::containsKeyWithPrefix(prefix)` is used to detect whether any
   `FIXLC*`/`REFINEMENT*` block is present at all before iterating numbered entries
   (`reader.h:484-491`).
-- A separate, unrelated `Reader::readValidKeysFile()` / `isValidKey()` mechanism
-  exists to restrict the settings file to a fixed list of valid keys (with `*` as a
-  wildcard converted to a regex `.*`), but `SettingsReader` never calls
-  `readValidKeysFile()`, so this whitelist feature is currently inactive in
-  production use (`reader.h:351-412`).
+- The valid-key whitelist for settings files is defined in code only in
+  `qlc3d/src/settings-reader.cpp` as the `validSettingsKeys` vector, and
+  `SettingsReader` populates the `Reader` whitelist from that list before parsing.
 
 ## 4. Settings file keys
 

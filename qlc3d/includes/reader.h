@@ -70,7 +70,7 @@ class Reader {
 
     std::filesystem::path _fileName;                          // holds current file name
     std::map<std::string, lineData> _keyValues;     // "database" of all read key/value pairs
-    std::vector<std::string> _validKeys;            // optional list of valid keys. read in from a separte file
+    std::vector<std::string> _validKeys;            // optional list of valid keys configured programmatically
     // STRING FORMATTING FUNCTIONS
     inline void removeComments(std::string &line) const;   // removes everything in a line after comment character
     inline void cleanLineEnds(std::string &line) const;    // removes white space from both ends of a string
@@ -131,7 +131,7 @@ public:
 
     inline Reader(): isCaseSensitive_(true), isLowerCaseStringValues_(false), isEnvironmentVariableSubstitution_(false) {}
     inline void readSettingsFile(const std::filesystem::path &fileName);
-    inline void readValidKeysFile(const std::filesystem::path &fileName);
+    inline void setValidKeys(const std::vector<std::string> &keys);
     [[nodiscard]] inline bool containsKey(const std::string &key) const ;
 
     /** check whether a key that starts with the given prefix exists */
@@ -353,56 +353,20 @@ void Reader::readSettingsFile(const std::filesystem::path &fileName) {
     fin.close();
 }
 
-void Reader::readValidKeysFile(const std::filesystem::path &fileName) {
-    /*! Reads a text file containing a list of all allowed keys.
-        This should be called before reading in the actual settings file*/
-    // Make sure this is called before reading the actual settings file
-    if (_keyValues.size() > 0) {
-        throw ReaderError("Valid keys file should be read first.", fileName.string());
-    }
-    std::ifstream fin(fileName.c_str());
-    if (!fin.is_open()) {
-        throw ReaderError(_R_FILE_OPEN_ERROR_MESSAGE + fileName.string());
-    }
-    std::string line;
-    size_t lineNumber = 1;
-    // READ IN RAW TEXT LINE BY LINE
-    do {
-        std::string rawLine;
-        std::getline(fin, rawLine);
-        std::string line(rawLine);
-        removeComments(line);
-        cleanLineEnds(line);
-        if (line.empty()) { // skip rest of test for empty lines
-            lineNumber++;
-            continue;
-        }
-        // EXTRACT KEY AND VALUES AS STRINGS
-        std::string key;
-        std::string value;
-        if (!splitByChar(line, key, value)) {
-            fin.close();
-            throw ReaderError(_R_BAD_VALUE_ERROR_MSG, fileName.string(), lineNumber, rawLine);
-        }
-        // HANDLE CASE SENSITIVITY
-        if (!isCaseSensitive()) {
-            toLower(key);
-            toLower(value);
-        }
-        // need to replace wildcard "*" with regex wildcard ".*"
+void Reader::setValidKeys(const std::vector<std::string> &keys) {
+    _validKeys.clear();
+    for (const auto &key : keys) {
+        std::string normalized = key;
         size_t ind = 0;
-        while (ind < std::string::npos) { // loop to cover multiple wildcards in same key
-            ind = key.find("*", ind);
+        while (ind < std::string::npos) {
+            ind = normalized.find("*", ind);
             if (ind < std::string::npos) {
-                key.replace(ind, 1, ".*");
-                ind += 2; // increment by 2 to avoid infinite loop over same *->.*
+                normalized.replace(ind, 1, ".*");
+                ind += 2;
             }
         }
-        // IF OK SO FAR - SAVE LINE INFO TO "DATABASE"
-        _validKeys.push_back(key);
-        lineNumber++;
-    } while (!fin.eof());
-    fin.close();
+        _validKeys.push_back(normalized);
+    }
 }
 
 bool Reader::isValidKey(std::string key) const {
@@ -422,7 +386,7 @@ bool Reader::isValueArray(const std::string &key) const {
   }
 
   std::string tempKey(key);
-  toLower(tempKey);
+  if (!isCaseSensitive()) { toLower(tempKey); }
   auto val = _keyValues.at(tempKey).val_;
   cleanLineEnds(val);
 
@@ -437,10 +401,15 @@ bool Reader::isValueArrayOfStrings(const std::string &key) const {
   try {
     std::vector<std::string> valArray;
     std::string keyLower(key);
-    toLower(keyLower);
+    if (!isCaseSensitive()) { toLower(keyLower); }
     auto val = _keyValues.at(keyLower).val_;
 
     parseValue(val, valArray); // throws if not a valid array of strings
+    for (const auto &entry : valArray) {
+      if (isValidNumber(entry)) {
+        return false;
+      }
+    }
   } catch (...) {
     return false;
   }
@@ -454,7 +423,7 @@ bool Reader::isValueArrayOfNumbers(const std::string &key) const {
 
   try {
     std::string keyLower(key);
-    toLower(keyLower);
+    if (!isCaseSensitive()) { toLower(keyLower); }
     auto value = _keyValues.at(keyLower).val_;
     std::vector<double> array;
     parseValue(value, array);

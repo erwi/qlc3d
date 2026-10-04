@@ -1,5 +1,6 @@
 #include <catch.h>
 #include <test-util.h>
+#include <settings-reader.h>
 #include <reader.h>
 
 TEST_CASE("Read key value pair") {
@@ -77,6 +78,20 @@ TEST_CASE("Key should not contain double quote characters") {
     return;
   }
   FAIL("Expected ReaderError to be thrown");
+}
+
+TEST_CASE("SettingsReader rejects unknown keys") {
+  std::string contents;
+  contents += "MeshName = test.msh\n";
+  contents += "DefinitelyNotARealSetting = 123\n";
+  auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+  try {
+    SettingsReader reader(settingsFile.name());
+    FAIL("Expected SettingsReader to reject an unknown key");
+  } catch (ReaderError &e) {
+    REQUIRE(std::string(e.errorMessage).find("DefinitelyNotARealSetting is not a valid key.") == 0);
+  }
 }
 
 TEST_CASE("Detect invalid string value with one double-quote") {

@@ -166,14 +166,4 @@ comment for a future `Surface::ofPolymerise()` factory exists (`alignment.h:108`
 - `ManualNodes` is likewise defined in the enum but also has no reachable path in
   `SettingsReader::readAlignment` today.
 
-## 11. `Reader::readValidKeysFile` / key whitelist mechanism is unused in production
-
-`Reader` supports restricting the set of allowed settings keys via
-`readValidKeysFile()`/`isValidKey()` (`reader.h:351-412`), with wildcard (`*`) support
-converted to regex. `SettingsReader::read()` never calls `readValidKeysFile()`
-(`settings-reader.cpp:19-42`), so `_validKeys` is always empty and the check at
-`reader.h:328` (`if ((_validKeys.size() > 0) && !isValidKey(key))`) never fires in the
-real application — any key name at all is currently accepted (and simply ignored if
-unrecognized by `SettingsReader`), with no "unknown key" validation performed against
-the actual, hard-coded set of keys `SettingsReader` understands.
 

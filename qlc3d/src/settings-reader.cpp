@@ -9,6 +9,37 @@
 #include <geom/vec3.h>
 #include "solver-settings.h"
 
+namespace {
+// The valid-key list is intentionally kept in code only here as `validSettingsKeys`.
+// Grep for this variable in this file to find the full list of supported settings keys.
+const std::vector<std::string> validSettingsKeys = {
+    // Simu / general settings
+    "meshname", "loadq", "loadorientation", "loadinitialorientations0mode",
+    "reprefiter", "repreftime", "refinement*.type", "refinement*.x", "refinement*.y",
+    "refinement*.z", "refinement*.iterations", "refinement*.times", "refinement*.values",
+    "savedir", "qmatrixsolver", "saveformat", "endcriterion", "endvalue", "dt",
+    "targetdq", "maxdt", "maxerror", "outputenergy", "outputformat", "saveiter",
+    "savetime", "numassemblythreads", "nummatrixsolverthreads", "stretchvector",
+    "dtlimits", "dtfunction", "regulargridsize", "meshelementorder",
+    // LC parameters
+    "k11", "k22", "k33", "k24", "p0", "a", "b", "c", "eps_par", "eps_per",
+    "e1", "e3", "gamma1",
+    // electrodes / potential
+    "e*.time", "e*.pot", "efield", "eps_dielectric",
+    // initial orientation boxes
+    "box*.type", "box*.params", "box*.x", "box*.y", "box*.z",
+    "box*.tilt", "box*.twist",
+    // anchoring surfaces
+    "fixlc*.anchoring", "fixlc*.strength", "fixlc*.easy", "fixlc*.k1",
+    "fixlc*.k2", "fixlc*.params", "fixlc*.overridevolume",
+    // solver settings
+    "q_solver", "v_solver", "q_newton_panic_iter", "q_newton_panic_coeff",
+    "q_pcg_preconditioner", "q_pcg_maxiter", "q_pcg_toler", "q_gmres_preconditioner",
+    "q_gmres_maxiter", "q_gmres_restart", "q_gmres_toler", "v_pcg_preconditioner",
+    "v_pcg_maxiter", "v_pcg_toler", "v_gmres_preconditioner", "v_gmres_maxiter",
+    "v_gmres_restart", "v_gmres_toler"
+};
+} // namespace
 
 SettingsReader::SettingsReader(const std::filesystem::path &fileName):
 fileName_(fileName),
@@ -24,6 +55,7 @@ void SettingsReader::read() {
     Reader reader;
     reader.setCaseSensitivity(false);
     reader.setLowerCaseStringValues(true); // all returned string values are lower case.
+    reader.setValidKeys(validSettingsKeys);
 
     // substitute environment variables into the settings file when encountering special formatting string ${ENV_VAR}
     reader.setEnvironmentVariableSubstitution(true);
