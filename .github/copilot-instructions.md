@@ -17,7 +17,9 @@
   - especially this relates to settings file keys and their default values.
 - Update all relevant documentation files as part of any other changes.
   - All documentation should accurately reflect the current state. Delete old documentation related to past implementations. Don't keep a history of changes. Only current state matters.
-  - When you encounter a bug, add a note to known-bugs.md with a file:line citation. If you fix a bug, remove the note from known-bugs.md.
+  - When you encounter a bug, add a note to known-bugs.md with a file:line citation.
+    - Include date of discovery as well as a short severity description.
+    - If you fix a bug, remove the note from known-bugs.md.
 - Add Doxygen usage documentation to header files using /** ... */ and including tags like @param and @return. Implementation focused longer internal comments belong in the .cpp files.
   - Add Doxygen comments to all new code 
   - Existing function or class changes: check that the Doxygen comments exist and accurately represent the current state

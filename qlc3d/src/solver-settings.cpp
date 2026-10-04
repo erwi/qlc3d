@@ -28,7 +28,7 @@ SolverSettings::SolverSettings():
 }
 
 void SolverSettings::setnThreads(int num) {
-  if (nThreads < 0) {
+  if (num < 0) {
     throw std::runtime_error("Number of threads must be 0 or positive");
   }
   nThreads = num;

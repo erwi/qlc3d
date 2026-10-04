@@ -4,28 +4,7 @@ This file lists concrete defects found while investigating qlc3d (see `configura
 intended/actual behavior). Each entry is a verified fact from reading the code, with
 file:line citations. 
 
-## 1. `SolverSettings::setnThreads` validates the wrong variable
-
-`qlc3d/src/solver-settings.cpp:30-35`:
-
-```cpp
-void SolverSettings::setnThreads(int num) {
-  if (nThreads < 0) {                 // checks the OLD value, not `num`
-    throw std::runtime_error("Number of threads must be 0 or positive");
-  }
-  nThreads = num;
-}
-```
-
-The guard checks the current (old) value of `nThreads`, which starts at the default
-`1` and can never be negative through this setter, instead of checking the incoming
-parameter `num`. As a result, setting `NumAssemblyThreads` to a negative value in the
-settings file is silently accepted here, and the error is only raised later, with a
-confusing "Number of threads must be 0 or positive" message, the next time
-`getnThreads()` is called (`solver-settings.cpp:43-48`), rather than at settings-parse
-time.
-
-## 2. `Q_Solver` and `V_Solver` settings are read but never consulted
+## 1. `Q_Solver` and `V_Solver` settings are read but never consulted
 
 - `Q_Solver` is parsed in `settings-reader.cpp:259` into
   `SolverSettings::setQ_Solver`. `SolverSettings::getQ_Solver()`
@@ -42,7 +21,7 @@ the LC is chiral (`p0 != 0`) — not from the `Q_Solver` setting. The potential 
 `V_Solver`. Users who set `Q_Solver = PCG` or `V_Solver = PCG` in their settings file
 will see no effect and get no warning that the setting was ignored.
 
-## 3. All `*_PCG_*` solver settings are dead configuration
+## 2. All `*_PCG_*` solver settings are dead configuration
 
 `Q_PCG_Preconditioner`, `Q_PCG_Maxiter`, `Q_PCG_Toler`, `V_PCG_Preconditioner`,
 `V_PCG_Maxiter`, `V_PCG_Toler` are all parsed in `settings-reader.cpp:259-278` and
@@ -63,7 +42,7 @@ called from `lc-solver.cpp` or `potential-solver.cpp` (the two places that actua
 GMRES solves), so the configured preconditioner choice has no effect on the active
 GMRES solves either — only `Maxiter`, `Restart`, and `Toler` are actually read there.
 
-## 4. `NumMatrixSolverThreads` setting has no effect
+## 3. `NumMatrixSolverThreads` setting has no effect
 
 `SFK_NUM_MATRIX_SOLVER_THREADS` ("NumMatrixSolverThreads") is parsed in
 `settings-reader.cpp:121` into `Simu`'s `numMatrixSolverThreads_` field, exposed via
@@ -72,7 +51,7 @@ calls `getMatrixSolverThreadCount()`. Only `Simu::getAssemblyThreadCount()` /
 `SolverSettings::getnThreads()` (populated from the separate `NumAssemblyThreads` key)
 are actually used to call `omp_set_num_threads()` (`main-app-qlc3d.cpp:62-63`).
 
-## 5. `outputFormat` setting has no effect
+## 4. `outputFormat` setting has no effect
 
 `SFK_OUTPUT_FORMAT` ("outputFormat") is parsed in `settings-reader.cpp:115` into
 `Simu::outputFormat_`, exposed via `Simu::getOutputFormat()` (`simu.h:177`). No code
@@ -81,7 +60,7 @@ its own declaration comment as "TODO should be part of list of save formats? Loo
 like not used anywhere" (`simu.h:112`), confirming this is a known, still-unresolved
 dead setting.
 
-## 6. `eps_dielectric` setting is declared but never read from the settings file
+## 5. `eps_dielectric` setting is declared but never read from the settings file
 
 `SFK_EPS_DIELECTRIC` ("eps_dielectric") is declared in `settings_file_keys.h:54`, and
 `Electrodes` has a working `getDielectricPermittivity()`/`setDielectricPermittivities()`
@@ -93,7 +72,7 @@ API plus a hard-coded single-element default of `{1.0}` set in the default const
 non-default dielectric permittivity through the settings file, even though the data
 model and constant for the key both exist.
 
-## 7. Third `FIXLC*.Easy` value ("rotation") is accepted but always discarded
+## 6. Third `FIXLC*.Easy` value ("rotation") is accepted but always discarded
 
 For `weak` anchoring, `SettingsReader::readAlignment` explicitly validates that
 `FIXLC{i}.Easy` has 2 or 3 elements (`settings-reader.cpp:325`: `assertTrue(easyAngles.size()
@@ -108,7 +87,7 @@ rotation parameter). Example settings files (e.g.
 comment ("easy tilt, twist, rotation angles"), but that value has no effect for any
 currently supported anchoring type.
 
-## 8. `Electrode` constructor can double-count the initial time-0 sample
+## 7. `Electrode` constructor can double-count the initial time-0 sample
 
 `qlc3d/src/electrodes.cpp:13-35`:
 
@@ -144,7 +123,7 @@ because the structure is easy to misread as double-inserting the `(0,0)` pair an
 become a real bug if the trailing `for` loops were ever changed without noticing the
 implicit dependency on the preceding `if`/`else if`.
 
-## 9. Inconsistent coordinate normalization between `Box` and `Surface` expressions
+## 8. Inconsistent coordinate normalization between `Box` and `Surface` expressions
 
 `Box::getTiltAt`/`getTwistAt` (`box.cpp:164-186`) evaluate `Box{i}.Tilt`/`Box{i}.Twist`
 string expressions using coordinates normalized to `[0, 1]` within that box's own
@@ -155,7 +134,7 @@ but it is an undocumented inconsistency: an expression written for a `Box` canno
 reused verbatim for a `Surface`, and vice versa, without accounting for the different
 coordinate conventions.
 
-## 10. `AnchoringType::Polymerise` is defined but unreachable
+## 9. `AnchoringType::Polymerise` is defined but unreachable
 
 `AnchoringType::Polymerise` is declared in the enum (`alignment.h:22`), and a `TODO`
 comment for a future `Surface::ofPolymerise()` factory exists (`alignment.h:108`), but:

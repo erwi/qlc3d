@@ -22,6 +22,20 @@ TEST_CASE("MeshName is required in settings file") {
     REQUIRE_FALSE(true); // should not reach this
 }
 
+TEST_CASE("Negative NumAssemblyThreads is rejected") {
+    std::string contents;
+    contents += "MeshName= wowowoo.txt\n";
+    contents += "numAssemblyThreads=-1\n";
+    auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+    try {
+        SettingsReader reader(settingsFile.name());
+        REQUIRE_FALSE(true);
+    } catch (std::runtime_error &e) {
+        REQUIRE(std::string(e.what()) == "Number of threads must be 0 or positive");
+    }
+}
+
 TEST_CASE("Read Simu from settings file") {
     // ARRANGE
     std::string contents;
