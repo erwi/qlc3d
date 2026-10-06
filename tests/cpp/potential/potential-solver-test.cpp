@@ -15,6 +15,8 @@
 #include "geom/periodicity.h"
 #include <io/vtkiofun.h>
 
+using namespace std;
+
 // TEST: Smoke test - ensure potential solver can be constructed
 // ARRANGE: create default electrodes, LC and solver settings
 // ACT / ASSERT: construction should not throw

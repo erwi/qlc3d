@@ -17,7 +17,6 @@ class Vec3;
 enum PotentialConsistency {Off, Loop};
 enum SimulationMode {TimeStepping, SteadyState};
 
-using namespace std;
 class Simu {
 public:
     // SAVE FORMATS OPTIONS BITFIELDS - MUST BE POWERS OF 2 AS WILL BE USED AS BITFIELDS!!!
@@ -51,12 +50,12 @@ public:
     };
 
     // Declare default values for parameters in Simu
-    const static vector<string> VALID_END_CRITERIA;
-    const static vector<string> VALID_SAVE_FORMATS;
-    const static vector<string> VALID_MESH_ELEMENT_ORDERS;
-    const static vector<string> VALID_LOAD_INITIAL_ORIENTATION_S0_MODES;
-    const static string DEFAULT_LOAD_Q;
-    const static string DEFAULT_SAVE_DIR;
+    const static std::vector<std::string> VALID_END_CRITERIA;
+    const static std::vector<std::string> VALID_SAVE_FORMATS;
+    const static std::vector<std::string> VALID_MESH_ELEMENT_ORDERS;
+    const static std::vector<std::string> VALID_LOAD_INITIAL_ORIENTATION_S0_MODES;
+    const static std::string DEFAULT_LOAD_Q;
+    const static std::string DEFAULT_SAVE_DIR;
     const static double DEFAULT_END_VALUE;
     const static double DEFAULT_DT;
     const static double DEFAULT_TARGET_DQ;
@@ -69,10 +68,10 @@ public:
     const static double DEFAULT_SAVE_TIME;
     const static int DEFAULT_NUM_ASSEMBLY_THREADS;
     // default vectors
-    const static vector<double> DEFAULT_STRETCH_VECTOR;
-    const static vector<double> DEFAULT_DT_LIMITS;
-    const static vector<double> DEFAULT_DT_FUNCTION;
-    const static vector<idx>    DEFAULT_REGULAR_GRID_SIZE;
+    const static std::vector<double> DEFAULT_STRETCH_VECTOR;
+    const static std::vector<double> DEFAULT_DT_LIMITS;
+    const static std::vector<double> DEFAULT_DT_FUNCTION;
+    const static std::vector<idx>    DEFAULT_REGULAR_GRID_SIZE;
     // default enums
     const static Simu::EndCriteria DEFAULT_END_CRITERION;
     const static Simu::MeshElementOrder DEFAULT_MESH_ELEMENT_ORDER;
@@ -107,7 +106,7 @@ private:
     const int	outputEnergy_	;        // boolean whether or not to calculate energy
     const int	saveIter_;              // determines frequency of saving intermediate result files !! CAN THIS BE REMOVED FROM SIMU??
     const double saveTime_;             // determines frequence of saving intermediate result file, frequency expressed in untis of time
-    const set<Simu::SaveFormats> saveFormat_;
+    const std::set<Simu::SaveFormats> saveFormat_;
     const unsigned int numAsseblyThreads_;
     const MeshElementOrder meshElementOrder_;
 public:
@@ -121,7 +120,7 @@ public:
          const std::string &saveDir, double endValue,
          const double stretchVector[3], const size_t regularGridSize[3],
          int outputEnergy, int saveIter, double saveTime,
-         const set<Simu::SaveFormats> saveFormat,
+         const std::set<Simu::SaveFormats> saveFormat,
          unsigned int numAsseblyThreads,
          const std::filesystem::path &saveDirAbsolutePath,
          MeshElementOrder meshElementOrder = MeshElementOrder::Native
@@ -172,7 +171,7 @@ public:
     [[nodiscard]] int getSaveIter() const{ return saveIter_;}
     [[nodiscard]] double getSaveTime() const { return saveTime_; }
     [[nodiscard]] int getOutputEnergy()const{return outputEnergy_;}
-    [[nodiscard]] const set<Simu::SaveFormats> &getSaveFormat() const { return saveFormat_; }
+    [[nodiscard]] const std::set<Simu::SaveFormats> &getSaveFormat() const { return saveFormat_; }
     [[nodiscard]] const std::vector<std::string> getSaveFormatStrings() const;
     [[nodiscard]] EndCriteria  getEndCriterion()const {return endCriterion_;}
     [[nodiscard]] MeshElementOrder getMeshElementOrder() const { return meshElementOrder_; }
@@ -205,7 +204,7 @@ class SimuBuilder {
     int saveIter_;
     double saveTime_;
     //size_t saveFormat_;
-    set<Simu::SaveFormats> saveFormat_;
+    std::set<Simu::SaveFormats> saveFormat_;
     unsigned int numAssemblyThreads_;
     Simu::MeshElementOrder meshElementOrder_;
     std::filesystem::path workingDir_;
@@ -244,7 +243,7 @@ public:
     SimuBuilder &outputEnergy(int outputEnergy);
     SimuBuilder &saveIter(int saveIter);
     SimuBuilder &saveTime(double saveTime);
-    SimuBuilder &saveFormat(const set<std::string> &saveFormats);
+    SimuBuilder &saveFormat(const std::set<std::string> &saveFormats);
     SimuBuilder &numAssemblyThreads(unsigned int n);
     SimuBuilder &meshElementOrder(const std::string &value);
 

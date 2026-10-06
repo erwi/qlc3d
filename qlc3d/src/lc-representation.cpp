@@ -131,8 +131,8 @@ Director::Director(const double &nx, const double &ny, const double &nz, const d
     double lengthError = abs(length - 1);
     if (lengthError > 1e-15) {
         std::string msg = "Non-unit length director. ";
-        msg += "Length = " + to_string(length);
-        msg += " with (nx, ny, nz) = (" + to_string(nx) + ", " + to_string(ny) + ", " + to_string(nz) + ")";
+        msg += "Length = " + std::to_string(length);
+        msg += " with (nx, ny, nz) = (" + std::to_string(nx) + ", " + std::to_string(ny) + ", " + std::to_string(nz) + ")";
         throw std::invalid_argument(msg);
     }
 }

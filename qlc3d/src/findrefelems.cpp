@@ -22,8 +22,8 @@ double get_elem_maxdQ(const idx elem,        // index to element
             qe[j] = q.getValue( nn , dim ); // get g
         } // end for each node
 
-        double mxq = *max_element(qe , qe+4);
-        double mnq = *min_element(qe , qe+4);
+        double mxq = *std::max_element(qe , qe+4);
+        double mnq = *std::min_element(qe , qe+4);
 
         if ( (mxq-mnq) > maxdq ) {maxdq = mxq-mnq;}
 

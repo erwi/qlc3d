@@ -18,6 +18,8 @@
 #include <geom/coordinates.h>
 #include <geom/periodicity.h>
 
+using namespace std;
+
 //<editor-fold desc="TestUtil">
 struct TestData {
   unique_ptr<Geometry> geom;

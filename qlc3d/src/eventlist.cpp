@@ -6,6 +6,8 @@
 #include <util/logging.h>
 #include <util/exception.h>
 
+using namespace std;
+
 const char *Event::getEventString(const EventType e) {
   switch (e) {
     case (EVENT_SAVE):

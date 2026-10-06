@@ -9,6 +9,8 @@
 #include <geom/vec3.h>
 #include "solver-settings.h"
 
+using namespace std;
+
 namespace {
 // The valid-key list is intentionally kept in code only here as `validSettingsKeys`.
 // Grep for this variable in this file to find the full list of supported settings keys.

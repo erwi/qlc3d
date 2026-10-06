@@ -3,6 +3,8 @@
 #include <settings-reader.h>
 #include <reader.h>
 
+using namespace std;
+
 TEST_CASE("Read key value pair") {
   std::string contents = "key = value";
   auto settingsFile = TestUtil::TemporaryFile::withContents(contents);

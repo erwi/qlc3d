@@ -11,48 +11,48 @@
 #define READER_NOT_FOUND    -2   // variable not found
 #define READER_BAD_VALUE    -3   //
 #define READER_BAD_FORMAT   -4   // missing "=" etc.
-#define READER_BAD_FILE	    -5   // file not open etc.
+#define READER_BAD_FILE        -5   // file not open etc.
 class Reader
 {
     public:
-		std::fstream file;
+        std::fstream file;
 
 
         Reader();
         virtual ~Reader();
         bool openFile(const std::filesystem::path &filename);
         void closeFile();
-	bool gotoLine(const unsigned int& l); // uggly seek line number in txt files
+    bool gotoLine(const unsigned int& l); // ugly seek line number in txt files
 
         int readString(std::string var, std::string& val);
-	int readDlmLine(std::vector <double>& val, std::string dlm  );
-	int findStringLine(std::string str,		// finds line consisting of string str,
-			   unsigned int offset = 0);	// returns line number with respect to offset
+    int readDlmLine(std::vector <double>& val, std::string dlm  );
+    int findStringLine(std::string str,        // finds line consisting of string str,
+               unsigned int offset = 0);    // returns line number with respect to offset
 
 
-	template <class T>
-	int readNumberArray(std::string var, std::vector<T>& val)
-	{
+    template <class T>
+    int readNumberArray(std::string var, std::vector<T>& val)
+    {
 
-			using std::string;
-			using std::cout;
-			using std::endl;
-			//cout << "readNumberArray:"<<var<<endl;
+            using std::string;
+            using std::cout;
+            using std::endl;
+            //cout << "readNumberArray:"<<var<<endl;
 
-			val.clear();
-			file.seekg(0);
-			if (!file.good()) return READER_BAD_FILE;
+            val.clear();
+            file.seekg(0);
+            if (!file.good()) return READER_BAD_FILE;
 
-			//file.clear(); // clear previous eof bits
+            //file.clear(); // clear previous eof bits
 
             std::string line;
 
-			while( ! file.eof() ){
-					getline(file , line );
+            while( ! file.eof() ){
+                    getline(file , line );
 
                     removeBlanks(line);
                     removeComments(line);
-					//std::cout << "comparing "<< line << " with " << var << std::endl;
+                    //std::cout << "comparing "<< line << " with " << var << std::endl;
                     if (line.find(var) == 0){//std::string::npos){
 
                         size_t pos = line.find("=");    // find "=" sign
@@ -98,47 +98,47 @@ class Reader
 
                     }// end if variable found
             }//end while read file loop
-			file.seekg(0);
-			file.clear();
+            file.seekg(0);
+            file.clear();
             return READER_NOT_FOUND;
-	}// end readNumberArray
+    }// end readNumberArray
 
         template <class T>
 int readNumber(std::string var, T& val){
-	this->file.seekg(0);
-	this->file.clear(); // clear eof bit
+    this->file.seekg(0);
+    this->file.clear(); // clear eof bit
             std::string line;
             double temp_val; // temp value, will be typecast to int/float after reading
-			while( ! file.eof() ){
-				getline(file , line);
+            while( ! file.eof() ){
+                getline(file , line);
                 //std::cout << "looking for " << var << " line is " << line << std::endl;
-				removeBlanks(line);
+                removeBlanks(line);
                 removeComments(line);
                 //std::cout << "looking for " << var << " line is " << line << std::endl;
                 if (line.find(var) == 0){// if var found in beginning of line
                     //std::cout << "var found !" << std::endl;
 
                     size_t pos = line.find ("=");
-		    if (pos == std::string::npos){
-			std::cout <<"bad format: "<< line << std::endl;
+            if (pos == std::string::npos){
+            std::cout <<"bad format: "<< line << std::endl;
                         return READER_BAD_FORMAT;
-		    }
-			std::string s_val = line.substr(pos+1 , line.length() - (pos+1) );
+            }
+            std::string s_val = line.substr(pos+1 , line.length() - (pos+1) );
 
 
-			 if (std::stringstream(s_val) >> temp_val ){
-				 val = (T) temp_val; // typecast to correct number format
-				 return READER_SUCCESS;
-			 }
+             if (std::stringstream(s_val) >> temp_val ){
+                 val = (T) temp_val; // typecast to correct number format
+                 return READER_SUCCESS;
+             }
 
-		    else{
-				std::cout <<"bad value: " << s_val << std::endl;
-				return READER_BAD_VALUE;
-			}
-			}// if var found
+            else{
+                std::cout <<"bad value: " << s_val << std::endl;
+                return READER_BAD_VALUE;
+            }
+            }// if var found
             } // read file line by line loop
-			file.seekg(0);
-			file.clear();
+            file.seekg(0);
+            file.clear();
             return READER_NOT_FOUND;
 }
 // end int readValue
@@ -152,10 +152,10 @@ int readNumber(std::string var, T& val){
     protected:
     private:
         bool removeBlanks(std::string& str);// removes spaces
-	bool removeBlanksAtBeginning(std::string& str);// removes spaces at beginning of line only
-	bool removeBlanksAtEnd(std::string& str);// removes empty spaces at end of string
-	bool removeComments(std::string& str);// removes anythign after a "#" character
-	void stringToLowercase(std::string& str); // converts string to all lowercase
+    bool removeBlanksAtBeginning(std::string& str);// removes spaces at beginning of line only
+    bool removeBlanksAtEnd(std::string& str);// removes empty spaces at end of string
+    bool removeComments(std::string& str);// removes anythign after a "#" character
+    void stringToLowercase(std::string& str); // converts string to all lowercase
 
 };
 

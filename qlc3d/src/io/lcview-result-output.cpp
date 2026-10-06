@@ -11,6 +11,8 @@
 
 namespace fs = std::filesystem;
 
+using namespace std;
+
 //<editor-fold desc="LcViewResultFormatWriter">
 LcViewResultFormatWriter::LcViewResultFormatWriter(const std::filesystem::path &outputDir, const std::string &meshName, double S0) :
   ResultFormatWriter(outputDir), S0_{ S0 }, lastMeshNumber_{ -1 } {

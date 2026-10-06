@@ -55,9 +55,9 @@ int runSimulation(Configuration &configuration) {
     ResultOutput resultOutput(simu->getSaveFormat(), simu->meshName(), lc->S0(), simu->getSaveDirAbsolutePath());
     std::shared_ptr<PotentialSolver> potentialSolver = std::make_shared<PotentialSolver>(*electrodes, lc, solverSettings);
 
-    unique_ptr<ILCSolver> lcSolver = simu->simulationMode() == SteadyState ?
-                                     unique_ptr<ILCSolver>(new SteadyStateLCSolver(*lc, *solverSettings, *configuration.getAlignment())) :
-                                     unique_ptr<ILCSolver>(new TimeSteppingLCSolver(*lc, *solverSettings, simu->getMaxError(), *configuration.getAlignment(), solverSettings->getQ_Newton_Panic_Iter()));
+    std::unique_ptr<ILCSolver> lcSolver = simu->simulationMode() == SteadyState ?
+                                     std::unique_ptr<ILCSolver>(new SteadyStateLCSolver(*lc, *solverSettings, *configuration.getAlignment())) :
+                                     std::unique_ptr<ILCSolver>(new TimeSteppingLCSolver(*lc, *solverSettings, simu->getMaxError(), *configuration.getAlignment(), solverSettings->getQ_Newton_Panic_Iter()));
 
     Log::info("Set number of threads to {}", solverSettings->getnThreads());
     omp_set_num_threads((int) solverSettings->getnThreads());

@@ -13,7 +13,6 @@ class Simu;
 class SimulationState;
 class SimulationTime;
 class Reader;
-using namespace std;
 
 enum EventType {
   EVENT_SWITCHING,
@@ -113,11 +112,11 @@ private:
     static constexpr size_t NO_ITER_EVENTS = std::numeric_limits<size_t>::max();    // INDICATES THAT NO ITER EVENT EXIST
     double nextTimeEvent_;          // TIME OF NEXT TIMED EVENT
     size_t nextIterEvent_;          // ITERATION NUMBER OF NEXT ITER EVENT
-    list <Event *> timeEvents_;     // Collection od time/iteration events
-    list <Event *> iterationEvents_;
+    std::list <Event *> timeEvents_;     // Collection od time/iteration events
+    std::list <Event *> iterationEvents_;
 
     /** periodically (by iteration) occurring mesh refinement events */
-    list <Event *> repRefinements_;
+    std::list <Event *> repRefinements_;
     size_t saveIter_;               // SAVE PERIOD IN ITERATIONS
     double saveTime_;               // SAVE PERIOD IN SECONDS
     size_t saveTimeCount_;          // KEEPS COUNT OF PROCESSED REOCCURRING SAVE ITERS SO FAR

@@ -15,9 +15,9 @@ bool Line::operator<(const Line& other) const {
 bool Line::operator ==( const Line& other) const {
     // same line if same objects or if same node numbersR
     if ( this ==  &other) 
-		return true;  // same object
+        return true;  // same object
     if ( ( this->L[0] == other.L[0]) && (this->L[1] == other.L[1] ) ) 
-		return true; // same node numbers
+        return true; // same node numbers
 
     return false; // default
 }
@@ -26,12 +26,12 @@ Line::Line() { }
 
 Line::Line(const int& a,const int& b){
     if (a<b) {
-	L[0] = a;
-	L[1] = b;
+    L[0] = a;
+    L[1] = b;
     }
     else {
-	L[0] = b;
-	L[1] = a;
+    L[0] = b;
+    L[1] = a;
     }
 }
 
@@ -41,7 +41,7 @@ bool Line::isOnFrontSurface(Geometry* geom) {
   double y2 = geom->getCoordinates().getPoint(L[1]).y();
   return (y1 == bounds.getYMin() && y2 == bounds.getYMin());
 }
-		
+        
 bool Line::isOnBackSurface(Geometry* geom) {
   auto &bounds = geom->getBoundingBox();
   double y1 = geom->getCoordinates().getPoint(L[0]).y();
@@ -76,49 +76,49 @@ bool Line::isOnBottomSurface(Geometry* geom) {
   double z2 = geom->getCoordinates().getPoint(L[1]).z();
   return (z1 == bounds.getZMin() && z2 == bounds.getZMin());
 }
-	
+    
 bool Line::isTopBottomCornerLine(Geometry* geom){
     // is corner line if on two connected vertical surfaces simultaneously
     if(  ( isOnFrontSurface(geom) &&  ( isOnLeftSurface(geom) || isOnRightSurface(geom) ) ) || //front-left or front-right corner ...
-	 ( isOnBackSurface(geom)  &&  ( isOnLeftSurface(geom) || isOnRightSurface(geom) ) ) )  // ... or back-left or back-right corner
-	return true;
+     ( isOnBackSurface(geom)  &&  ( isOnLeftSurface(geom) || isOnRightSurface(geom) ) ) )  // ... or back-left or back-right corner
+    return true;
     else
-	return false;
+    return false;
 }
-	
+    
 bool Line::isFrontBackCornerLine(Geometry* geom){
-	// is corner line if on a side and top/bottom surface simultaneously
-	if ( ( isOnLeftSurface(geom) && ( isOnTopSurface(geom) || isOnBottomSurface(geom) ) ) || // left-top or left-bottom edge
-	     ( isOnRightSurface(geom) &&( isOnTopSurface(geom) || isOnBottomSurface(geom) ) ) )  // ... or on right-top or right-bottom
-	    return true;
-	else
-	return false;
+    // is corner line if on a side and top/bottom surface simultaneously
+    if ( ( isOnLeftSurface(geom) && ( isOnTopSurface(geom) || isOnBottomSurface(geom) ) ) || // left-top or left-bottom edge
+         ( isOnRightSurface(geom) &&( isOnTopSurface(geom) || isOnBottomSurface(geom) ) ) )  // ... or on right-top or right-bottom
+        return true;
+    else
+    return false;
 }
-	
+    
 bool Line::isLeftRightCornerLine(Geometry* geom){
-	// if is on front/back and top/bottom simultaneously
-	if ( ( isOnFrontSurface(geom) && ( isOnTopSurface(geom) || isOnBottomSurface(geom) ) ) || // front-top or front-bottom ...
-		 ( isOnBackSurface(geom)  && ( isOnTopSurface(geom) || isOnBottomSurface(geom) ) ) )  // ... or on back-top or back-bottom
-	    return true;
-	else
-	    return false;
+    // if is on front/back and top/bottom simultaneously
+    if ( ( isOnFrontSurface(geom) && ( isOnTopSurface(geom) || isOnBottomSurface(geom) ) ) || // front-top or front-bottom ...
+         ( isOnBackSurface(geom)  && ( isOnTopSurface(geom) || isOnBottomSurface(geom) ) ) )  // ... or on back-top or back-bottom
+        return true;
+    else
+        return false;
 }
 
 bool Line::isTranslationOf( Line& L2, Geometry* geom, double* dir)
 {
-	/*! Checks whether this line is a translation of line L2. 
-	 * dir determines which dimensions are ignored from comparison. e.g.
-	 * dir = [0,0,1] only compares for z-components of the lines
-	 * dir = [1,0,1] makes sure x and z components match (i.e. shift along y-axis)
-	 */
-	
-	
-	if (L2 == *this) return false; // avoid selfs
-	
-	// The order of nodes is not guaranteed. Check for parallel lines by 
-	// taking the dot product of the two vectors
+    /*! Checks whether this line is a translation of line L2. 
+     * dir determines which dimensions are ignored from comparison. e.g.
+     * dir = [0,0,1] only compares for z-components of the lines
+     * dir = [1,0,1] makes sure x and z components match (i.e. shift along y-axis)
+     */
+    
+    
+    if (L2 == *this) return false; // avoid selfs
+    
+    // The order of nodes is not guaranteed. Check for parallel lines by 
+    // taking the dot product of the two vectors
   auto& coords = geom->getCoordinates();
-	double eps = 1e-5;
+    double eps = 1e-5;
 
   Vec3 p11 = coords.getPoint(L[0]);
   Vec3 p12 = coords.getPoint(L[1]);
@@ -165,60 +165,60 @@ bool Line::isTranslationOf( Line& L2, Geometry* geom, double* dir)
   //printf("%f,%f,%f\n", diff1[0], diff1[1], diff1[2]);
   return (x + y + z) <= eps;
 }
-	
+    
 // corners along z
 bool Line::isCorn0(Geometry* geom) // xmin, ymin
 {
-	return (isOnLeftSurface(geom) && isOnFrontSurface(geom) );
+    return (isOnLeftSurface(geom) && isOnFrontSurface(geom) );
 }
 
 bool Line::isCorn1(Geometry* geom) // xmax, ymin
 {
-	return (isOnFrontSurface(geom) && ( isOnRightSurface(geom) ) );
+    return (isOnFrontSurface(geom) && ( isOnRightSurface(geom) ) );
 }
 bool Line::isCorn2(Geometry* geom) // xmax, ymax
 {
-	return ( isOnRightSurface(geom) && isOnBackSurface(geom) );
+    return ( isOnRightSurface(geom) && isOnBackSurface(geom) );
 }
 bool Line::isCorn3(Geometry* geom) // xmin, ymax
 {
-	return ( isOnLeftSurface(geom) && isOnBackSurface(geom) );
+    return ( isOnLeftSurface(geom) && isOnBackSurface(geom) );
 }
 
-	// corners along x
+    // corners along x
 bool Line::isCorna(Geometry* geom) // ymin, zmin
 {
-	return ( isOnFrontSurface(geom) && isOnBottomSurface(geom) );
+    return ( isOnFrontSurface(geom) && isOnBottomSurface(geom) );
 }
 bool Line::isCornb(Geometry* geom) // ymax, zmin
 {
-	return ( isOnBottomSurface(geom) && isOnBackSurface(geom) );
+    return ( isOnBottomSurface(geom) && isOnBackSurface(geom) );
 }
 bool Line::isCornc(Geometry* geom) // ymax, zmax
 {
-	return (isOnBackSurface(geom) && isOnTopSurface(geom) );
+    return (isOnBackSurface(geom) && isOnTopSurface(geom) );
 }
 bool Line::isCornd(Geometry* geom) // ymin, zmax
 {
-	return (isOnTopSurface(geom) && isOnFrontSurface(geom) );
+    return (isOnTopSurface(geom) && isOnFrontSurface(geom) );
 }
 
 // corners along y
 bool Line::isCornA(Geometry* geom) // xmin, zmin
 {
-	return (isOnLeftSurface(geom) && isOnBottomSurface(geom) );
+    return (isOnLeftSurface(geom) && isOnBottomSurface(geom) );
 }
 bool Line::isCornB(Geometry* geom) // xmax, zmin
 {
-	return (isOnBottomSurface(geom) && isOnRightSurface(geom) );
+    return (isOnBottomSurface(geom) && isOnRightSurface(geom) );
 }
 bool Line::isCornC(Geometry* geom) // xmax, zmax
 {
-	return (isOnRightSurface(geom) && isOnTopSurface(geom) );
+    return (isOnRightSurface(geom) && isOnTopSurface(geom) );
 }
 
 bool Line::isCornD(Geometry* geom) // xmin, zmax
 {
-	return (isOnTopSurface(geom) && isOnLeftSurface(geom) );
+    return (isOnTopSurface(geom) && isOnLeftSurface(geom) );
 }
 

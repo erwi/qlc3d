@@ -11,7 +11,6 @@ class Vec3;
 class PeriodicNodesMapping;
 class RawMeshData;
 
-using namespace std;
 class Geometry {
 private:
   std::shared_ptr<Coordinates> coordinates_;
@@ -56,14 +55,14 @@ public:
      */
     static Geometry fromRawMeshData(const RawMeshData &raw);
 
-    void appendCoordinates(const vector<Vec3> &coords);
+    void appendCoordinates(const std::vector<Vec3> &coords);
     void calculateNodeNormals();
     void setnpLC(int n);
     void ReorderDielectricNodes();
 
     void ClearGeometry();
 
-    void genIndToTetsByCoords(vector <unsigned int> &returnIndex,
+    void genIndToTetsByCoords(std::vector <unsigned int> &returnIndex,
                               const Coordinates &targetCoordinates,
                               const bool &terminateOnError = true,
                               const bool &requireLCElement = false);

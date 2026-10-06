@@ -71,7 +71,7 @@ unsigned int Geometry::getnp() const {
   return coordinates_ == nullptr ? 0 : coordinates_->size();
 }
 
-void Geometry::appendCoordinates(const vector<Vec3> &coords) {
+void Geometry::appendCoordinates(const std::vector<Vec3> &coords) {
   coordinates_->append(coords);
   setnpLC(coordinates_->size());
 }
@@ -276,7 +276,7 @@ void Geometry::ReorderDielectricNodes() {
     this->updateMaxNodeNumbers();
 }
 
-void Geometry::genIndToTetsByCoords(vector<unsigned int> &returnIndex,
+void Geometry::genIndToTetsByCoords(std::vector<unsigned int> &returnIndex,
                                      const Coordinates &targetCoordinates,
                                      const bool &terminateOnError,
                                      const bool &requireLCElement) {

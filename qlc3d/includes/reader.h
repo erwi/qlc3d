@@ -192,22 +192,21 @@ inline void Reader::toLower(std::string &s) const {
  * @return the target string after substitutions
  */
 inline std::string Reader::envVarSubstitution(std::string &stringIn) const {
-    using namespace std;
-    string s(stringIn);
-    while (s.find('$') != string::npos) {
-        size_t start = s.find_first_of("${");
-        size_t end = s.find_first_of('}') + 1;
+    std::string s(stringIn);
+    while (s.find('$') != std::string::npos) {
+        std::size_t start = s.find_first_of("${");
+        std::size_t end = s.find_first_of('}') + 1;
 
-        if ((start == string::npos) || (end == string::npos) || (end < start)) {
-            throw runtime_error("Invalid environment variable substitution format");
+        if ((start == std::string::npos) || (end == std::string::npos) || (end < start)) {
+            throw std::runtime_error("Invalid environment variable substitution format");
         }
 
         // find the corresponding environment variable
-        string key = s.substr(start + 2, (end - start) - 3);
+        std::string key = s.substr(start + 2, (end - start) - 3);
         cleanLineEnds(key);
         char *value = getenv(key.c_str());
         if (value == nullptr) {
-            throw runtime_error("No such environment variable " + key);
+            throw std::runtime_error("No such environment variable " + key);
         }
 
         s = s.substr(0, start) + value + s.substr(end);

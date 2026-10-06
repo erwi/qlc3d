@@ -106,11 +106,11 @@ AnchoringType Surface::getAnchoringType() const {
     return this->Type;
 }
 
-double Surface::getStrength() const		{		return Strength;}
-double Surface::getK1() const				{		return K1;}
-double Surface::getK2() const				{		return K2;}
-double Surface::getEasyTilt() const{			return easyAnglesDegrees[0];}
-double Surface::getEasyTwist() const{			return easyAnglesDegrees[1];}
+double Surface::getStrength() const    {    return Strength;}
+double Surface::getK1() const            {    return K1;}
+double Surface::getK2() const            {    return K2;}
+double Surface::getEasyTilt() const{    return easyAnglesDegrees[0];}
+double Surface::getEasyTwist() const{    return easyAnglesDegrees[1];}
 
 bool	Surface::usesSurfaceNormal() const {
   AnchoringType type = getAnchoringType();

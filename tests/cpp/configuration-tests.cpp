@@ -7,6 +7,8 @@
 #include "geom/vec3.h"
 #include "lc-representation.h"
 
+using namespace std;
+
 TEST_CASE("Catch library should work") {
     REQUIRE(true);
 }

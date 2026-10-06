@@ -9,6 +9,8 @@
 #include <settings_file_keys.h>
 #include <geom/vec3.h>
 
+using namespace std;
+
 // Define valid enum string keys
 const vector<string> Simu::VALID_END_CRITERIA = {"iterations", "time", "change"};
 

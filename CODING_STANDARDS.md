@@ -1,11 +1,13 @@
 # Coding Standards
 This file contains coding standards for AI assisted development.
 
-## Guidelines
+## High Level Guidelines
 - Follow widely known best practices for software development.
   - SOLID principle
   - DRY principle
   - KISS principle
+- keep code coupling low and well modularized
+- code should be easily testable
 
 ## Tests
 - All new code must have unit tests.
@@ -19,7 +21,9 @@ This file contains coding standards for AI assisted development.
 - Use the RUNTIME_ERROR macro for error handling. It automatically fills in the location of the error.
 
 ## Comments and Documentation
-- Use Doxygen style comments for documenting code. 
+- Use Doxygen style comments for documenting code.
+  - All methods, function, classes, structs, enums etc. in .h files should have descriptive comments
+  - functions in .cpp files that don't have declaration in .h file should have descriptive comments
   - Use /** ... */ for function and class documentation.
   - Use // for inline comments.
 
@@ -29,3 +33,12 @@ This file contains coding standards for AI assisted development.
   - This includes the user manual, implementation documentation and known-bugs.md.
 
 - Prefer British spelling over American spelling in comments and documentation as well as variable and function naming.
+
+## Rules
+- Use namespaces for all functions except for the main() function and test code.
+  - no indentation for namespace blocks, but indent everything inside the namespace block.
+- Use PascalCase for class names and camelCase for functions, variable names and objects.
+- Use braces for all if, else, for, while and do statements even if they are one line.
+- use of pointers is discouraged. Use references instead. If you must use pointers, use smart pointers instead of raw pointers to indicate ownership.
+  - Raw pointers can be passed to functions to indicate that the function does not take ownership of the object. In this case, use a comment to indicate that the function does not take ownership of the object.
+- Const correctness is important, use it.

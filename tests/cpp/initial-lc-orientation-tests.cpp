@@ -9,6 +9,8 @@
 #include <memory>
 #include <alignment.h>
 
+using namespace std;
+
 const double MARGIN = 1e-12;
 
 TEST_CASE("Set initial LC orientation") {

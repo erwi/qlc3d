@@ -11,6 +11,8 @@
 #include <util/logging.h>
 #include <geom/vec3.h>
 
+using namespace std;
+
 #define MAX_DIGITS 	1000000000
 #define TOLER		1e-9
 

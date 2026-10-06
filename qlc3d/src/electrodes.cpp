@@ -7,6 +7,8 @@
 #include <eventlist.h>
 #include <algorithm>
 
+using namespace std;
+
 // SET MAGIC CONSTANT FOR INDICATING UNIFORM ELECTRIC FIELD
 const size_t SwitchingInstance::UNIFORM_E_FIELD = numeric_limits<size_t>::max();
 

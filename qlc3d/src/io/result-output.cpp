@@ -14,6 +14,8 @@
 
 namespace fs = std::filesystem;
 
+using namespace std;
+
 //<editor-fold desc="ResultOutput">
 ResultOutput::ResultOutput(const std::set<Simu::SaveFormats> &saveFormats,
                            const std::string &meshName,

@@ -7,8 +7,8 @@
 struct SimulationAdaptiveTimeStepParameters {
   /** Is the simulation in steady state? If yes, the time step is not modified as it's ignored anyway. */
   const bool isSteadyState;
-  /** 
-   * Minimum time step size, seconds. A value of e.g. 1e-9. In some case an even smaller time step 
+  /**
+   * Minimum time step size, seconds. A value of e.g. 1e-9. In some case an even smaller time step
    * may be produced in order to avoid missing  an event.
    */
   const double minTimeStep;
