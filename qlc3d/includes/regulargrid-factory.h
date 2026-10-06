@@ -1,4 +1,6 @@
-#pragma once
+#ifndef PROJECT_QLC3D_REGULARGRID_FACTORY_H
+#define PROJECT_QLC3D_REGULARGRID_FACTORY_H
+
 #include <memory>
 #include <cstddef>
 
@@ -20,3 +22,4 @@ class RegularGrid;
 std::unique_ptr<RegularGrid> buildRegularGrid(size_t nx, size_t ny, size_t nz,
                                                const Geometry& geom);
 
+#endif // PROJECT_QLC3D_REGULARGRID_FACTORY_H

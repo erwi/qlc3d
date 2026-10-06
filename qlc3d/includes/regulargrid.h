@@ -1,6 +1,6 @@
 
-#ifndef REGULARGRID_H
-#define REGULARGRID_H
+#ifndef PROJECT_QLC3D_REGULARGRID_H
+#define PROJECT_QLC3D_REGULARGRID_H
 #include <mesh/mesh.h>
 #include <geom/coordinates.h>
 #include <vector>
@@ -130,5 +130,5 @@ public:
                       double time = 0);
 };
 
-#endif // REGULARGRID_H
+#endif // PROJECT_QLC3D_REGULARGRID_H
 

@@ -1,4 +1,6 @@
-#pragma once
+#ifndef PROJECT_QLC3D_ENERGY_LC_ENERGY_DENSITY_H
+#define PROJECT_QLC3D_ENERGY_LC_ENERGY_DENSITY_H
+
 #include <lc.h>
 #include <geom/vec3.h>
 
@@ -117,3 +119,4 @@ double surfaceEnergyDensity(double q1, double q2, double q3, double q4, double q
                             const Vec3 &v1, const Vec3 &v2,
                             double W, double K1, double K2, double S0);
 
+#endif // PROJECT_QLC3D_ENERGY_LC_ENERGY_DENSITY_H

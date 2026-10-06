@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PROJECT_QLC3D_ENERGY_ENERGY_RESULT_H
+#define PROJECT_QLC3D_ENERGY_ENERGY_RESULT_H
 
 /**
  * @brief Result of an LC free energy calculation.
@@ -26,3 +27,4 @@ struct EnergyResult {
     }
 };
 
+#endif // PROJECT_QLC3D_ENERGY_ENERGY_RESULT_H
