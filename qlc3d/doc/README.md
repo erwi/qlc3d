@@ -2,6 +2,14 @@
 
 It is recommended that qlc3d is run from the command line. The reason is because when qlc3d encounters problems, error messages that may help resolving the problem are printed on the screen. If qlc3d is started by simply double clicking on the executable, the opened window will close before there is time to read the error message.
 
+## Bundled third-party headers
+
+The repository vendors a small set of third-party dependencies under `extern/`. This includes the header-only JSON for Modern C++ library as `../../extern/json/json.hpp`, which can be included in qlc3d sources with:
+
+```
+#include <json.hpp>
+```
+
 In general, qlc3d is run by typing to the command prompt:
 
 ```
@@ -225,16 +233,17 @@ String value determining a sub-directory where results are saved. If the directo
 
 ### **SaveFormat = [type1, type2 … typeX]** ###
 Vector of strings specifying file format of saved result files. Possible file types are:
-`LCview`, `LCviewTXT`, `RegularVTK`, `RegularVecMat`, `DirStackZ`.  When `SaveFormat` is not specified the default is `LCview`.
+`LCview`, `LCviewTXT`, `RegularVTK`, `RegularVecMat`, `DirStackZ`, `VTKUnstructuredAsciiGrid`, `yarf`. When `SaveFormat` is not specified the default is `LCview`.
 
 |Value	| Description|
 |---:	|:---|
-|LCView|	Default save format, does not have to be explicitly specified. Saves Q-tensor and potentials into binary files, viewable using LCView program. Files written are named as:“result<iteration number>.dat” and “result_final.dat”|
+|LCView| 	Default save format, does not have to be explicitly specified. Saves Q-tensor and potentials into 32 bit binary files, viewable using LCView program. Files written are named as:“result<iteration number>.dat” and “result_final.dat”|
 |LCviewTXT|	Saves director values and potential into human readable text files, also viewable using ||LCView. The ordering of the nodes is specified by the correponding mesh file that is also saved in the same directory. Files are named as: “result_t<iteration number>.dat” and “result_t_final.dat”.|
 |RegularVTK|	Saves director order parameter and potential values interpolated onto a regular grid in a human readable text file.  Details about this format can be easily found e.g. by googling “vtk file formats”|
 |RegularVecMat|	Saves director, order parameter and potential values interpolated onto a regular grid into text files that can be executed as scripts in MATLAB to load the values into variables.
 |DirStackZ|	Saves director components only to a comma separated values (CSV) text file. The first line gives the number of points in x,y, and z directions as well as a time step value (in seconds).  The remaining rows list the director x,y and z components. Each row corresponds to a stack of directors along the Z-axis. Within each stack, director components are interleaved (i.e. ordered nx, ny, nz, nx, ny, nz,...). Stack locations in the x-y plane increase in the x-direction first, then y direction is increment by one.|
 |VTKUnstructuredAsciiGrid|	Saves the potential values and director vector using VTK unstructured legacy grid files (ASCII text files), which also include the FE mesh at each time step. These files are comaptible for example with the ParaView data visualisation application.  For details about this format see e.g. https://kitware.github.io/vtk-examples/site/VTKFileFormats/ (“Simple Legacy Formats” section)|
+|yarf|	Saves Q-tensor and potential values in 64bit binary format, referencing the mesh file. Intended purpose is a result format for continuing simulation from existing result file without rounding-off error encountered with 32 bit formats.|
 
 
 ### **RegularGridSize = [nX, nY, nZ]** ###
@@ -271,6 +280,9 @@ orientation is loaded. Two file formats are supported, distinguished automatical
 
 - **LCView text/binary** (mesh-matched): the same result file formats previously accepted by `LoadQ`. These files
   carry no coordinates — the file must contain exactly one entry per LC mesh node, in the same order as the mesh.
+- **YARF result snapshots** (`.yarf`, case-insensitive): mesh-matched q-tensor snapshots where the file contains a
+  validated `q_tensor` field in the canonical qlc3d YARF layout. The reader uses the stored Q-tensor values for the
+  initial LC state and requires the same one-to-one LC-node ordering as the mesh.
 - **Director CSV** (point-cloud): any file with a `.csv` extension (case-insensitive). The file must start with a
   header row naming its comma-separated columns (case-insensitive, any order): the required columns `x, y, z, nx,
   ny, nz` giving a sample location and (possibly un-normalized) director vector, and an optional `S` column giving

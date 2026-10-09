@@ -1,6 +1,7 @@
 #include <catch.h>
 #include <io/orientation-reader.h>
 #include <io/orientation-assignment.h>
+#include <io/yarf.h>
 #include <solutionvector.h>
 #include <lc-representation.h>
 #include <geom/coordinates.h>
@@ -136,6 +137,107 @@ TEST_CASE("createLcViewReader dispatches based on file content") {
   SECTION("Non-existent file throws") {
     REQUIRE_THROWS_AS(qlc3d::createLcViewReader("/no/such/file.dat"), std::invalid_argument);
   }
+}
+
+TEST_CASE("YarfResultReader reads q_tensor samples without locations") {
+  // GIVEN "a valid YARF q_tensor snapshot on disk"
+  TestUtil::TemporaryDirectory tmpDir;
+  const auto path = tmpDir.path() / "orientation.yarf";
+
+  qlc3d::yarf::SimulationBlock simulation;
+  simulation.mesh_file = "mesh.msh";
+  simulation.iteration = 3;
+  simulation.time = 0.5;
+  simulation.S0 = 0.6;
+  simulation.num_nodes = 4;
+  simulation.num_elements = 2;
+  simulation.npLC = 2;
+
+  SolutionVector q(2, 5);
+  q.setValue(0, 0, 0.10);
+  q.setValue(0, 1, -0.20);
+  q.setValue(0, 2, 0.30);
+  q.setValue(0, 3, 0.40);
+  q.setValue(0, 4, -0.50);
+  q.setValue(1, 0, 0.11);
+  q.setValue(1, 1, -0.21);
+  q.setValue(1, 2, 0.31);
+  q.setValue(1, 3, 0.41);
+  q.setValue(1, 4, -0.51);
+
+  qlc3d::yarf::YarfFileWriter writer;
+  writer.writeQTensorFile(path, simulation, q, {{"description", "yarf orientation"}});
+
+  // WHEN the YARF result reader parses the snapshot
+  qlc3d::YarfResultReader reader;
+  REQUIRE_FALSE(reader.producesLocations());
+  const auto samples = reader.read(path.string(), 0.5);
+
+  // THEN the samples preserve the mesh-matched q_tensor values without coordinates
+  REQUIRE(samples.size() == 2U);
+  for (idx node = 0; node < q.getnDoF(); ++node) {
+    REQUIRE_FALSE(samples[static_cast<std::size_t>(node)].location.has_value());
+    const auto &tensor = samples[static_cast<std::size_t>(node)].tensor;
+    REQUIRE(tensor.t1() == Approx(q.getValue(node, 0)).epsilon(1e-15));
+    REQUIRE(tensor.t2() == Approx(q.getValue(node, 1)).epsilon(1e-15));
+    REQUIRE(tensor.t3() == Approx(q.getValue(node, 2)).epsilon(1e-15));
+    REQUIRE(tensor.t4() == Approx(q.getValue(node, 3)).epsilon(1e-15));
+    REQUIRE(tensor.t5() == Approx(q.getValue(node, 4)).epsilon(1e-15));
+  }
+}
+
+TEST_CASE("createOrientationReader dispatches .yarf files to the YARF reader") {
+  // GIVEN a valid YARF q_tensor snapshot with a .yarf extension
+  TestUtil::TemporaryDirectory tmpDir;
+  const auto path = tmpDir.path() / "orientation.yarf";
+  qlc3d::yarf::SimulationBlock simulation;
+  simulation.num_nodes = 3;
+  simulation.npLC = 1;
+
+  SolutionVector q(1, 5);
+  q.setValue(0, 0, 0.1);
+  q.setValue(0, 1, 0.2);
+  q.setValue(0, 2, 0.3);
+  q.setValue(0, 3, 0.4);
+  q.setValue(0, 4, 0.5);
+
+  qlc3d::yarf::YarfFileWriter writer;
+  writer.writeQTensorFile(path, simulation, q);
+
+  // WHEN the orientation reader factory inspects the file"
+  auto reader = qlc3d::createOrientationReader(path.string());
+
+  // THEN it selects the YarfResultReader"
+  REQUIRE(dynamic_cast<qlc3d::YarfResultReader*>(reader.get()) != nullptr);
+}
+
+TEST_CASE("YarfResultReader rejects files without a q_tensor field") {
+  // GIVEN a YARF file that stores only electric potential data"
+  TestUtil::TemporaryDirectory tmpDir;
+  const auto path = tmpDir.path() / "no-q-tensor.yarf";
+
+  qlc3d::yarf::SimulationBlock simulation;
+  simulation.mesh_file = "mesh.msh";
+  simulation.iteration = 9;
+  simulation.time = 1.0;
+  simulation.S0 = 0.5;
+  simulation.num_nodes = 3;
+  simulation.num_elements = 2;
+  simulation.npLC = 2;
+
+  SolutionVector v(3, 1);
+  for (idx node = 0; node < 3; ++node) {
+    v.setValue(node, 0, static_cast<double>(node));
+  }
+
+  qlc3d::yarf::YarfFileWriter writer;
+  writer.writePotentialFile(path, simulation, v);
+
+  // WHEN the YARF result reader tries to import q-tensor data"
+  qlc3d::YarfResultReader reader;
+
+  // THEN it raises a schema exception"
+  REQUIRE_THROWS_AS(reader.read(path.string(), 0.5), qlc3d::yarf::YarfSchemaException);
 }
 
 TEST_CASE("ExactOrderAssignment assigns samples 1:1 onto SolutionVector in order") {

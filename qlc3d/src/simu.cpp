@@ -16,7 +16,7 @@ const vector<string> Simu::VALID_END_CRITERIA = {"iterations", "time", "change"}
 
 // NOTE: the order should match with the order of the corresponding enum values
 const vector<string> Simu::VALID_SAVE_FORMATS = {
-        "lcview", "regularvtk", "regularvecmat", "dirstackz", "lcviewtxt", "csvunstructured", "vtkunstructuredasciigrid"};
+        "lcview", "regularvtk", "regularvecmat", "dirstackz", "lcviewtxt", "csvunstructured", "vtkunstructuredasciigrid", "yarf"};
 const vector<string> Simu::VALID_MESH_ELEMENT_ORDERS = {"native", "quadratic", "linear"};
 const vector<string> Simu::VALID_LOAD_INITIAL_ORIENTATION_S0_MODES = {"file", "current"};
 // Define values of default Simu parameters

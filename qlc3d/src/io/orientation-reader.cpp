@@ -9,6 +9,7 @@
 #include <lc-representation.h>
 #include <geom/vec3.h>
 #include <globals.h>
+#include <io/yarf.h>
 
 namespace qlc3d {
   namespace {
@@ -86,6 +87,27 @@ namespace qlc3d {
     return samples;
   }
 
+  std::vector<OrientationSample> YarfResultReader::read(const std::string &fileName, double s0) const {
+    const std::filesystem::path filePath(fileName);
+    if (!std::filesystem::exists(filePath)) {
+      throw std::invalid_argument("Result file " + fileName + " does not exist.");
+    }
+
+    qlc3d::yarf::YarfFileReader reader;
+    const auto qTensor = reader.readQTensorSolution(filePath);
+    std::vector<OrientationSample> samples;
+    samples.reserve(static_cast<std::size_t>(qTensor.getnDoF()));
+    for (idx node = 0; node < qTensor.getnDoF(); ++node) {
+      const auto tensor = TTensor(qTensor.getValue(node, 0),
+                                 qTensor.getValue(node, 1),
+                                 qTensor.getValue(node, 2),
+                                 qTensor.getValue(node, 3),
+                                 qTensor.getValue(node, 4));
+      samples.push_back(OrientationSample{tensor, std::nullopt});
+    }
+    return samples;
+  }
+
   std::unique_ptr<OrientationReader> createLcViewReader(const std::string &fileName) {
     // check if file exists
     namespace fs = std::filesystem;
@@ -133,6 +155,9 @@ namespace qlc3d {
 
     if (extension == ".csv") {
       return std::make_unique<DirectorCsvReader>();
+    }
+    if (extension == ".yarf") {
+      return std::make_unique<YarfResultReader>();
     }
     return createLcViewReader(fileName);
   }

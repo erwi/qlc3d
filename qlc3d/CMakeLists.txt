@@ -40,6 +40,7 @@ add_library(lib-qlc3d STATIC
         includes/io/vtkiofun.h
         includes/io/lcview-result-output.h
         includes/io/result-output.h
+        includes/io/yarf.h
         includes/io/energy-csv-writer.h
         src/io/meshreader.cpp
         src/io/ReadGiDMesh3D.cpp
@@ -47,6 +48,7 @@ add_library(lib-qlc3d STATIC
         src/io/matlabiofun.cpp
         src/io/vtkiofun.cpp
         src/io/result-output.cpp
+        src/io/yarf.cpp
         includes/io/orientation-sample.h
         includes/io/orientation-reader.h
         src/io/orientation-reader.cpp
@@ -115,6 +117,7 @@ set_target_properties(lib-qlc3d PROPERTIES CXX_STANDARD 17)
 target_include_directories(lib-qlc3d
         PUBLIC includes
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../extern/tinyexpr
+        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../extern/json
 )
 target_link_libraries(lib-qlc3d SpaMtrix gomp pthread fmt)
 

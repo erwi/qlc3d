@@ -53,7 +53,7 @@ TEST_CASE("Read Simu from settings file") {
     contents += "outputEnergy=1\n";
     contents += "saveiter=13\n";
     contents += "saveTime=6e-6\n";
-    contents += "saveFormat=[regularvecmat, LCviewTXT]\n";
+    contents += "saveFormat=[regularvecmat, LCviewTXT, yarf]\n";
     contents += "numAssemblyThreads=99\n";
     contents += "dtlimits=[3.2, 4.2]\n";
     contents += "dtfunction=[1.2, 2.2, 3.2, 4.2]\n";
@@ -107,6 +107,21 @@ TEST_CASE("Read Simu from settings file") {
     // specified save formats
     REQUIRE(simu->getSaveFormat().count(Simu::RegularVecMat));
     REQUIRE(simu->getSaveFormat().count(Simu::LCviewTXT));
+    REQUIRE(simu->getSaveFormat().count(Simu::Yarf));
+}
+
+TEST_CASE("Read YARF save format from settings file") {
+    std::string contents;
+    contents += "MeshName= wowowoo.txt\n";
+    contents += "saveFormat=[yarf]\n";
+    auto settingsFile = TestUtil::TemporaryFile::withContents(contents);
+
+    SettingsReader reader(settingsFile.name());
+    auto simu = reader.simu();
+
+    REQUIRE(simu->getSaveFormat().count(Simu::Yarf));
+    REQUIRE(simu->getSaveFormatStrings().size() == 1);
+    REQUIRE(simu->getSaveFormatStrings()[0] == "yarf");
 }
 
 TEST_CASE("Read loadOrientation from settings file") {

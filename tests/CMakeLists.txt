@@ -11,6 +11,7 @@ add_subdirectory(testutil)
 add_executable(cpp-test
         cpp/cpp-test.cpp
         cpp/configuration-tests.cpp
+        cpp/json-library-tests.cpp
         cpp/math-tests.cpp
         cpp/meshrefinement-test.cpp
         cpp/meshrefinement-config-tests.cpp
@@ -34,6 +35,7 @@ add_executable(cpp-test
         cpp/io/orientation-assignment-tests.cpp
         cpp/io/orientation-loader-tests.cpp
         cpp/io/director-csv-reader-tests.cpp
+        cpp/io/yarf-file-tests.cpp
         cpp/geom/geom-tests.cpp
         cpp/geom/tet-mesh-search-tests.cpp
         cpp/potential/potential-solver-test.cpp

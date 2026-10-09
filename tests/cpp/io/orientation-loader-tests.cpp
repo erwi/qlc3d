@@ -1,9 +1,12 @@
+#include <cmath>
+
 #include <catch.h>
 #include <io/orientation-loader.h>
 #include <simu.h>
 #include <solutionvector.h>
 #include <lc-representation.h>
 #include <geom/coordinates.h>
+#include <io/yarf.h>
 #include <test-util.h>
 #include <fmt/format.h>
 
@@ -66,6 +69,89 @@ TEST_CASE("loadInitialOrientation loads from loadOrientation using the LCView te
     REQUIRE(actual.nx() == Approx(directors[i].nx()).margin(1e-6));
     REQUIRE(actual.ny() == Approx(directors[i].ny()).margin(1e-6));
     REQUIRE(actual.nz() == Approx(directors[i].nz()).margin(1e-6));
+  }
+  delete simu;
+}
+
+TEST_CASE("loadInitialOrientation loads uppercase YARF q_tensor snapshots directly") {
+  // GIVEN a YARF q_tensor snapshot whose extension is uppercase and whose node count matches the target mesh
+  std::vector<qlc3d::Director> directors = {
+      qlc3d::Director::fromDegreeAngles(30, 60, 0.65),
+      qlc3d::Director::fromDegreeAngles(150, 20, 0.45)
+  };
+
+  SolutionVector expected(2, 5);
+  expected.setValue(0, qlc3d::TTensor::fromDirector(directors[0]));
+  expected.setValue(1, qlc3d::TTensor::fromDirector(directors[1]));
+
+  auto file = TestUtil::TemporaryFile::withContents("", ".YARF");
+  qlc3d::yarf::SimulationBlock simulation;
+  simulation.mesh_file = "mesh.txt";
+  simulation.iteration = 9;
+  simulation.time = 1.25;
+  simulation.S0 = 0.0;
+  simulation.num_nodes = 2;
+  simulation.num_elements = 1;
+  simulation.npLC = 2;
+  qlc3d::yarf::YarfFileWriter writer;
+  writer.writeQTensorFile(file.name(), simulation, expected);
+
+  Simu *simu = SimuBuilder().meshFileName("mesh.txt").loadOrientation(file.name().string()).build();
+  SolutionVector q(2, 5);
+  Coordinates coords;
+
+  // WHEN the loader reads the snapshot
+  qlc3d::loadInitialOrientation(*simu, 0.5, coords, q);
+
+  // THEN the loaded solution matches the snapshot data exactly
+  for (size_t i = 0; i < directors.size(); i++) {
+    for (idx dim = 0; dim < 5; ++dim) {
+      REQUIRE(q.getValue(static_cast<idx>(i), dim) == Approx(expected.getValue(static_cast<idx>(i), dim)).margin(1e-6));
+    }
+  }
+  delete simu;
+}
+
+TEST_CASE("loadInitialOrientation current S0 mode overrides loaded YARF scalar order") {
+  // GIVEN a YARF q_tensor snapshot whose scalar order differs from the active material S0
+  std::vector<qlc3d::Director> directors = {
+      qlc3d::Director::fromDegreeAngles(30, 60, 0.65),
+      qlc3d::Director::fromDegreeAngles(120, 10, 0.55)
+  };
+
+  SolutionVector expected(2, 5);
+  expected.setValue(0, qlc3d::TTensor::fromDirector(directors[0]));
+  expected.setValue(1, qlc3d::TTensor::fromDirector(directors[1]));
+
+  auto file = TestUtil::TemporaryFile::withContents("", ".yarf");
+  qlc3d::yarf::SimulationBlock simulation;
+  simulation.mesh_file = "mesh.txt";
+  simulation.iteration = 12;
+  simulation.time = 2.5;
+  simulation.S0 = 0.0;
+  simulation.num_nodes = 2;
+  simulation.num_elements = 1;
+  simulation.npLC = 2;
+  qlc3d::yarf::YarfFileWriter writer;
+  writer.writeQTensorFile(file.name(), simulation, expected);
+
+  Simu *simu = SimuBuilder().meshFileName("mesh.txt")
+      .loadOrientation(file.name().string())
+      .loadInitialOrientationS0Mode("current")
+      .build();
+  SolutionVector q(2, 5);
+  Coordinates coords;
+
+  // WHEN the current S0 mode is selected for loading
+  qlc3d::loadInitialOrientation(*simu, 0.35, coords, q);
+
+  // THEN the director orientation is preserved while the scalar order is overridden
+  for (size_t i = 0; i < directors.size(); i++) {
+    const auto actual = q.getDirector(static_cast<idx>(i));
+    REQUIRE(actual.S() == Approx(0.35).margin(1e-6));
+    REQUIRE(std::abs(actual.nx()) == Approx(std::abs(directors[i].nx())).margin(1e-6));
+    REQUIRE(std::abs(actual.ny()) == Approx(std::abs(directors[i].ny())).margin(1e-6));
+    REQUIRE(std::abs(actual.nz()) == Approx(std::abs(directors[i].nz())).margin(1e-6));
   }
   delete simu;
 }

@@ -31,4 +31,11 @@
 - The suite is very verbose, so run it with output captured to a log file so you can verify the exit code and the final test summary cleanly. 
     - for running tests, use something like `cd /home/eero/projects/qlc3d/build/tests && ./cpp-test > /tmp/cpp-test.log 2>&1; status=$?; echo EXIT:$status; tail -n 40 /tmp/cpp-test.log`
     - update the above path in this file if it changes
+
+## Quality gates
+The following quality gates must pass when there are any code changes. IMPORTANT: Keep working until they all pass. Only abort if you get stuck running loops trying different things, then abort and ask the user for help.
+  - All tests must pass
+  - All code must compile and link correctly
+    - c/c++ code: the project must be compiled from clean to ensure all files build correctly.
+  - code review: follow the rules in CODING_STANDARDS.md
   

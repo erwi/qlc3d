@@ -106,7 +106,7 @@ Terms used across the project documentation (`doc-impl` and `qlc3d/doc`), groupe
 - **RegularVecMat** : Output format saving regular-grid data as MATLAB-loadable text files.
 - **RegularVTK** : VTK output format with Q-tensor and potential interpolated onto a regular grid.
 - **SaveDir** : Settings key naming the results subdirectory.
-- **SaveFormat** : Settings key selecting result output formats (`LCview`, `LCviewTXT`, `RegularVTK`, `RegularVecMat`, `DirStackZ`, `VTKUnstructuredAsciiGrid`).
+- **SaveFormat** : Settings key selecting result output formats (`LCview`, `LCviewTXT`, `RegularVTK`, `RegularVecMat`, `DirStackZ`, `VTKUnstructuredAsciiGrid`, `Yarf`).
 - **SaveIter** : Iteration frequency for writing intermediate result files.
 - **SaveTime** : Time-based frequency for writing intermediate result files.
 - **VTK** : Output format family, including `VTKUnstructuredAsciiGrid` for ParaView.

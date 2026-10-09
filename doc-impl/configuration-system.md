@@ -118,7 +118,7 @@ Read by `SettingsReader::readSimu` into a `SimuBuilder`
 | `dtFunction` | `[0.5, 0.8, 1.2, 10]` | Array of exactly 4 values; no validation performed (`SimuBuilder::dtFunction`, TODO comment in code). |
 | `stretchVector` | `[1, 1, 1]` | Array of exactly 3 values, each `> 0`. |
 | `RegularGridSize` | `[0, 0, 0]` | Array of exactly 3 values; either all zero or all `> 0`. |
-| `SaveFormat` | `{}` (empty set) | Array of strings, each matched case-insensitively against `Simu::VALID_SAVE_FORMATS = {lcview, regularvtk, regularvecmat, dirstackz, lcviewtxt, csvunstructured, vtkunstructuredasciigrid}`. |
+| `SaveFormat` | `{}` (empty set) | Array of strings, each matched case-insensitively against `Simu::VALID_SAVE_FORMATS = {lcview, regularvtk, regularvecmat, dirstackz, lcviewtxt, csvunstructured, vtkunstructuredasciigrid, yarf}`. The `yarf` option is a normal save-format choice and is treated like the other runtime result writers when enabled. |
 | `MeshElementOrder` | `native` | One of `native`/`quadratic`/`linear`. |
 | `outputEnergy` | `0` | Boolean-as-int; if truthy, `SimulationContainer` opens `energy.csv` in the save directory. |
 | `SaveIter` | `0` | Must be `>= 0`. |

@@ -5,6 +5,7 @@
 #include <inits.h>
 #include <io/result-output.h>
 #include <io/lcview-result-output.h>
+#include <io/yarf.h>
 #include <resultio.h>
 #include <io/orientation-reader.h>
 #include <io/orientation-assignment.h>
@@ -120,6 +121,51 @@ TEST_CASE("Write binary LCView result file") {
     // THEN:
     REQUIRE(fs::exists(resDir.path() / "result-final.dat"));
   }
+}
+
+TEST_CASE("Write YARF result file via ResultOutput") {
+  const std::string meshName = "path/to/mesh.msh";
+  const auto geom = createSingleLinearTetGeometry();
+
+  const SolutionVector potential(geom->getnpLC(), 1);
+  SolutionVector qTensor(geom->getnpLC(), 5);
+  for (int i = 0; i < geom->getnpLC(); ++i) {
+    qTensor.setValue(i, qlc3d::Director::fromDegreeAngles(i * 12.0, i * 17.0, 0.5));
+  }
+
+  SimulationState simulationState;
+  simulationState.state(RunningState::RUNNING);
+  simulationState.currentIteration(7);
+
+  TestUtil::TemporaryDirectory resDir;
+  ResultOutput resultOutput({Simu::SaveFormats::Yarf}, meshName, 0.5, resDir.path());
+  resultOutput.writeResults(*geom, potential, qTensor, nullptr, simulationState);
+
+  const auto outputPath = resDir.path() / "result00000007.yarf";
+  REQUIRE(fs::exists(outputPath));
+
+  const auto snapshot = qlc3d::readYarfSnapshot(resDir.path(), simulationState);
+  REQUIRE(snapshot.header.simulation.mesh_file == meshName);
+  REQUIRE(snapshot.hasQTensor);
+  REQUIRE(snapshot.hasElectricPotential);
+}
+
+TEST_CASE("Empty save-format set writes no result files") {
+  const std::string meshName = "path/to/mesh.msh";
+  const auto geom = createSingleLinearTetGeometry();
+  const SolutionVector potential(geom->getnpLC(), 1);
+  SolutionVector qTensor(geom->getnpLC(), 5);
+
+  SimulationState simulationState;
+  simulationState.state(RunningState::RUNNING);
+  simulationState.currentIteration(11);
+
+  TestUtil::TemporaryDirectory resDir;
+  ResultOutput resultOutput({}, meshName, 0.5, resDir.path());
+  resultOutput.writeResults(*geom, potential, qTensor, nullptr, simulationState);
+
+  REQUIRE(resultOutput.isRegularGridRequired() == false);
+  REQUIRE(resDir.listFiles().empty());
 }
 
 TEST_CASE("Write text LCViewTxt result file") {

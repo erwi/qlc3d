@@ -10,3 +10,5 @@ This directory contains documentation about implementation details split into se
 - mesh-refinement.md: Adaptive red-green mesh refinement pipeline, element selection, classification, splitting, and Q-tensor interpolation.
 - quadratic-elements.md: Current state of quadratic finite-element support for 10-node tetrahedra (TET10) and 6-node triangles (TRI6).
 - regular-grid.md: Regular-grid subsystem architecture, spatial search, interpolation, and ownership after the Part-2 decoupling refactor.
+- yarf-result-file-format.md: Binary `.yarf` file format for storing simulation results, including JSON header structure, field layout, and integrity validation.
+- yarf-implementation.md: Initial qlc3d YARF reader/writer implementation notes, scope limits, validation rules, the WP4/WP5 read/write seams, and the deferred runtime-wiring plan.
