@@ -16,8 +16,8 @@ B = -0.3e6
 C = 0.2e6
 eps_par = 18.5
 eps_per = 7.0
-e11 = 0e-12
-e33 = 0e-12
+e1 = 0e-12
+e3 = 0e-12
 gamma1 = 0.0777
 
 BOX1.Type = Normal                 # Initial bulk orientation region1
