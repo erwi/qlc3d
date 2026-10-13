@@ -3,9 +3,6 @@
 
 #include <io/result-output.h>
 
-class Mesh;
-class Coordinates;
-
 class LcViewResultFormatWriter : public ResultFormatWriter {
   [[nodiscard]] static std::string numberedMeshName(const SimulationState &simulationState, const std::string &meshName) ;
 
@@ -21,14 +18,6 @@ protected:
 
   /** writes mesh file if required and sets writtenMeshPath_ */
   void writeMeshIfRequired(const Geometry &geom, const SimulationState &simulationState);
-public:
-  /**
-   * Write LCView format mesh file. public for testing purposes.
-   */
-  static void writeMeshFile(const Coordinates &coordinates,
-                            const Mesh &t,
-                            const Mesh &e,
-                            const std::filesystem::path &fileName);
 };
 
 //=============================================
