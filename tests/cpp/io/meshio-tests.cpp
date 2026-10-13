@@ -3,7 +3,7 @@
 #include <io/meshreader.h>
 #include <test-util.h>
 #include <geom/vec3.h>
-#include <io/lcview-result-output.h>
+#include <io/meshwriter.h>
 #include <geom/coordinates.h>
 #include <geometry.h>
 #include <mesh/mesh.h>
@@ -60,10 +60,11 @@ TEST_CASE("Write quadratic mesh as GiD/LCView format mesh and read it back as a 
 
   TestUtil::TemporaryFile meshout = TestUtil::TemporaryFile::empty();
 
-  LcViewResultFormatWriter::writeMeshFile(geom.getCoordinates(), geom.getTetrahedra(), geom.getTriangles(), meshout.name());
+  // GIVEN a quadratic mesh
+  // WHEN its LCView text mesh is written
+  writeMeshFile(geom.getCoordinates(), geom.getTetrahedra(), geom.getTriangles(), meshout.name());
 
-  // Read it back — GiD/LCView format stores a linearised (split) mesh.
-  // Explicitly request Quadratic policy to trigger recombination back to second-order elements.
+  // THEN reading it with quadratic policy restores the original element order.
   Geometry geom2;
   prepareGeometryWithDefaultBoundaries(geom2, meshout.name(), Simu::MeshElementOrder::Quadratic);
 
