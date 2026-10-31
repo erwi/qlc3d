@@ -4,7 +4,6 @@
 #include <io/orientation-loader.h>
 #include <io/orientation-reader.h>
 #include <io/orientation-assignment.h>
-#include <io/yarf.h>
 #include <solutionvector.h>
 #include <geom/vec3.h>
 #include <simu.h>
@@ -88,23 +87,6 @@ namespace qlc3d {
       RUNTIME_ERROR("Orientation file " + file + " for initial LC configuration does not exist.");
     }
     Log::info("Reading initial orientation from file {}", file);
-
-    const auto lowerExtension = lowercaseExtension(std::filesystem::path(file));
-
-    if (lowerExtension == ".yarf") {
-      const auto loaded = qlc3d::yarf::YarfFileReader{}.readQTensorSolution(std::filesystem::path(file));
-      if (loaded.getnDoF() != q.getnDoF()) {
-        RUNTIME_ERROR("YARF q_tensor node count (" + std::to_string(loaded.getnDoF()) +
-                      ") does not match the target SolutionVector size (" + std::to_string(q.getnDoF()) + ").");
-      }
-      if (loaded.getnDimensions() != q.getnDimensions()) {
-        RUNTIME_ERROR("YARF q_tensor dimension count (" + std::to_string(loaded.getnDimensions()) +
-                      ") does not match the target SolutionVector dimensions (" + std::to_string(q.getnDimensions()) + ").");
-      }
-      q = loaded;
-      applyCurrentOrderParameterOverride(q, s0, simu.getLoadInitialOrientationS0Mode());
-      return;
-    }
 
     auto reader = qlc3d::createOrientationReader(file);
     auto samples = reader->read(file, s0);

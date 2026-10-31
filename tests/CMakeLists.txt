@@ -35,7 +35,6 @@ add_executable(cpp-test
         cpp/io/orientation-assignment-tests.cpp
         cpp/io/orientation-loader-tests.cpp
         cpp/io/director-csv-reader-tests.cpp
-        cpp/io/yarf-file-tests.cpp
         cpp/geom/geom-tests.cpp
         cpp/geom/tet-mesh-search-tests.cpp
         cpp/potential/potential-solver-test.cpp
@@ -54,7 +53,8 @@ add_executable(cpp-test
         cpp/mesh/element-split-convert-tests.cpp
         cpp/energy-density-tests.cpp
         cpp/energy-calculator-tests.cpp
-        cpp/energy-csv-writer-tests.cpp)
+        cpp/energy-csv-writer-tests.cpp
+        cpp/io/yarfio-test.cpp)
 
 target_compile_features(cpp-test PUBLIC cxx_std_17)
 

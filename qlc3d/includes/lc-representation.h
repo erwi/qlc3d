@@ -48,10 +48,15 @@ namespace qlc3d {
 
         QTensor static fromDirector(const Director &director);
         [[nodiscard]] Director toDirector() const;
+        /** Qxx **/
         [[nodiscard]] const double &q1() const { return q1_; }
+        /** Qyy **/
         [[nodiscard]] const double &q2() const { return q2_; }
+        /** Qxy **/
         [[nodiscard]] const double &q3() const { return q3_; }
+        /** Qyz **/
         [[nodiscard]] const double &q4() const { return q4_; }
+        /** Qxz **/
         [[nodiscard]] const double &q5() const { return q5_; }
     };
 

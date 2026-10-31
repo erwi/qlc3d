@@ -123,26 +123,4 @@ public:
   ~VtkUnstructuredAsciiGridFormatWriter() override = default;
 };
 
-/**
- * Writes a YARF snapshot using the explicit qlc3d write seam.
- *
- * This writer remains opt-in and is only registered when the user selects the
- * `yarf` save format in the configuration.
- */
-class YarfResultFormatWriter : public ResultFormatWriter {
-public:
-  /**
-   * @param outputDir Directory that receives the generated YARF snapshots.
-   * @param meshPath Mesh path stored in the YARF simulation header.
-   */
-  explicit YarfResultFormatWriter(const std::filesystem::path &outputDir,
-                                 const std::filesystem::path &meshPath);
-  [[nodiscard]] const std::string formatName() const override { return "Yarf"; }
-  void writeResult(const Geometry &geom, const SimulationState &simulationState) override;
-  ~YarfResultFormatWriter() override = default;
-
-private:
-  std::filesystem::path meshPath_;
-};
-
 #endif //PROJECT_QLC3D_RESULT_OUTPUT_H

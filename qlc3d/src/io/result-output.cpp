@@ -5,12 +5,12 @@
 #include <solutionvector.h>
 #include <filesystem>
 #include <simulation-state.h>
-#include <qlc3d.h>
 #include <resultio.h>
 #include <simu.h>
 #include <util/logging.h>
 #include <lc-representation.h>
-#include <io/yarf.h>
+#include <io/yarfresultwriter.h>
+
 #include "util/exception.h"
 
 namespace fs = std::filesystem;
@@ -47,7 +47,7 @@ ResultOutput::ResultOutput(const std::set<Simu::SaveFormats> &saveFormats,
       outputFormatWriters_.push_back(std::shared_ptr<ResultFormatWriter>(new VtkUnstructuredAsciiGridFormatWriter(outputDir)));
     }
     else if (s == Simu::SaveFormats::Yarf) {
-      outputFormatWriters_.push_back(std::shared_ptr<ResultFormatWriter>(new YarfResultFormatWriter(outputDir, meshName)));
+      outputFormatWriters_.push_back(std::shared_ptr<ResultFormatWriter>(new YarfResultWriter(outputDir, meshName, S0)));
     }
     else {
       RUNTIME_ERROR("Unknown save format: " + std::to_string(s));
@@ -166,11 +166,3 @@ void VtkUnstructuredAsciiGridFormatWriter::writeResult(const Geometry &geom, con
           geom.getCoordinates(), geom.getnpLC(), geom.getTetrahedra(), *potential, *qTensor, filePath.string());
 }
 //</editor-fold>
-
-YarfResultFormatWriter::YarfResultFormatWriter(const std::filesystem::path &outputDir,
-                                              const std::filesystem::path &meshPath)
-   : ResultFormatWriter(outputDir), meshPath_(meshPath) {}
-
-void YarfResultFormatWriter::writeResult(const Geometry &geom, const SimulationState &simulationState) {
- qlc3d::writeYarfSnapshot(outputDirectory, geom, *potential, *qTensor, simulationState, meshPath_);
-}

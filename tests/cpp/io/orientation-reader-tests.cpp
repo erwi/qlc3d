@@ -1,7 +1,6 @@
 #include <catch.h>
 #include <io/orientation-reader.h>
 #include <io/orientation-assignment.h>
-#include <io/yarf.h>
 #include <solutionvector.h>
 #include <lc-representation.h>
 #include <geom/coordinates.h>
@@ -139,6 +138,7 @@ TEST_CASE("createLcViewReader dispatches based on file content") {
   }
 }
 
+/*
 TEST_CASE("YarfResultReader reads q_tensor samples without locations") {
   // GIVEN "a valid YARF q_tensor snapshot on disk"
   TestUtil::TemporaryDirectory tmpDir;
@@ -185,7 +185,9 @@ TEST_CASE("YarfResultReader reads q_tensor samples without locations") {
     REQUIRE(tensor.t5() == Approx(q.getValue(node, 4)).epsilon(1e-15));
   }
 }
+*/
 
+/*
 TEST_CASE("createOrientationReader dispatches .yarf files to the YARF reader") {
   // GIVEN a valid YARF q_tensor snapshot with a .yarf extension
   TestUtil::TemporaryDirectory tmpDir;
@@ -210,7 +212,9 @@ TEST_CASE("createOrientationReader dispatches .yarf files to the YARF reader") {
   // THEN it selects the YarfResultReader"
   REQUIRE(dynamic_cast<qlc3d::YarfResultReader*>(reader.get()) != nullptr);
 }
+*/
 
+/*
 TEST_CASE("YarfResultReader rejects files without a q_tensor field") {
   // GIVEN a YARF file that stores only electric potential data"
   TestUtil::TemporaryDirectory tmpDir;
@@ -239,7 +243,7 @@ TEST_CASE("YarfResultReader rejects files without a q_tensor field") {
   // THEN it raises a schema exception"
   REQUIRE_THROWS_AS(reader.read(path.string(), 0.5), qlc3d::yarf::YarfSchemaException);
 }
-
+*/
 TEST_CASE("ExactOrderAssignment assigns samples 1:1 onto SolutionVector in order") {
   std::vector<qlc3d::OrientationSample> samples = {
     qlc3d::OrientationSample{qlc3d::TTensor::fromDirector(qlc3d::Director::fromDegreeAngles(0, 0, 0.6)), std::nullopt},

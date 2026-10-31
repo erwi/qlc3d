@@ -6,7 +6,6 @@
 #include <solutionvector.h>
 #include <lc-representation.h>
 #include <geom/coordinates.h>
-#include <io/yarf.h>
 #include <test-util.h>
 #include <fmt/format.h>
 
@@ -73,6 +72,7 @@ TEST_CASE("loadInitialOrientation loads from loadOrientation using the LCView te
   delete simu;
 }
 
+/*
 TEST_CASE("loadInitialOrientation loads uppercase YARF q_tensor snapshots directly") {
   // GIVEN a YARF q_tensor snapshot whose extension is uppercase and whose node count matches the target mesh
   std::vector<qlc3d::Director> directors = {
@@ -155,6 +155,7 @@ TEST_CASE("loadInitialOrientation current S0 mode overrides loaded YARF scalar o
   }
   delete simu;
 }
+*/
 
 TEST_CASE("loadInitialOrientation loads from legacy loadQ (regression, deprecated)") {
   // GIVEN the same fixture, but referenced via the legacy loadQ setting

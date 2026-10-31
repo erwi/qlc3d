@@ -40,7 +40,6 @@ add_library(lib-qlc3d STATIC
         includes/io/vtkiofun.h
         includes/io/lcview-result-output.h
         includes/io/result-output.h
-        includes/io/yarf.h
         includes/io/energy-csv-writer.h
         src/io/meshreader.cpp
         src/io/ReadGiDMesh3D.cpp
@@ -48,7 +47,6 @@ add_library(lib-qlc3d STATIC
         src/io/matlabiofun.cpp
         src/io/vtkiofun.cpp
         src/io/result-output.cpp
-        src/io/yarf.cpp
         includes/io/orientation-sample.h
         includes/io/orientation-reader.h
         src/io/orientation-reader.cpp
@@ -111,6 +109,12 @@ add_library(lib-qlc3d STATIC
         src/energy/lc-energy-integrator.cpp
         includes/energy/lc-energy-calculator.h
         src/energy/lc-energy-calculator.cpp
+        includes/io/yarfresultwriter.h
+        src/io/yarfresultwriter.cpp
+        includes/io/meshwriter.h
+        src/io/meshwriter.cpp
+        includes/io/yarfresultreader.h
+        src/io/yarfresultreader.cpp
 )
 target_compile_features(lib-qlc3d PUBLIC cxx_std_17)
 set_target_properties(lib-qlc3d PROPERTIES CXX_STANDARD 17)

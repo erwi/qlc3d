@@ -33,13 +33,6 @@ namespace qlc3d {
     [[nodiscard]] bool producesLocations() const override { return false; }
   };
 
-  /** Reads mesh-matched q_tensor data from a YARF result snapshot. */
-  class YarfResultReader : public OrientationReader {
-  public:
-    [[nodiscard]] std::vector<OrientationSample> read(const std::string &fileName, double s0) const override;
-    [[nodiscard]] bool producesLocations() const override { return false; }
-  };
-
   /** Sniffs fileName (content, e.g. "RAW FLOAT TRI" marker - same as today's ResultIO::ReadResult) to decide
    *  between LcViewTextReader and LcViewBinaryReader. */
   [[nodiscard]] std::unique_ptr<OrientationReader> createLcViewReader(const std::string &fileName);
