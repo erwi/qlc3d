@@ -281,8 +281,8 @@ void ImplicitLCSolver::assembleMatrixSystemVolumeTerms(const SolutionVector &q,
     if (tets.getMaterialNumber(indTet) != MAT_DOMAIN1) {
       continue;
     }
-    tets.loadNodes(indTet, &tetNodes[0]);
-    q.loadEquNodes(&tetNodes[0], &tetNodes[elementNodeCount], &tetDofs[0]);
+    tets.loadNodes(indTet, tetNodes.data());
+    q.loadEquNodes(tetNodes.data(), tetNodes.data() + elementNodeCount, tetDofs.data());
 
     assembleLocalVolumeMatrix(indTet, lK, lL, tetNodes, tetDofs, shapes, q, v, geom, params);
     addToGlobalMatrix(lK, lL, q.getDofMap(), tetNodes);

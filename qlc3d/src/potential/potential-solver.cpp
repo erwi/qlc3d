@@ -149,10 +149,10 @@ void PotentialSolver::addToGlobalMatrix(const SpaMtrix::DenseMatrix &lK, const s
 
   // check if any dof is fixed and load the nodal values if required.
   const unsigned int numTetNodes = tetNodes.size();
-  bool anyFixed = std::any_of(&tetDofs[0], &tetDofs[numTetNodes], [&v](auto val){ return v.getDofMap().isFixedDof(val); });
+  bool anyFixed = std::any_of(tetDofs.begin(), tetDofs.end(), [&v](auto val){ return v.getDofMap().isFixedDof(val); });
   std::vector<double> values(numTetNodes, 0.);
   if (anyFixed) {
-    v.loadValues(&tetNodes[0], &tetNodes[numTetNodes], &values[0]);
+    v.loadValues(tetNodes.data(), tetNodes.data() + numTetNodes, &values[0]);
   }
 
   for (idx  i = 0; i < numTetNodes; i++) {
@@ -193,10 +193,10 @@ void PotentialSolver::assembleVolume(const SolutionVector &v, const SolutionVect
   TetShapeFunction shapes(elementOrder);
   shapes.setIntegrationPoints(Keast4);
 
-  #pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, elementCount, nodesPerTet) firstprivate(lK, lL, tetNodes, tetDofs, shapes) schedule(guided)
+  //#pragma omp parallel for default(none) shared(geom, v, q, lc, K, L, electrodes, elementCount, nodesPerTet) firstprivate(lK, lL, tetNodes, tetDofs, shapes) schedule(guided)
   for (idx elementIndex = 0; elementIndex < elementCount; elementIndex++) {
-    geom.getTetrahedra().loadNodes(elementIndex, &tetNodes[0]);
-    v.loadEquNodes(&tetNodes[0], &tetNodes[nodesPerTet], &tetDofs[0]);
+    geom.getTetrahedra().loadNodes(elementIndex, tetNodes.data());
+    v.loadEquNodes(tetNodes.data(), tetNodes.data() + nodesPerTet, tetDofs.data());
 
     localKL(geom, lK, lL, elementIndex, q, *lc, electrodes, shapes);
 
@@ -249,7 +249,7 @@ void PotentialSolver::assembleNeumann(const SolutionVector &v, const SolutionVec
       throw std::runtime_error("Unsupported element type for Neumann boundary conditions");
     }
 
-    v.loadEquNodes(&tetNodes[0], &tetNodes[nodesPerTet], &tetDofs[0]);
+    v.loadEquNodes(tetNodes.data(), tetNodes.data() + nodesPerTet, &tetDofs[0]);
 
     localKLNeumann(geom.getCoordinates(), lK, lL, tetNodes, q,
                    triMesh.getDeterminant(indTri),
@@ -287,7 +287,7 @@ void PotentialSolver::localKL(const Geometry &geom,
   std::vector<unsigned int> elemNodeInds(nodesPerTet, 0);
   std::vector<Vec3> elemCoords(nodesPerTet, Vec3());
   geom.getTetrahedra().loadNodes(elementIndex, &elemNodeInds[0]);
-  geom.getCoordinates().loadCoordinates(&elemNodeInds[0], &elemNodeInds[nodesPerTet], &elemCoords[0]);
+  geom.getCoordinates().loadCoordinates(elemNodeInds.data(), elemNodeInds.data() + nodesPerTet, &elemCoords[0]);
   for (auto &elemCoord : elemCoords) { elemCoord *= qlc3d::units::MICROMETER_TO_METER; }
 
   const double determinant = geom.getTetrahedra().getDeterminant(elementIndex);
@@ -297,7 +297,7 @@ void PotentialSolver::localKL(const Geometry &geom,
   std::vector<qlc3d::TTensor> qNodal(nodesPerTet, qlc3d::TTensor());
   std::vector<qlc3d::DielectricPermittivity> eNodal(nodesPerTet, qlc3d::DielectricPermittivity());
   if (isLCElement) {
-    q.loadQtensorValues(&elemNodeInds[0], &elemNodeInds[nodesPerTet], &qNodal[0]);
+    q.loadQtensorValues(elemNodeInds.data(), elemNodeInds.data() +nodesPerTet, &qNodal[0]);
 
     for (unsigned int i = 0; i < nodesPerTet; i++) {
       eNodal[i] = qlc3d::DielectricPermittivity::fromTTensor(qNodal[i], S0, deleps, eper_lc);
@@ -376,11 +376,11 @@ void PotentialSolver::localKLNeumann(
   lL.assign(lL.size(), 0.0);
 
   vector<Vec3> tetCoords(nodesPerTet, Vec3());
-  coordinates.loadCoordinates(&tetNodes[0], &tetNodes[nodesPerTet], &tetCoords[0]);
+  coordinates.loadCoordinates(tetNodes.data(), tetNodes.data() + nodesPerTet, tetCoords.data());
   for (auto &tetCoord : tetCoords) { tetCoord *= qlc3d::units::MICROMETER_TO_METER; }
 
   vector<qlc3d::TTensor> qNodal(nodesPerTet, qlc3d::TTensor());
-  q.loadQtensorValues(&tetNodes[0], &tetNodes[nodesPerTet], &qNodal[0]);
+  q.loadQtensorValues(tetNodes.data(), tetNodes.data() + nodesPerTet, qNodal.data());
 
   vector<qlc3d::DielectricPermittivity> eNodal(nodesPerTet, qlc3d::DielectricPermittivity());
   for (unsigned int i = 0; i < nodesPerTet; i++) {

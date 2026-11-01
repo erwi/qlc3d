@@ -86,7 +86,7 @@ inline void reorderBoundaryTetNodes(std::vector<unsigned int> &tetNodes, const s
   unsigned int tetNode =  tetNodes[0];
   for (unsigned int i = 0; i < numTetNodes; ++i) {
     tetNode = tetNodes[i];
-    if (!containsIndex(&triNodes[0], &triNodes[numTriNodes], tetNode)) {
+    if (!containsIndex(triNodes.data(), triNodes.data() + numTriNodes, tetNode)) {
       tetNode = tetNodes[i];
       break;
     }

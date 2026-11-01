@@ -368,7 +368,7 @@ TEST_CASE("Tet - 3D boundary integral in a unit cube") {
       // reorder tet nodes so that the triangle is the first three nodes
       reorderQuadraticBoundaryTetNodes(tetNodes, triNodes, coords);
 
-      coords.loadCoordinates(&tetNodes[0], &tetNodes[tets.getnNodes()], &tetCoords[0]);
+      coords.loadCoordinates(tetNodes.data(), tetNodes.data() + tets.getnNodes(), tetCoords.data());
       for (auto & c : tetCoords) {
         c *= 1e-6;
       }
