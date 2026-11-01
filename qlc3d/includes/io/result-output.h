@@ -53,7 +53,14 @@ public:
 
 class ResultOutput {
 public:
-  ResultOutput(const std::set<Simu::SaveFormats> &saveFormats, const std::string &meshName, double S0, const std::filesystem::path &outputDir);
+  /**
+   *
+   * @param saveFormats set of save formats to write results in.
+   * @param meshName filename without any path prefix, e.g. "mesh.txt", used as filename for result files that write a separate mesh file.
+   * @param S0 equilibrium order parameter value.
+   * @param outputDir directory where result files are written.
+   */
+  ResultOutput(const std::set<Simu::SaveFormats> &saveFormats, const std::filesystem::path &meshName, double S0, const std::filesystem::path &outputDir);
   /**
    * Write results using all registered output format writers.
    * @param geom           Current geometry.

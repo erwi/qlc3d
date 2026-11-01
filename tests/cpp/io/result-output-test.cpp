@@ -122,8 +122,29 @@ TEST_CASE("Write binary LCView result file") {
   }
 }
 
+TEST_CASE("ResultOutput creates output directory if it does not exist") {
+  const std::string meshName = "mesh.msh";
+  const auto geom = createSingleLinearTetGeometry();
+  const SolutionVector potential(geom->getnpLC(), 1);
+  SolutionVector qTensor(geom->getnpLC(), 5);
+
+  SimulationState simulationState;
+  simulationState.state(RunningState::RUNNING);
+  simulationState.currentIteration(11);
+
+  TestUtil::TemporaryDirectory resDir;
+  fs::path outputDir = resDir.path() / "nonexistent-dir";
+  REQUIRE_FALSE(fs::exists(outputDir));
+
+  ResultOutput resultOutput({Simu::SaveFormats::LCview}, meshName, 0.5, outputDir);
+  resultOutput.writeResults(*geom, potential, qTensor, nullptr, simulationState);
+
+  REQUIRE(fs::exists(outputDir));
+}
+
+
 TEST_CASE("Empty save-format set writes no result files") {
-  const std::string meshName = "path/to/mesh.msh";
+  const std::string meshName = "mesh.msh";
   const auto geom = createSingleLinearTetGeometry();
   const SolutionVector potential(geom->getnpLC(), 1);
   SolutionVector qTensor(geom->getnpLC(), 5);

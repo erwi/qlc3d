@@ -19,11 +19,30 @@ using namespace std;
 
 //<editor-fold desc="ResultOutput">
 ResultOutput::ResultOutput(const std::set<Simu::SaveFormats> &saveFormats,
-                           const std::string &meshName,
+                           const fs::path &meshName,
                            double S0,
-                           const std::filesystem::path &outputDir) {
-  outputFormatWriters_ = std::vector<std::shared_ptr<ResultFormatWriter>>();
+                           const fs::path &outputDir) {
 
+  // if output directory exists, make sure it is a directory. If it does not exist, create it.
+  if (!fs::exists(outputDir)) {
+    if (!fs::create_directories(outputDir)) {
+      RUNTIME_ERROR("Failed to create output directory: " + outputDir.string());
+    } else {
+      Log::info("Created output directory {}", outputDir.string());
+    }
+  } else {
+    if (!fs::is_directory(outputDir)) {
+      RUNTIME_ERROR("Output directory path exists, but it's not a directory: " + outputDir.string());
+    }
+  }
+
+  // make sure meshName is just a valid file name without any prefix path
+  std::string meshNameOnly = fs::path(meshName).filename().string();
+  if (meshNameOnly != meshName) {
+    RUNTIME_ERROR("Mesh name " + meshName.string() + " contains a path prefix.");
+  }
+
+  outputFormatWriters_ = std::vector<std::shared_ptr<ResultFormatWriter>>();
   for (const auto &s : saveFormats) {
     if (s == Simu::SaveFormats::LCview) {
       outputFormatWriters_.push_back(std::shared_ptr<ResultFormatWriter>(new LcViewBinaryResultFormatWriter(outputDir, meshName, S0)));
