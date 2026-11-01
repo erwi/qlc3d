@@ -27,9 +27,7 @@ ImplicitLCSolver::ImplicitLCSolver(const LC &lc, const SolverSettings &solverSet
   alignment(alignment),
   isChiral(lc.L4() != 0.0),
   isSymmetricMatrix(lc.p0() == 0.0),
-  isThreeElasticConstants(lc.K11() != lc.K22() || lc.K11() != lc.K33()) {
-  Log::info("Creating steady state solver for Q-tensor");
-}
+  isThreeElasticConstants(lc.K11() != lc.K22() || lc.K11() != lc.K33()) { }
 
 bool ImplicitLCSolver::solveMatrixSystem(const SpaMtrix::IRCMatrix &Kmatrix, const SpaMtrix::Vector &r, SpaMtrix::Vector &x) const {
   // check that matrix and vector sizes match

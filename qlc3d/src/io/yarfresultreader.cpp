@@ -90,9 +90,6 @@ Yarf::YarfHeader YarfResultReader::readYarfHeader(const std::string &fileName) {
   // read the 4-byte little-endian JSON length prefix
   int32_t jsonLength = readInt(inputStream);
 
-  Log::info("JSON header length: {}", jsonLength);
-
-  constexpr std::int64_t PREFIX_SIZE = 4 + 4; // 4 bytes for magic number + 4 bytes for JSON length prefix
   if (jsonLength <= 0) {
     RUNTIME_ERROR("JSON header length must be greater than zero in file " + fileName);
   }
@@ -106,6 +103,7 @@ Yarf::YarfHeader YarfResultReader::readYarfHeader(const std::string &fileName) {
   const nlohmann::json jsonHeader = nlohmann::json::parse(jsonText);
   Yarf::YarfHeader header = jsonHeader.get<Yarf::YarfHeader>();
 
+  constexpr std::int64_t PREFIX_SIZE = 4 + 4; // 4 bytes for magic number + 4 bytes for JSON length prefix
   header.payloadStartOffset = PREFIX_SIZE + jsonLength; // set the payload start offset to the position after the magic number and JSON length prefix
 
   return header;
